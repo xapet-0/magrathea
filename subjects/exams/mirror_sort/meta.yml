@@ -1,0 +1,15 @@
+id: mirror_sort
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- mirror_sort.sh
+allowed_functions:
+- rev
+- sort
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh mirror_sort.sh [args...]

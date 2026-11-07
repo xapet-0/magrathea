@@ -1,0 +1,23 @@
+Assignment name  : lego_pipe
+Expected files   : lego_pipe.sh
+Allowed commands : printf, tr, sort, uniq
+--------------------------------------------------------------------------------
+
+Write a shell script that reads lines from standard input, removes empty lines,
+converts uppercase letters to lowercase, and outputs the unique lines in
+alphabetical order.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> printf "B\na\nB\n\n" | sh lego_pipe.sh | cat -e
+a$
+b$
+$> printf "Z\nA\nz\nA\n" | sh lego_pipe.sh | cat -e
+a$
+z$
+$> printf "hello\nHELLO\nworld\n" | sh lego_pipe.sh | cat -e
+hello$
+world$

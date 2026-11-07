@@ -1,0 +1,17 @@
+# Examples for moment (from official subject specification)
+
+examples).
+
+The prototype of this function will be :
+    
+    char    *moment(unsigned int duration)
+
+Examples:
+
+moment(0)       => 0 seconds ago.
+moment(1)       => 1 second ago.
+moment(30)      => 30 seconds ago.
+moment(65)      => 1 minute ago.
+moment(120)     => 2 minutes ago.
+moment(2400)    => 40 minutes ago.
+moment(3735)    => 1 hour ago.

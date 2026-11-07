@@ -1,0 +1,67 @@
+fixed_tests:
+- call: int *a=NULL; int n=ft_ultimate_range(&a,-2,2); printf("%d:",n); for(int i=0;i<n;i++)
+    printf("%d ",a[i]); printf("\n"); free(a);
+  name: pool_ft_ultimate_range_T01
+  stdout: "4:-2 -1 0 1 \n"
+- call: int *a=(int*)0x42; int n=ft_ultimate_range(&a,5,5); printf("%d:%d\n", n, a==NULL);
+  name: ft_ultimate_range_min_ge_max
+  stdout: '0:1
+
+    '
+- call: int *a=NULL; int n=ft_ultimate_range(&a,10,11); printf("%d:%d\n", n, a[0]);
+    free(a);
+  name: ft_ultimate_range_single_element
+  stdout: '1:10
+
+    '
+- call: int *a=NULL; int n=ft_ultimate_range(&a,-5,-2); printf("%d:%d,%d,%d\n", n,
+    a[0], a[1], a[2]); free(a);
+  name: ft_ultimate_range_negative_interval
+  stdout: '3:-5,-4,-3
+
+    '
+- name: test_05_zero_to_five
+  call: int *a=NULL; int n=ft_ultimate_range(&a,0,5); printf("%d:",n); for(int i=0;i<n;i++)
+    printf("%d,",a[i]); printf("\n"); free(a);
+  tier: baseline
+  stdout: '5:0,1,2,3,4,
+
+    '
+- name: test_06_min_greater_than_max
+  call: int *a=(int*)0x42; int n=ft_ultimate_range(&a,10,5); printf("%d:%d\n", n,
+    a==NULL);
+  tier: edge
+  stdout: '0:1
+
+    '
+- name: test_07_zero_equal_bounds
+  call: int *a=(int*)0x42; int n=ft_ultimate_range(&a,0,0); printf("%d:%d\n", n, a==NULL);
+  tier: edge
+  stdout: '0:1
+
+    '
+- name: test_08_neg_one_to_zero
+  call: int *a=NULL; int n=ft_ultimate_range(&a,-1,0); printf("%d:%d\n", n, a[0]);
+    free(a);
+  tier: edge
+  stdout: '1:-1
+
+    '
+- name: test_09_positive_interval
+  call: int *a=NULL; int n=ft_ultimate_range(&a,1,6); printf("%d:",n); for(int i=0;i<n;i++)
+    printf("%d,",a[i]); printf("\n"); free(a);
+  tier: baseline
+  stdout: '5:1,2,3,4,5,
+
+    '
+- name: test_10_eight_elements
+  call: int *a=NULL; int n=ft_ultimate_range(&a,-4,4); printf("%d:",n); for(int i=0;i<n;i++)
+    printf("%d,",a[i]); printf("\n"); free(a);
+  tier: stress
+  stdout: '8:-4,-3,-2,-1,0,1,2,3,
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

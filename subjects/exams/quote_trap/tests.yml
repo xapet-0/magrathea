@@ -1,0 +1,77 @@
+subject_id: quote_trap
+fixed_tests:
+- name: test_01_no_args
+  env:
+    FT_VAR: 42_Piscine
+  args: []
+  stdout: '$FT_VAR = 42_Piscine
+
+    '
+- name: test_02_no_args
+  env:
+    FT_VAR: 1337_BenGuerir
+  args: []
+  stdout: '$FT_VAR = 1337_BenGuerir
+
+    '
+- name: test_03_special_chars
+  env:
+    FT_VAR: a*b?c
+  args: []
+  stdout: '$FT_VAR = a*b?c
+
+    '
+- name: test_04_empty_var
+  env:
+    FT_VAR: ''
+  args: []
+  stdout: "$FT_VAR = \n"
+- name: test_05_spaces_preserved
+  env:
+    FT_VAR: hello   world
+  args: []
+  tier: edge
+  stdout: '$FT_VAR = hello   world
+
+    '
+- name: test_06_dollar_and_quotes
+  env:
+    FT_VAR: $HOME_42
+  args: []
+  tier: edge
+  stdout: '$FT_VAR = $HOME_42
+
+    '
+- name: test_07_single_char
+  env:
+    FT_VAR: Z
+  args: []
+  tier: baseline
+  stdout: '$FT_VAR = Z
+
+    '
+- name: test_08_digits_only
+  env:
+    FT_VAR: 0123456789
+  args: []
+  tier: baseline
+  stdout: '$FT_VAR = 0123456789
+
+    '
+- name: test_09_glob_brackets
+  env:
+    FT_VAR: '[a-z]*?'
+  args: []
+  tier: edge
+  stdout: '$FT_VAR = [a-z]*?
+
+    '
+- name: test_10_sentence_with_tabs
+  env:
+    FT_VAR: "42\t1337\tMagrathea"
+  args: []
+  tier: stress
+  stdout: "$FT_VAR = 42\t1337\tMagrathea\n"
+subject_examples: []
+folder_examples: []
+near_examples: []

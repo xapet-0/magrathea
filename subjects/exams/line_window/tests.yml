@@ -1,0 +1,201 @@
+fixed_tests:
+- name: test_01_stdin
+  env:
+    FT_LINE1: '2'
+    FT_LINE2: '3'
+  stdin: '1
+
+    2
+
+    3
+
+    4
+
+    '
+  stdout: '2
+
+    3
+
+    '
+- name: test_02_stdin
+  env:
+    FT_LINE1: '1'
+    FT_LINE2: '2'
+  stdin: 'alpha
+
+    beta
+
+    gamma
+
+    '
+  stdout: 'alpha
+
+    beta
+
+    '
+- name: test_03_stdin
+  env:
+    FT_LINE1: '3'
+    FT_LINE2: '3'
+  stdin: 'a
+
+    b
+
+    c
+
+    d
+
+    '
+  stdout: 'c
+
+    '
+- name: test_04_middle_three
+  env:
+    FT_LINE1: '2'
+    FT_LINE2: '4'
+  stdin: 'l1
+
+    l2
+
+    l3
+
+    l4
+
+    l5
+
+    '
+  stdout: 'l2
+
+    l3
+
+    l4
+
+    '
+- name: test_05_first_line_only
+  env:
+    FT_LINE1: '1'
+    FT_LINE2: '1'
+  stdin: 'first
+
+    second
+
+    third
+
+    '
+  tier: edge
+  stdout: 'first
+
+    '
+- name: test_06_last_line_only
+  env:
+    FT_LINE1: '4'
+    FT_LINE2: '4'
+  stdin: 'a
+
+    b
+
+    c
+
+    d
+
+    '
+  tier: edge
+  stdout: 'd
+
+    '
+- name: test_07_all_lines
+  env:
+    FT_LINE1: '1'
+    FT_LINE2: '3'
+  stdin: '10
+
+    20
+
+    30
+
+    '
+  tier: baseline
+  stdout: '10
+
+    20
+
+    30
+
+    '
+- name: test_08_lines_with_spaces
+  env:
+    FT_LINE1: '2'
+    FT_LINE2: '3'
+  stdin: 'h 1
+
+    h 2
+
+    h 3
+
+    h 4
+
+    '
+  tier: baseline
+  stdout: 'h 2
+
+    h 3
+
+    '
+- name: test_09_two_middle_of_six
+  env:
+    FT_LINE1: '3'
+    FT_LINE2: '4'
+  stdin: '1
+
+    2
+
+    3
+
+    4
+
+    5
+
+    6
+
+    '
+  tier: baseline
+  stdout: '3
+
+    4
+
+    '
+- name: test_10_five_line_window
+  env:
+    FT_LINE1: '2'
+    FT_LINE2: '6'
+  stdin: 'L1
+
+    L2
+
+    L3
+
+    L4
+
+    L5
+
+    L6
+
+    L7
+
+    '
+  tier: stress
+  stdout: 'L2
+
+    L3
+
+    L4
+
+    L5
+
+    L6
+
+    '
+subject_id: line_window
+subject_examples: []
+folder_examples: []
+near_examples: []

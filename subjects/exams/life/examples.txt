@@ -1,0 +1,28 @@
+# Examples for life (from official subject specification)
+
+Example:
+$> echo 'sdxddssaaww' | ./a.out 5 5 0 | cat -e
+     $
+ OOO $
+ O O $
+ OOO $
+     $
+$> echo 'sdxssdswdxdddxsaddawxwdxwaa' | ./a.out 10 6 0 | cat -e
+          $
+ O   OOO  $
+ O     O  $
+ OOO  O   $
+  O  OOO  $
+          $
+$> echo 'dxss' | ./a.out 3 3 0 | cat -e
+ O $
+ O $
+ O $
+$> echo 'dxss' | ./a.out 3 3 1 | cat -e
+   $
+OOO$
+   $
+$> echo 'dxss' | ./a.out 3 3 2 | cat -e
+ O $
+ O $
+ O $

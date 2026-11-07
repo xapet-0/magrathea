@@ -1,0 +1,15 @@
+id: fprime
+type: c_program
+module: Exam Rank 02
+xp: 445
+expected_files:
+- fprime.c
+allowed_functions:
+- printf
+- atoi
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

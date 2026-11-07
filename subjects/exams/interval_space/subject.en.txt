@@ -1,0 +1,22 @@
+Assignment name  : interval_space
+Expected files   : interval_space.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a string and displays each character separated by
+exactly 3 spaces, followed by a newline. If the number of arguments is not 1,
+display only a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./interval_space "abc" | cat -e
+a   b   c$
+$> ./interval_space "x" | cat -e
+x$
+$> ./interval_space "" | cat -e
+$
+$> ./interval_space | cat -e
+$

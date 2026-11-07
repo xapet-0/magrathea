@@ -1,0 +1,11 @@
+# Examples for word_count_sh (from official subject specification)
+
+Examples:
+$> FT_LINE="Hello   world 1337" sh word_count_sh.sh | cat -e
+3$
+$> FT_LINE="   " sh word_count_sh.sh | cat -e
+0$
+$> FT_LINE="one two three four" sh word_count_sh.sh | cat -e
+4$
+$> FT_LINE="single" sh word_count_sh.sh | cat -e
+1$

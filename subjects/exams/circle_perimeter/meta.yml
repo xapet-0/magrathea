@@ -1,0 +1,13 @@
+id: circle_perimeter
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- circle_perimeter.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: float circle_perimeter(float radius);

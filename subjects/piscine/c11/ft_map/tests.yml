@@ -1,0 +1,70 @@
+fixed_tests:
+- call: int a[]={1,2,3}; int *r=ft_map(a,3,dt_double); for(int i=0;i<3;i++) printf("%d,",r[i]);
+    printf("\n"); free(r);
+  name: pool_ft_map_T01
+  stdout: '2,4,6,
+
+    '
+- call: int a[]={21}; int *r=ft_map(a,1,dt_double); printf("%d\n",r[0]); free(r);
+  name: ft_map_single_element
+  stdout: '42
+
+    '
+- call: int a[]={-5,0,5}; int *r=ft_map(a,3,dt_double); for(int i=0;i<3;i++) printf("%d,",r[i]);
+    printf("\n"); free(r);
+  name: ft_map_negative_values
+  stdout: '-10,0,10,
+
+    '
+- call: 'int a[]={1}; int *r=ft_map(a,0,dt_double); printf("%s\n", r != NULL ? "ALLOC_OK"
+    : "NULL_OK"); free(r);'
+  name: ft_map_zero_length
+  stdout: 'ALLOC_OK
+
+    '
+- name: test_05_five_elements
+  call: int a[]={1,2,3,4,5}; int *r=ft_map(a,5,dt_double); for(int i=0;i<5;i++) printf("%d,",r[i]);
+    printf("\n"); free(r);
+  tier: baseline
+  stdout: '2,4,6,8,10,
+
+    '
+- name: test_06_all_zeros
+  call: int a[]={0,0,0}; int *r=ft_map(a,3,dt_double); for(int i=0;i<3;i++) printf("%d,",r[i]);
+    printf("\n"); free(r);
+  tier: edge
+  stdout: '0,0,0,
+
+    '
+- name: test_07_does_not_mutate_input
+  call: int a[]={7,14}; int *r=ft_map(a,2,dt_double); printf("%d,%d|%d,%d\n",a[0],a[1],r[0],r[1]);
+    free(r);
+  tier: edge
+  stdout: '7,14|14,28
+
+    '
+- name: test_08_large_values
+  call: int a[]={1000, -1000, 42}; int *r=ft_map(a,3,dt_double); for(int i=0;i<3;i++)
+    printf("%d,",r[i]); printf("\n"); free(r);
+  tier: baseline
+  stdout: '2000,-2000,84,
+
+    '
+- name: test_09_partial_length
+  call: int a[]={10,20,30,40}; int *r=ft_map(a,2,dt_double); printf("%d,%d\n",r[0],r[1]);
+    free(r);
+  tier: edge
+  stdout: '20,40
+
+    '
+- name: test_10_six_elements
+  call: int a[]={-3,-2,-1,1,2,3}; int *r=ft_map(a,6,dt_double); for(int i=0;i<6;i++)
+    printf("%d,",r[i]); printf("\n"); free(r);
+  tier: stress
+  stdout: '-6,-4,-2,2,4,6,
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,143 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_putstr_T01
+  description: 'Functional verification of input: `ft_putstr("Hello World")`'
+  expr: ft_putstr("Hello World")
+  stdout: 'Hello World
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_putstr_T02
+  description: empty_string
+  call: ft_putstr(""); write(1, "\n", 1)
+  stdout: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_putstr_T03
+  description: single_char
+  call: ft_putstr("Z"); write(1, "\n", 1)
+  stdout: 'Z
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_putstr_T04
+  description: with_spaces
+  call: ft_putstr("1337 Benguerir"); write(1, "\n", 1)
+  stdout: '1337 Benguerir
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_spaces_only
+  call: ft_putstr("   "); write(1, "|\n", 2)
+  tier: edge
+  stdout: '   |
+
+    '
+- name: test_06_tabs_and_newlines
+  call: ft_putstr("a\tb\nc\n")
+  tier: edge
+  stdout: "a\tb\nc\n"
+- name: test_07_digits
+  call: ft_putstr("0123456789"); write(1, "\n", 1)
+  tier: baseline
+  stdout: '0123456789
+
+    '
+- name: test_08_punctuation
+  call: ft_putstr("!@#$%^&*()"); write(1, "\n", 1)
+  tier: baseline
+  stdout: '!@#$%^&*()
+
+    '
+- name: test_09_two_consecutive_calls
+  call: ft_putstr("42_"); ft_putstr("Network"); write(1, "\n", 1)
+  tier: baseline
+  stdout: '42_Network
+
+    '
+- name: test_10_alphabet
+  call: ft_putstr("abcdefghijklmnopqrstuvwxyz"); write(1, "\n", 1)
+  tier: stress
+  stdout: 'abcdefghijklmnopqrstuvwxyz
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_putstr
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_putstr_T06
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_putstr_T07
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "   "
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_putstr_T08
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "Papache est un sabre" "a" "o"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_putstr_T09
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "FOR PONY"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_putstr_T10
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "a" "b"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_putstr_T11
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "3:21 Ba  tOut  moUn ki Ka di KE m'en Ka fe fot"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_putstr_T12
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "zaz" "art" "zul"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_putstr_T13
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "this        ...       is sparta, then again, maybe    not"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_putstr_T14
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "jacob" "a" "b" "c" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_putstr_T15
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "L'eSPrit nE peUt plUs pRogResSer s'Il staGne et sI peRsIsTent
+    VAnIte et auto-justification."
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_putstr_T16
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "ZoZ eT Dovid oiME le METol." "o" "a"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_putstr_T17
+  origin: subject_folder/42ExamPractice/ft_putstr/tester.sh
+  input: ./ft_putstr "AkjhZ zLKIJz , 23y "
+  expected: Matches 42 reference standard output and exit code
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_putstr
+  perturbed_input:
+  - ft_putstr_near_arg_1
+  - ft_putstr_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_putstr_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_putstr/tester.sh)
+  original_input: ./ft_putstr "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  perturbed_input: ./gt_putstr "wNcOre Un ExEmPle Pas Facil
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_ft_putstr_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_putstr/tester.sh)
+  original_input: ./ft_putstr "   "
+  perturbed_input: ./gt_putstr "   "

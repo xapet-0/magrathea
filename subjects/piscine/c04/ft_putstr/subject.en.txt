@@ -1,0 +1,16 @@
+Assignment name  : ft_putstr
+Turn-in directory: ex01/
+Expected files   : ft_putstr.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+• Create a function that prints a string of characters to the standard output.
+• The function should be prototyped as follows:
+void ft_putstr(char *str);
+
+Your function must be declared as follows:
+    void ft_putstr(char *str);
+
+Examples:
+    ft_putstr("Hello World")
+    Output: Hello World

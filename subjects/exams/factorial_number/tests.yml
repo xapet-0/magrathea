@@ -1,0 +1,137 @@
+mode: c_function
+fixed_tests:
+- name: cur_factorial_number_T01
+  description: 'Functional verification of input: `factorial_number(5)`'
+  expr: factorial_number(5)
+  stdout: '120
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_factorial_number_T02
+  description: 'Functional verification of input: `factorial_number(0)`'
+  expr: factorial_number(0)
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_factorial_number_T03
+  description: 'Functional verification of input: `factorial_number(-3)`'
+  expr: factorial_number(-3)
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_factorial_number_T04
+  description: edge_factorial_negative
+  expr: factorial_number(-5)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_one
+  expr: factorial_number(1)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_two
+  expr: factorial_number(2)
+  tier: baseline
+  stdout: '2
+
+    '
+- name: test_07_three
+  expr: factorial_number(3)
+  tier: baseline
+  stdout: '6
+
+    '
+- name: test_08_four
+  expr: factorial_number(4)
+  tier: baseline
+  stdout: '24
+
+    '
+- name: test_09_six
+  expr: factorial_number(6)
+  tier: baseline
+  stdout: '720
+
+    '
+- name: test_10_ten
+  expr: factorial_number(10)
+  tier: stress
+  stdout: '3628800
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval factorial_number
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_factorial_number_T05
+  origin: subject_folder/deepthought/corrections/exams/factorial_number/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_factorial_number_T06
+  origin: subject_folder/deepthought/corrections/exams/factorial_number/generator.py
+  input: Dynamic generation rule via basic_test1()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_factorial_number_T07
+  origin: subject_folder/deepthought/corrections/exams/factorial_number/generator.py
+  input: Dynamic generation rule via basic_test2()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_factorial_number_T08
+  origin: subject_folder/deepthought/corrections/exams/factorial_number/generator.py
+  input: Dynamic generation rule via valid_factorial_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_factorial_number_T09
+  origin: subject_folder/deepthought/corrections/exams/factorial_number/generator.py
+  input: Dynamic generation rule via multiple_arguments_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval factorial_number
+  perturbed_input:
+  - factorial_number_near_arg_1
+  - factorial_number_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_factorial_number_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/factorial_number/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_factorial_number_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/factorial_number/generator.py)
+  original_input: Dynamic generation rule via basic_test1()
+  perturbed_input: Eynamic generation rule via basic_test1(
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `factorial_number`
+  input: factorial_number(INT_MIN), factorial_number(0), factorial_number(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `factorial_number`
+  input: Run factorial_number with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `factorial_number`
+  input: factorial_number(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `factorial_number`
+  input: Call factorial_number on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out

@@ -1,0 +1,14 @@
+id: ft_print_program_name
+type: c_program
+module: C 06
+xp: 175
+expected_files:
+- ft_print_program_name.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int main(int argc, char **argv);

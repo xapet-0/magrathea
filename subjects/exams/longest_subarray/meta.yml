@@ -1,0 +1,14 @@
+id: longest_subarray
+type: c_function
+module: "Piscine Exams 00\u2013Final"
+xp: 280
+expected_files:
+- longest_subarray.c
+allowed_functions:
+- malloc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: char *longest_subarray(char *arr);

@@ -1,0 +1,9 @@
+Examples:
+$> ./next_character 'A' | cat -e
+B$
+$> ./next_character 'z' | cat -e
+a$
+$> ./next_character | cat -e
+$
+$> ./next_character "" | cat -e
+Clean execution

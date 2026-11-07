@@ -1,0 +1,93 @@
+Assignment name  : rush00
+Expected files   : main.c ft_putchar.c rush00.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Module           : C Piscine Rush 00 (v8.0 PDF)
+Exercise         : Exercise 00 — rush00..rush04
+Turn-in directory: ex00/
+Files to turn in : main.c, ft_putchar.c, rush0X.c (where X in 0..4 matches leader login modulo 5)
+Allowed functions: write
+Toolchain Gate   : norminette -R CheckForbiddenSourceHeader + cc -Wall -Wextra -Werror
+--------------------------------------------------------------------------------
+
+• Write a function rush(int x, int y) that displays a rectangle of width x and
+  height y on screen.
+• The team assignment (rush00 to rush04) is calculated from the first two letters
+  of the team leader's login in base 26 modulo 5.
+• If x <= 0 or y <= 0, the function displays nothing.
+• Corner/Edge specification:
+  - rush00: corners 'o', horizontal '-', vertical '|'
+  - rush01: top-left '/', top-right '\\', bottom-left '\\', bottom-right '/', edges '*'
+  - rush02: top corners 'A', bottom corners 'C', edges 'B'
+  - rush03: left corners 'A', right corners 'C', edges 'B'
+  - rush04: top-left 'A', top-right 'C', bottom-left 'C', bottom-right 'A', edges 'B'
+
+# Examples for rush00 (from official subject specification)
+
+examples.
+Bonus Points:
+You can earn bonus points by submitting other versions of the project with their corre-
+sponding names. It is also possible to create a single binary accepting a command line
+argument to switch from one version to another.
+Make sure your assigned subject works perfectly before attempting any
+bonuses!
+If your bonus submission works, but your original assignment fails,
+you will receive a score of 0
+AI Instructions
+● Context
+The C Piscine is intense. It’s your first big challenge at 42 — a deep dive into problem-
+solving, autonomy, and community.
+During this phase, your main objective is to build your foundation — through struggle,
+repetition, and especiallypeer-learning exchange.
+In the AI era, shortcuts are easy to find. However, it’s important to consider whether your
+AI usage is truly helping you grow — or simply getting in the way of developing real skills.
+The Piscine is also a human experience — and for now, nothing can replace that. Not
+even AI.
+For a more complete overview of our stance on AI — as a learning tool, as part of the
+ICT curriculum, and as a growing expectation in the job market — please refer to the
+dedicated FAQ available on the intranet.
+● Main message
+☛ Build strong foundations without shortcuts.
+☛ Really develop tech & power skills.
+☛ Experience real peer-learning, start learning how to learn and solve new problems.
+☛ The learning journey is more important than the result.
+☛ Learn about the risks associated with AI, and develop effective control practices
+and countermeasures to avoid common pitfalls.
+C Piscine Rush00
+● Learner rules:
+• You should apply reasoning to your assigned tasks, especially before turning to AI.
+• You should not ask for direct answers to the AI.
+• You should learn about 42 global approach on AI.
+● Phase outcomes:
+Within this foundational phase, you will get the following outcomes:
+• Get proper tech and coding foundations.
+• Know why and how AI can be dangerous during this phase.
+● Comments and example:
+• Yes, we know AI exists — and yes, it can solve your projects. But you’re here to
+learn, not to prove that AI has learned. Don’t waste your time (or ours) just to
+demonstrate that AI can solve the given problem.
+• Learning at 42 isn’t about knowing the answer — it’s about developing the ability
+to find one. AI gives you the answer directly, but that prevents you from building
+your own reasoning. And reasoning takes time, effort, and involves failure. The
+path to success is not supposed to be easy.
+• Keep in mind that during exams, AI is not available — no internet, no smartphones,
+etc. You’ll quickly realise if you’ve relied too heavily on AI in your learning process.
+• Peer learning exposes you to different ideas and approaches, improving your inter-
+personal skills and your ability to think divergently. That’s far more valuable than
+just chatting with a bot. So don’t be shy — talk, ask questions, and learn together!
+• Yes, AI will be part of the curriculum — both as a learning tool and as a topic
+in itself. You’ll even have the chance to build your own AI software. In order to
+learn more about our crescendo approach you’ll go through in the documentation
+available on the intranet.
+✓ Good practice:
+I’m stuck on a new concept. I ask someone nearby how they approached it. We talk
+for 10 minutes — and suddenly it clicks. I get it.
+✗ Bad practice:
+I secretly use AI, copy some code that looks right. During peer evaluation, I can’t
+explain anything. I fail. During the exam — no AI — I’m stuck again. I fail.
+Main subject
+Exercise 00
+Rush0X
+Turn-in directory: ex00/
+Files to turn in: main.c, ft_putchar.c, rush0X.c

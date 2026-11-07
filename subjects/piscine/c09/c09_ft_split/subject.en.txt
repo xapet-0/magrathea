@@ -1,0 +1,25 @@
+Assignment name  : c09_ft_split
+Turn-in directory: ex02/
+Expected files   : ft_split.c
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+ft_split
+Turn-in directory: ex02/
+Files to turn in:ft_split.c
+Allowed functions: malloc
+• Create a function that splits a string, using each character from thecharset string
+as a separator.
+• You will need to use each character from the charset string individually as a
+separator.
+• The function should return an array where each element contains the address of a
+substring wrapped between two separators. The last element of the array should
+be NULL to indicate the end of the array.
+• There should be no empty strings in your array. Draw your conclusions accordingly.
+• The string provided as an argument cannot be modified.
+• Here’s the function prototype:
+char **ft_split(char *str, char *charset);
+
+Examples:
+$> ./c09_ft_split | cat -e
+$

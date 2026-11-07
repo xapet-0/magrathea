@@ -1,0 +1,143 @@
+fixed_tests:
+- args:
+  - '5'
+  - '3'
+  expected: 'o---o
+
+    |   |
+
+    o---o
+
+    '
+  name: pool_rush00_T01
+- args:
+  - '4'
+  - '4'
+  expected: 'o--o
+
+    |  |
+
+    |  |
+
+    o--o
+
+    '
+  name: pool_rush00_T02
+- args:
+  - '1'
+  - '1'
+  expected: 'o
+
+    '
+  name: rush00_1x1
+- args:
+  - '5'
+  - '1'
+  expected: 'o---o
+
+    '
+  name: rush00_5x1
+- args:
+  - '1'
+  - '5'
+  expected: 'o
+
+    |
+
+    |
+
+    |
+
+    o
+
+    '
+  name: rush00_1x5
+- name: test_06_2x2
+  args:
+  - '2'
+  - '2'
+  tier: baseline
+  stdout: 'oo
+
+    oo
+
+    '
+- name: test_07_3x2
+  args:
+  - '3'
+  - '2'
+  tier: baseline
+  stdout: 'o-o
+
+    o-o
+
+    '
+- name: test_08_2x3
+  args:
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: 'oo
+
+    ||
+
+    oo
+
+    '
+- name: test_09_zero_width_or_height
+  args:
+  - '0'
+  - '5'
+  tier: edge
+  stdout: ''
+- name: test_10_6x4
+  args:
+  - '6'
+  - '4'
+  tier: stress
+  stdout: 'o----o
+
+    |    |
+
+    |    |
+
+    o----o
+
+    '
+folder_examples:
+- expected: o---o\n\|   \|\no---o\n
+  id: pool_rush00_T01
+  input: '[''5'', ''3'']'
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: o--o\n\|  \|\n\|  \|\no--o\n
+  id: pool_rush00_T02
+  input: '[''4'', ''4'']'
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval rush00
+  perturbed_input:
+  - rush00_near_arg_1
+  - rush00_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: pool_rush00_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: '[''5'', ''3'']'
+  perturbed_input: '[''5'', ''3'']!'
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+- derived_from: pool_rush00_T02
+  id: near_folder_02_boundary_neighbor
+  original_input: '[''4'', ''4'']'
+  perturbed_input: '[''4'', ''4'']!'
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval rush00
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

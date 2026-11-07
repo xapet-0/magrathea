@@ -1,0 +1,6 @@
+[pool_ft_abs-h_T01] Input: ABS(-42)  ==>  Expected: 42\n
+[pool_ft_abs-h_T02] Input: ABS(17)  ==>  Expected: 17\n
+[pool_ft_abs-h_T03] Input: ABS(0)  ==>  Expected: 0\n
+[pool_ft_abs-h_T04] Input: ABS(42)  ==>  Expected: 42\n
+[pool_ft_abs-h_T05] Input: Input: 5  ==>  Expected: Expected: 5
+[pool_ft_abs-h_T06] Input: Input: -5  ==>  Expected: Expected: 5

@@ -1,0 +1,66 @@
+mode: c_function
+fixed_tests:
+- name: ft_list_size_T01_2nodes
+  call: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%d\n",ft_list_size(&a))
+  stdout: '2
+
+    '
+- name: ft_list_size_T02_null_and_3nodes
+  call: t_list c={.data="c",.next=0}; t_list b={.data="b",.next=&c}; t_list a={.data="a",.next=&b};
+    printf("%d:%d\n",ft_list_size(0),ft_list_size(&a))
+  stdout: '0:3
+
+    '
+- name: ft_list_size_single_node
+  call: t_list a={.data="only",.next=0}; printf("%d\n",ft_list_size(&a))
+  stdout: '1
+
+    '
+- name: ft_list_size_4nodes
+  call: t_list d={.data="4",.next=0}; t_list c={.data="3",.next=&d}; t_list b={.data="2",.next=&c};
+    t_list a={.data="1",.next=&b}; printf("%d\n",ft_list_size(&a))
+  stdout: '4
+
+    '
+- name: test_05_five_nodes
+  call: t_list e={.data="5",.next=0},d={.data="4",.next=&e},c={.data="3",.next=&d},b={.data="2",.next=&c},a={.data="1",.next=&b};
+    printf("%d\n",ft_list_size(&a))
+  tier: baseline
+  stdout: '5
+
+    '
+- name: test_06_six_nodes
+  call: t_list f={0,0},e={0,&f},d={0,&e},c={0,&d},b={0,&c},a={0,&b}; printf("%d\n",ft_list_size(&a))
+  tier: baseline
+  stdout: '6
+
+    '
+- name: test_07_null_data_nodes
+  call: t_list b={0,0},a={0,&b}; printf("%d\n",ft_list_size(&a))
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_08_sublist_sizes
+  call: t_list c={0,0},b={0,&c},a={0,&b}; printf("%d:%d:%d\n",ft_list_size(&a),ft_list_size(&b),ft_list_size(&c))
+  tier: edge
+  stdout: '3:2:1
+
+    '
+- name: test_09_seven_nodes
+  call: t_list v[7]; for(int i=0;i<7;i++){v[i].data=0; v[i].next=(i<6)?&v[i+1]:0;}
+    printf("%d\n",ft_list_size(&v[0]))
+  tier: baseline
+  stdout: '7
+
+    '
+- name: test_10_ten_nodes
+  call: t_list v[10]; for(int i=0;i<10;i++){v[i].data=0; v[i].next=(i<9)?&v[i+1]:0;}
+    printf("%d\n",ft_list_size(&v[0]))
+  tier: stress
+  stdout: '10
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

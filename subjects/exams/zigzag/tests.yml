@@ -1,0 +1,195 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `zigzag`
+  input: "zigzag(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `zigzag`
+  input: zigzag("   word   ") and zigzag("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `zigzag`
+  input: zigzag("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `zigzag`
+  input: Execute zigzag with no arguments and with 3 arguments
+  expected: Print newline only
+fixed_tests:
+- args:
+  - hello
+  category: Functional
+  description: 'Functional verification of input: `[''hello'']`'
+  expected: 'HeLlO
+
+    '
+  name: cur_zigzag_T01
+  stdout: 'HeLlO
+
+    '
+  tier: baseline
+- args:
+  - a b c
+  category: Functional
+  description: 'Functional verification of input: `[''a b c'']`'
+  expected: 'A B C
+
+    '
+  name: cur_zigzag_T02
+  stdout: 'A B C
+
+    '
+  tier: baseline
+- args:
+  - ''
+  category: Functional
+  description: 'Functional verification of input: `['''']`'
+  expected: '
+
+    '
+  name: cur_zigzag_T03
+  stdout: '
+
+    '
+  tier: baseline
+- args:
+  - A
+  category: Functional
+  description: 'Functional verification of input: `[''A'']`'
+  expected: 'A
+
+    '
+  name: cur_zigzag_T04
+  stdout: 'A
+
+    '
+  tier: baseline
+- args:
+  - abc def
+  category: Functional
+  description: 'Functional verification of input: `[''abc def'']`'
+  expected: 'AbC DeF
+
+    '
+  name: cur_zigzag_T05
+  stdout: 'AbC DeF
+
+    '
+  tier: baseline
+- args:
+  - '  '
+  category: Functional
+  description: 'Functional verification of input: `[''  '']`'
+  expected: "  \n"
+  name: cur_zigzag_T06
+  stdout: "  \n"
+  tier: baseline
+- args: []
+  category: Functional
+  description: Standard baseline execution and behavior check for `zigzag`
+  expected: '
+
+    '
+  name: cur_zigzag_T07
+  stdout: '
+
+    '
+  tier: baseline
+- name: test_08_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: "   \n"
+- name: test_10_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '1337
+
+    '
+folder_examples:
+- expected: HeLlO\n
+  id: cur_zigzag_T01
+  input: '[''hello'']'
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: A B C\n
+  id: cur_zigzag_T02
+  input: '[''a b c'']'
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: '`\n` (Clean newline termination)'
+  id: cur_zigzag_T03
+  input: '['''']'
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_lexical_shift
+  original_input: &id001
+  - hello
+  perturbed_input:
+  - iello
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_01
+  id: near_subj_01_whitespace_envelope
+  original_input: *id001
+  perturbed_input:
+  - '  hello  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_02
+  id: near_subj_02_lexical_shift
+  original_input: &id002
+  - a b c
+  perturbed_input:
+  - b b c
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_02
+  id: near_subj_02_whitespace_envelope
+  original_input: *id002
+  perturbed_input:
+  - '  a b c  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: cur_zigzag_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: '[''hello'']'
+  perturbed_input: '[''iello'']'
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+- derived_from: cur_zigzag_T02
+  id: near_folder_02_boundary_neighbor
+  original_input: '[''a b c'']'
+  perturbed_input: '[''b b c'']'
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: *id001
+  cat_e: true
+  command: ./zigzag hello | cat -e
+  expected: 'HeLlO
+
+    '
+  id: subj_ex_01
+  origin: subject.en.txt
+- args: *id002
+  cat_e: true
+  command: ./zigzag "a b c" | cat -e
+  expected: 'A B C
+
+
+    Allowed functions: write.
+
+    '
+  id: subj_ex_02
+  origin: subject.en.txt

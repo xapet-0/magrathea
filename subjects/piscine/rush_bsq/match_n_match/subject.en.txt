@@ -1,0 +1,18 @@
+Assignment name  : match_n_match
+Expected files   : match_n_match.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+# match_n_match
+
+Build a `match-n-match` binary. It takes two arguments, a string and a pattern, then prints `match: <0|1>` for exact matching and `nmatch: <0|1>` for wildcard matching where `*` matches any sequence and `?` matches one character.
+
+The project must include a Makefile. Source files may be at the project root or under `srcs/` and headers may be at the project root or under `includes/`.
+Generated objects, binaries other than the expected binary, correction folders, and test folders must not be submitted.
+
+Your function must be declared as follows:
+    int match(char *s1, char *s2); int nmatch(char *s1, char *s2);
+
+Examples:
+    printf("%d:%d:%d:%d\n", match("main.c", "*.c"), match("main.c", "*.h"), nmatch("abcbd", "*b*"), nmatch("abc", "a**"))
+    Output: 1:0:2:3

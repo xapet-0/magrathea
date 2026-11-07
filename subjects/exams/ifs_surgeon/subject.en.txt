@@ -1,0 +1,24 @@
+Assignment name  : ifs_surgeon
+Expected files   : ifs_surgeon.sh
+Allowed commands : printf, read
+--------------------------------------------------------------------------------
+
+Write a POSIX shell script that takes a colon-delimited string `"a:b:c"` in
+`$1` (or standard input) and prints each field on its own line using `IFS=:`.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh ifs_surgeon.sh "a:b:c" | cat -e
+a$
+b$
+c$
+$> sh ifs_surgeon.sh "marvin:42:1337" | cat -e
+marvin$
+42$
+1337$
+$> sh ifs_surgeon.sh "one:two" | cat -e
+one$
+two$

@@ -1,0 +1,269 @@
+mode: c_program
+fixed_tests:
+- name: pool_ft_rev_params_T01
+  description: three_args
+  args:
+  - one
+  - two
+  - three
+  expected: 'three
+
+    two
+
+    one
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_rev_params_T02
+  description: single_arg
+  args:
+  - '42'
+  expected: '42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_rev_params_T03
+  description: no_args
+  args: []
+  expected: ''
+  category: Functional
+  tier: baseline
+- name: pool_ft_rev_params_T04
+  description: four_args
+  args:
+  - a
+  - b
+  - c
+  - d
+  expected: 'd
+
+    c
+
+    b
+
+    a
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_two_args
+  args:
+  - first
+  - second
+  tier: baseline
+  stdout: 'second
+
+    first
+
+    '
+- name: test_06_empty_string_args
+  args:
+  - a
+  - ''
+  - b
+  tier: edge
+  stdout: 'b
+
+
+    a
+
+    '
+- name: test_07_args_with_spaces
+  args:
+  - hello world
+  - 42 school
+  - '1337'
+  tier: edge
+  stdout: '1337
+
+    42 school
+
+    hello world
+
+    '
+- name: test_08_flags_and_numbers
+  args:
+  - '-1'
+  - '0'
+  - '42'
+  - '-99'
+  tier: baseline
+  stdout: '-99
+
+    42
+
+    0
+
+    -1
+
+    '
+- name: test_09_identical_args
+  args:
+  - same
+  - same
+  - diff
+  tier: edge
+  stdout: 'diff
+
+    same
+
+    same
+
+    '
+- name: test_10_six_args
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  - '5'
+  - '6'
+  tier: stress
+  stdout: '6
+
+    5
+
+    4
+
+    3
+
+    2
+
+    1
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./ft_rev_params "one" "two" "three" | cat -e
+  args: &id001
+  - one
+  - two
+  - three
+  expected: 'three
+
+    two
+
+    one
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./ft_rev_params "42" | cat -e
+  args: &id002
+  - '42'
+  expected: '42
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./ft_rev_params | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./ft_rev_params "a" "b" "c" "d" | cat -e
+  args: &id003
+  - a
+  - b
+  - c
+  - d
+  expected: 'd
+
+    c
+
+    b
+
+    a
+
+    '
+  cat_e: true
+folder_examples:
+- id: pool_ft_rev_params_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''one'', ''two'', ''three'']'
+  expected: three\ntwo\none\n
+- id: pool_ft_rev_params_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''42'']'
+  expected: 42\n
+- id: pool_ft_rev_params_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`./ft_rev_params` (no CLI arguments passed, `argc == 1`)'
+  expected: '`\n` (Single newline emitted on argument count mismatch)'
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - pne
+  - uwo
+  - uhree
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  one  '
+  - two
+  - three
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - '43'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  42  '
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./ft_rev_params | cat -e
+  perturbed_input:
+  - ft_rev_params_near_arg_1
+  - ft_rev_params_near_arg_2
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - b
+  - c
+  - d
+  - e
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  a  '
+  - b
+  - c
+  - d
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_rev_params_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''one'', ''two'', ''three'']'
+  perturbed_input: '[''pne'', ''two'', ''three'']'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_rev_params_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''42'']'
+  perturbed_input: '[''42'']!'

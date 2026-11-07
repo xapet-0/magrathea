@@ -1,0 +1,64 @@
+fixed_tests:
+- call: t_list *n=ft_create_elem("x"); printf("%s:%d\n",(char*)n->data,n->next==0);
+  name: pool_ft_create_elem_T01
+  stdout: 'x:1
+
+    '
+- call: 't_list *n=ft_create_elem(NULL); printf("%s:%d\n", n->data==NULL ? "NULL_DATA"
+    : "BAD", n->next==0);'
+  name: ft_create_elem_null_data
+  stdout: 'NULL_DATA:1
+
+    '
+- call: int val=42; t_list *n=ft_create_elem(&val); printf("%d:%d\n", *(int*)n->data,
+    n->next==0);
+  name: ft_create_elem_number
+  stdout: '42:1
+
+    '
+- call: t_list *n=ft_create_elem("1337"); printf("%s:%d\n", (char*)n->data, n->next==0);
+  name: ft_create_elem_string_literal
+  stdout: '1337:1
+
+    '
+- name: test_05_empty_string
+  call: t_list *n=ft_create_elem(""); printf("[%s]:%d\n",(char*)n->data,n->next==0);
+  tier: edge
+  stdout: '[]:1
+
+    '
+- name: test_06_two_independent_nodes
+  call: t_list *a=ft_create_elem("A"); t_list *b=ft_create_elem("B"); printf("%d:%s:%s\n",a!=b,(char*)a->data,(char*)b->data);
+  tier: edge
+  stdout: '1:A:B
+
+    '
+- name: test_07_manual_link
+  call: t_list *a=ft_create_elem("1"); t_list *b=ft_create_elem("2"); a->next=b; printf("%s->%s:%d\n",(char*)a->data,(char*)a->next->data,b->next==0);
+  tier: baseline
+  stdout: '1->2:1
+
+    '
+- name: test_08_negative_int_ptr
+  call: int v=-1337; t_list *n=ft_create_elem(&v); printf("%d\n",*(int*)n->data);
+  tier: baseline
+  stdout: '-1337
+
+    '
+- name: test_09_struct_pointer_identity
+  call: char buf[8]="hello"; t_list *n=ft_create_elem(buf); printf("%d\n",n->data==(void*)buf);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_10_three_chained_elems
+  call: t_list *a=ft_create_elem("x"); a->next=ft_create_elem("y"); a->next->next=ft_create_elem("z");
+    printf("%s%s%s\n",(char*)a->data,(char*)a->next->data,(char*)a->next->next->data);
+  tier: stress
+  stdout: 'xyz
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

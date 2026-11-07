@@ -1,0 +1,24 @@
+name: rank06
+display_name: "42 Common Core \u2014 Exam Rank 06"
+pool_group: cursus
+rank_order: 26
+prerequisites:
+- rank05
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 50
+  candidates:
+  - bigint
+  - cpp_module_00
+  - mini_db
+  - mini_serv
+  - polyset
+- level: 1
+  points: 50
+  candidates:
+  - vect2
+  - cpp_module_01
+  - cpp_module_02
+  - life
+  - bsq

@@ -1,0 +1,81 @@
+subject_id: micro_marvin
+fixed_tests:
+- name: test_01_len_hello
+  args:
+  - len
+  - hello
+  stdout: '5
+
+    '
+- name: test_02_rev_abc
+  args:
+  - rev
+  - abc
+  stdout: 'cba
+
+    '
+- name: test_03_len_1337_42
+  args:
+  - len
+  - '1337_42'
+  stdout: '7
+
+    '
+- name: test_04_rev_1337
+  args:
+  - rev
+  - '1337'
+  stdout: '7331
+
+    '
+- name: test_05_len_empty
+  args:
+  - len
+  - ''
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_06_rev_empty
+  args:
+  - rev
+  - ''
+  tier: edge
+  stdout: '
+
+    '
+- name: test_07_len_single
+  args:
+  - len
+  - X
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_rev_single
+  args:
+  - rev
+  - X
+  tier: edge
+  stdout: 'X
+
+    '
+- name: test_09_rev_palindrome
+  args:
+  - rev
+  - racecar
+  tier: baseline
+  stdout: 'racecar
+
+    '
+- name: test_10_len_and_rev_ten
+  args:
+  - rev
+  - 0123456789
+  tier: stress
+  stdout: '9876543210
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

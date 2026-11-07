@@ -1,0 +1,6 @@
+# Examples for largest_number (from official subject specification)
+
+Example:
+
+    $> largest_number(3, 14, 96) = 96
+    $> largest_number(63, 14, 16) = 63

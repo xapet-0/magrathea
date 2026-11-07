@@ -1,0 +1,13 @@
+id: ft_strstr
+type: c_function
+module: C 03
+xp: 165
+expected_files:
+- ft_strstr.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: char *ft_strstr(char *str, char *to_find);

@@ -1,0 +1,9 @@
+Examples:
+$> ./rle "AAABBC" | cat -e
+3A2BC$
+$> ./rle "ABC" | cat -e
+ABC$
+$> ./rle "" | cat -e
+$
+$> ./rle | cat -e
+$

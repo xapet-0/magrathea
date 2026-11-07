@@ -1,0 +1,17 @@
+Assignment name  : antidote
+Expected files   : antidote.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that takes three integers i, j, and k and returns the
+median value (the number that is neither the minimum nor the maximum, or the
+middle value when sorted).
+
+Your function must be declared as follows:
+
+int	antidote(int i, int j, int k);
+
+Examples:
+  antidote(1, 5, 3)   -> 3
+  antidote(10, 2, 8)  -> 8
+  antidote(42, 42, 7) -> 42

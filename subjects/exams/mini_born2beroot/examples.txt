@@ -1,0 +1,3 @@
+Examples:
+$> sh mini_born2beroot.sh | cat -e
+#Architecture:$

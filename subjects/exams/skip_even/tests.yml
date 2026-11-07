@@ -1,0 +1,229 @@
+fixed_tests:
+- name: test_01_stdin
+  stdin: 'line1
+
+    line2
+
+    line3
+
+    '
+  stdout: 'line1
+
+    line3
+
+    '
+  tier: baseline
+- name: folder_ex_01
+  tier: folder_example
+  args: []
+  stdout: 'line1
+
+    line3
+
+    '
+  stdin: 'line1
+
+    line2
+
+    line3
+
+    '
+- name: folder_ex_02
+  tier: folder_example
+  args: []
+  stdout: 'a
+
+    c
+
+    e
+
+    '
+  stdin: 'a
+
+    b
+
+    c
+
+    d
+
+    e
+
+    '
+- name: folder_ex_03
+  tier: folder_example
+  args: []
+  stdout: 'only1
+
+    '
+  stdin: 'only1
+
+    '
+- name: test_05_stdin_auto
+  stdin: '42
+
+    1337
+
+    '
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_06_stdin_auto
+  stdin: 'hello world
+
+    '
+  tier: baseline
+  stdout: 'hello world
+
+    '
+- name: test_07_stdin_auto
+  stdin: 'a
+
+    b
+
+    c
+
+    '
+  tier: baseline
+  stdout: 'a
+
+    c
+
+    '
+- name: test_08_stdin_auto
+  stdin: '10 20 30 40 50
+
+    '
+  tier: baseline
+  stdout: '10 20 30 40 50
+
+    '
+- name: test_09_stdin_auto
+  stdin: 'single_line
+
+    '
+  tier: baseline
+  stdout: 'single_line
+
+    '
+- name: test_10_stdin_auto
+  stdin: 'foo
+
+    bar
+
+    baz
+
+    qux
+
+    '
+  tier: baseline
+  stdout: 'foo
+
+    baz
+
+    '
+subject_id: skip_even
+mode: shell
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: printf "line1\nline2\nline3\n" | sh skip_even.sh | cat -e
+  args: &id001
+  - line1\nline2\nline3\n
+  expected: 'line1
+
+    line3
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: printf "a\nb\nc\nd\ne\n" | sh skip_even.sh | cat -e
+  args: &id002
+  - a\nb\nc\nd\ne\n
+  expected: 'a
+
+    c
+
+    e
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: printf "only1\n" | sh skip_even.sh | cat -e
+  args: &id003
+  - only1\n
+  expected: 'only1
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_skip_even_T04
+  origin: subject_folder/examples.txt
+  input: printf "line1\nline2\nline3\n" \| sh skip_even.sh \| cat -e
+  expected: line1$\nline3$
+- id: e1337_skip_even_T05
+  origin: subject_folder/examples.txt
+  input: printf "a\nb\nc\nd\ne\n" \| sh skip_even.sh \| cat -e
+  expected: a$\nc$\ne$
+- id: e1337_skip_even_T06
+  origin: subject_folder/examples.txt
+  input: printf "only1\n" \| sh skip_even.sh \| cat -e
+  expected: only1$
+- id: folder_fixture_04
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- stdin: 'line1\n\n    line2\n\n    line3\n\n    '\n  stdout:\
+    \ 'line1\n\n    line3\n\n    '\n- stdin: 'a\n\n    b\n\n    c\n\n    d\n\n   \
+    \ e\n\n    '\n  stdout: 'a\n\n    c\n"
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - mine1\nline2\nline3\n
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  line1\nline2\nline3\n  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - b\nb\nc\nd\ne\n
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  a\nb\nc\nd\ne\n  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - pnly1\n
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  only1\n  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_skip_even_T04
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: printf "line1\nline2\nline3\n" \| sh skip_even.sh \| cat -e
+  perturbed_input: qrintf "line1\nline2\nline3\n" \| sh ski
+- id: near_folder_02_boundary_neighbor
+  derived_from: e1337_skip_even_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: printf "a\nb\nc\nd\ne\n" \| sh skip_even.sh \| cat -e
+  perturbed_input: qrintf "a\nb\nc\nd\ne\n" \| sh skip_even

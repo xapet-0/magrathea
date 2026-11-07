@@ -1,0 +1,6 @@
+[can_ft_strcmp_T01] Input: ft_strcmp("abc", "abc") == 0 ? 1 : 0  ==>  Expected: 1\n
+[can_ft_strcmp_T02] Input: ft_strcmp("abc", "abd") < 0 ? 1 : 0  ==>  Expected: 1\n
+[can_ft_strcmp_T03] Input: ft_strcmp("\200", "a") > 0 ? 1 : 0  ==>  Expected: 1\n
+[can_ft_strcmp_T04] Input: ft_strcmp("a", "\200") < 0 ? 1 : 0  ==>  Expected: 1\n
+[can_ft_strcmp_T05] Input: ./ft_strcmp "hello World" ""  ==>  Expected: Matches 42 reference standard output and exit code
+[can_ft_strcmp_T06] Input: ./ft_strcmp "hello World" "hello world"  ==>  Expected: Matches 42 reference standard output and exit code

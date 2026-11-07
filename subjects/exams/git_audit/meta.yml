@@ -1,0 +1,16 @@
+id: git_audit
+type: shell
+module: Piscine Exams 00–Final
+xp: 290
+expected_files:
+- git_audit.sh
+allowed_functions:
+- git
+- head
+- printf
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh git_audit.sh [args...]

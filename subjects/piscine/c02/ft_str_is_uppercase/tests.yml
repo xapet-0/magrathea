@@ -1,0 +1,110 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_str_is_uppercase_T01
+  description: 'Functional verification of input: `ft_str_is_uppercase("ABC")`'
+  expr: ft_str_is_uppercase("ABC")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_str_is_uppercase_T02
+  description: 'Functional verification of input: `ft_str_is_uppercase("ABc")`'
+  expr: ft_str_is_uppercase("ABc")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_str_is_uppercase_T03
+  description: 'Functional verification of input: `ft_str_is_uppercase("")`'
+  expr: ft_str_is_uppercase("")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_str_is_uppercase_T04_digit
+  description: digit_in_uppercase_str
+  expr: ft_str_is_uppercase("ABC1")
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_full_alphabet
+  expr: ft_str_is_uppercase("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_06_single_Z
+  expr: ft_str_is_uppercase("Z")
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_07_boundary_at_sign
+  expr: ft_str_is_uppercase("@ABC")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_boundary_left_bracket
+  expr: ft_str_is_uppercase("ABC[")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_with_space
+  expr: ft_str_is_uppercase("HELLO WORLD")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_single_lower
+  expr: ft_str_is_uppercase("a")
+  tier: edge
+  stdout: '0
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_str_is_uppercase
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_str_is_uppercase_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: ft_str_is_uppercase("ABC")
+  expected: 1\n
+- id: pool_ft_str_is_uppercase_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: ft_str_is_uppercase("ABc")
+  expected: 0\n
+- id: pool_ft_str_is_uppercase_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: ft_str_is_uppercase("")
+  expected: 1\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_str_is_uppercase
+  perturbed_input:
+  - ft_str_is_uppercase_near_arg_1
+  - ft_str_is_uppercase_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_str_is_uppercase_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: ft_str_is_uppercase("ABC")
+  perturbed_input: gt_str_is_uppercase("ABC")
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_str_is_uppercase_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: ft_str_is_uppercase("ABc")
+  perturbed_input: gt_str_is_uppercase("ABc")

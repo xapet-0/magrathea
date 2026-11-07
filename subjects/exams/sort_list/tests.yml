@@ -1,0 +1,68 @@
+mode: c_function
+fixed_tests:
+- name: can_sort_list_T01
+  call: t_list c={2,0}; t_list b={1,&c}; t_list a={3,&b}; t_list *p=sort_list(&a,
+    ascending); while(p){printf("%d", p->data); p=p->next;} printf("\n")
+  stdout: '123
+
+    '
+- name: can_sort_list_T02
+  call: t_list a={42,0}; t_list *p=sort_list(&a, ascending); printf("%d\n", p->data)
+  stdout: '42
+
+    '
+- name: sort_list_duplicates
+  call: t_list c={2,0}; t_list b={5,&c}; t_list a={5,&b}; t_list *p=sort_list(&a,
+    ascending); while(p){printf("%d", p->data); p=p->next;} printf("\n")
+  stdout: '255
+
+    '
+- name: sort_list_reversed_4nodes
+  call: t_list d={1,0}; t_list c={4,&d}; t_list b={8,&c}; t_list a={9,&b}; t_list
+    *p=sort_list(&a, ascending); while(p){printf("%d", p->data); p=p->next;} printf("\n")
+  stdout: '1489
+
+    '
+- name: sort_list_already_sorted
+  call: t_list c={3,0}; t_list b={2,&c}; t_list a={1,&b}; t_list *p=sort_list(&a,
+    ascending); while(p){printf("%d", p->data); p=p->next;} printf("\n")
+  stdout: '123
+
+    '
+- name: test_06_single_negative
+  call: t_list a={-42,0}; t_list *p=sort_list(&a, ascending); printf("%d\n", p->data)
+  tier: edge
+  stdout: '-42
+
+    '
+- name: test_07_two_elements_swapped
+  call: t_list b={1,0}, a={2,&b}; t_list *p=sort_list(&a, ascending); printf("%d,%d\n",
+    p->data, p->next->data)
+  tier: baseline
+  stdout: '1,2
+
+    '
+- name: test_08_all_identical
+  call: t_list c={7,0}, b={7,&c}, a={7,&b}; t_list *p=sort_list(&a, ascending); while(p){printf("%d",
+    p->data); p=p->next;} printf("\n")
+  tier: edge
+  stdout: '777
+
+    '
+- name: test_09_negative_numbers
+  call: t_list d={-5,0}, c={0,&d}, b={-42,&c}, a={10,&b}; t_list *p=sort_list(&a,
+    ascending); while(p){printf("%d,", p->data); p=p->next;} printf("\n")
+  tier: baseline
+  stdout: '-42,-5,0,10,
+
+    '
+- name: test_10_six_elements_interleaved
+  call: t_list n6={1,0},n5={6,&n6},n4={2,&n5},n3={5,&n4},n2={3,&n3},n1={4,&n2}; t_list
+    *p=sort_list(&n1, ascending); while(p){printf("%d", p->data); p=p->next;} printf("\n")
+  tier: stress
+  stdout: '123456
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

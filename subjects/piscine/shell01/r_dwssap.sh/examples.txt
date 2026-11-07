@@ -1,0 +1,3 @@
+Examples:
+$> ./r_dwssap.sh | cat -e
+$

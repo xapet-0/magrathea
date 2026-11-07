@@ -1,0 +1,22 @@
+Assignment name  : vowel_count
+Expected files   : vowel_count.sh
+Allowed commands : printf, tr, wc
+--------------------------------------------------------------------------------
+
+Write a shell script that counts and prints the number of vowels (a, e, i, o, u
+in both lowercase and uppercase) contained in the environment variable FT_LINE,
+followed by a newline and without spaces.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> FT_LINE="Hello 1337 World!" sh vowel_count.sh | cat -e
+3$
+$> FT_LINE="AEIOUaeiou" sh vowel_count.sh | cat -e
+10$
+$> FT_LINE="bcdfg" sh vowel_count.sh | cat -e
+0$
+$> FT_LINE="" sh vowel_count.sh | cat -e
+0$

@@ -1,0 +1,11 @@
+# Examples for title (from official subject specification)
+
+Examples:
+
+$> ./title | cat -e
+$
+$> ./rstr_capitalizer "no NO no no no!" | cat -e
+No NO No No No!$
+$> ./title pjldfjslogjlsj | cat -e
+$> Pjldfjslogjlsj
+==========================================================================================

@@ -1,0 +1,129 @@
+subject_id: count_files.sh
+fixed_tests:
+- name: count_cwd_2files
+  files:
+    a: '1'
+    b: '2'
+  stdout: '3
+
+    '
+  tier: baseline
+- name: count_cwd_4files_subdir
+  files:
+    a: '1'
+    b: '2'
+    c: '3'
+    sub/d: '4'
+  stdout: '6
+
+    '
+  tier: baseline
+- name: count_cwd_1file
+  files:
+    only_one: '42'
+  stdout: '2
+
+    '
+  tier: edge_case
+- name: count_cwd_3files
+  files:
+    f1: '1'
+    f2: '2'
+    f3: '3'
+  stdout: '4
+
+    '
+  tier: edge_case
+- name: test_05_five_files_flat
+  files:
+    f1: '1'
+    f2: '2'
+    f3: '3'
+    f4: '4'
+    f5: '5'
+  tier: baseline
+  stdout: '6
+
+    '
+- name: test_06_two_subdirs_and_files
+  files:
+    d1/a: '1'
+    d2/b: '2'
+    c: '3'
+  tier: baseline
+  stdout: '6
+
+    '
+- name: test_07_hidden_dotfile
+  files:
+    .hidden: '1'
+    visible: '2'
+  tier: edge
+  stdout: '3
+
+    '
+- name: test_08_nested_three_levels
+  files:
+    a/b/c/file: '1'
+  tier: edge
+  stdout: '5
+
+    '
+- name: test_09_six_files
+  files:
+    '1': a
+    '2': b
+    '3': c
+    '4': d
+    '5': e
+    '6': f
+  tier: baseline
+  stdout: '7
+
+    '
+- name: test_10_eight_items_mixed
+  files:
+    s1/a: '1'
+    s1/b: '2'
+    s2/c: '3'
+    s2/d: '4'
+    root1: '5'
+    root2: '6'
+  tier: stress
+  stdout: '9
+
+    '
+mode: shell
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./find_sh.sh | cat -e
+  args: []
+  expected: 'find_sh
+
+    file1
+
+    file2
+
+    file3
+
+    '
+  cat_e: true
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: count_files.sh baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./find_sh.sh | cat -e
+  perturbed_input:
+  - count_files.sh_near_arg_1
+  - count_files.sh_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: count_files.sh baseline folder fixture
+  perturbed_input: dount_files.sh baseline folder fixture

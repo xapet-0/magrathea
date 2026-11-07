@@ -1,0 +1,63 @@
+fixed_tests:
+- call: t_btree *n=btree_create_node("x"); printf("%s:%d:%d\n",(char*)n->item,n->left==0,n->right==0);
+  name: pool_btree_create_node_T01
+  stdout: 'x:1:1
+
+    '
+- call: t_btree *n=btree_create_node(NULL); printf("%d:%d:%d\n",n->item==NULL,n->left==0,n->right==0);
+  name: btree_create_node_null_item
+  stdout: '1:1:1
+
+    '
+- call: int v=42; t_btree *n=btree_create_node(&v); printf("%d:%d:%d\n",*(int*)n->item,n->left==0,n->right==0);
+  name: btree_create_node_number
+  stdout: '42:1:1
+
+    '
+- call: t_btree *n=btree_create_node("tree_root"); printf("%s\n",(char*)n->item);
+  name: btree_create_node_string
+  stdout: 'tree_root
+
+    '
+- name: test_05_empty_string_item
+  call: t_btree *n=btree_create_node(""); printf("[%s]:%d:%d\n",(char*)n->item,n->left==0,n->right==0);
+  tier: edge
+  stdout: '[]:1:1
+
+    '
+- name: test_06_distinct_nodes
+  call: t_btree *a=btree_create_node("L"); t_btree *b=btree_create_node("R"); printf("%d:%s:%s\n",a!=b,(char*)a->item,(char*)b->item);
+  tier: edge
+  stdout: '1:L:R
+
+    '
+- name: test_07_manual_children_attach
+  call: t_btree *r=btree_create_node("C"); r->left=btree_create_node("L"); r->right=btree_create_node("R");
+    printf("%s-%s-%s\n",(char*)r->left->item,(char*)r->item,(char*)r->right->item);
+  tier: baseline
+  stdout: 'L-C-R
+
+    '
+- name: test_08_negative_int_item
+  call: int v=-42; t_btree *n=btree_create_node(&v); printf("%d\n",*(int*)n->item);
+  tier: baseline
+  stdout: '-42
+
+    '
+- name: test_09_pointer_identity
+  call: char s[]="abc"; t_btree *n=btree_create_node(s); printf("%d\n",n->item==(void*)s);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_10_four_nodes_chain
+  call: t_btree *a=btree_create_node("1"); a->left=btree_create_node("2"); a->left->right=btree_create_node("3");
+    printf("%s%s%s\n",(char*)a->item,(char*)a->left->item,(char*)a->left->right->item);
+  tier: stress
+  stdout: '123
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

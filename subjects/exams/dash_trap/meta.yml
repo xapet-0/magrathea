@@ -1,0 +1,14 @@
+id: dash_trap
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 300
+expected_files:
+- dash_trap.sh
+allowed_functions:
+- cat
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh dash_trap.sh [args...]

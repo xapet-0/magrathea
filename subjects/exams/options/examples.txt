@@ -1,0 +1,11 @@
+Examples:
+$> ./options
+options: abcdefghijklmnopqrstuvwxyz
+$> ./options -abc -ijk
+00000000 00000000 00000111 00000111
+$> ./options -z
+00000010 00000000 00000000 00000000
+$> ./options -abc -hijk
+options: abcdefghijklmnopqrstuvwxyz
+$> ./options -%
+Invalid Option

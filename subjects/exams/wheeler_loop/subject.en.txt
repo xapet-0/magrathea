@@ -1,0 +1,16 @@
+Assignment name  : wheeler_loop
+Expected files   : wheeler_loop.sh
+Allowed commands : printf
+--------------------------------------------------------------------------------
+
+Write a POSIX shell script that safely iterates over all .txt files in the
+current directory (for f in ./*.txt) and prints each filename stripped of its
+leading ./ prefix, even when filenames contain spaces.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh wheeler_loop.sh | cat -e
+./a.txt$

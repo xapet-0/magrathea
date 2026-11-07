@@ -1,0 +1,166 @@
+mode: c_program
+fixed_tests:
+- name: pool_display_file_T01
+  description: missing_arg
+  args: []
+  expected: ''
+  stderr: 'File name missing.
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_display_file_T02
+  description: too_many_args
+  args:
+  - a.txt
+  - b.txt
+  expected: ''
+  stderr: 'Too many arguments.
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_display_file_T03
+  description: display_file
+  args:
+  - a.txt
+  files:
+    a.txt: 'hello
+
+      '
+  expected: 'hello
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_display_file_T04_multiline
+  description: display_multiline_file
+  args:
+  - multi.txt
+  files:
+    multi.txt: 'line1
+
+      line2
+
+      42
+
+      '
+  expected: 'line1
+
+    line2
+
+    42
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_empty_file
+  args:
+  - empty.txt
+  files:
+    empty.txt: ''
+  tier: edge
+  stdout: ''
+- name: test_06_single_char_file
+  args:
+  - one.txt
+  files:
+    one.txt: Z
+  tier: baseline
+  stdout: Z
+- name: test_07_no_trailing_newline
+  args:
+  - nonl.txt
+  files:
+    nonl.txt: 1337_no_newline
+  tier: edge
+  stdout: 1337_no_newline
+- name: test_08_three_args_too_many
+  args:
+  - a.txt
+  - b.txt
+  - c.txt
+  tier: edge
+  stdout: ''
+- name: test_09_special_chars_and_tabs
+  args:
+  - tabs.txt
+  files:
+    tabs.txt: "col1\tcol2\tcol3\n!@#$%^&*()\n"
+  tier: baseline
+  stdout: "col1\tcol2\tcol3\n!@#$%^&*()\n"
+- name: test_10_ten_lines
+  args:
+  - ten.txt
+  files:
+    ten.txt: '1
+
+      2
+
+      3
+
+      4
+
+      5
+
+      6
+
+      7
+
+      8
+
+      9
+
+      10
+
+      '
+  tier: stress
+  stdout: '1
+
+    2
+
+    3
+
+    4
+
+    5
+
+    6
+
+    7
+
+    8
+
+    9
+
+    10
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval display_file
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_fixture_01
+  origin: subject_folder/srcs/main.c
+  input: srcs/main.c
+  expected: '/* **************************************************************************
+    */
+
+    /*                                                                            *'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval display_file
+  perturbed_input:
+  - display_file_near_arg_1
+  - display_file_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_fixture_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/srcs/main.c)
+  original_input: srcs/main.c
+  perturbed_input: trcs/main.c

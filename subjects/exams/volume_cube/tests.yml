@@ -1,0 +1,137 @@
+mode: c_function
+fixed_tests:
+- name: cur_volume_cube_T01
+  description: 'Functional verification of input: `volume_cube(3)`'
+  expr: volume_cube(3)
+  stdout: '27
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_volume_cube_T02
+  description: 'Functional verification of input: `volume_cube(0)`'
+  expr: volume_cube(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_volume_cube_T03
+  description: edge_volume_cube_negative
+  expr: volume_cube(-3)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_volume_cube_T04_five
+  description: volume_cube(5)
+  expr: volume_cube(5)
+  stdout: '125
+
+    '
+  category: Functional
+  tier: edge_case
+- name: test_05_one
+  expr: volume_cube(1)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_two
+  expr: volume_cube(2)
+  tier: baseline
+  stdout: '8
+
+    '
+- name: test_07_four
+  expr: volume_cube(4)
+  tier: baseline
+  stdout: '64
+
+    '
+- name: test_08_neg_one
+  expr: volume_cube(-1)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_ten
+  expr: volume_cube(10)
+  tier: baseline
+  stdout: '1000
+
+    '
+- name: test_10_hundred
+  expr: volume_cube(100)
+  tier: stress
+  stdout: '1000000
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval volume_cube
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_volume_cube_T04
+  origin: subject_folder/deepthought/corrections/exams/volume_cube/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_volume_cube_T05
+  origin: subject_folder/deepthought/corrections/exams/volume_cube/generator.py
+  input: Dynamic generation rule via decimal_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_volume_cube_T06
+  origin: subject_folder/deepthought/corrections/exams/volume_cube/generator.py
+  input: Dynamic generation rule via zero_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_volume_cube_T07
+  origin: subject_folder/deepthought/corrections/exams/volume_cube/generator.py
+  input: Dynamic generation rule via large_radius_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_volume_cube_T08
+  origin: subject_folder/deepthought/corrections/exams/volume_cube/generator.py
+  input: Dynamic generation rule via negative_radius_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval volume_cube
+  perturbed_input:
+  - volume_cube_near_arg_1
+  - volume_cube_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_volume_cube_T04
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/volume_cube/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_volume_cube_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/volume_cube/generator.py)
+  original_input: Dynamic generation rule via decimal_test()
+  perturbed_input: Eynamic generation rule via decimal_test
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `volume_cube`
+  input: volume_cube(INT_MIN), volume_cube(0), volume_cube(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `volume_cube`
+  input: Run volume_cube with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `volume_cube`
+  input: volume_cube(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `volume_cube`
+  input: Call volume_cube on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out

@@ -1,0 +1,17 @@
+id: csv_sum
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- csv_sum.sh
+allowed_functions:
+- awk
+- cut
+- paste
+- bc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh csv_sum.sh [args...]

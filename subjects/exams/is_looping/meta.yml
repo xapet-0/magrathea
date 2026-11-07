@@ -1,0 +1,13 @@
+id: is_looping
+type: c_function
+module: "Piscine Exams 00\u2013Final"
+xp: 290
+expected_files:
+- is_looping.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int is_looping(struct s_node *node);

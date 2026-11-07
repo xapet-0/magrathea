@@ -1,0 +1,14 @@
+id: ft_list_find
+type: c_function
+module: C 12
+xp: 340
+expected_files:
+- ft_list_find.c
+- ft_list.h
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: (*cmp)(list_ptr->data, data_ref);

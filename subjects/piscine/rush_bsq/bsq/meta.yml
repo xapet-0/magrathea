@@ -1,0 +1,22 @@
+id: bsq
+type: c_program
+module: Rush 00–02 & BSQ
+xp: 505
+expected_files:
+- Makefile
+- '*.c'
+- '*.h'
+allowed_functions:
+- open
+- close
+- read
+- write
+- malloc
+- free
+- exit
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int main(int argc, char **argv);

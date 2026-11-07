@@ -1,0 +1,128 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_sqrt_T01
+  description: 'Functional verification of input: `ft_sqrt(-16)`'
+  expr: ft_sqrt(-16)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_sqrt_T02
+  description: 'Functional verification of input: `ft_sqrt(0)`'
+  expr: ft_sqrt(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_sqrt_T03
+  description: 'Functional verification of input: `ft_sqrt(1)`'
+  expr: ft_sqrt(1)
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_sqrt_T04
+  description: 'Functional verification of input: `ft_sqrt(25)`'
+  expr: ft_sqrt(25)
+  stdout: '5
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_sqrt_T05
+  description: 'Functional verification of input: `ft_sqrt(2147395600)`'
+  expr: ft_sqrt(2147395600)
+  stdout: '46340
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_sqrt_T06
+  description: 'Functional verification of input: `ft_sqrt(2147483647)`'
+  expr: ft_sqrt(2147483647)
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_sqrt_T07
+  description: edge_sqrt_negative
+  expr: ft_sqrt(-5)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_sqrt_T08
+  description: edge_sqrt_perfect
+  expr: ft_sqrt(16)
+  stdout: '4
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_sqrt_T09
+  description: edge_sqrt_imperfect
+  expr: ft_sqrt(15)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_sqrt
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_ft_sqrt_T10
+  origin: subject_folder/mini-moulinette/ex05/ft_sqrt.c
+  input: 'Input:'
+  expected: 'Expected: 4'
+- id: cur_ft_sqrt_T11
+  origin: subject_folder/mini-moulinette/ex05/ft_sqrt.c
+  input: 'Input:'
+  expected: 'Expected: 0'
+- id: cur_ft_sqrt_T12
+  origin: subject_folder/mini-moulinette/ex05/ft_sqrt.c
+  input: 'Input:'
+  expected: 'Expected: 1'
+- id: cur_ft_sqrt_T13
+  origin: subject_folder/deepthought/corrections/exams/ft_sqrt/generator.py
+  input: Dynamic generation rule via random_int()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_sqrt_T14
+  origin: subject_folder/deepthought/corrections/exams/ft_sqrt/generator.py
+  input: Dynamic generation rule via basic_square_root()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_sqrt_T15
+  origin: subject_folder/deepthought/corrections/exams/ft_sqrt/generator.py
+  input: Dynamic generation rule via edge_case_zero()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_sqrt_T16
+  origin: subject_folder/deepthought/corrections/exams/ft_sqrt/generator.py
+  input: Dynamic generation rule via edge_case_negative()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_sqrt
+  perturbed_input:
+  - ft_sqrt_near_arg_1
+  - ft_sqrt_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ft_sqrt_T10
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex05/ft_sqrt.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ft_sqrt_T11
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex05/ft_sqrt.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'

@@ -1,0 +1,209 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `rip`
+  input: rip(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `rip`
+  input: Input with no valid solution or containing duplicate values in rip
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `rip`
+  input: Run rip with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `rip`
+  input: Inspect sequence of traversed or printed nodes in rip
+  expected: Exact match with standard traversal order required in subject
+fixed_tests:
+- args:
+  - ()
+  category: Functional
+  description: balanced
+  expected: '()
+
+    '
+  name: cur_rip_T01
+  stdout: '()
+
+    '
+  tier: baseline
+- args:
+  - (
+  category: Edge Case
+  description: single_open
+  expected: " \n"
+  name: cur_rip_T02
+  stdout: " \n"
+  tier: baseline
+- args:
+  - )
+  category: Edge Case
+  description: single_close
+  expected: " \n"
+  name: cur_rip_T03
+  stdout: " \n"
+  tier: baseline
+- args:
+  - (()
+  category: Functional
+  description: pair_with_extra
+  expected: ' ()
+
+    ( )
+
+    '
+  name: cur_rip_T04
+  stdout: ' ()
+
+    ( )
+
+    '
+  tier: baseline
+- args:
+  - ( ( )
+  expected: '  ( )
+
+    (   )
+
+    '
+  name: subj_ex_01
+  stdout: '  ( )
+
+    (   )
+
+    '
+  tier: subject_example
+- args:
+  - ( ( ( ) ( ) ( ) ) ( ) )
+  expected: '( ( ( ) ( ) ( ) ) ( ) )
+
+    '
+  name: subj_ex_02
+  stdout: '( ( ( ) ( ) ( ) ) ( ) )
+
+    '
+  tier: subject_example
+- args:
+  - ( ) ( ) ) ( )
+  expected: '(   ( ) ) ( )
+
+    ( ) (   ) ( )
+
+    ( ) ( )   ( )
+
+    '
+  name: subj_ex_03
+  stdout: '(   ( ) ) ( )
+
+    ( ) (   ) ( )
+
+    ( ) ( )   ( )
+
+    '
+  tier: subject_example
+- name: test_08_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: "   \n"
+- name: test_10_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '1337
+
+    '
+folder_examples:
+- expected: Matches 42 reference standard output and exit code
+  id: cur_rip_T05
+  input: ./rip "$a" 2
+  origin: subject_folder/42ExamPractice/rip/tester.sh
+- expected: Matches 42 reference standard output and exit code
+  id: cur_rip_T06
+  input: ./rip "( ) ( ) ) ( )"; then
+  origin: subject_folder/42ExamPractice/rip/tester.sh
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_lexical_shift
+  original_input: &id001
+  - ( ( )
+  perturbed_input:
+  - ( ( )!
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_01
+  id: near_subj_01_whitespace_envelope
+  original_input: *id001
+  perturbed_input:
+  - '  ( ( )  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_02
+  id: near_subj_02_lexical_shift
+  original_input: &id002
+  - ( ( ( ) ( ) ( ) ) ( ) )
+  perturbed_input:
+  - ( ( ( ) ( ) ( ) ) ( ) )!
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_02
+  id: near_subj_02_whitespace_envelope
+  original_input: *id002
+  perturbed_input:
+  - '  ( ( ( ) ( ) ( ) ) ( ) )  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_03
+  id: near_subj_03_lexical_shift
+  original_input: &id003
+  - ( ) ( ) ) ( )
+  perturbed_input:
+  - ( ) ( ) ) ( )!
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_03
+  id: near_subj_03_whitespace_envelope
+  original_input: *id003
+  perturbed_input:
+  - '  ( ) ( ) ) ( )  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: cur_rip_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: ./rip "$a" 2
+  perturbed_input: ./sip "$a" 2
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rip/tester.sh)
+- derived_from: cur_rip_T06
+  id: near_folder_02_boundary_neighbor
+  original_input: ./rip "( ) ( ) ) ( )"; then
+  perturbed_input: ./sip "( ) ( ) ) ( )"; then
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rip/tester.sh)
+subject_examples:
+- args: *id001
+  cat_e: true
+  command: ./rip '( ( )' | cat -e
+  expected: "_ ( ) \n( _ ) \n"
+  id: subj_ex_01
+  origin: subject.en.txt
+- args: *id002
+  cat_e: true
+  command: ./rip '( ( ( ) ( ) ( ) ) ( ) )' | cat -e
+  expected: "( ( ( ) ( ) ( ) ) ( ) ) \n"
+  id: subj_ex_02
+  origin: subject.en.txt
+- args: *id003
+  cat_e: true
+  command: ./rip '( ) ( ) ) ( )' | cat -e
+  expected: "( ) ( ) _ ( ) \n( ) ( _ ) ( ) \n( _ ( ) ) ( ) \n"
+  id: subj_ex_03
+  origin: subject.en.txt

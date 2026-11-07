@@ -1,0 +1,13 @@
+id: ft_list_reverse
+type: c_function
+module: C 12
+xp: 340
+expected_files:
+- ft_list_reverse.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void ft_list_reverse(t_list **begin_list);

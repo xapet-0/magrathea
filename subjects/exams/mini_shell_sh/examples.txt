@@ -1,0 +1,10 @@
+# Examples for mini_shell_sh (from official subject specification)
+
+Examples:
+$> printf "echo 42\nexit\n" | sh mini_shell_sh.sh | cat -e
+42$
+$> printf "echo hello\necho 1337\nexit\n" | sh mini_shell_sh.sh | cat -e
+hello$
+1337$
+$> printf "exit\n" | sh mini_shell_sh.sh | cat -e
+$

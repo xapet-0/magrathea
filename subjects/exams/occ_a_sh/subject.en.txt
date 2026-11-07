@@ -1,0 +1,22 @@
+Assignment name  : occ_a_sh
+Expected files   : occ_a_sh.sh
+Allowed commands : printf, tr, wc
+--------------------------------------------------------------------------------
+
+Write a shell script that counts and prints the number of occurrences of the
+lowercase character 'a' in the environment variable FT_LINE, followed by a
+newline, without spaces.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> FT_LINE="abracadabra" sh occ_a_sh.sh | cat -e
+5$
+$> FT_LINE="xyz" sh occ_a_sh.sh | cat -e
+0$
+$> FT_LINE="aaa" sh occ_a_sh.sh | cat -e
+3$
+$> FT_LINE="" sh occ_a_sh.sh | cat -e
+0$

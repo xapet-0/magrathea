@@ -1,0 +1,4 @@
+Examples:
+  antidote(1, 5, 3)   -> 3
+  antidote(10, 2, 8)  -> 8
+  antidote(42, 42, 7) -> 42

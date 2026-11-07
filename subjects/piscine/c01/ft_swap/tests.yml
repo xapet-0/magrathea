@@ -1,0 +1,93 @@
+subject_id: ft_swap
+fixed_tests:
+- name: test_01_a_b_printf_d_d_n_a_b
+  call: int a = 1, b = 2; ft_swap(&a, &b); printf("%d %d\n", a, b)
+  stdout: '2 1
+
+    '
+- name: swap_negatives
+  call: int a = -10, b = -20; ft_swap(&a, &b); printf("%d,%d\n", a, b)
+  stdout: '-20,-10
+
+    '
+- name: swap_zero
+  call: int a = 0, b = 1337; ft_swap(&a, &b); printf("%d,%d\n", a, b)
+  stdout: '1337,0
+
+    '
+- name: swap_identical_values
+  call: int a = 42, b = 42; ft_swap(&a, &b); printf("%d,%d\n", a, b)
+  stdout: '42,42
+
+    '
+- name: test_05_int_limits
+  call: int a = -2147483648, b = 2147483647; ft_swap(&a, &b); printf("%d,%d\n", a,
+    b)
+  tier: edge
+  stdout: '2147483647,-2147483648
+
+    '
+- name: test_06_opposite_signs
+  call: int a = -42, b = 42; ft_swap(&a, &b); printf("%d,%d\n", a, b)
+  tier: baseline
+  stdout: '42,-42
+
+    '
+- name: test_07_both_zero
+  call: int a = 0, b = 0; ft_swap(&a, &b); printf("%d,%d\n", a, b)
+  tier: edge
+  stdout: '0,0
+
+    '
+- name: test_08_same_pointer
+  call: int a = 1337; ft_swap(&a, &a); printf("%d\n", a)
+  tier: edge
+  stdout: '1337
+
+    '
+- name: test_09_double_swap_restores
+  call: int a = 12, b = 99; ft_swap(&a, &b); ft_swap(&a, &b); printf("%d,%d\n", a,
+    b)
+  tier: stress
+  stdout: '12,99
+
+    '
+- name: test_10_chain_three
+  call: int a = 1, b = 2, c = 3; ft_swap(&a, &b); ft_swap(&b, &c); printf("%d,%d,%d\n",
+    a, b, c)
+  tier: stress
+  stdout: '2,3,1
+
+    '
+oracle_tests:
+- name: ft_swap_oracle_stress
+  source: "int main(void)\n{\n    int a = 21;\n    int b = -7;\n    ft_swap(&a, &b);\n\
+    \    if (a != -7 || b != 21) { fprintf(stderr, \"basic swap failed\\n\"); return\
+    \ (1); }\n    ft_swap(&a, &a);\n    if (a != -7) { fprintf(stderr, \"self swap\
+    \ changed the value\\n\"); return (1); }\n    return (0);\n}\n"
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_swap
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: ft_swap baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_swap
+  perturbed_input:
+  - ft_swap_near_arg_1
+  - ft_swap_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ft_swap baseline folder fixture
+  perturbed_input: gt_swap baseline folder fixture

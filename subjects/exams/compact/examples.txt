@@ -1,0 +1,3 @@
+Examples:
+  If tab = {"a", NULL, "b", NULL} and length = 4:
+  compact(tab, 4) returns 2, and tab[0] == "a", tab[1] == "b".

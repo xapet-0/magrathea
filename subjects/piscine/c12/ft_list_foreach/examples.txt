@@ -1,0 +1,5 @@
+# Examples for ft_list_foreach (from official subject specification)
+
+Examples:
+    t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; ft_list_foreach(&a,dt_print); printf("\n")
+    Output: a,b,

@@ -1,0 +1,3 @@
+[pool_ft_is_sort_T01] Input: int a[]={1,2,3}; printf("%d\n",ft_is_sort(a,3,dt_cmp))  ==>  Expected: 1\n
+[pool_ft_is_sort_T02] Input: int a[]={1,3,2}; printf("%d\n",ft_is_sort(a,3,dt_cmp))  ==>  Expected: 0\n
+[pool_ft_is_sort_T03] Input: Invocations: ft_is_sort(sorted, 5, cmp); ft_is_sort(unsorted, 3, cmp); ft_is_sort(one, 1, cmp)  ==>  Expected: Differential comparison with reference implementation

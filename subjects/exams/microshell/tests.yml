@@ -1,0 +1,184 @@
+edge_cases:
+- name: edge_01_P
+  code: '[P]'
+  title: Close all pipe file descriptors in parent and child
+  input: Execute 50 consecutive pipes
+  expected: No FD leak ('Too many open files')
+- name: edge_02_P
+  code: '[P]'
+  title: Reap zombie child processes
+  input: Check process table with ps during pipeline
+  expected: No defunct processes
+- name: edge_03_B
+  code: '[B]'
+  title: Built-in cd argument validation
+  input: cd and cd a b
+  expected: 'error: cd: bad arguments'
+fixed_tests:
+- args:
+  - /bin/echo
+  - hello
+  - ;
+  - /bin/echo
+  - '42'
+  category: Functional
+  description: semi
+  expected: 'hello
+
+    42
+
+    '
+  name: cur_microshell_T01
+  tier: baseline
+- args:
+  - /bin/echo
+  - '1337'
+  category: Edge Case
+  description: single
+  expected: '1337
+
+    '
+  name: cur_microshell_T02
+  tier: baseline
+- args:
+  - /bin/echo
+  - hello 42
+  - '|'
+  - /usr/bin/tr
+  - a-z
+  - A-Z
+  category: Functional
+  description: pipe
+  expected: 'HELLO 42
+
+    '
+  name: cur_microshell_T03
+  tier: baseline
+- args: []
+  category: Functional
+  description: no_args
+  expected: ''
+  name: cur_microshell_T04
+  stdout: ''
+  tier: baseline
+- args:
+  - /bin/echo
+  - microshell
+  expected: 'microshell
+
+    '
+  name: subj_ex_01
+  stdout: 'microshell
+
+    '
+  tier: subject_example
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stderr: 'error: cannot execute 1
+
+    '
+  expected_returncode: 1
+- name: test_07_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stderr: 'error: cannot execute 0
+
+    '
+  expected_returncode: 1
+- name: test_08_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stderr: 'error: cannot execute -1
+
+    '
+  expected_returncode: 1
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stderr: 'error: cannot execute 42
+
+    '
+  expected_returncode: 1
+- name: test_10_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stderr: 'error: cannot execute 1
+
+    '
+  expected_returncode: 1
+folder_examples:
+- expected: hello\n42\n
+  id: cur_microshell_T01
+  input: '[''/bin/echo'', ''hello'', '';'', ''/bin/echo'', ''42'']'
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: 1337\n
+  id: cur_microshell_T02
+  input: '[''/bin/echo'', ''1337'']'
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: HELLO 42\n
+  id: cur_microshell_T03
+  input: '[''/bin/echo'', ''hello 42'', ''\|'', ''/usr/bin/tr'', ''a-z'', ''A-Z'']'
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_lexical_shift
+  original_input: &id001
+  - /bin/ls
+  - '"'
+  perturbed_input:
+  - /cin/ls
+  - '"!'
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_01
+  id: near_subj_01_whitespace_envelope
+  original_input: *id001
+  perturbed_input:
+  - '  /bin/ls  '
+  - '"'
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: cur_microshell_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: '[''/bin/echo'', ''hello'', '';'', ''/bin/echo'', ''42'']'
+  perturbed_input: '[''/cin/echo'', ''hello'', '';'', ''/bin/echo'','
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+- derived_from: cur_microshell_T02
+  id: near_folder_02_boundary_neighbor
+  original_input: '[''/bin/echo'', ''1337'']'
+  perturbed_input: '[''/cin/echo'', ''1337'']'
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: *id001
+  cat_e: false
+  command: ./microshell /bin/ls "|" /usr/bin/grep microshell ";" /bin/echo i love
+    my microshell
+  expected: 'microshell
+
+    i love my microshell
+
+    '
+  id: subj_ex_01
+  origin: subject.en.txt

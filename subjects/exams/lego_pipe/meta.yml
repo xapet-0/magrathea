@@ -1,0 +1,17 @@
+id: lego_pipe
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- lego_pipe.sh
+allowed_functions:
+- printf
+- tr
+- sort
+- uniq
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh lego_pipe.sh [args...]

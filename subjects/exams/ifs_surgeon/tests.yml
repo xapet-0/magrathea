@@ -1,0 +1,117 @@
+subject_id: ifs_surgeon
+fixed_tests:
+- name: test_01_a_b_c
+  args:
+  - a:b:c
+  stdout: 'a
+
+    b
+
+    c
+
+    '
+- name: test_02_marvin_42_1337
+  args:
+  - marvin:42:1337
+  stdout: 'marvin
+
+    42
+
+    1337
+
+    '
+- name: test_03_one_two
+  args:
+  - one:two
+  stdout: 'one
+
+    two
+
+    '
+- name: test_04_four_fields
+  args:
+  - x:y:z:w
+  stdout: 'x
+
+    y
+
+    z
+
+    w
+
+    '
+- name: test_05_single_field
+  args:
+  - alone
+  tier: edge
+  stdout: 'alone
+
+    '
+- name: test_06_five_fields
+  args:
+  - '1:2:3:4:5'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    3
+
+    4
+
+    5
+
+    '
+- name: test_07_fields_with_spaces
+  args:
+  - hello world:foo bar:42
+  tier: edge
+  stdout: 'hello world
+
+    foo bar
+
+    42
+
+    '
+- name: test_08_glob_chars_in_fields
+  args:
+  - '*:?:[a-z]'
+  tier: edge
+  stdout: '*
+
+    ?
+
+    [a-z]
+
+    '
+- name: test_09_paths_in_colon_list
+  args:
+  - /bin:/usr/bin:/usr/local/bin
+  tier: baseline
+  stdout: '/bin
+
+    /usr/bin
+
+    /usr/local/bin
+
+    '
+- name: test_10_six_fields
+  args:
+  - a:bb:ccc:dddd:eeeee:ffffff
+  tier: stress
+  stdout: 'a
+
+    bb
+
+    ccc
+
+    dddd
+
+    eeeee
+
+    ffffff
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

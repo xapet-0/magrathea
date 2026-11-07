@@ -1,0 +1,7 @@
+# Examples for ft_recursive_power (from official subject specification)
+
+Examples:
+    ft_recursive_power(3,4) -> 81
+    ft_recursive_power(2,-1) -> 0
+    ft_recursive_power(42, 0) -> 1
+    ft_recursive_power(2, -3) -> 0

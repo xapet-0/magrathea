@@ -1,0 +1,60 @@
+mode: c_function
+fixed_tests:
+- name: pool_eval_expr_T01
+  call: printf("%d\n", eval_expr("3 + 42 * (1 - 2 / (3 + 4) - 1 % 21) + 1"))
+  stdout: '4
+
+    '
+- name: pool_eval_expr_T02
+  call: printf("%d\n", eval_expr(" ( 10 + 20 ) * 3 - 48 "))
+  stdout: '42
+
+    '
+- name: eval_expr_deep_nested_parens
+  call: printf("%d\n", eval_expr("(((42)))"))
+  stdout: '42
+
+    '
+- name: eval_expr_negative_and_zero
+  call: printf("%d\n", eval_expr("0 - 5 * (2 - 4) + -3"))
+  stdout: '7
+
+    '
+- name: eval_expr_modulo_and_div
+  call: printf("%d\n", eval_expr("100 / 5 % 7 * 2"))
+  stdout: '12
+
+    '
+- name: test_06_single_number
+  call: printf("%d\n", eval_expr("42"))
+  tier: edge
+  stdout: '42
+
+    '
+- name: test_07_precedence_mul_over_add
+  call: printf("%d\n", eval_expr("2 + 3 * 4 - 5"))
+  tier: baseline
+  stdout: '9
+
+    '
+- name: test_08_left_to_right_sub
+  call: printf("%d\n", eval_expr("100 - 30 - 20 - 10"))
+  tier: edge
+  stdout: '40
+
+    '
+- name: test_09_left_to_right_div_mul
+  call: printf("%d\n", eval_expr("64 / 8 / 2 * 3"))
+  tier: edge
+  stdout: '12
+
+    '
+- name: test_10_complex_nested
+  call: printf("%d\n", eval_expr("((2 + 3) * (7 - 2)) % 6 + (100 / (5 + 5))"))
+  tier: stress
+  stdout: '11
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

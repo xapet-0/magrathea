@@ -1,0 +1,69 @@
+name: rank02
+display_name: "42 Common Core \u2014 Exam Rank 02"
+pool_group: cursus
+rank_order: 22
+prerequisites: []
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 20
+  candidates:
+  - ft_range
+  - ft_strspn
+  - add_prime_sum
+  - epur_str
+  - expand_str
+  - ft_atoi_base
+  - ft_list_size
+  - ft_rrange
+  - ft_split
+  - hidenp
+- level: 1
+  points: 20
+  candidates:
+  - lcm
+  - paramsum
+  - pgcd
+  - print_hex
+  - print_memory
+  - rstr_capitalizer
+  - str_capitalizer
+  - tab_mult
+  - flood_fill
+  - fprime
+- level: 2
+  points: 20
+  candidates:
+  - ft_itoa
+  - ft_list_foreach
+  - ft_list_remove_if
+  - rev_wstr
+  - rostring
+  - safe_voyage
+  - skip_even
+  - sort_int_tab
+  - sort_list
+- level: 3
+  points: 20
+  candidates:
+  - stack
+  - stderr_trap
+  - vowel_count
+  - wheeler_loop
+  - where_is_cmd
+  - zig_passwd
+  - zombie_hunter
+  - can_split
+  - check_mate
+- level: 4
+  points: 20
+  candidates:
+  - convert_bst
+  - count_island
+  - ft_strndup
+  - g_diam
+  - height_tree
+  - longest_sequence
+  - perimeter
+  - reverse_tree
+  - width_tree

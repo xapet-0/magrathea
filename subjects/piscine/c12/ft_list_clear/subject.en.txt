@@ -1,0 +1,25 @@
+Assignment name  : ft_list_clear
+Expected files   : ft_list_clear.c ft_list.h
+Allowed functions: free
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_list_clear
+Turn-in directory: ex06/
+Expected files   : ft_list_clear.c, ft_list.h
+Allowed functions: free
+--------------------------------------------------------------------------------
+
+• Create the function ft_list_clear, which removes and frees all links from the list.
+• free_fct is used to free eachdata.
+• Here is how it should be prototyped:
+void ft_list_clear(t_list *begin_list, void (*free_fct)(void *));
+
+Your function must be declared as follows:
+    void ft_list_clear(t_list *begin_list, void (*free_fct)(void *));
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: clear_three
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: clear_null [Test description: "clear_null"]

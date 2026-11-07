@@ -1,0 +1,97 @@
+subject_id: ft_strdup
+fixed_tests:
+- name: test_01_Piscine_if_s_printf
+  call: char *s = ft_strdup("Piscine"); if (s) { printf("%s\n", s); free(s); }
+  stdout: 'Piscine
+
+    '
+  tier: baseline
+- name: empty_string
+  call: char *s = ft_strdup(""); printf("[%s]\n", s); free(s)
+  stdout: '[]
+
+    '
+  tier: baseline
+- name: sentence
+  call: char *s = ft_strdup("1337 School"); printf("%s\n", s); free(s)
+  stdout: '1337 School
+
+    '
+  tier: baseline
+- name: distinct_heap_pointer
+  call: const char *src = "Magrathea"; char *s = ft_strdup((char *)src); printf("%s|%d\n",
+    s, s != src); free(s)
+  stdout: 'Magrathea|1
+
+    '
+  tier: edge_case
+- name: test_05_single_char
+  call: char *s = ft_strdup("X"); printf("%s\n", s); free(s)
+  tier: baseline
+  stdout: 'X
+
+    '
+- name: test_06_digits_and_symbols
+  call: char *s = ft_strdup("0123456789!@#$%^&*()"); printf("%s\n", s); free(s)
+  tier: baseline
+  stdout: '0123456789!@#$%^&*()
+
+    '
+- name: test_07_mutation_independence
+  call: char src[] = "hello"; char *dup = ft_strdup(src); src[0] = 'Z'; printf("%s|%s\n",
+    src, dup); free(dup)
+  tier: edge
+  stdout: 'Zello|hello
+
+    '
+- name: test_08_whitespace_only
+  call: char *s = ft_strdup(" \t\n "); printf("[%s]\n", s); free(s)
+  tier: edge
+  stdout: "[ \t\n ]\n"
+- name: test_09_embedded_nul
+  call: char src[] = {'4', '2', 0, '9', 0}; char *s = ft_strdup(src); printf("%s:%zu\n",
+    s, strlen(s)); free(s)
+  tier: edge
+  stdout: '42:2
+
+    '
+- name: test_10_long_string
+  call: char *s = ft_strdup("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+    printf("%s\n", s); free(s)
+  tier: stress
+  stdout: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
+
+    '
+oracle_tests:
+- name: ft_strdup_oracle_stress
+  source: "int main(void)\n{\n    char *cases[] = {\"\", \"abc\", \"hello world\"\
+    , 0};\n    int i;\n    for (i = 0; cases[i]; ++i)\n    {\n        char *got =\
+    \ ft_strdup(cases[i]);\n        if (!got || got == cases[i] || strcmp(got, cases[i])\
+    \ != 0) { fprintf(stderr, \"strdup mismatch\\n\"); free(got); return (1); }\n\
+    \        free(got);\n    }\n    return (0);\n}\n"
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strdup
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: ft_strdup baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strdup
+  perturbed_input:
+  - ft_strdup_near_arg_1
+  - ft_strdup_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ft_strdup baseline folder fixture
+  perturbed_input: gt_strdup baseline folder fixture

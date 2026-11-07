@@ -1,0 +1,61 @@
+fixed_tests:
+- call: int x = 0; ft_ft(&x); printf("%d\n", x);
+  name: cur_ft_ft_T01
+  stdout: '42
+
+    '
+- call: int x = -999; ft_ft(&x); printf("%d\n", x);
+  name: cur_ft_ft_T02
+  stdout: '42
+
+    '
+- call: int x = 42; ft_ft(&x); printf("%d\n", x);
+  name: ft_ft_already_42
+  stdout: '42
+
+    '
+- call: int x = 2147483647; ft_ft(&x); printf("%d\n", x);
+  name: ft_ft_max_int
+  stdout: '42
+
+    '
+- name: test_05_int_min
+  call: int x = -2147483648; ft_ft(&x); printf("%d\n", x);
+  tier: edge
+  stdout: '42
+
+    '
+- name: test_06_neg_one
+  call: int x = -1; ft_ft(&x); printf("%d\n", x);
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_07_pos_one
+  call: int x = 1; ft_ft(&x); printf("%d\n", x);
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_08_1337
+  call: int x = 1337; ft_ft(&x); printf("%d\n", x);
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_09_neg_42
+  call: int x = -42; ft_ft(&x); printf("%d\n", x);
+  tier: edge
+  stdout: '42
+
+    '
+- name: test_10_double_call
+  call: int x = 100; ft_ft(&x); x = 7; ft_ft(&x); printf("%d\n", x);
+  tier: stress
+  stdout: '42
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,18 @@
+id: list_trait
+type: c_program
+module: "Piscine Exams 00\u2013Final"
+xp: 305
+expected_files:
+- list_trait.c
+allowed_functions:
+- write
+- exit
+- free
+- atoi
+- malloc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

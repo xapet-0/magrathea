@@ -1,0 +1,22 @@
+Assignment name  : mirror_sort
+Expected files   : mirror_sort.sh
+Allowed commands : rev, sort
+--------------------------------------------------------------------------------
+
+Write a shell script that reads lines from standard input, reverses each line,
+and sorts the reversed lines in alphabetical order.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> printf "ba\nab\n" | sh mirror_sort.sh | cat -e
+ab$
+ba$
+$> printf "dc\nba\n" | sh mirror_sort.sh | cat -e
+ab$
+cd$
+$> printf "z\na\n" | sh mirror_sort.sh | cat -e
+a$
+z$

@@ -1,0 +1,24 @@
+id: c07
+display_name: 1337 / 42 Piscine — C 07
+exercises:
+- ex: ex00
+  subject_id: piscine/c07/ft_strdup
+  xp: 220
+- ex: ex01
+  subject_id: piscine/c07/ft_range
+  xp: 220
+- ex: ex02
+  subject_id: piscine/c07/ft_ultimate_range
+  xp: 250
+- ex: ex03
+  subject_id: piscine/c07/ft_strjoin
+  xp: 250
+- ex: ex04
+  subject_id: piscine/c07/ft_convert_base
+  xp: 250
+- ex: ex05
+  subject_id: piscine/c07/ft_split
+  xp: 220
+- ex: ex06
+  subject_id: piscine/c07/ft_split_whitespaces
+  xp: 250

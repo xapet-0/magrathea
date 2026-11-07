@@ -1,0 +1,13 @@
+id: sort_list
+type: c_function
+module: Exam Rank 02
+xp: 440
+expected_files:
+- sort_list.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: t_list *sort_list(t_list* lst, int (*cmp)(int, int));

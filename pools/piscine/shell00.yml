@@ -1,0 +1,33 @@
+id: shell00
+display_name: 1337 / 42 Piscine — Shell 00
+exercises:
+- ex: ex00
+  subject_id: piscine/shell00/z
+  xp: 140
+- ex: ex01
+  subject_id: piscine/shell00/testShell00
+  xp: 130
+- ex: ex02
+  subject_id: piscine/shell00/exo2
+  xp: 140
+- ex: ex03
+  subject_id: piscine/shell00/id_rsa_pub
+  xp: 130
+- ex: ex04
+  subject_id: piscine/shell00/midls
+  xp: 140
+- ex: ex05
+  subject_id: piscine/shell00/git_commit.sh
+  xp: 130
+- ex: ex06
+  subject_id: piscine/shell00/git_ignore.sh
+  xp: 130
+- ex: ex07
+  subject_id: piscine/shell00/diff
+  xp: 130
+- ex: ex08
+  subject_id: piscine/shell00/clean
+  xp: 140
+- ex: ex09
+  subject_id: piscine/shell00/ft_magic
+  xp: 140

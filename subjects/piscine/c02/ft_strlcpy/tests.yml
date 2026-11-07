@@ -1,0 +1,119 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_strlcpy_T01
+  description: 'Functional verification of input: `r == 5 && strcmp(buf, "hello")
+    == 0 ? 1 : 0`'
+  expr: 'r == 5 && strcmp(buf, "hello") == 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+  setup:
+  - char buf[10]; unsigned int r = ft_strlcpy(buf, "hello", 10);
+- name: pool_ft_strlcpy_T02
+  description: 'Functional verification of input: `r == 5 && strcmp(buf, "hel") ==
+    0 ? 1 : 0`'
+  expr: 'r == 5 && strcmp(buf, "hel") == 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+  setup:
+  - char buf[10]; unsigned int r = ft_strlcpy(buf, "hello", 4);
+- name: pool_ft_strlcpy_T03
+  description: 'Functional verification of input: `r == 3 && buf[0] == ''x'' ? 3 :
+    0`'
+  expr: 'r == 3 && buf[0] == ''x'' ? 3 : 0'
+  stdout: '3
+
+    '
+  category: Edge Case
+  tier: baseline
+  setup:
+  - char buf[4] = "xxx"; unsigned int r = ft_strlcpy(buf, "abc", 0);
+- name: pool_ft_strlcpy_T04_empty_src
+  description: empty_src_into_buffer
+  expr: 'r == 0 && buf[0] == 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: edge_case
+  setup:
+  - char buf[8] = "xxxx"; unsigned int r = ft_strlcpy(buf, "", 8);
+- name: test_05_size_1_writes_only_nul
+  setup:
+  - char buf[8] = "xxxxxxx"; unsigned int r = ft_strlcpy(buf, "hello", 1);
+  expr: 'r == 5 && buf[0] == 0 && buf[1] == ''x'' ? 1 : 0'
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_exact_fit_size_len_plus_1
+  setup:
+  - char buf[8] = "xxxxxxx"; unsigned int r = ft_strlcpy(buf, "1337", 5);
+  expr: 'r == 4 && strcmp(buf, "1337") == 0 ? 1 : 0'
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_07_single_char_src
+  setup:
+  - char buf[8] = "xxxxxxx"; unsigned int r = ft_strlcpy(buf, "Z", 8);
+  expr: 'r == 1 && strcmp(buf, "Z") == 0 ? 1 : 0'
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_08_empty_src_size_0
+  setup:
+  - char buf[4] = "abc"; unsigned int r = ft_strlcpy(buf, "", 0);
+  expr: 'r == 0 && buf[0] == ''a'' ? 1 : 0'
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_truncate_long_string
+  setup:
+  - char buf[6] = "xxxxx"; unsigned int r = ft_strlcpy(buf, "0123456789", 6);
+  expr: 'r == 10 && strcmp(buf, "01234") == 0 ? 1 : 0'
+  tier: stress
+  stdout: '1
+
+    '
+- name: test_10_no_extra_bytes_zeroed
+  setup:
+  - char buf[8] = "xxxxxxx"; unsigned int r = ft_strlcpy(buf, "ab", 8);
+  expr: 'r == 2 && buf[0] == ''a'' && buf[1] == ''b'' && buf[2] == 0 && buf[3] ==
+    ''x'' ? 1 : 0'
+  tier: edge
+  stdout: '1
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strlcpy
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_strlcpy_T05
+  origin: subject_folder/mini-moulinette/ex10/ft_strlcpy.c
+  input: 'Input:'
+  expected: 'Expected:'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strlcpy
+  perturbed_input:
+  - ft_strlcpy_near_arg_1
+  - ft_strlcpy_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_strlcpy_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex10/ft_strlcpy.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'

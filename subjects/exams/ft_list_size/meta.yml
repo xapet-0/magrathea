@@ -1,0 +1,13 @@
+id: ft_list_size
+type: c_function
+module: Exam Rank 02
+xp: 440
+expected_files:
+- ft_list_size.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int ft_list_size(t_list *begin_list);

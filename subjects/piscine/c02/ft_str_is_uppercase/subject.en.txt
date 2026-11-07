@@ -1,0 +1,25 @@
+Assignment name  : ft_str_is_uppercase
+Expected files   : ft_str_is_uppercase.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 02 (Official PDF)
+Exercise         : ft_str_is_uppercase
+Turn-in directory: ex05/
+Expected files   : ft_str_is_uppercase.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function that returns 1 if the given string contains only uppercase alpha-
+betical characters and 0 if it contains any other character.
+• Here is how it should be prototyped:
+int ft_str_is_uppercase(char *str);
+• It should return 1 ifstr is empty.
+
+Your function must be declared as follows:
+    int ft_str_is_uppercase(char *str);
+
+Examples:
+    ft_str_is_uppercase("ABC") -> 1
+    ft_str_is_uppercase("ABc") -> 0
+    ft_str_is_uppercase("") -> 1

@@ -1,0 +1,82 @@
+fixed_tests:
+- call: int x = 0; int *p1 = &x; int **p2 = &p1; int ***p3 = &p2; int ****p4 = &p3;
+    int *****p5 = &p4; int ******p6 = &p5; int *******p7 = &p6; int ********p8 = &p7;
+    int *********p9 = &p8; ft_ultimate_ft(p9); printf("%d\n", x);
+  name: pool_ft_ultimate_ft_T01
+  stdout: '42
+
+    '
+- call: int x = -1337; int *p1 = &x; int **p2 = &p1; int ***p3 = &p2; int ****p4 =
+    &p3; int *****p5 = &p4; int ******p6 = &p5; int *******p7 = &p6; int ********p8
+    = &p7; int *********p9 = &p8; ft_ultimate_ft(p9); printf("%d\n", x);
+  name: ft_ultimate_ft_negative
+  stdout: '42
+
+    '
+- call: int x = 42; int *p1 = &x; int **p2 = &p1; int ***p3 = &p2; int ****p4 = &p3;
+    int *****p5 = &p4; int ******p6 = &p5; int *******p7 = &p6; int ********p8 = &p7;
+    int *********p9 = &p8; ft_ultimate_ft(p9); printf("%d\n", x);
+  name: ft_ultimate_ft_already_42
+  stdout: '42
+
+    '
+- call: int x = 2147483647; int *p1 = &x; int **p2 = &p1; int ***p3 = &p2; int ****p4
+    = &p3; int *****p5 = &p4; int ******p6 = &p5; int *******p7 = &p6; int ********p8
+    = &p7; int *********p9 = &p8; ft_ultimate_ft(p9); printf("%d\n", x);
+  name: ft_ultimate_ft_max_int
+  stdout: '42
+
+    '
+- name: test_05_int_min
+  call: int x = -2147483648; int *p1 = &x; int **p2 = &p1; int ***p3 = &p2; int ****p4
+    = &p3; int *****p5 = &p4; int ******p6 = &p5; int *******p7 = &p6; int ********p8
+    = &p7; int *********p9 = &p8; ft_ultimate_ft(p9); printf("%d\n", x);
+  tier: edge
+  stdout: '42
+
+    '
+- name: test_06_neg_one
+  call: int x = -1; int *p1 = &x; int **p2 = &p1; int ***p3 = &p2; int ****p4 = &p3;
+    int *****p5 = &p4; int ******p6 = &p5; int *******p7 = &p6; int ********p8 = &p7;
+    int *********p9 = &p8; ft_ultimate_ft(p9); printf("%d\n", x);
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_07_pos_one
+  call: int x = 1; int *p1 = &x; int **p2 = &p1; int ***p3 = &p2; int ****p4 = &p3;
+    int *****p5 = &p4; int ******p6 = &p5; int *******p7 = &p6; int ********p8 = &p7;
+    int *********p9 = &p8; ft_ultimate_ft(p9); printf("%d\n", x);
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_08_999
+  call: int x = 999; int *p1 = &x; int **p2 = &p1; int ***p3 = &p2; int ****p4 = &p3;
+    int *****p5 = &p4; int ******p6 = &p5; int *******p7 = &p6; int ********p8 = &p7;
+    int *********p9 = &p8; ft_ultimate_ft(p9); printf("%d\n", x);
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_09_neg_42
+  call: int x = -42; int *p1 = &x; int **p2 = &p1; int ***p3 = &p2; int ****p4 = &p3;
+    int *****p5 = &p4; int ******p6 = &p5; int *******p7 = &p6; int ********p8 = &p7;
+    int *********p9 = &p8; ft_ultimate_ft(p9); printf("%d\n", x);
+  tier: edge
+  stdout: '42
+
+    '
+- name: test_10_double_call
+  call: int x = 55; int *p1 = &x; int **p2 = &p1; int ***p3 = &p2; int ****p4 = &p3;
+    int *****p5 = &p4; int ******p6 = &p5; int *******p7 = &p6; int ********p8 = &p7;
+    int *********p9 = &p8; ft_ultimate_ft(p9); x = -7; ft_ultimate_ft(p9); printf("%d\n",
+    x);
+  tier: stress
+  stdout: '42
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

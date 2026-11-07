@@ -1,0 +1,24 @@
+Assignment name  : ft_map
+Expected files   : ft_map.c
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 11 (Official PDF)
+Exercise         : ft_map
+Turn-in directory: ex01/
+Expected files   : ft_map.c
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+• Create the function ft_map, which applies a given function to all elements of an
+integer array (in order) and returns a new array containing all the return values.
+• This function will be applied in the order of the array.
+• Here is how the function should be prototyped:
+int *ft_map(int *tab, int length, int(*f)(int));
+
+Your function must be declared as follows:
+    int *ft_map(int *tab, int length, int (*f)(int));
+
+Examples:
+    int a[]={1,2,3}; int *r=ft_map(a,3,dt_double); for(int i=0;i<3;i++) printf("%d,",r[i]); printf("\n"); free(r)
+    Output: 2,4,6,

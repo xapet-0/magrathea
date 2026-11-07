@@ -1,0 +1,8 @@
+# Examples for ft_print_params (from official subject specification)
+
+Example:
+$>./a.out test1 test2 test3 | cat -e
+test1$
+test2$
+test3$
+$>

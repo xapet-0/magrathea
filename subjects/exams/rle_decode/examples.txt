@@ -1,0 +1,9 @@
+Examples:
+$> ./rle_decode "3A2BC" | cat -e
+AAABBC$
+$> ./rle_decode "ABC" | cat -e
+ABC$
+$> ./rle_decode "" | cat -e
+$
+$> ./rle_decode | cat -e
+$

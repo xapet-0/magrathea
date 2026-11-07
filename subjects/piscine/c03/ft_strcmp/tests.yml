@@ -1,0 +1,88 @@
+subject_id: ft_strcmp
+fixed_tests:
+- name: test_01_abc_abc
+  expr: 'ft_strcmp("abc", "abc") == 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  tier: baseline
+- name: test_02_abc_abd
+  expr: 'ft_strcmp("abc", "abd") < 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  tier: baseline
+- name: test_03_200_a
+  expr: 'ft_strcmp("\200", "a") > 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  tier: baseline
+- name: test_04_a_200
+  expr: 'ft_strcmp("a", "\200") < 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  tier: baseline
+- name: test_05_empty_both
+  expr: 'ft_strcmp("", "") == 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  tier: edge
+- name: test_06_empty_first
+  expr: 'ft_strcmp("", "a") < 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  tier: edge
+- name: test_07_empty_second
+  expr: 'ft_strcmp("a", "") > 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  tier: edge
+- name: test_08_prefix_shorter
+  expr: 'ft_strcmp("ab", "abc") < 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  tier: edge
+- name: test_09_prefix_longer
+  expr: 'ft_strcmp("abc", "ab") > 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  tier: edge
+- name: test_10_exact_diff_middle
+  expr: 'ft_strcmp("Hello", "He1lo") == (''l'' - ''1'') ? 1 : 0'
+  stdout: '1
+
+    '
+  tier: edge
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strcmp
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: ft_strcmp baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strcmp
+  perturbed_input:
+  - ft_strcmp_near_arg_1
+  - ft_strcmp_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ft_strcmp baseline folder fixture
+  perturbed_input: gt_strcmp baseline folder fixture

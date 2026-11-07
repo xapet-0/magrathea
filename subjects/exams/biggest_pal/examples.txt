@@ -1,0 +1,11 @@
+Examples:
+$> ./biggest_pal "abcba" | cat -e
+abcba$
+$> ./biggest_pal "a" | cat -e
+a$
+$> ./biggest_pal "abacaba_xyzzyx" | cat -e
+abacaba$
+$> ./biggest_pal "xxabba" | cat -e
+abba$
+$> ./biggest_pal | cat -e
+$

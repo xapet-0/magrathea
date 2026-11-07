@@ -1,0 +1,234 @@
+mode: c_program
+fixed_tests:
+- name: can_rev_wstr_T01
+  description: 'Functional verification of input: `[''You hate people'']`'
+  args:
+  - You hate people
+  expected: 'people hate You
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_rev_wstr_T02
+  description: many_spaces_tabs
+  args:
+  - "\t  42   school\tkit  "
+  expected: 'kit school 42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_rev_wstr_T03
+  description: single_word
+  args:
+  - alone
+  expected: 'alone
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_rev_wstr_T04
+  description: wrong_arg_count
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - You hate people! But I love gatherings. Isn't it ironic?
+  expected: 'ironic? it Isn''t gatherings. love I But people! hate You
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - abcdefghijklm
+  expected: 'abcdefghijklm
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - Wingardium Leviosa
+  expected: 'Leviosa Wingardium
+
+    '
+- name: subj_ex_05
+  tier: subject_example
+  args:
+  - le temps du mepris precede celui de l'indifference
+  expected: 'l''indifference de celui precede mepris du temps le
+
+    '
+- name: subj_ex_07
+  tier: subject_example
+  args:
+  - il contempla le mont
+  expected: 'mont le contempla il
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./rev_wstr "You hate people! But I love gatherings. Isn't it ironic?" |
+    cat -e
+  args: &id001
+  - You hate people! But I love gatherings. Isn't it ironic?
+  expected: 'ironic? it Isn''t gatherings. love I But people! hate You
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./rev_wstr "abcdefghijklm"
+  args: &id002
+  - abcdefghijklm
+  expected: 'abcdefghijklm
+
+    '
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./rev_wstr "Wingardium Leviosa" | cat -e
+  args: &id003
+  - Wingardium Leviosa
+  expected: 'Leviosa Wingardium
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./rev_wstr | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./rev_wstr "le temps du mepris precede celui de l'indifference" | cat -e
+  args:
+  - le temps du mepris precede celui de l'indifference
+  expected: 'l''indifference de celui precede mepris du temps le
+
+    '
+  cat_e: true
+- id: subj_ex_06
+  origin: subject.en.txt
+  command: ./rev_wstr "abcdefghijklm"
+  args:
+  - abcdefghijklm
+  expected: 'abcdefghijklm
+
+    '
+  cat_e: false
+- id: subj_ex_07
+  origin: subject.en.txt
+  command: ./rev_wstr "il contempla le mont" | cat -e
+  args:
+  - il contempla le mont
+  expected: 'mont le contempla il
+
+    '
+  cat_e: true
+- id: subj_ex_08
+  origin: subject.en.txt
+  command: ./rev_wstr | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_rev_wstr_T05
+  origin: subject_folder/42ExamPractice/rev_wstr/tester.sh
+  input: ./rev_wstr "abcdefghijklm"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_wstr_T06
+  origin: subject_folder/42ExamPractice/rev_wstr/tester.sh
+  input: ./rev_wstr "order in us put"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_wstr_T07
+  origin: subject_folder/42ExamPractice/rev_wstr/tester.sh
+  input: ./rev_wstr "done! well it, did You"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_wstr_T08
+  origin: subject_folder/42ExamPractice/rev_wstr/tester.sh
+  input: ./rev_wstr "You hate people! But I love gatherings. Isn't it ironic?"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_wstr_T09
+  origin: subject_folder/examples.txt
+  input: ./rev_wstr "le temps du mepris precede celui de l'indifference" \| cat -e
+  expected: l'indifference de celui precede mepris du temps le$
+- id: can_rev_wstr_T10
+  origin: subject_folder/examples.txt
+  input: ./rev_wstr "abcdefghijklm"
+  expected: abcdefghijklm
+- id: can_rev_wstr_T11
+  origin: subject_folder/examples.txt
+  input: ./rev_wstr "il contempla le mont" \| cat -e
+  expected: mont le contempla il$
+- id: can_rev_wstr_T12
+  origin: subject_folder/examples.txt
+  input: ./rev_wstr \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - Zou hate people! But I love gatherings. Isn't it ironic?
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  You hate people! But I love gatherings. Isn''t it ironic?  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - bbcdefghijklm
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  abcdefghijklm  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - Xingardium Leviosa
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  Wingardium Leviosa  '
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./rev_wstr | cat -e
+  perturbed_input:
+  - rev_wstr_near_arg_1
+  - rev_wstr_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_rev_wstr_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rev_wstr/tester.sh)
+  original_input: ./rev_wstr "abcdefghijklm"
+  perturbed_input: ./sev_wstr "abcdefghijklm"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_rev_wstr_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rev_wstr/tester.sh)
+  original_input: ./rev_wstr "order in us put"
+  perturbed_input: ./sev_wstr "order in us put"

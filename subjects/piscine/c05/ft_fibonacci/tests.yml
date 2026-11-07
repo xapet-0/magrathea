@@ -1,0 +1,114 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_fibonacci_T01
+  description: 'Functional verification of input: `ft_fibonacci(-1)`'
+  expr: ft_fibonacci(-1)
+  stdout: '-1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_fibonacci_T02
+  description: 'Functional verification of input: `ft_fibonacci(6)`'
+  expr: ft_fibonacci(6)
+  stdout: '8
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_fibonacci_T03
+  description: edge_fibonacci_negative
+  expr: ft_fibonacci(-3)
+  stdout: '-1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_fibonacci_T04
+  description: edge_fibonacci_zero
+  expr: ft_fibonacci(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_fibonacci_T05
+  description: edge_fibonacci_one
+  expr: ft_fibonacci(1)
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_06_index_2
+  expr: ft_fibonacci(2)
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_07_index_3
+  expr: ft_fibonacci(3)
+  tier: baseline
+  stdout: '2
+
+    '
+- name: test_08_index_4
+  expr: ft_fibonacci(4)
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_09_index_8
+  expr: ft_fibonacci(8)
+  tier: stress
+  stdout: '21
+
+    '
+- name: test_10_index_12
+  expr: ft_fibonacci(12)
+  tier: stress
+  stdout: '144
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_fibonacci
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_fibonacci_T07
+  origin: subject_folder/mini-moulinette/ex04/ft_fibonacci.c
+  input: 'Input:'
+  expected: 'Expected: 0'
+- id: pool_ft_fibonacci_T08
+  origin: subject_folder/mini-moulinette/ex04/ft_fibonacci.c
+  input: 'Input:'
+  expected: 'Expected: 1'
+- id: pool_ft_fibonacci_T09
+  origin: subject_folder/mini-moulinette/ex04/ft_fibonacci.c
+  input: 'Input:'
+  expected: 'Expected: 5'
+- id: pool_ft_fibonacci_T10
+  origin: subject_folder/mini-moulinette/ex04/ft_fibonacci.c
+  input: 'Input:'
+  expected: 'Expected: -1'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_fibonacci
+  perturbed_input:
+  - ft_fibonacci_near_arg_1
+  - ft_fibonacci_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_fibonacci_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex04/ft_fibonacci.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_fibonacci_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex04/ft_fibonacci.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'

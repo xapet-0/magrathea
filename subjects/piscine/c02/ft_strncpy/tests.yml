@@ -1,0 +1,119 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_strncpy_T01
+  description: 'Functional verification of input: `char d[8]="xxxxxxx"; ft_strncpy(d,"abc",5);
+    p`'
+  call: char d[8]="xxxxxxx"; ft_strncpy(d,"abc",5); printf("%c%c%c:%d:%d\n",d[0],d[1],d[2],d[3],d[4])
+  stdout: 'abc:0:0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_strncpy_T02
+  description: zero_pad
+  call: char d[8] = "xxxxxxx"; ft_strncpy(d, "hi", 5); printf("%s\|%d\|%d\n", d, d[2],
+    d[4])
+  stdout: 'hi|0|0
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_strncpy_T03
+  description: exact_trunc
+  call: char d[8] = {0}; ft_strncpy(d, "abcdef", 3); printf("%s\n", d)
+  stdout: 'abc
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_strncpy_T04_zero_n
+  description: zero_length_n_leaves_dest_intact
+  call: char d[4] = "xyz"; ft_strncpy(d, "abc", 0); printf("%s\n", d)
+  stdout: 'xyz
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_exact_length_no_nul
+  call: char d[8] = "xxxxxxx"; ft_strncpy(d, "abc", 3); printf("%c%c%c%c\n", d[0],
+    d[1], d[2], d[3])
+  tier: edge
+  stdout: 'abcx
+
+    '
+- name: test_06_empty_src_pads_zeros
+  call: char d[6] = "xxxxx"; ft_strncpy(d, "", 4); printf("%d:%d:%d:%d:%c\n", d[0],
+    d[1], d[2], d[3], d[4])
+  tier: edge
+  stdout: '0:0:0:0:x
+
+    '
+- name: test_07_n_equals_1
+  call: char d[4] = "zzz"; ft_strncpy(d, "A", 1); printf("%c%c\n", d[0], d[1])
+  tier: baseline
+  stdout: 'Az
+
+    '
+- name: test_08_return_pointer_identity
+  call: char d[8] = {0}; char *r = ft_strncpy(d, "42", 4); printf("%d:%s\n", r ==
+    d, r)
+  tier: edge
+  stdout: '1:42
+
+    '
+- name: test_09_n_equals_len_plus_1
+  call: char d[8] = "xxxxxxx"; ft_strncpy(d, "abc", 4); printf("%s|%d|%c\n", d, d[3],
+    d[4])
+  tier: baseline
+  stdout: 'abc|0|x
+
+    '
+- name: test_10_longer_padding_check
+  call: char d[10]; for(int i=0;i<10;i++) d[i]='X'; ft_strncpy(d, "42", 8); printf("%s:%d:%d:%c\n",
+    d, d[2], d[7], d[8])
+  tier: stress
+  stdout: '42:0:0:X
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strncpy
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_strncpy_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: char d[8]="xxxxxxx"; ft_strncpy(d,"abc",5); printf("%c%c%c:%d:%d\n",d[0],d[1],d[2],d[3],d[4])
+  expected: abc:0:0\n
+- id: pool_ft_strncpy_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: char d[8] = "xxxxxxx"; ft_strncpy(d, "hi", 5); printf("%s\|%d\|%d\n", d,
+    d[2], d[4])
+  expected: hi\|0\|0\n
+- id: pool_ft_strncpy_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: char d[8] = {0}; ft_strncpy(d, "abcdef", 3); printf("%s\n", d)
+  expected: abc\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strncpy
+  perturbed_input:
+  - ft_strncpy_near_arg_1
+  - ft_strncpy_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_strncpy_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: char d[8]="xxxxxxx"; ft_strncpy(d,"abc",5); printf("%c%c%c:%d:%d\n",d[0],d[1],d[2],d[3],d[4])
+  perturbed_input: dhar d[8]="xxxxxxx"; ft_strncpy(d,"abc",
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_strncpy_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: char d[8] = "xxxxxxx"; ft_strncpy(d, "hi", 5); printf("%s\|%d\|%d\n",
+    d, d[2], d[4])
+  perturbed_input: dhar d[8] = "xxxxxxx"; ft_strncpy(d, "hi

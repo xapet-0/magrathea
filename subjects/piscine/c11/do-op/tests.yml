@@ -1,0 +1,268 @@
+mode: c_program
+fixed_tests:
+- name: pool_do-op_T01
+  description: add
+  args:
+  - '7'
+  - +
+  - '5'
+  expected: '12
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_do-op_T02
+  description: add_neg
+  args:
+  - '-7'
+  - +
+  - '5'
+  expected: '-2
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_do-op_T03
+  description: mul
+  args:
+  - '6'
+  - '*'
+  - '7'
+  expected: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_do-op_T04
+  description: div
+  args:
+  - '84'
+  - /
+  - '2'
+  expected: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_do-op_T05
+  description: mod
+  args:
+  - '85'
+  - '%'
+  - '43'
+  expected: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_do-op_T06
+  description: bad_argc
+  args:
+  - '1'
+  - +
+  expected: ''
+  category: Functional
+  tier: baseline
+- name: pool_do-op_T07
+  description: div_zero
+  args:
+  - '42'
+  - /
+  - '0'
+  expected: 'Stop : division by zero
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_do-op_T08
+  description: mod_zero
+  args:
+  - '42'
+  - '%'
+  - '0'
+  expected: 'Stop : modulo by zero
+
+    '
+  category: Edge Case
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./do-op 42 "+" 21
+  args: &id001
+  - '42'
+  - +
+  - '21'
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: make clean
+  args: &id002
+  - clean
+  expected: ''
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: make
+  args: []
+  expected: ''
+  cat_e: false
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./do-op
+  args: []
+  expected: ''
+  cat_e: false
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./do-op 1 + 1
+  args:
+  - '1'
+  - +
+  - '1'
+  expected: ''
+  cat_e: false
+- id: subj_ex_06
+  origin: subject.en.txt
+  command: ./do-op 42amis - --+-20toto12
+  args:
+  - 42amis
+  - '-'
+  - --+-20toto12
+  expected: ''
+  cat_e: false
+- id: subj_ex_07
+  origin: subject.en.txt
+  command: ./do-op 1 p 1
+  args:
+  - '1'
+  - p
+  - '1'
+  expected: ''
+  cat_e: false
+- id: subj_ex_08
+  origin: subject.en.txt
+  command: ./do-op 1 + toto3
+  args:
+  - '1'
+  - +
+  - toto3
+  expected: ''
+  cat_e: false
+- id: subj_ex_09
+  origin: subject.en.txt
+  command: ./do-op toto3 + 4
+  args:
+  - toto3
+  - +
+  - '4'
+  expected: ''
+  cat_e: false
+- id: subj_ex_10
+  origin: subject.en.txt
+  command: ./do-op foo plus bar
+  args:
+  - foo
+  - plus
+  - bar
+  expected: ''
+  cat_e: false
+- id: subj_ex_11
+  origin: subject.en.txt
+  command: ./do-op 25 / 0
+  args:
+  - '25'
+  - /
+  - '0'
+  expected: 'Stop : division by zero
+
+    '
+  cat_e: false
+- id: subj_ex_12
+  origin: subject.en.txt
+  command: ./do-op 25 % 0
+  args:
+  - '25'
+  - '%'
+  - '0'
+  expected: 'Stop : modulo by zero
+
+    '
+  cat_e: false
+folder_examples:
+- id: pool_do-op_T07
+  origin: subject_folder/42ExamPractice/do_op/tester.sh
+  input: ./do-op "1" "+" "-43"
+  expected: Matches 42 reference standard output and exit code
+- id: pool_do-op_T08
+  origin: subject_folder/42ExamPractice/do_op/tester.sh
+  input: ./do-op "9828" "%" "234"
+  expected: Matches 42 reference standard output and exit code
+- id: pool_do-op_T09
+  origin: subject_folder/42ExamPractice/do_op/tester.sh
+  input: ./do-op "9828" "/" "234"
+  expected: Matches 42 reference standard output and exit code
+- id: pool_do-op_T10
+  origin: subject_folder/42ExamPractice/do_op/tester.sh
+  input: ./do-op "123" "*" "456"
+  expected: Matches 42 reference standard output and exit code
+- id: pool_do-op_T11
+  origin: subject_folder/42ExamPractice/do_op/tester.sh
+  input: ./do-op "9828" "/" "2"
+  expected: Matches 42 reference standard output and exit code
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '43'
+  - +!
+  - '22'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  42  '
+  - +
+  - '21'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - dlean
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  clean  '
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: make
+  perturbed_input:
+  - do-op_near_arg_1
+  - do-op_near_arg_2
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./do-op
+  perturbed_input:
+  - do-op_near_arg_1
+  - do-op_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_do-op_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/do_op/tester.sh)
+  original_input: ./do-op "1" "+" "-43"
+  perturbed_input: ./eo-op "1" "+" "-43"
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_do-op_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/do_op/tester.sh)
+  original_input: ./do-op "9828" "%" "234"
+  perturbed_input: ./eo-op "9828" "%" "234"

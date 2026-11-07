@@ -1,0 +1,16 @@
+Assignment name  : ascii_character_v2
+Expected files   : ascii_character_v2.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a single character as argument and displays it on
+standard output followed by a newline. If the number of arguments is not 1,
+display only a newline.
+
+Examples:
+$> ./ascii_character_v2 "A" | cat -e
+65$
+$> ./ascii_character_v2 "z" | cat -e
+122$
+$> ./ascii_character_v2 "0" | cat -e
+48$

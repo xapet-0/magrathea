@@ -1,0 +1,9 @@
+# Examples for tail (from official subject specification)
+
+Examples:
+$> ./tail "-c" "5" "a.txt" | cat -e
+orld$
+$> ./tail "-c" "11" "a.txt" | cat -e
+ello world$
+$> ./tail "-c" "99" "a.txt" | cat -e
+abc$

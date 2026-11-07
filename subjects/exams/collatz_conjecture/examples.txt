@@ -1,0 +1,3 @@
+Examples:
+  collatz_conjecture(1)  -> 0
+  collatz_conjecture(12) -> 9

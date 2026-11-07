@@ -1,0 +1,16 @@
+Assignment name  : compact
+Expected files   : compact.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that takes an array of strings tab and its length length,
+removes all NULL pointers by shifting the remaining elements to the left, and
+returns the new number of non-NULL elements in tab.
+
+Your function must be declared as follows:
+
+int	compact(char **tab, int length);
+
+Example:
+  If tab = {"a", NULL, "b", NULL} and length = 4:
+  compact(tab, 4) returns 2, and tab[0] == "a", tab[1] == "b".

@@ -1,0 +1,225 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_pow_T01
+  description: 'Functional verification of input: `ft_pow(2,5)`'
+  expr: ft_pow(2,5)
+  stdout: '32
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_pow_T02
+  description: 'Functional verification of input: `ft_pow(3,0)`'
+  expr: ft_pow(3,0)
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_pow_T03
+  description: 'Functional verification of input: `ft_pow(2,-1)`'
+  expr: ft_pow(2,-1)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_pow_T04
+  description: edge_ft_pow_zero_power
+  expr: ft_pow(42, 0)
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_pow_T05
+  description: edge_ft_pow_negative_power
+  expr: ft_pow(2, -3)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_06_one_to_any_power
+  expr: ft_pow(1, 100)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_zero_to_positive
+  expr: ft_pow(0, 5)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_zero_to_zero
+  expr: ft_pow(0, 0)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_neg_base_odd_exp
+  expr: ft_pow(-3, 3)
+  tier: baseline
+  stdout: '-27
+
+    '
+- name: test_10_neg_base_even_exp
+  expr: ft_pow(-3, 4)
+  tier: stress
+  stdout: '81
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./ft_pow(-2, 3) = -8
+  args: &id001
+  - 3)
+  - '='
+  - '-8'
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./ft_pow(-2, 4) = 16
+  args: &id002
+  - 4)
+  - '='
+  - '16'
+  expected: ''
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./ft_pow(5, -3) = 0
+  args: &id003
+  - -3)
+  - '='
+  - '0'
+  expected: ''
+  cat_e: false
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./ft_pow(0, 3) = 0
+  args: &id004
+  - 3)
+  - '='
+  - '0'
+  expected: ''
+  cat_e: false
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./ft_pow(0, 0) = 1
+  args:
+  - 0)
+  - '='
+  - '1'
+  expected: ''
+  cat_e: false
+- id: subj_ex_06
+  origin: subject.en.txt
+  command: ./ft_pow(0, -2) = 1
+  args:
+  - -2)
+  - '='
+  - '1'
+  expected: ''
+  cat_e: false
+folder_examples:
+- id: cur_ft_pow_T06
+  origin: subject_folder/deepthought/corrections/exams/ft_pow/generator.py
+  input: Dynamic generation rule via random_int()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_pow_T07
+  origin: subject_folder/deepthought/corrections/exams/ft_pow/generator.py
+  input: Dynamic generation rule via basic_pow()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_pow_T08
+  origin: subject_folder/deepthought/corrections/exams/ft_pow/generator.py
+  input: Dynamic generation rule via edge_case_zero_exponent()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - 3)!
+  - =!
+  - '-9'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  3)  '
+  - '='
+  - '-8'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - 4)!
+  - =!
+  - '17'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  4)  '
+  - '='
+  - '16'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - -3)!
+  - =!
+  - '1'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  -3)  '
+  - '='
+  - '0'
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - 3)!
+  - =!
+  - '1'
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  3)  '
+  - '='
+  - '0'
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ft_pow_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ft_pow/generator.py)
+  original_input: Dynamic generation rule via random_int()
+  perturbed_input: Eynamic generation rule via random_int()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ft_pow_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ft_pow/generator.py)
+  original_input: Dynamic generation rule via basic_pow()
+  perturbed_input: Eynamic generation rule via basic_pow()
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Zero power and zero base
+  input: ft_pow(0, 0), ft_pow(2, 0)
+  expected: 1, 1

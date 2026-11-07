@@ -1,0 +1,14 @@
+id: remove_vowels
+type: c_program
+module: "Piscine Exams 00\u2013Final"
+xp: 295
+expected_files:
+- remove_vowels.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

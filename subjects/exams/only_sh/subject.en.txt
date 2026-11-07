@@ -1,0 +1,21 @@
+Assignment name  : only_sh
+Expected files   : only_sh.sh
+Allowed commands : printf, echo
+--------------------------------------------------------------------------------
+
+Write a POSIX shell script that displays the exact literal string below without
+any trailing newline:
+
+"$*'1337'*$?"
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh only_sh.sh | cat -e
+"$*'1337'*$?"
+$> sh only_sh.sh "ignored" | cat -e
+"$*'1337'*$?"
+$> sh only_sh.sh "a" "b" | cat -e
+"$*'1337'*$?"

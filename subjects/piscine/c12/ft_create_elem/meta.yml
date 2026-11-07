@@ -1,0 +1,15 @@
+id: ft_create_elem
+type: c_function
+module: C 12
+xp: 340
+expected_files:
+- ft_create_elem.c
+- ft_list.h
+allowed_functions:
+- malloc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: t_list *ft_create_elem(void *data);

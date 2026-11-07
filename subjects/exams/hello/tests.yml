@@ -1,0 +1,150 @@
+mode: c_program
+fixed_tests:
+- name: can_hello_T01
+  description: no_args
+  args: []
+  expected: 'Hello World!
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_hello_T02
+  description: one_arg
+  args:
+  - ignored
+  expected: 'Hello World!
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_hello_T03
+  description: empty_arg
+  args:
+  - ''
+  expected: 'Hello World!
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_hello_T04
+  description: two_args
+  args:
+  - '1337'
+  - '42'
+  expected: 'Hello World!
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_hello_T05
+  description: many_args
+  args:
+  - a
+  - b
+  - c
+  - d
+  expected: 'Hello World!
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: 'Hello World!
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: 'Hello World!
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: 'Hello World!
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: 'Hello World!
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: 'Hello World!
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./hello
+  args: []
+  expected: 'Hello World!
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./hello | cat -e
+  args: []
+  expected: 'Hello World!
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_hello_T06
+  origin: subject_folder/examples.txt
+  input: ./hello
+  expected: Hello World!
+- id: can_hello_T07
+  origin: subject_folder/examples.txt
+  input: ./hello \| cat -e
+  expected: Hello World!$
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./hello
+  perturbed_input:
+  - hello_near_arg_1
+  - hello_near_arg_2
+- id: near_subj_02_arity_perturbation
+  derived_from: subj_ex_02
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./hello | cat -e
+  perturbed_input:
+  - hello_near_arg_1
+  - hello_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_hello_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./hello
+  perturbed_input: ./iello
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_hello_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./hello \| cat -e
+  perturbed_input: ./iello \| cat -e

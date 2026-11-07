@@ -1,0 +1,19 @@
+Assignment name  : exit_truth
+Expected files   : exit_truth.sh
+Allowed commands : test, [, exit
+--------------------------------------------------------------------------------
+
+Write a shell script that exits with status 0 if $1 equals "42", and exits
+with status 1 otherwise, producing no output on standard output.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh exit_truth.sh "42" | cat -e
+$
+$> sh exit_truth.sh "0" | cat -e
+$
+$> sh exit_truth.sh "1337" | cat -e
+$

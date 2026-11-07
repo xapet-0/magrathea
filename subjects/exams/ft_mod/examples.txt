@@ -1,0 +1,15 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : ft_mod(20,6)
+    Expected Output   : '2\n'
+  [Standard Test 2] Name: test
+    Call / Invocation : ft_mod(7,0)
+    Expected Output   : '0\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: edge_ft_mod_zero_divisor [Test description: "edge_ft_mod_zero_divisor"]
+    Call / Invocation : ft_mod(42, 0)
+    Expected Output   : '0\n'
+  [Edge Case 2] Name: edge_ft_mod_negative [Test description: "edge_ft_mod_negative"]
+    Call / Invocation : ft_mod(-85, 42)
+    Expected Output   : '-1\n'

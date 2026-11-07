@@ -1,0 +1,6 @@
+# Examples for is_anagram (from official subject specification)
+
+Examples:
+    is_anagram("cinema", "iceman") -> 1
+    is_anagram("hello", "world") -> 0
+    is_anagram("", "") -> 1

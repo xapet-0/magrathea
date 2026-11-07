@@ -1,0 +1,13 @@
+id: ft_is_sort
+type: c_function
+module: C 11
+xp: 270
+expected_files:
+- ft_is_sort.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int ft_is_sort(int *tab, int length, int (*f)(int, int));

@@ -1,0 +1,30 @@
+id: c00
+display_name: 1337 / 42 Piscine — C 00
+exercises:
+- ex: ex00
+  subject_id: piscine/c00/ft_putchar
+  xp: 120
+- ex: ex01
+  subject_id: piscine/c00/ft_print_alphabet
+  xp: 120
+- ex: ex02
+  subject_id: piscine/c00/ft_print_reverse_alphabet
+  xp: 120
+- ex: ex03
+  subject_id: piscine/c00/ft_print_numbers
+  xp: 120
+- ex: ex04
+  subject_id: piscine/c00/ft_is_negative
+  xp: 120
+- ex: ex05
+  subject_id: piscine/c00/ft_print_comb
+  xp: 120
+- ex: ex06
+  subject_id: piscine/c00/ft_print_comb2
+  xp: 120
+- ex: ex07
+  subject_id: piscine/c00/ft_putnbr
+  xp: 120
+- ex: ex08
+  subject_id: piscine/c00/ft_print_combn
+  xp: 120

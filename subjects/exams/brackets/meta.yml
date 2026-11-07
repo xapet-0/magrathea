@@ -1,0 +1,15 @@
+id: brackets
+type: c_program
+module: Piscine Exams 00–Final
+xp: 295
+expected_files:
+- '*.c'
+- '*.h'
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

@@ -1,0 +1,33 @@
+allowed_functions:
+- write
+- close
+- select
+- socket
+- accept
+- listen
+- send
+- recv
+- bind
+- malloc
+- free
+- exit
+- strcmp
+- strcpy
+- strlen
+- fopen
+- fclose
+- fscanf
+- fprintf
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+expected_files:
+- mini_db.cpp
+- mini_db.hpp
+id: mini_db
+module: Exam Rank 06
+norminette: false
+prototype: int main(int argc, char **argv);
+type: cpp_program
+xp: 705

@@ -1,0 +1,241 @@
+mode: c_function
+fixed_tests:
+- name: cur_is_consonant_T01
+  description: 'Functional verification of input: `is_consonant(''b'')`'
+  expr: is_consonant('b')
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_consonant_T02
+  description: 'Functional verification of input: `is_consonant(''E'')`'
+  expr: is_consonant('E')
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_consonant_T03
+  description: 'Functional verification of input: `is_consonant(''4'')`'
+  expr: is_consonant('4')
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_consonant_T04
+  description: edge_is_consonant_vowel
+  expr: is_consonant('a')
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_is_consonant_T05
+  description: edge_is_consonant_non_letter
+  expr: is_consonant('1')
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_06_uppercase_consonant_Z
+  expr: is_consonant('Z')
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_07_lowercase_consonant_z
+  expr: is_consonant('z')
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_08_all_lowercase_vowels
+  expr: is_consonant('e') + is_consonant('i') + is_consonant('o') + is_consonant('u')
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_all_uppercase_vowels
+  expr: is_consonant('A') + is_consonant('I') + is_consonant('O') + is_consonant('U')
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_non_alpha_boundaries
+  expr: is_consonant('@') + is_consonant('[') + is_consonant('`') + is_consonant('{')
+  tier: stress
+  stdout: '0
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: is_consonant ('b') = 1
+  args: &id001
+  - (b)
+  - '='
+  - '1'
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: is_consonant('C') = 1
+  args: &id002
+  - '='
+  - '1'
+  expected: ''
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: is_consonant('o') = 0
+  args: &id003
+  - '='
+  - '0'
+  expected: ''
+  cat_e: false
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: is_consonant('A') = 0
+  args: &id004
+  - '='
+  - '0'
+  expected: ''
+  cat_e: false
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: is_consonant('z') = 1
+  args:
+  - '='
+  - '1'
+  expected: ''
+  cat_e: false
+folder_examples:
+- id: cur_is_consonant_T07
+  origin: subject_folder/deepthought/corrections/exams/is_consonant/generator.py
+  input: Dynamic generation rule via test_consonant_lower()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_consonant_T08
+  origin: subject_folder/deepthought/corrections/exams/is_consonant/generator.py
+  input: Dynamic generation rule via test_consonant_upper()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_consonant_T09
+  origin: subject_folder/deepthought/corrections/exams/is_consonant/generator.py
+  input: Dynamic generation rule via test_vowel_lower()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_consonant_T10
+  origin: subject_folder/deepthought/corrections/exams/is_consonant/generator.py
+  input: Dynamic generation rule via test_vowel_upper()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_consonant_T11
+  origin: subject_folder/deepthought/corrections/exams/is_consonant/generator.py
+  input: Dynamic generation rule via test_non_alphabetic()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_consonant_T12
+  origin: subject_folder/deepthought/corrections/exams/is_consonant/generator.py
+  input: Dynamic generation rule via test_empty_arg()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_consonant_T13
+  origin: subject_folder/deepthought/corrections/exams/is_consonant/generator.py
+  input: Dynamic generation rule via test_no_arg()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_consonant_T14
+  origin: subject_folder/deepthought/corrections/exams/is_consonant/generator.py
+  input: Dynamic generation rule via test_multiple_args()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - (c)
+  - =!
+  - '2'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  (b)  '
+  - '='
+  - '1'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - =!
+  - '2'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  =  '
+  - '1'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - =!
+  - '1'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  =  '
+  - '0'
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - =!
+  - '1'
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  =  '
+  - '0'
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_is_consonant_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/is_consonant/generator.py)
+  original_input: Dynamic generation rule via test_consonant_lower()
+  perturbed_input: Eynamic generation rule via test_consona
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_is_consonant_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/is_consonant/generator.py)
+  original_input: Dynamic generation rule via test_consonant_upper()
+  perturbed_input: Eynamic generation rule via test_consona
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and non-printable characters in `is_consonant`
+  input: "is_consonant(\"\") and is_consonant(\"\t\n\x01\x1F\")"
+  expected: Preserve non-alphabetic characters unmodified
+- name: edge_02_B
+  code: '[B]'
+  title: Argument count verification (argc != 2) in `is_consonant`
+  input: Execute is_consonant with 0 arguments and with > 1 argument
+  expected: Print newline only
+- name: edge_03_D
+  code: '[D]'
+  title: Idempotence and involution property check for `is_consonant`
+  input: 'Apply transformation twice: is_consonant(is_consonant(s))'
+  expected: Valid transformation output matching mathematical cipher cycle
+- name: edge_04_B
+  code: '[B]'
+  title: Boundary alphabetic letters ('a', 'z', 'A', 'Z') in `is_consonant`
+  input: is_consonant("a z A Z")
+  expected: Accurate wraparound without overflowing outside alphabet bounds

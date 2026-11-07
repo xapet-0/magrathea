@@ -1,0 +1,115 @@
+subject_id: dash_trap
+fixed_tests:
+- name: test_01_e
+  files:
+    -e: '42_secret
+
+      '
+  args:
+  - -e
+  stdout: '42_secret
+
+    '
+- name: test_02_n
+  files:
+    -n: 'hello_1337
+
+      '
+  args:
+  - -n
+  stdout: 'hello_1337
+
+    '
+- name: test_03_normal_txt
+  files:
+    normal.txt: 'ok
+
+      '
+  args:
+  - normal.txt
+  stdout: 'ok
+
+    '
+- name: test_04_double_dash_file
+  files:
+    --help: 'dash_edge
+
+      '
+  args:
+  - --help
+  stdout: 'dash_edge
+
+    '
+- name: test_05_dash_v
+  files:
+    -v: 'verbose_content
+
+      '
+  args:
+  - -v
+  tier: edge
+  stdout: 'verbose_content
+
+    '
+- name: test_06_dash_E
+  files:
+    -E: 'cap_E
+
+      '
+  args:
+  - -E
+  tier: edge
+  stdout: 'cap_E
+
+    '
+- name: test_07_double_dash_version
+  files:
+    --version: 'v1.0
+
+      '
+  args:
+  - --version
+  tier: edge
+  stdout: 'v1.0
+
+    '
+- name: test_08_dash_word
+  files:
+    -file.txt: 'dash_file
+
+      '
+  args:
+  - -file.txt
+  tier: baseline
+  stdout: 'dash_file
+
+    '
+- name: test_09_multiline_dash_file
+  files:
+    -n: 'line1
+
+      line2
+
+      '
+  args:
+  - -n
+  tier: baseline
+  stdout: 'line1
+
+    line2
+
+    '
+- name: test_10_plain_alnum
+  files:
+    data42: 'magrathea
+
+      '
+  args:
+  - data42
+  tier: stress
+  stdout: 'magrathea
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

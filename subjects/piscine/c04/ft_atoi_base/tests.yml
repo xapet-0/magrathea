@@ -1,0 +1,62 @@
+fixed_tests:
+- call: printf("%d\n", ft_atoi_base("2a", "0123456789abcdef"));
+  name: pool_ft_atoi_base_T01
+  stdout: '42
+
+    '
+- call: printf("%d:%d:%d\n", ft_atoi_base("   ---80000000", "0123456789abcdef"), ft_atoi_base("42",
+    "0"), ft_atoi_base("   ", "01"));
+  name: pool_ft_atoi_base_T02_int_min_and_invalid_base
+  stdout: '-2147483648:0:0
+
+    '
+- call: printf("%d\n", ft_atoi_base("42", "01234567890"));
+  name: ft_atoi_base_duplicate_chars_in_base
+  stdout: '0
+
+    '
+- call: printf("%d:%d\n", ft_atoi_base("42", "012+345"), ft_atoi_base("42", "012 345"));
+  name: ft_atoi_base_signs_and_spaces_in_base
+  stdout: '0:0
+
+    '
+- name: test_05_zero_and_positive_dec
+  call: printf("%d:%d\n", ft_atoi_base("0", "0123456789"), ft_atoi_base("1337", "0123456789"));
+  tier: baseline
+  stdout: '0:1337
+
+    '
+- name: test_06_binary_with_multi_signs
+  call: printf("%d\n", ft_atoi_base(" \t---+--+101010", "01"));
+  tier: edge
+  stdout: '-42
+
+    '
+- name: test_07_custom_base_poneyvif
+  call: printf("%d\n", ft_atoi_base("-vn", "poneyvif"));
+  tier: baseline
+  stdout: '-42
+
+    '
+- name: test_08_int_max_decimal
+  call: printf("%d\n", ft_atoi_base("2147483647", "0123456789"));
+  tier: edge
+  stdout: '2147483647
+
+    '
+- name: test_09_stop_at_non_base_char
+  call: printf("%d\n", ft_atoi_base("   +ffxyz", "0123456789abcdef"));
+  tier: edge
+  stdout: '255
+
+    '
+- name: test_10_empty_base_and_minus_in_base
+  call: printf("%d:%d\n", ft_atoi_base("42", ""), ft_atoi_base("42", "012-345"));
+  tier: edge
+  stdout: '0:0
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

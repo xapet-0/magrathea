@@ -1,0 +1,207 @@
+fixed_tests:
+- name: padinton
+  args:
+  - padinton
+  - paqefwtdjetyiytjneytjoeyjnejeyj
+  stdout: 'p a d i n t o
+
+    '
+  tier: baseline
+- name: abc
+  args:
+  - abc
+  - bcd
+  stdout: 'b c
+
+    '
+  tier: baseline
+- name: single
+  args:
+  - a
+  - a
+  stdout: 'a
+
+    '
+  tier: baseline
+- name: no_args
+  args: []
+  stdout: '
+
+    '
+  tier: baseline
+- name: test_05_arg_auto
+  args:
+  - ''
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_06_arg_auto
+  args:
+  - '42'
+  - '1337'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_07_arg_auto
+  args:
+  - pad
+  - test
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '!@#$'
+  - '%^&*'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - abc
+  - abcdef
+  tier: baseline
+  stdout: 'a b c
+
+    '
+- name: test_10_arg_auto
+  args:
+  - same
+  - same
+  tier: baseline
+  stdout: 's a m e
+
+    '
+subject_id: inter_space
+mode: c_program
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./inter_space "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" | cat -e
+  args: &id001
+  - padinton
+  - paqefwtdjetyiytjneytjoeyjnejeyj
+  expected: 'p a d i n t o
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./inter_space "abc" "bcd" | cat -e
+  args: &id002
+  - abc
+  - bcd
+  expected: 'b c
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./inter_space "a" "a" | cat -e
+  args: &id003
+  - a
+  - a
+  expected: 'a
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./inter_space | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_inter_space_T05
+  origin: subject_folder/examples.txt
+  input: ./inter_space "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" \| cat -e
+  expected: p a d i n t o$
+- id: e1337_inter_space_T06
+  origin: subject_folder/examples.txt
+  input: ./inter_space "abc" "bcd" \| cat -e
+  expected: b c$
+- id: e1337_inter_space_T07
+  origin: subject_folder/examples.txt
+  input: ./inter_space "a" "a" \| cat -e
+  expected: a$
+- id: e1337_inter_space_T08
+  origin: subject_folder/examples.txt
+  input: ./inter_space \| cat -e
+  expected: $
+- id: folder_fixture_05
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- name: padinton\n  args:\n  - padinton\n  - paqefwtdjetyiytjneytjoeyjnejeyj\n\
+    \  stdout: 'p a d i n t o\n\n    '\n- name: abc\n  args:\n  - abc\n  - bcd\n \
+    \ std"
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - qadinton
+  - qaqefwtdjetyiytjneytjoeyjnejeyj
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  padinton  '
+  - paqefwtdjetyiytjneytjoeyjnejeyj
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - bbc
+  - ccd
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  abc  '
+  - bcd
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - b
+  - b
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  a  '
+  - a
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./inter_space | cat -e
+  perturbed_input:
+  - inter_space_near_arg_1
+  - inter_space_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_inter_space_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./inter_space "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" \| cat
+    -e
+  perturbed_input: ./jnter_space "padinton" "paqefwtdjetyiy
+- id: near_folder_02_boundary_neighbor
+  derived_from: e1337_inter_space_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./inter_space "abc" "bcd" \| cat -e
+  perturbed_input: ./jnter_space "abc" "bcd" \| cat -e

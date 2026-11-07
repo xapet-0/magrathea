@@ -1,0 +1,184 @@
+mode: c_function
+fixed_tests:
+- name: cur_triangle_area_T01
+  description: 'Functional verification of input: `triangle_area(7,6)`'
+  expr: triangle_area(7,6)
+  stdout: '21
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_triangle_area_T02
+  description: 'Functional verification of input: `triangle_area(-1,6)`'
+  expr: triangle_area(-1,6)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_triangle_area_T03
+  description: edge_triangle_zero
+  expr: triangle_area(0, 7)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_triangle_area_T04
+  description: edge_triangle_negative
+  expr: triangle_area(6, -7)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_both_negative
+  expr: triangle_area(-4, -6)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_06_second_zero
+  expr: triangle_area(10, 0)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_small_even
+  expr: triangle_area(2, 4)
+  tier: baseline
+  stdout: '4
+
+    '
+- name: test_08_odd_product_truncation
+  expr: triangle_area(3, 5)
+  tier: edge
+  stdout: '7
+
+    '
+- name: test_09_ten_by_ten
+  expr: triangle_area(10, 10)
+  tier: baseline
+  stdout: '50
+
+    '
+- name: test_10_large_triangle
+  expr: triangle_area(100, 42)
+  tier: stress
+  stdout: '2100
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: triangle_area(2, 4) = 6
+  args: &id001
+  - 4)
+  - '='
+  - '6'
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: triangle_area(1, 2) = 1
+  args: &id002
+  - 2)
+  - '='
+  - '1'
+  expected: ''
+  cat_e: false
+folder_examples:
+- id: cur_triangle_area_T05
+  origin: subject_folder/deepthought/corrections/exams/triangle_area/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_triangle_area_T06
+  origin: subject_folder/deepthought/corrections/exams/triangle_area/generator.py
+  input: Dynamic generation rule via decimal_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_triangle_area_T07
+  origin: subject_folder/deepthought/corrections/exams/triangle_area/generator.py
+  input: Dynamic generation rule via zero_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_triangle_area_T08
+  origin: subject_folder/deepthought/corrections/exams/triangle_area/generator.py
+  input: Dynamic generation rule via large_radius_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_triangle_area_T09
+  origin: subject_folder/deepthought/corrections/exams/triangle_area/generator.py
+  input: Dynamic generation rule via negative_radius_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_triangle_area_T10
+  origin: subject_folder/deepthought/corrections/exams/triangle_area/generator.py
+  input: Dynamic generation rule via negative_positive_radius_test_1()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_triangle_area_T11
+  origin: subject_folder/deepthought/corrections/exams/triangle_area/generator.py
+  input: Dynamic generation rule via negative_positive_radius_test_2()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - 4)!
+  - =!
+  - '7'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  4)  '
+  - '='
+  - '6'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - 2)!
+  - =!
+  - '2'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  2)  '
+  - '='
+  - '1'
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_triangle_area_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/triangle_area/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_triangle_area_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/triangle_area/generator.py)
+  original_input: Dynamic generation rule via decimal_test()
+  perturbed_input: Eynamic generation rule via decimal_test
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `triangle_area`
+  input: triangle_area(INT_MIN), triangle_area(0), triangle_area(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `triangle_area`
+  input: Run triangle_area with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `triangle_area`
+  input: triangle_area(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `triangle_area`
+  input: Call triangle_area on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out

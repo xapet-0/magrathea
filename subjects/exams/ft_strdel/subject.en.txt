@@ -1,0 +1,36 @@
+Assignment name  : ft_strdel
+Expected files   : ft_strdel.c
+Allowed functions:
+Version          : 1
+--------------------------------------------------------------------------------
+
+Write a function that frees the memory allocated for a string and sets its pointer to NULL.
+
+Your function must be declared as follows:
+
+void ft_strdel(char **str);
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Call / Invocation : char *s=malloc(4); s[0]='a'; s[1]=0; ft_strdel(&s); printf("%s\n", s==0 ? "NULL" : "BAD")
+    Expected Output   : 'NULL\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: case_ft_strdel_null_safe
+    C Source Driver:
+    int main(void){ char **p = 0; ft_strdel(p); if (p != 0) return (1); return (0); }
+  [Oracle Test 2] Name: edge_ft_strdel_edges
+    C Source Driver:
+    #include <stdlib.h>
+    void ft_strdel(char **as);
+    int main(void)
+    {
+        char *s1 = malloc(1); s1[0] = 0;
+        char *s2 = malloc(3); s2[0] = ' '; s2[1] = '\t'; s2[2] = 0;
+        ft_strdel(&s1);
+        ft_strdel(&s2);
+        if (s1 != 0 || s2 != 0) return (1);
+        return (0);
+    }

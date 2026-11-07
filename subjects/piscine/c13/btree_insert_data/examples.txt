@@ -1,0 +1,5 @@
+# Examples for btree_insert_data (from official subject specification)
+
+Examples:
+    int a=2,b=1,c=3; t_btree *root=0; btree_insert_data(&root,&a,dt_cmp); btree_insert_data(&root,&b,dt_cmp); btree_insert_data(&root,&c,dt_cmp); printf("%d:%d:%d\n",*(int*)root->item,*(int*)root->left->item,*(int*)root->right->item)
+    Output: 2:1:3

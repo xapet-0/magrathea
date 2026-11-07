@@ -1,0 +1,19 @@
+Assignment name  : env_compass
+Expected files   : env_compass.sh
+Allowed commands : printf, uname, id, pwd
+--------------------------------------------------------------------------------
+
+Write a shell script that displays the environment identity formatted as
+$USER:$HOME:$PWD followed by a newline.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> USER="marvin" HOME="/home/marvin" PWD="/tmp" sh env_compass.sh | cat -e
+marvin:/home/marvin:/tmp$
+$> USER="student" HOME="/Users/student" PWD="/var" sh env_compass.sh | cat -e
+student:/Users/student:/var$
+$> USER="root" HOME="/root" PWD="/" sh env_compass.sh | cat -e
+root:/root:/$

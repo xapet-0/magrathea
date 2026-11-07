@@ -1,0 +1,5 @@
+Examples:
+$> ./word_edges hello test a | cat -e
+ho$
+tt$
+aa$

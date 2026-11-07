@@ -1,0 +1,186 @@
+mode: c_program
+fixed_tests:
+- name: can_aff_z_T01
+  description: no_args
+  args: []
+  expected: 'z
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_aff_z_T02
+  description: with_z
+  args:
+  - abc_z_def
+  expected: 'z
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_aff_z_T03
+  description: without_z
+  args:
+  - hello world
+  expected: 'z
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_aff_z_T04
+  description: empty_str
+  args:
+  - ''
+  expected: 'z
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_aff_z_T05
+  description: multi_args
+  args:
+  - one
+  - two
+  expected: 'z
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - abc
+  expected: 'z
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - dubO a POIL
+  expected: 'z
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - zaz sent le poney
+  expected: 'z
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: 'z
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./aff_z "abc" | cat -e
+  args: &id001
+  - abc
+  expected: 'z
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./aff_z "dubO a POIL" | cat -e
+  args: &id002
+  - dubO a POIL
+  expected: 'z
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./aff_z "zaz sent le poney" | cat -e
+  args: &id003
+  - zaz sent le poney
+  expected: 'z
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./aff_z | cat -e
+  args: []
+  expected: 'z
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_aff_z_T06
+  origin: subject_folder/examples.txt
+  input: ./aff_z "abc" \| cat -e
+  expected: z$
+- id: can_aff_z_T07
+  origin: subject_folder/examples.txt
+  input: ./aff_z "dubO a POIL" \| cat -e
+  expected: z$
+- id: can_aff_z_T08
+  origin: subject_folder/examples.txt
+  input: ./aff_z "zaz sent le poney" \| cat -e
+  expected: z$
+- id: can_aff_z_T09
+  origin: subject_folder/examples.txt
+  input: ./aff_z \| cat -e
+  expected: z$
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - bbc
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  abc  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - eubO a POIL
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  dubO a POIL  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - zbz sent le poney
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  zaz sent le poney  '
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./aff_z | cat -e
+  perturbed_input:
+  - aff_z_near_arg_1
+  - aff_z_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_aff_z_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./aff_z "abc" \| cat -e
+  perturbed_input: ./bff_z "abc" \| cat -e
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_aff_z_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./aff_z "dubO a POIL" \| cat -e
+  perturbed_input: ./bff_z "dubO a POIL" \| cat -e

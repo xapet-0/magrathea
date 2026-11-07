@@ -1,0 +1,268 @@
+mode: c_program
+fixed_tests:
+- name: can_union_T01
+  description: 'Functional verification of input: `[''zpadinton'', ''paqefwtdjetyiytjneytjoeyjnejey`'
+  args:
+  - zpadinton
+  - paqefwtdjetyiytjneytjoeyjnejeyj
+  expected: 'zpadintoqefwjy
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_union_T02
+  description: duplicates_kept_once
+  args:
+  - ddf6vewg64f
+  - gtwthgdwthdwfteewhrtag6h4ffdhsd
+  expected: 'df6vewg4thras
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_union_T03
+  description: empty_first
+  args:
+  - ''
+  - abc
+  expected: 'abc
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_union_T04
+  description: wrong_arg_count
+  args:
+  - abc
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_union_T05
+  description: case_level2_union_order_both_strings
+  args:
+  - abcabc
+  - cdefeda
+  expected: 'abcdef
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_union_T06
+  description: case_level2_union_both_empty
+  args:
+  - ''
+  - ''
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_union_T07
+  description: case_level2_union_order_preserved
+  args:
+  - zaz
+  - art
+  expected: 'zart
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - rien
+  - cette phrase ne cache rien
+  expected: 'rienct phas
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args: []
+  expected: '
+
+    '
+- name: subj_ex_05
+  tier: subject_example
+  args:
+  - rien
+  expected: '
+
+    '
+- name: near_ex_one_arg_only
+  tier: near_example
+  args:
+  - only_one_near_arg
+  expected: '
+
+    '
+- name: near_ex_three_args
+  tier: near_example
+  args:
+  - a
+  - b
+  - c
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./union zpadinton "paqefwtdjetyiytjneytjoeyjnejeyj" | cat -e
+  args: &id001
+  - zpadinton
+  - paqefwtdjetyiytjneytjoeyjnejeyj
+  expected: 'zpadintoqefwjy
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./union ddf6vewg64f gtwthgdwthdwfteewhrtag6h4ffdhsd | cat -e
+  args: &id002
+  - ddf6vewg64f
+  - gtwthgdwthdwfteewhrtag6h4ffdhsd
+  expected: 'df6vewg4thras
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./union "rien" "cette phrase ne cache rien" | cat -e
+  args: &id003
+  - rien
+  - cette phrase ne cache rien
+  expected: 'rienct phas
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./union | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./union "rien" | cat -e
+  args:
+  - rien
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_union_T08
+  origin: subject_folder/42ExamPractice/union/tester.sh
+  input: ./union ddf6vewg64f gtwthgdwthdwfteewhrtag6h4ffdhsd
+  expected: Matches 42 reference standard output and exit code
+- id: can_union_T09
+  origin: subject_folder/42ExamPractice/union/tester.sh
+  input: ./union "rien" "cette phrase ne cache rien"
+  expected: Matches 42 reference standard output and exit code
+- id: can_union_T10
+  origin: subject_folder/42ExamPractice/union/tester.sh
+  input: ./union zpadinton "paqefwtdjetyiytjneytjoeyjnejeyj"
+  expected: Matches 42 reference standard output and exit code
+- id: can_union_T11
+  origin: subject_folder/42ExamPractice/union/tester.sh
+  input: ./union "a" "b"
+  expected: Matches 42 reference standard output and exit code
+- id: can_union_T12
+  origin: subject_folder/42ExamPractice/union/tester.sh
+  input: ./union "this        ...       is sparta, then again, maybe    not" "lol"
+  expected: Matches 42 reference standard output and exit code
+- id: can_union_T13
+  origin: subject_folder/42ExamPractice/union/tester.sh
+  input: ./union "  lorem,ipsum  " "oooo"
+  expected: Matches 42 reference standard output and exit code
+- id: can_union_T14
+  origin: subject_folder/42ExamPractice/union/tester.sh
+  input: ./union "rien"
+  expected: Matches 42 reference standard output and exit code
+- id: can_union_T15
+  origin: subject_folder/examples.txt
+  input: ./union zpadinton "paqefwtdjetyiytjneytjoeyjnejeyj" \| cat -e
+  expected: zpadintoqefwjy$
+- id: can_union_T16
+  origin: subject_folder/examples.txt
+  input: ./union ddf6vewg64f gtwthgdwthdwfteewhrtag6h4ffdhsd \| cat -e
+  expected: df6vewg4thras$
+- id: can_union_T17
+  origin: subject_folder/examples.txt
+  input: ./union "rien" "cette phrase ne cache rien" \| cat -e
+  expected: rienct phas$
+- id: can_union_T18
+  origin: subject_folder/examples.txt
+  input: ./union \| cat -e
+  expected: $
+- id: can_union_T19
+  origin: subject_folder/examples.txt
+  input: ./union "rien" \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - zqadinton
+  - qaqefwtdjetyiytjneytjoeyjnejeyj
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  zpadinton  '
+  - paqefwtdjetyiytjneytjoeyjnejeyj
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - edf6vewg64f
+  - htwthgdwthdwfteewhrtag6h4ffdhsd
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  ddf6vewg64f  '
+  - gtwthgdwthdwfteewhrtag6h4ffdhsd
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - sien
+  - dette phrase ne cache rien
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  rien  '
+  - cette phrase ne cache rien
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./union | cat -e
+  perturbed_input:
+  - union_near_arg_1
+  - union_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_union_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/union/tester.sh)
+  original_input: ./union ddf6vewg64f gtwthgdwthdwfteewhrtag6h4ffdhsd
+  perturbed_input: ./vnion ddf6vewg64f gtwthgdwthdwfteewhrt
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_union_T09
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/union/tester.sh)
+  original_input: ./union "rien" "cette phrase ne cache rien"
+  perturbed_input: ./vnion "rien" "cette phrase ne cache ri

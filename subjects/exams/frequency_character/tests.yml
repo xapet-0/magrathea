@@ -1,0 +1,223 @@
+mode: c_function
+fixed_tests:
+- name: cur_frequency_character_T01
+  description: 'Functional verification of input: `frequency_character(''l'', "Hello
+    world!")`'
+  expr: frequency_character('l', "Hello world!")
+  stdout: '3
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_frequency_character_T02
+  description: 'Functional verification of input: `frequency_character(''x'', "Hello
+    world!")`'
+  expr: frequency_character('x', "Hello world!")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_frequency_character_T03
+  description: 'Functional verification of input: `frequency_character(''a'', "abracadabra")`'
+  expr: frequency_character('a', "abracadabra")
+  stdout: '5
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_frequency_character_T04
+  description: 'Functional verification of input: `frequency_character(''a'', "")`'
+  expr: frequency_character('a', "")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_frequency_character_T05
+  description: 'Functional verification of input: `frequency_character(''4'', "42
+    1337 42 44")`'
+  expr: frequency_character('4', "42 1337 42 44")
+  stdout: '4
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_case_sensitive
+  expr: frequency_character('a', "AaAaAa")
+  tier: edge
+  stdout: '3
+
+    '
+- name: test_07_space_char
+  expr: frequency_character(' ', "a b c d")
+  tier: edge
+  stdout: '3
+
+    '
+- name: test_08_all_matching
+  expr: frequency_character('z', "zzzzzz")
+  tier: baseline
+  stdout: '6
+
+    '
+- name: test_09_first_and_last
+  expr: frequency_character('!', "!hello!")
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_10_single_char_match_and_miss
+  expr: frequency_character('x', "x") * 10 + frequency_character('x', "y")
+  tier: stress
+  stdout: '10
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: frequency_character('l', "Hello world!") = 3
+  args: &id001
+  - Hello world!)
+  - '='
+  - '3'
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: frequency_character('x', "Hello world!") = 0
+  args: &id002
+  - Hello world!)
+  - '='
+  - '0'
+  expected: ''
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: frequency_character('h', "Hello world!") = 0
+  args: &id003
+  - Hello world!)
+  - '='
+  - '0'
+  expected: ''
+  cat_e: false
+folder_examples:
+- id: cur_frequency_character_T06
+  origin: subject_folder/deepthought/corrections/exams/frequency_character/generator.py
+  input: Dynamic generation rule via random_char()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_frequency_character_T07
+  origin: subject_folder/deepthought/corrections/exams/frequency_character/generator.py
+  input: Dynamic generation rule via random_string()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_frequency_character_T08
+  origin: subject_folder/deepthought/corrections/exams/frequency_character/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_frequency_character_T09
+  origin: subject_folder/deepthought/corrections/exams/frequency_character/generator.py
+  input: Dynamic generation rule via no_occurrence_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_frequency_character_T10
+  origin: subject_folder/deepthought/corrections/exams/frequency_character/generator.py
+  input: Dynamic generation rule via single_occurrence_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_frequency_character_T11
+  origin: subject_folder/deepthought/corrections/exams/frequency_character/generator.py
+  input: Dynamic generation rule via multiple_occurrences_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_frequency_character_T12
+  origin: subject_folder/deepthought/corrections/exams/frequency_character/generator.py
+  input: Dynamic generation rule via empty_input_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_frequency_character_T13
+  origin: subject_folder/deepthought/corrections/exams/frequency_character/generator.py
+  input: Dynamic generation rule via wrong_argument_count_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_frequency_character_T14
+  origin: subject_folder/deepthought/corrections/exams/frequency_character/generator.py
+  input: Dynamic generation rule via multiple_arguments_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - Iello world!)
+  - =!
+  - '4'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  Hello world!)  '
+  - '='
+  - '3'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - Iello world!)
+  - =!
+  - '1'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  Hello world!)  '
+  - '='
+  - '0'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - Iello world!)
+  - =!
+  - '1'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  Hello world!)  '
+  - '='
+  - '0'
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_frequency_character_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/frequency_character/generator.py)
+  original_input: Dynamic generation rule via random_char()
+  perturbed_input: Eynamic generation rule via random_char(
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_frequency_character_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/frequency_character/generator.py)
+  original_input: Dynamic generation rule via random_string()
+  perturbed_input: Eynamic generation rule via random_strin
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and non-printable characters in `frequency_character`
+  input: "frequency_character(\"\") and frequency_character(\"\t\n\x01\x1F\")"
+  expected: Preserve non-alphabetic characters unmodified
+- name: edge_02_B
+  code: '[B]'
+  title: Argument count verification (argc != 2) in `frequency_character`
+  input: Execute frequency_character with 0 arguments and with > 1 argument
+  expected: Print newline only
+- name: edge_03_D
+  code: '[D]'
+  title: Idempotence and involution property check for `frequency_character`
+  input: 'Apply transformation twice: frequency_character(frequency_character(s))'
+  expected: Valid transformation output matching mathematical cipher cycle
+- name: edge_04_B
+  code: '[B]'
+  title: Boundary alphabetic letters ('a', 'z', 'A', 'Z') in `frequency_character`
+  input: frequency_character("a z A Z")
+  expected: Accurate wraparound without overflowing outside alphabet bounds

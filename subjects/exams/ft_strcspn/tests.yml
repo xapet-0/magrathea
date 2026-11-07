@@ -1,0 +1,124 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_strcspn_T01
+  description: 'Functional verification of input: `ft_strcspn("abcdef","dx")`'
+  expr: ft_strcspn("abcdef","dx")
+  stdout: '3
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_strcspn_T02
+  description: no_reject_match
+  expr: ft_strcspn("hello", "xyz")
+  stdout: '5
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_strcspn_T03
+  description: first_char_match
+  expr: ft_strcspn("hello", "h")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_strcspn_T04
+  description: empty_reject
+  expr: ft_strcspn("hello", "")
+  stdout: '5
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_empty_s
+  expr: ft_strcspn("", "abc")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_06_both_empty
+  expr: ft_strcspn("", "")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_match_at_last_char
+  expr: ft_strcspn("12345!", "!")
+  tier: edge
+  stdout: '5
+
+    '
+- name: test_08_multiple_reject_chars
+  expr: ft_strcspn("hello world", " ,!w")
+  tier: baseline
+  stdout: '5
+
+    '
+- name: test_09_all_chars_in_reject
+  expr: ft_strcspn("abc", "cba")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_compare_with_libc
+  expr: ft_strcspn("1337_magrathea_42", "42") == strcspn("1337_magrathea_42", "42")
+  tier: stress
+  stdout: '1
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strcspn
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_strcspn_T06
+  origin: subject_folder/42ExamPractice/ft_strcspn/tester.sh
+  input: ./ft_strcspn "test" "es"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strcspn_T07
+  origin: subject_folder/42ExamPractice/ft_strcspn/tester.sh
+  input: ./ft_strcspn "hello World" "hello world"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strcspn_T08
+  origin: subject_folder/42ExamPractice/ft_strcspn/tester.sh
+  input: ./ft_strcspn "test" "f"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strcspn_T09
+  origin: subject_folder/ft_strcspn_MAIN.c
+  input: Compiled and run with ft_strcspn_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_05
+  origin: subject_folder/ft_strcspn_MAIN.c
+  input: ft_strcspn_MAIN.c
+  expected: "#include <stdio.h>\n#include <string.h>\n\nsize_t ft_strcspn(const char\
+    \ *s, const char *reject);\n\nint main(void)\n{\n    printf(\"%zu (expected: %zu)\\\
+    n\", ft_strcspn(\""
+- id: folder_fixture_06
+  origin: subject_folder/strcspn.man.txt
+  input: strcspn.man.txt
+  expected: "STRCSPN(3)               BSD Library Functions Manual               STRCSPN(3)\n\
+    \nNAME\n\tstrcspn -- span the complement of a string\n\nLIBRARY\n\tStandard C\
+    \ Library (l"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strcspn
+  perturbed_input:
+  - ft_strcspn_near_arg_1
+  - ft_strcspn_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_strcspn_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strcspn/tester.sh)
+  original_input: ./ft_strcspn "test" "es"
+  perturbed_input: ./gt_strcspn "test" "es"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_ft_strcspn_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strcspn/tester.sh)
+  original_input: ./ft_strcspn "hello World" "hello world"
+  perturbed_input: ./gt_strcspn "hello World" "hello world"

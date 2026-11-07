@@ -1,0 +1,3 @@
+Examples:
+$> ./ft_atoi_base | cat -e
+$

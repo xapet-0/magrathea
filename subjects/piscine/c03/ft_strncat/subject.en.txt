@@ -1,0 +1,22 @@
+Assignment name  : ft_strncat
+Expected files   : ft_strncat.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 03 (Official PDF)
+Exercise         : ft_strncat
+Turn-in directory: ex03/
+Expected files   : ft_strncat.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Reproduce the behavior of the function strncat (man strncat).
+• The function should be prototyped as follows:
+char *ft_strncat(char *dest, char *src, unsigned int nb);
+
+Your function must be declared as follows:
+    char *ft_strncat(char *dest, char *src, unsigned int nb);
+
+Examples:
+    char d[20] = "Hello"; ft_strncat(d, " World", 3); printf("%s\n", d)
+    Output: Hello Wo

@@ -1,0 +1,18 @@
+Assignment name  : snake_case
+Expected files   : snake_case.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes one snake_case string argument and converts it to PascalCase.
+
+Words are separated by underscores. Underscores are removed. The first letter of every word must be uppercase and the remaining letters must be lowercase. Repeated, leading, or trailing underscores are ignored as separators.
+
+If the number of arguments is not exactly 1, print only a newline.
+
+Example:
+
+
+$> ./snake_case hello_world_yes | cat -e
+HelloWorldYes$
+
+Allowed functions: write.

@@ -1,0 +1,68 @@
+fixed_tests:
+- call: char *a[]={"pear","apple","banana",0}; ft_sort_string_tab(a); for(int i=0;a[i];i++)
+    printf("%s,",a[i]); printf("\n");
+  name: sort_string_tab_basic
+  stdout: 'apple,banana,pear,
+
+    '
+- call: char *a[]={"alpha","beta","gamma",0}; ft_sort_string_tab(a); for(int i=0;a[i];i++)
+    printf("%s,",a[i]); printf("\n");
+  name: sort_string_tab_already_sorted
+  stdout: 'alpha,beta,gamma,
+
+    '
+- call: char *a[]={"","zebra","apple","apple",0}; ft_sort_string_tab(a); for(int i=0;a[i];i++)
+    printf("%s,",a[i]); printf("\n");
+  name: sort_string_tab_duplicates_and_empty
+  stdout: ',apple,apple,zebra,
+
+    '
+- call: char *a[]={"only",0}; ft_sort_string_tab(a); printf("%s\n",a[0]);
+  name: sort_string_tab_single_element
+  stdout: 'only
+
+    '
+- name: test_05_empty_tab
+  call: char *a[]={0}; ft_sort_string_tab(a); printf("%d\n",a[0]==0);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_reverse_sorted
+  call: char *a[]={"d","c","b","a",0}; ft_sort_string_tab(a); for(int i=0;a[i];i++)
+    printf("%s,",a[i]); printf("\n");
+  tier: baseline
+  stdout: 'a,b,c,d,
+
+    '
+- name: test_07_ascii_case_and_digits
+  call: char *a[]={"a","A","0","!",0}; ft_sort_string_tab(a); for(int i=0;a[i];i++)
+    printf("%s,",a[i]); printf("\n");
+  tier: edge
+  stdout: '!,0,A,a,
+
+    '
+- name: test_08_shared_prefixes
+  call: char *a[]={"abc","a","ab","abcd",0}; ft_sort_string_tab(a); for(int i=0;a[i];i++)
+    printf("%s,",a[i]); printf("\n");
+  tier: edge
+  stdout: 'a,ab,abc,abcd,
+
+    '
+- name: test_09_two_elements_swapped
+  call: char *a[]={"z","a",0}; ft_sort_string_tab(a); printf("%s,%s\n",a[0],a[1]);
+  tier: baseline
+  stdout: 'a,z
+
+    '
+- name: test_10_six_elements
+  call: char *a[]={"42","1337","piscine","c11","magrathea","0",0}; ft_sort_string_tab(a);
+    for(int i=0;a[i];i++) printf("%s,",a[i]); printf("\n");
+  tier: stress
+  stdout: '0,1337,42,c11,magrathea,piscine,
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

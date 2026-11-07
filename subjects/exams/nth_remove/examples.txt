@@ -1,0 +1,9 @@
+Examples:
+$> ./nth_remove "abcdef" "2" | cat -e
+ace$
+$> ./nth_remove | cat -e
+$
+$> ./nth_remove "ABCDEFG" "3" | cat -e
+ABDEG$
+$> ./nth_remove "ABC" | cat -e
+$

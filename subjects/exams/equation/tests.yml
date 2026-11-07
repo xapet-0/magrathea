@@ -1,0 +1,182 @@
+mode: c_function
+fixed_tests:
+- name: can_equation_T01
+  description: 'Functional verification of input: `equation(42)`'
+  expr: equation(42)
+  stdout: 'A = 0, B = 2, C = 4
+
+    A = 1, B = 1, C = 3
+
+    A = 2, B = 0, C = 2
+
+    A = 3, B = 9, C = 0
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_equation_T02
+  description: 'Functional verification of input: `equation(111)`'
+  expr: equation(111)
+  stdout: 'A = 2, B = 9, C = 8
+
+    A = 3, B = 8, C = 7
+
+    A = 4, B = 7, C = 6
+
+    A = 5, B = 6, C = 5
+
+    A = 6, B = 5, C = 4
+
+    A = 7, B = 4, C = 3
+
+    A = 8, B = 3, C = 2
+
+    A = 9, B = 2, C = 1
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_equation_T03
+  description: 'Functional verification of input: `equation(0)`'
+  expr: equation(0)
+  stdout: 'A = 0, B = 0, C = 0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_equation_T04
+  description: 'Functional verification of input: `equation(200)`'
+  expr: equation(200)
+  stdout: ''
+  category: Edge Case
+  tier: baseline
+- name: test_05_sum_11
+  expr: equation(11)
+  tier: edge
+  stdout: 'A = 0, B = 1, C = 1
+
+    A = 1, B = 0, C = 0
+
+    '
+- name: test_06_sum_55
+  expr: equation(55)
+  tier: baseline
+  stdout: 'A = 0, B = 5, C = 5
+
+    A = 1, B = 4, C = 4
+
+    A = 2, B = 3, C = 3
+
+    A = 3, B = 2, C = 2
+
+    A = 4, B = 1, C = 1
+
+    A = 5, B = 0, C = 0
+
+    '
+- name: test_07_sum_99
+  expr: equation(99)
+  tier: baseline
+  stdout: 'A = 0, B = 9, C = 9
+
+    A = 1, B = 8, C = 8
+
+    A = 2, B = 7, C = 7
+
+    A = 3, B = 6, C = 6
+
+    A = 4, B = 5, C = 5
+
+    A = 5, B = 4, C = 4
+
+    A = 6, B = 3, C = 3
+
+    A = 7, B = 2, C = 2
+
+    A = 8, B = 1, C = 1
+
+    A = 9, B = 0, C = 0
+
+    '
+- name: test_08_sum_198_max_valid
+  expr: equation(198)
+  tier: edge
+  stdout: 'A = 9, B = 9, C = 9
+
+    '
+- name: test_09_impossible_odd_target
+  expr: equation(10)
+  tier: edge
+  stdout: 'A = 0, B = 0, C = 1
+
+    '
+- name: test_10_sum_121
+  expr: equation(121)
+  tier: stress
+  stdout: 'A = 2, B = 9, C = 9
+
+    A = 3, B = 8, C = 8
+
+    A = 4, B = 7, C = 7
+
+    A = 5, B = 6, C = 6
+
+    A = 6, B = 5, C = 5
+
+    A = 7, B = 4, C = 4
+
+    A = 8, B = 3, C = 3
+
+    A = 9, B = 2, C = 2
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval equation
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_equation_T05
+  origin: subject_folder/examples.txt
+  input: equation(42)
+  expected: 'Output: A = 0, B = 2, C = 4\nA = 1, B = 1, C = 3\nA = 2, B = 0, C = 2\nA
+    = 3, B = 9, C = 0\n    equation(111)\n    Output: A = 2, B = 9, C = 8\nA = 3,
+    B = 8, C = 7\nA = 4, B = 7, C = 6\nA = 5, B = 6, C = 5\nA = 6, B = 5, C = 4\nA
+    = 7, B = 4, C = 3\nA = 8, B = 3, C = 2\nA = 9, B = 2, C = 1\n    equation(0)\n    Output:
+    A = 0, B = 0, C = 0'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval equation
+  perturbed_input:
+  - equation_near_arg_1
+  - equation_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_equation_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: equation(42)
+  perturbed_input: fquation(42)
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `equation`
+  input: equation(INT_MIN), equation(0), equation(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `equation`
+  input: Run equation with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `equation`
+  input: equation(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `equation`
+  input: Call equation on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out

@@ -1,0 +1,14 @@
+id: equation
+type: c_function
+module: "Piscine Exams 00\u2013Final"
+xp: 280
+expected_files:
+- equation.c
+allowed_functions:
+- printf
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void equation(int n);

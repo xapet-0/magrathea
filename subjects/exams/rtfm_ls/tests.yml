@@ -1,0 +1,135 @@
+fixed_tests:
+- name: test_01_files
+  files:
+    small: a
+    large: aaaa
+  stdout: 'large
+
+    small
+
+    '
+- name: test_02_files
+  files:
+    tiny: x
+    medium: xxxx
+    huge: xxxxxxxxxx
+  stdout: 'huge
+
+    medium
+
+    tiny
+
+    '
+- name: test_03_single_file
+  files:
+    only: '12345'
+  stdout: 'only
+
+    '
+- name: test_04_four_files
+  files:
+    s1: a
+    s2: bb
+    s3: ccc
+    s4: dddd
+  stdout: 's4
+
+    s3
+
+    s2
+
+    s1
+
+    '
+- name: test_05_empty_and_nonempty
+  files:
+    empty: ''
+    two: '12'
+    five: '12345'
+  tier: edge
+  stdout: 'five
+
+    two
+
+    empty
+
+    '
+- name: test_06_two_files_reverse_alpha
+  files:
+    z_small: '1'
+    a_large: '123456'
+  tier: baseline
+  stdout: 'a_large
+
+    z_small
+
+    '
+- name: test_07_five_graduated_sizes
+  files:
+    f1: a
+    f2: bb
+    f3: ccc
+    f4: dddd
+    f5: eeeee
+  tier: baseline
+  stdout: 'f5
+
+    f4
+
+    f3
+
+    f2
+
+    f1
+
+    '
+- name: test_08_numeric_filenames
+  files:
+    '100': x
+    '200': xxxx
+    '300': xxxxxxxx
+  tier: baseline
+  stdout: '300
+
+    200
+
+    100
+
+    '
+- name: test_09_hidden_ignored_by_default
+  files:
+    .dot: '1234567890'
+    vis1: a
+    vis2: bbb
+  tier: edge
+  stdout: 'vis2
+
+    vis1
+
+    '
+- name: test_10_six_files
+  files:
+    a: '1'
+    b: '12'
+    c: '123'
+    d: '1234'
+    e: '12345'
+    f: '123456'
+  tier: stress
+  stdout: 'f
+
+    e
+
+    d
+
+    c
+
+    b
+
+    a
+
+    '
+subject_id: rtfm_ls
+subject_examples: []
+folder_examples: []
+near_examples: []

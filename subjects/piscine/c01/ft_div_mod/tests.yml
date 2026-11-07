@@ -1,0 +1,114 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_div_mod_T01
+  description: 'Functional verification of input: `int d, m; ft_div_mod(10, 3, &d,
+    &m); printf("`'
+  call: int d, m; ft_div_mod(10, 3, &d, &m); printf("%d %d\n", d, m)
+  stdout: '3 1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_div_mod_T02
+  description: exact_div
+  call: int d = 0, m = 0; ft_div_mod(42, 7, &d, &m); printf("%d,%d\n", d, m)
+  stdout: '6,0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_div_mod_T03
+  description: negative_dividend
+  call: int d = 0, m = 0; ft_div_mod(-17, 5, &d, &m); printf("%d,%d\n", d, m)
+  stdout: '-3,-2
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_div_mod_T04_zero_dividend
+  description: zero_dividend
+  call: int d = 99, m = 99; ft_div_mod(0, 5, &d, &m); printf("%d,%d\n", d, m)
+  stdout: '0,0
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_pos_by_neg
+  call: int d = 0, m = 0; ft_div_mod(17, -5, &d, &m); printf("%d,%d\n", d, m)
+  tier: edge
+  stdout: '-3,2
+
+    '
+- name: test_06_neg_by_neg
+  call: int d = 0, m = 0; ft_div_mod(-17, -5, &d, &m); printf("%d,%d\n", d, m)
+  tier: edge
+  stdout: '3,-2
+
+    '
+- name: test_07_dividend_smaller
+  call: int d = 9, m = 9; ft_div_mod(3, 10, &d, &m); printf("%d,%d\n", d, m)
+  tier: edge
+  stdout: '0,3
+
+    '
+- name: test_08_divide_by_one
+  call: int d = 0, m = 0; ft_div_mod(1337, 1, &d, &m); printf("%d,%d\n", d, m)
+  tier: baseline
+  stdout: '1337,0
+
+    '
+- name: test_09_int_max
+  call: int d = 0, m = 0; ft_div_mod(2147483647, 10, &d, &m); printf("%d,%d\n", d,
+    m)
+  tier: stress
+  stdout: '214748364,7
+
+    '
+- name: test_10_int_min
+  call: int d = 0, m = 0; ft_div_mod(-2147483648, 10, &d, &m); printf("%d,%d\n", d,
+    m)
+  tier: stress
+  stdout: '-214748364,-8
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_div_mod
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_div_mod_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: int d, m; ft_div_mod(10, 3, &d, &m); printf("%d %d\n", d, m)
+  expected: 3 1\n
+- id: pool_ft_div_mod_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: int d = 0, m = 0; ft_div_mod(42, 7, &d, &m); printf("%d,%d\n", d, m)
+  expected: 6,0\n
+- id: pool_ft_div_mod_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: int d = 0, m = 0; ft_div_mod(-17, 5, &d, &m); printf("%d,%d\n", d, m)
+  expected: -3,-2\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_div_mod
+  perturbed_input:
+  - ft_div_mod_near_arg_1
+  - ft_div_mod_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_div_mod_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: int d, m; ft_div_mod(10, 3, &d, &m); printf("%d %d\n", d, m)
+  perturbed_input: jnt d, m; ft_div_mod(10, 3, &d, &m); pri
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_div_mod_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: int d = 0, m = 0; ft_div_mod(42, 7, &d, &m); printf("%d,%d\n", d,
+    m)
+  perturbed_input: 'jnt d = 0, m = 0; ft_div_mod(42, 7, &d, '

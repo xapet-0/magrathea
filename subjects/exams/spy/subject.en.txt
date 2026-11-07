@@ -1,0 +1,21 @@
+Assignment name  : spy
+Expected files   : spy.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that alerts ("Alert!!!\n") if any of its arguments (ignoring
+leading/trailing spaces and case) matches "president", "attack", or "powers".
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./spy "hello" "pReSiDeNt" | cat -e
+Alert!!!$
+$> ./spy "  attack  " | cat -e
+Alert!!!$
+$> ./spy "POWERS" | cat -e
+Alert!!!$
+$> ./spy "hello" "world" | cat -e
+$

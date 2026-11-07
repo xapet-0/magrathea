@@ -1,0 +1,22 @@
+Assignment name  : rot_42
+Expected files   : rot_42.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a string and shifts every alphabetical letter by 42
+positions in the alphabet (equivalent to 42 % 26 = 16 positions ahead),
+preserving case, followed by a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./rot_42 "abc" | cat -e
+qrs$
+$> ./rot_42 "XYZ" | cat -e
+NOP$
+$> ./rot_42 "" | cat -e
+$
+$> ./rot_42 | cat -e
+$

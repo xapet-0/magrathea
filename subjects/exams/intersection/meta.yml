@@ -1,0 +1,13 @@
+id: intersection
+type: c_function
+module: "Piscine Exams 00\u2013Final"
+xp: 290
+expected_files:
+- intersection.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void *intersection(struct s_node *lst1, struct s_node *lst2);

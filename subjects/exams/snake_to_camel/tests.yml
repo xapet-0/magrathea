@@ -1,0 +1,167 @@
+mode: c_program
+fixed_tests:
+- name: can_snake_to_camel_T01
+  description: 'Functional verification of input: `[''hello_world'']`'
+  args:
+  - hello_world
+  expected: 'helloWorld
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_snake_to_camel_T02
+  description: 'Functional verification of input: `[''a_b_c'']`'
+  args:
+  - a_b_c
+  expected: 'aBC
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_snake_to_camel_T03
+  description: 'Functional verification of input: `['''']`'
+  args:
+  - ''
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_snake_to_camel_T04
+  description: 'Functional verification of input: `[''a'']`'
+  args:
+  - a
+  expected: 'a
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_snake_to_camel_T05
+  description: 'Functional verification of input: `[''_leading'']`'
+  args:
+  - _leading
+  expected: 'Leading
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_snake_to_camel_T06
+  description: 'Functional verification of input: `[''trailing_'']`'
+  args:
+  - trailing_
+  expected: 'trailing
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_snake_to_camel_T07
+  description: Standard baseline execution and behavior check for `snake_to_camel`
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - here_is_a_snake_case_word
+  expected: 'hereIsASnakeCaseWord
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./snake_to_camel "here_is_a_snake_case_word"
+  args: &id001
+  - here_is_a_snake_case_word
+  expected: 'hereIsASnakeCaseWord
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./snake_to_camel "hello_world" | cat -e
+  args: &id002
+  - hello_world
+  expected: 'helloWorld
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./snake_to_camel | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_snake_to_camel_T08
+  origin: subject_folder/42ExamPractice/snake_to_camel/tester.sh
+  input: ./snake_to_camel "here_is_a_snake_case_string"
+  expected: Matches 42 reference standard output and exit code
+- id: can_snake_to_camel_T09
+  origin: subject_folder/42ExamPractice/snake_to_camel/tester.sh
+  input: ./snake_to_camel "hello_world"
+  expected: Matches 42 reference standard output and exit code
+- id: can_snake_to_camel_T10
+  origin: subject_folder/42ExamPractice/snake_to_camel/tester.sh
+  input: ./snake_to_camel "test_with" "multiple_arguments" "aAa"
+  expected: Matches 42 reference standard output and exit code
+- id: can_snake_to_camel_T11
+  origin: subject_folder/examples.txt
+  input: ./snake_to_camel "here_is_a_snake_case_word"
+  expected: hereIsASnakeCaseWord
+- id: can_snake_to_camel_T12
+  origin: subject_folder/examples.txt
+  input: ./snake_to_camel "hello_world" \| cat -e
+  expected: helloWorld$
+- id: can_snake_to_camel_T13
+  origin: subject_folder/examples.txt
+  input: ./snake_to_camel \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - iere_is_a_snake_case_word
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  here_is_a_snake_case_word  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - iello_world
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  hello_world  '
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./snake_to_camel | cat -e
+  perturbed_input:
+  - snake_to_camel_near_arg_1
+  - snake_to_camel_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_snake_to_camel_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/snake_to_camel/tester.sh)
+  original_input: ./snake_to_camel "here_is_a_snake_case_string"
+  perturbed_input: ./tnake_to_camel "here_is_a_snake_case_s
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_snake_to_camel_T09
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/snake_to_camel/tester.sh)
+  original_input: ./snake_to_camel "hello_world"
+  perturbed_input: ./tnake_to_camel "hello_world"

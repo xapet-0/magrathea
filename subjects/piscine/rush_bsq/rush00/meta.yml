@@ -1,0 +1,16 @@
+id: rush00
+type: c_program
+module: Rush 00–02 & BSQ
+xp: 505
+expected_files:
+- main.c
+- ft_putchar.c
+- rush00.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int main(int argc, char **argv);

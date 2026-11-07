@@ -1,0 +1,20 @@
+allowed_functions:
+- read
+- write
+- malloc
+- free
+- realloc
+- strlen
+- putchar
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+expected_files:
+- filter.c
+id: filter
+module: Exam Rank 03
+norminette: false
+prototype: int main(int argc, char **argv);
+type: c_program
+xp: 525

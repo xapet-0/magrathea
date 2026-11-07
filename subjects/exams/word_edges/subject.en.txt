@@ -1,0 +1,18 @@
+Assignment name  : word_edges
+Expected files   : word_edges.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes one or more string arguments. For each argument, print the first and last character on its own line.
+
+If an argument has one character, print it twice. If there are no arguments, print only a newline.
+
+Example:
+
+
+$> ./word_edges hello test a | cat -e
+ho$
+tt$
+aa$
+
+Allowed functions: write.

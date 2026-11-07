@@ -1,0 +1,23 @@
+Assignment name  : ft_strlcpy
+Expected files   : ft_strlcpy.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 02 (Official PDF)
+Exercise         : ft_strlcpy
+Turn-in directory: ex10/
+Expected files   : ft_strlcpy.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Reproduce the behavior of the function strlcpy (man strlcpy).
+• Here is how it should be prototyped:
+unsigned int ft_strlcpy(char *dest, char *src, unsigned int size);
+
+Your function must be declared as follows:
+    unsigned int ft_strlcpy(char *dest, char *src, unsigned int size);
+
+Examples:
+    r == 5 && strcmp(buf, "hello") == 0 ? 1 : 0 -> 1
+    r == 5 && strcmp(buf, "hel") == 0 ? 1 : 0 -> 1
+    r == 3 && buf[0] == 'x' ? 3 : 0 -> 3

@@ -1,0 +1,9 @@
+# Examples for black_hole (from official subject specification)
+
+Examples:
+$> sh black_hole.sh | cat -e
+OK$
+$> sh black_hole.sh "ignored_err" | cat -e
+OK$
+$> sh black_hole.sh "a" "b" | cat -e
+OK$

@@ -1,0 +1,14 @@
+id: first_word
+type: c_program
+module: Exam Rank 02
+xp: 445
+expected_files:
+- first_word.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

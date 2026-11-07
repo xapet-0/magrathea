@@ -1,0 +1,19 @@
+Assignment name  : count_letters
+Expected files   : count_letters.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that counts and returns the number of alphabetical characters
+('a'-'z' and 'A'-'Z') in the given string.
+
+Your function must be declared as follows:
+
+int	count_letters(char *str);
+
+Your function must be declared as follows:
+    int count_letters(char *str);
+
+Examples:
+    count_letters("Hello 1337!") -> 5
+    count_letters("12345") -> 0
+    count_letters("") -> 0

@@ -1,0 +1,13 @@
+id: swap_cases
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- swap_cases.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: char *swap_cases(char *str);

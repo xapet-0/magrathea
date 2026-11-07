@@ -1,0 +1,13 @@
+id: volume_cube
+type: c_function
+module: "Piscine Exams 00\u2013Final"
+xp: 280
+expected_files:
+- volume_cube.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int volume_cube(int side);

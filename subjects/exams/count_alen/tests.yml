@@ -1,0 +1,134 @@
+mode: c_function
+fixed_tests:
+- name: cur_count_alen_T01
+  description: 'Functional verification of input: `count_alen("1337_school")`'
+  expr: count_alen("1337_school")
+  stdout: '11
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_count_alen_T02
+  description: 'Functional verification of input: `count_alen("hello_a_world")`'
+  expr: count_alen("hello_a_world")
+  stdout: '6
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_count_alen_T03
+  description: 'Functional verification of input: `count_alen("abc")`'
+  expr: count_alen("abc")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_count_alen_T04
+  description: 'Functional verification of input: `count_alen("")`'
+  expr: count_alen("")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_count_alen_T05
+  description: 'Functional verification of input: `count_alen("xyz_a")`'
+  expr: count_alen("xyz_a")
+  stdout: '4
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_starts_with_a
+  expr: count_alen("apple")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_a_at_index_1
+  expr: count_alen("ba")
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_uppercase_A_not_a
+  expr: count_alen("ABC_a")
+  tier: edge
+  stdout: '4
+
+    '
+- name: test_09_multiple_a
+  expr: count_alen("123a456a789")
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_10_long_no_a
+  expr: count_alen("0123456789_xyz")
+  tier: stress
+  stdout: '14
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval count_alen
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_count_alen_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: count_alen("1337_school")
+  expected: 11\n
+- id: cur_count_alen_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: count_alen("hello_a_world")
+  expected: 6\n
+- id: cur_count_alen_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: count_alen("abc")
+  expected: 0\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval count_alen
+  perturbed_input:
+  - count_alen_near_arg_1
+  - count_alen_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_count_alen_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: count_alen("1337_school")
+  perturbed_input: dount_alen("1337_school")
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_count_alen_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: count_alen("hello_a_world")
+  perturbed_input: dount_alen("hello_a_world")
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: "Test `count_alen` with high ASCII characters (unsigned char > 127 like '\x80\
+    ' and 'ÿ')"
+  input: "count_alen(\"\x80\", \"\x7F\", ...)"
+  expected: Compare and inspect characters as unsigned char conforming to POSIX libc
+- name: edge_02_B
+  code: '[B]'
+  title: Test `count_alen` at zero length (n = 0 / size = 0) and empty string ""
+  input: count_alen("", "", 0)
+  expected: Do not read or write any byte out of bounds and return canonical value
+- name: edge_03_D
+  code: '[D]'
+  title: Differential property check for `count_alen` against libc oracle
+  input: Compare count_alen against standard library function across random permutations
+  expected: 100% exact match in return value and destination buffer state
+- name: edge_04_M
+  code: '[M]'
+  title: Canary Redzone check on string buffer boundaries in `count_alen`
+  input: Pass heap buffer allocated to exact strlen(s) + 1 size to count_alen
+  expected: No read or write beyond terminating null byte

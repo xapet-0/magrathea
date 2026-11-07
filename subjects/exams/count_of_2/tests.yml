@@ -1,0 +1,129 @@
+mode: c_function
+fixed_tests:
+- name: can_count_of_2_T01
+  description: 'Functional verification of input: `count_of_2(25)`'
+  expr: count_of_2(25)
+  stdout: '9
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_count_of_2_T02
+  description: 'Functional verification of input: `count_of_2(1)`'
+  expr: count_of_2(1)
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_count_of_2_T03
+  description: 'Functional verification of input: `count_of_2(2)`'
+  expr: count_of_2(2)
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_count_of_2_T04
+  description: 'Functional verification of input: `count_of_2(12)`'
+  expr: count_of_2(12)
+  stdout: '2
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_count_of_2_T05
+  description: 'Functional verification of input: `count_of_2(22)`'
+  expr: count_of_2(22)
+  stdout: '6
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_zero
+  expr: count_of_2(0)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_negative
+  expr: count_of_2(-5)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_twenty
+  expr: count_of_2(20)
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_09_hundred
+  expr: count_of_2(100)
+  tier: baseline
+  stdout: '20
+
+    '
+- name: test_10_two_hundred_twenty_two
+  expr: count_of_2(222)
+  tier: stress
+  stdout: '69
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval count_of_2
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_count_of_2_T06
+  origin: subject_folder/count_of_2_MAIN.c
+  input: Compiled and run with count_of_2_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_02
+  origin: subject_folder/count_of_2_MAIN.c
+  input: count_of_2_MAIN.c
+  expected: "int    count_of_2(int n)\n{\n    int i, count;\n    if (n <= 0)\n   \
+    \     return 0;\n    i = count = 0;\n    while (i < n)\n    {\n        int j =\
+    \ i;\n        while (j)\n "
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval count_of_2
+  perturbed_input:
+  - count_of_2_near_arg_1
+  - count_of_2_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_count_of_2_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/count_of_2_MAIN.c)
+  original_input: Compiled and run with count_of_2_MAIN.c
+  perturbed_input: Dompiled and run with count_of_2_MAIN.c
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/count_of_2_MAIN.c)
+  original_input: count_of_2_MAIN.c
+  perturbed_input: dount_of_2_MAIN.c
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `count_of_2`
+  input: count_of_2(INT_MIN), count_of_2(0), count_of_2(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `count_of_2`
+  input: Run count_of_2 with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `count_of_2`
+  input: count_of_2(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `count_of_2`
+  input: Call count_of_2 on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out

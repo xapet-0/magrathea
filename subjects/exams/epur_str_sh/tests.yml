@@ -1,0 +1,81 @@
+subject_id: epur_str_sh
+fixed_tests:
+- name: test_01_no_args
+  env:
+    FT_LINE: '   hello    world   '
+  args: []
+  stdout: 'hello world
+
+    '
+- name: test_02_no_args
+  env:
+    FT_LINE: 1337   42   piscine
+  args: []
+  stdout: '1337 42 piscine
+
+    '
+- name: test_03_no_args
+  env:
+    FT_LINE: single
+  args: []
+  stdout: 'single
+
+    '
+- name: test_04_four_words
+  env:
+    FT_LINE: '   a   b   c   d   '
+  args: []
+  stdout: 'a b c d
+
+    '
+- name: test_05_leading_only
+  env:
+    FT_LINE: '     leading'
+  args: []
+  tier: edge
+  stdout: 'leading
+
+    '
+- name: test_06_trailing_only
+  env:
+    FT_LINE: 'trailing     '
+  args: []
+  tier: edge
+  stdout: 'trailing
+
+    '
+- name: test_07_two_words_many_spaces
+  env:
+    FT_LINE: foo          bar
+  args: []
+  tier: baseline
+  stdout: 'foo bar
+
+    '
+- name: test_08_already_clean
+  env:
+    FT_LINE: clean string here
+  args: []
+  tier: baseline
+  stdout: 'clean string here
+
+    '
+- name: test_09_single_char_tokens
+  env:
+    FT_LINE: '  1   2   3   4   5  '
+  args: []
+  tier: baseline
+  stdout: '1 2 3 4 5
+
+    '
+- name: test_10_six_words
+  env:
+    FT_LINE: '  alpha  beta  gamma  delta  epsilon  zeta  '
+  args: []
+  tier: stress
+  stdout: 'alpha beta gamma delta epsilon zeta
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

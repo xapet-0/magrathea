@@ -1,0 +1,20 @@
+Assignment name  : c01_ft_strlen
+Turn-in directory: ex06/
+Expected files   : ft_strlen.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+ft_strlen
+Turn-in directory: ex06/
+Files to turn in: ft_strlen.c
+Allowed functions: None
+• Create a function that counts and returns the number of characters in a string.
+• The function should be prototyped as follows:
+int ft_strlen(char *str);
+
+Your function must be declared as follows:
+    int ft_strlen(char *str);
+
+Examples:
+    ft_strlen("Hello") -> 5
+    ft_strlen("") -> 0

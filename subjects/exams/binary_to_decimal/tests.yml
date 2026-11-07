@@ -1,0 +1,217 @@
+mode: c_program
+fixed_tests:
+- name: cur_binary_to_decimal_T01
+  description: 'Functional verification of input: `[''101010'']`'
+  args:
+  - '101010'
+  expected: '42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_binary_to_decimal_T02
+  description: 'Functional verification of input: `[''0'']`'
+  args:
+  - '0'
+  expected: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_binary_to_decimal_T03
+  description: edge_binary_all_ones
+  args:
+  - '11111111'
+  expected: '255
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_binary_to_decimal_T04
+  description: edge_binary_bad_argc
+  args: []
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - '010'
+  expected: '2
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - '1000100001'
+  expected: '545
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - '53'
+  expected: '
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args:
+  - ftughbj
+  expected: '
+
+    '
+- name: subj_ex_05
+  tier: subject_example
+  args:
+  - ''
+  expected: '
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./binary_to_decimal "010" | cat -e
+  args: &id001
+  - '010'
+  expected: '2
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./binary_to_decimal "1000100001" | cat -e
+  args: &id002
+  - '1000100001'
+  expected: '545
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./binary_to_decimal "53" | cat -e
+  args: &id003
+  - '53'
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./binary_to_decimal "ftughbj" | cat -e
+  args: &id004
+  - ftughbj
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./binary_to_decimal "" | cat -e
+  args:
+  - ''
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: cur_binary_to_decimal_T05
+  origin: subject_folder/deepthought/corrections/exams/binary_to_decimal/generator.py
+  input: Dynamic generation rule via valid_binary_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_binary_to_decimal_T06
+  origin: subject_folder/deepthought/corrections/exams/binary_to_decimal/generator.py
+  input: Dynamic generation rule via invalid_binary_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_binary_to_decimal_T07
+  origin: subject_folder/deepthought/corrections/exams/binary_to_decimal/generator.py
+  input: Dynamic generation rule via no_argument_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_binary_to_decimal_T08
+  origin: subject_folder/deepthought/corrections/exams/binary_to_decimal/generator.py
+  input: Dynamic generation rule via too_many_arguments_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '11'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  010  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - '1000100002'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  1000100001  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - '54'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  53  '
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - gtughbj
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  ftughbj  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_binary_to_decimal_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/binary_to_decimal/generator.py)
+  original_input: Dynamic generation rule via valid_binary_test()
+  perturbed_input: Eynamic generation rule via valid_binary
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_binary_to_decimal_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/binary_to_decimal/generator.py)
+  original_input: Dynamic generation rule via invalid_binary_test()
+  perturbed_input: Eynamic generation rule via invalid_bina
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Boundary conditions and extreme values in `binary_to_decimal`
+  input: Boundary test vector for binary_to_decimal
+  expected: Conform to subject specifications
+- name: edge_02_M
+  code: '[M]'
+  title: Memory hygiene and leak checks in `binary_to_decimal`
+  input: Run binary_to_decimal with leak checks enabled
+  expected: 0 bytes leaked

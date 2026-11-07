@@ -1,0 +1,222 @@
+mode: c_program
+fixed_tests:
+- name: can_hidenp_T01
+  description: 'Functional verification of input: `[''abc'', ''a1b2c3'']`'
+  args:
+  - abc
+  - a1b2c3
+  expected: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_hidenp_T02
+  description: case_no
+  args:
+  - abc
+  - acb
+  expected: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_hidenp_T03
+  description: case_empty_subsequence
+  args:
+  - ''
+  - abc
+  expected: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_hidenp_T04
+  description: case_bad_argc
+  args:
+  - abc
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - fgex.;
+  - tyf34gdgf;'ektufjhgdgex.;.;rtjynur6
+  expected: '1
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - abc
+  - 2altrb53c.sse
+  expected: '1
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - abc
+  - btarc
+  expected: '0
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args: []
+  expected: '
+
+    '
+- name: near_ex_one_arg_only
+  tier: near_example
+  args:
+  - only_one_near_arg
+  expected: '
+
+    '
+- name: near_ex_three_args
+  tier: near_example
+  args:
+  - a
+  - b
+  - c
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./hidenp "fgex.;" "tyf34gdgf;'ektufjhgdgex.;.;rtjynur6" | cat -e
+  args: &id001
+  - fgex.;
+  - tyf34gdgf;'ektufjhgdgex.;.;rtjynur6
+  expected: '1
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./hidenp "abc" "2altrb53c.sse" | cat -e
+  args: &id002
+  - abc
+  - 2altrb53c.sse
+  expected: '1
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./hidenp "abc" "btarc" | cat -e
+  args: &id003
+  - abc
+  - btarc
+  expected: '0
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./hidenp | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_hidenp_T05
+  origin: subject_folder/42ExamPractice/hidenp/tester.sh
+  input: ./hidenp "abc" "2altrb53c.sse"
+  expected: Matches 42 reference standard output and exit code
+- id: can_hidenp_T06
+  origin: subject_folder/42ExamPractice/hidenp/tester.sh
+  input: ./hidenp "mais non!" "mais non!"
+  expected: Matches 42 reference standard output and exit code
+- id: can_hidenp_T07
+  origin: subject_folder/42ExamPractice/hidenp/tester.sh
+  input: ./hidenp "abc" "btarc"
+  expected: Matches 42 reference standard output and exit code
+- id: can_hidenp_T08
+  origin: subject_folder/42ExamPractice/hidenp/tester.sh
+  input: ./hidenp "fgex.;" "tyf34gdgf;'ektufjhgdgex.;.;rtjynur6"
+  expected: Matches 42 reference standard output and exit code
+- id: can_hidenp_T09
+  origin: subject_folder/examples.txt
+  input: ./hidenp "fgex.;" "tyf34gdgf;'ektufjhgdgex.;.;rtjynur6" \| cat -e
+  expected: 1$
+- id: can_hidenp_T10
+  origin: subject_folder/examples.txt
+  input: ./hidenp "abc" "2altrb53c.sse" \| cat -e
+  expected: 1$
+- id: can_hidenp_T11
+  origin: subject_folder/examples.txt
+  input: ./hidenp "abc" "btarc" \| cat -e
+  expected: 0$
+- id: can_hidenp_T12
+  origin: subject_folder/examples.txt
+  input: ./hidenp \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - ggex.;
+  - uyf34gdgf;'ektufjhgdgex.;.;rtjynur6
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  fgex.;  '
+  - tyf34gdgf;'ektufjhgdgex.;.;rtjynur6
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - bbc
+  - 2bltrb53c.sse
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  abc  '
+  - 2altrb53c.sse
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - bbc
+  - ctarc
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  abc  '
+  - btarc
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./hidenp | cat -e
+  perturbed_input:
+  - hidenp_near_arg_1
+  - hidenp_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_hidenp_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/hidenp/tester.sh)
+  original_input: ./hidenp "abc" "2altrb53c.sse"
+  perturbed_input: ./iidenp "abc" "2altrb53c.sse"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_hidenp_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/hidenp/tester.sh)
+  original_input: ./hidenp "mais non!" "mais non!"
+  perturbed_input: ./iidenp "mais non!" "mais non!"

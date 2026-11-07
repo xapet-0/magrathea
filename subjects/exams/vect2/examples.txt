@@ -1,0 +1,15 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: sum_pos
+    Args       : ['2', '3', '4', '5']
+    Expected Output   : '{6, 8}\n'
+  [Standard Test 2] Name: sum_neg
+    Args       : ['-2', '3', '2', '-3']
+    Expected Output   : '{0, 0}\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: sum_zeros [Test description: "sum_zeros"]
+    Args       : ['0', '0', '0', '0']
+    Expected Output   : '{0, 0}\n'
+  [Edge Case 2] Name: sum_large [Test description: "sum_large"]
+    Args       : ['10', '20', '32', '22']
+    Expected Output   : '{42, 42}\n'

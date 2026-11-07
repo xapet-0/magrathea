@@ -1,0 +1,24 @@
+Assignment name  : ft_ultimate_div_mod
+Expected files   : ft_ultimate_div_mod.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 01 (Official PDF)
+Exercise         : ft_ultimate_div_mod
+Turn-in directory: ex04/
+Expected files   : ft_ultimate_div_mod.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function ft_ultimate_div_mod with the following prototype:
+void ft_ultimate_div_mod(int *a, int *b);
+• This function divides the value pointed to by ‘a’ by the value pointed to by ‘b’. The
+result of the division is stored in the integer pointed to by ‘a’, while the remainder
+is stored in the integer pointed to by ‘b’.
+
+Your function must be declared as follows:
+    void ft_ultimate_div_mod(int *a, int *b);
+
+Examples:
+    int a = 10, b = 3; ft_ultimate_div_mod(&a, &b); printf("%d %d\n", a, b)
+    Output: 3 1

@@ -1,0 +1,14 @@
+id: print_nth_char
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- print_nth_char.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void print_nth_char(char *str, int n);

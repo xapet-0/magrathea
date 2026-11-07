@@ -1,0 +1,11 @@
+example:
+
+int main() {
+	int fd = ft_popen("ls", (char *const[]){"ls", NULL}, 'r');
+
+	char *line;
+	while(line = get_next_line(fd))
+		ft_putstr(line);
+}
+
+Hint: Do not leak file descriptors! */

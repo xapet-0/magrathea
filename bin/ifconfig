@@ -1,0 +1,102 @@
+#!/bin/sh
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    ifconfig                                           :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: bocal <bocal@1337.ma>                      +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2026/01/01 00:00:00 by bocal             #+#    #+#              #
+#    Updated: 2026/11/08 21:30:00 by bocal            ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+
+set -eu
+
+render_eth() {
+    iface="$1"
+    mac="$2"
+    fam="$3"
+    style="${DT_IFCONFIG_STYLE:-bsd}"
+    printf '%s: flags=8863<UP,BROADCAST,RUNNING,MULTICAST> mtu 1500\n' \
+        "${iface}"
+    if [ "${style}" = "openbsd" ]; then
+        printf '\tlladdr %s\n' "${mac}"
+    else
+        printf '\tether %s\n' "${mac}"
+    fi
+    if [ "${fam}" != "link" ] && [ "${fam}" != "ether" ]; then
+        printf '\tinet 10.13.37.42 netmask 0xffffff00 broadcast 10.13.37.255\n'
+        printf '\tstatus: active\n'
+    fi
+}
+
+render_lo() {
+    lo_name="$1"
+    fam="$2"
+    printf '%s: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384\n' \
+        "${lo_name}"
+    if [ "${fam}" != "link" ] && [ "${fam}" != "ether" ]; then
+        printf '\tinet 127.0.0.1 netmask 0xff000000\n'
+    fi
+}
+
+detect_host_mac() {
+    if [ "${DT_LIVE_IFCONFIG:-0}" = "1" ]; then
+        for addr_file in /sys/class/net/*/address; do
+            if [ -r "${addr_file}" ]; then
+                val="$(cat "${addr_file}")"
+                if [ "${val}" != "00:00:00:00:00:00" ] && [ -n "${val}" ]; then
+                    printf '%s\n' "${val}"
+                    return 0
+                fi
+            fi
+        done
+    fi
+    printf '%s\n' "${DT_MOCK_ETHER:-02:42:ac:11:00:02}"
+}
+
+render_single_iface() {
+    req="$1"
+    mac="$2"
+    fam="$3"
+    if [ "${req}" = "lo" ] || [ "${req}" = "lo0" ]; then
+        render_lo "${req}" "${fam}"
+        return 0
+    fi
+    if [ "${req}" = "eth0" ] || [ "${req}" = "en0" ]; then
+        render_eth "${req}" "${mac}" "${fam}"
+        return 0
+    fi
+    printf 'ifconfig: interface %s does not exist\n' "${req}" >&2
+    return 1
+}
+
+main() {
+    fam="all"
+    req=""
+    for arg in "$@"; do
+        if [ "${arg}" = "-l" ]; then
+            printf 'eth0 lo0\n'
+            return 0
+        elif [ "${arg}" = "-d" ]; then
+            return 0
+        elif [ "${arg}" = "link" ] || [ "${arg}" = "ether" ]; then
+            fam="${arg}"
+        elif [ "${arg#-}" = "${arg}" ] && [ -z "${req}" ]; then
+            req="${arg}"
+        fi
+    done
+    mac="$(detect_host_mac)"
+    if [ -n "${req}" ]; then
+        render_single_iface "${req}" "${mac}" "${fam}"
+        return "$?"
+    fi
+    render_eth "eth0" "${mac}" "${fam}"
+    if [ -n "${DT_MOCK_ETHER2:-}" ]; then
+        render_eth "eth1" "${DT_MOCK_ETHER2}" "${fam}"
+    fi
+    render_lo "lo0" "${fam}"
+}
+
+main "$@"

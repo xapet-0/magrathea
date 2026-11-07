@@ -1,0 +1,126 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty array (size = 0), single element, and NULL pointer in `longest_subarray`
+  input: longest_subarray(tab, 0) and longest_subarray(NULL, 0)
+  expected: Safe return without memory violation
+- name: edge_02_B
+  code: '[B]'
+  title: Array with duplicate elements and all elements identical in `longest_subarray`
+  input: longest_subarray([5, 5, 5, 5], 4)
+  expected: Preserve stable sort or return correct count
+- name: edge_03_B
+  code: '[B]'
+  title: Array already sorted in reverse order in `longest_subarray`
+  input: longest_subarray([9, 8, 7, 6, 5], 5)
+  expected: Properly sort array with no missing elements
+- name: edge_04_T
+  code: '[T]'
+  title: Performance verification on large array in `longest_subarray`
+  input: Run longest_subarray on array of 10,000 elements
+  expected: Complete within timeout limit
+fixed_tests:
+- name: test_01_s_n_s_free_s
+  call: printf("%s\n", s); free(s)
+  setup:
+  - char *s = longest_subarray("134")
+  stdout: '34
+
+    '
+- name: test_02_s_n_s_free_s
+  call: printf("%s\n", s); free(s)
+  setup:
+  - char *s = longest_subarray("454")
+  stdout: '45
+
+    '
+- name: test_03_s_n_s_free_s
+  call: printf("%s\n", s); free(s)
+  setup:
+  - char *s = longest_subarray("13579")
+  stdout: '
+
+    '
+- name: test_04_s_n_s_free_s
+  call: printf("%s\n", s); free(s)
+  setup:
+  - char *s = longest_subarray("123456")
+  stdout: '123456
+
+    '
+- name: test_05_empty_string
+  setup:
+  - char *s = longest_subarray("");
+  call: 'printf("[%s]\n", s ? s : "NULL"); free(s)'
+  tier: edge
+  stdout: '[]
+
+    '
+- name: test_06_all_evens
+  setup:
+  - char *s = longest_subarray("2468");
+  call: 'printf("[%s]\n", s ? s : "NULL"); free(s)'
+  tier: edge
+  stdout: '[]
+
+    '
+- name: test_07_one_odd_one_even
+  setup:
+  - char *s = longest_subarray("21");
+  call: printf("%s\n", s); free(s)
+  tier: baseline
+  stdout: '21
+
+    '
+- name: test_08_suffix_balanced
+  setup:
+  - char *s = longest_subarray("11123");
+  call: printf("%s\n", s); free(s)
+  tier: edge
+  stdout: '12
+
+    '
+- name: test_09_zero_counts_as_even
+  setup:
+  - char *s = longest_subarray("0103");
+  call: printf("%s\n", s); free(s)
+  tier: edge
+  stdout: '0103
+
+    '
+- name: test_10_longer_mixed
+  setup:
+  - char *s = longest_subarray("1352468");
+  call: printf("%s\n", s); free(s)
+  tier: stress
+  stdout: '135246
+
+    '
+folder_examples:
+- expected: 'Output: 34\n    char *s = longest_subarray("454"); printf("%s\n", s);
+    free(s)\n    Output: 45\n    char *s = longest_subarray("13579"); printf("%s\n",
+    s); free(s)\n    Output:'
+  id: can_longest_subarray_T05
+  input: char *s = longest_subarray("134"); printf("%s\n", s); free(s)
+  origin: subject_folder/examples.txt
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval longest_subarray
+  perturbed_input:
+  - longest_subarray_near_arg_1
+  - longest_subarray_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_longest_subarray_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: char *s = longest_subarray("134"); printf("%s\n", s); free(s)
+  perturbed_input: dhar *s = longest_subarray("134"); print
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval longest_subarray
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

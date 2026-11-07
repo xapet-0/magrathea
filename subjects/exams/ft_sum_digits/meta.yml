@@ -1,0 +1,14 @@
+id: ft_sum_digits
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- ft_sum_digits.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void ft_sum_digits(int nbr);

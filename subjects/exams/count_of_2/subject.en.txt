@@ -1,0 +1,17 @@
+Assignment name  : count_of_2
+Expected files   : count_of_2.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that counts the total number of digits '2' that appear in all
+positive integers from 1 up to n inclusive. For example, for n = 25, the digit
+'2' appears in 2, 12, 20, 21, 22 (twice), 23, 24, 25 -> 9 times.
+
+Your function must be declared as follows:
+    int count_of_2(int n);
+
+Examples:
+    count_of_2(25) -> 9
+    count_of_2(1) -> 0
+    count_of_2(2) -> 1
+    count_of_2(12) -> 2

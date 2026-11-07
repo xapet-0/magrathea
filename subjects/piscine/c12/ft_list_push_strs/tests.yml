@@ -1,0 +1,66 @@
+fixed_tests:
+- call: char *v[]={"a","b","c"}; t_list *l=ft_list_push_strs(3,v); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  name: pool_ft_list_push_strs_T01
+  stdout: 'cba
+
+    '
+- call: char *v[]={"a"}; printf("%d\n", ft_list_push_strs(0,v) == NULL);
+  name: ft_list_push_strs_zero_size
+  stdout: '1
+
+    '
+- call: char *v[]={"a"}; printf("%d\n", ft_list_push_strs(-5,v) == NULL);
+  name: ft_list_push_strs_negative_size
+  stdout: '1
+
+    '
+- call: char *v[]={"single"}; t_list *l=ft_list_push_strs(1,v); printf("%s:%d\n",(char*)l->data,l->next==NULL);
+  name: ft_list_push_strs_single_element
+  stdout: 'single:1
+
+    '
+- name: test_05_two_elements_reversed
+  call: char *v[]={"first","second"}; t_list *l=ft_list_push_strs(2,v); printf("%s->%s:%d\n",(char*)l->data,(char*)l->next->data,l->next->next==NULL);
+  tier: baseline
+  stdout: 'second->first:1
+
+    '
+- name: test_06_four_elements
+  call: char *v[]={"1","2","3","4"}; t_list *l=ft_list_push_strs(4,v); while(l){printf("%s,",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: baseline
+  stdout: '4,3,2,1,
+
+    '
+- name: test_07_with_empty_strings
+  call: char *v[]={"","42",""}; t_list *l=ft_list_push_strs(3,v); while(l){printf("[%s]",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: edge
+  stdout: '[][42][]
+
+    '
+- name: test_08_five_elements
+  call: char *v[]={"a","b","c","d","e"}; t_list *l=ft_list_push_strs(5,v); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: stress
+  stdout: 'edcba
+
+    '
+- name: test_09_partial_size_slice
+  call: char *v[]={"x","y","z","w"}; t_list *l=ft_list_push_strs(2,v); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: edge
+  stdout: 'yx
+
+    '
+- name: test_10_neg_one_size
+  call: char *v[]={"a","b"}; printf("%d\n", ft_list_push_strs(-1,v) == NULL);
+  tier: edge
+  stdout: '1
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,27 @@
+Assignment name  : midls
+Expected files   : midLS
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine Shell 00 (Official PDF)
+Exercise         : midLS
+Turn-in directory: ex04/
+Expected files   : midLS
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• In a file named midLS, write the command that lists all files and directories in your
+current directory (excluding hidden files or any file starting with a dot, including
+double dots).
+• The output should be sorted by modification date, with entries separated by a
+comma and a space.
+• Directory names should end with a slash (/).
+Do only what is asked, nothing more!
+• RTFM!
+• Git push regularly.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+[pool_midls_T01] Input: `sh midls.sh` (standard shell environment)  ==>  Expected: *(none)*

@@ -1,0 +1,15 @@
+fixed_tests:
+- args: []
+  expected: 'OK
+
+    '
+  name: nominal_contract_check
+- args: []
+  expected: 'OK
+
+    '
+  name: libft_archive_and_headers_check
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

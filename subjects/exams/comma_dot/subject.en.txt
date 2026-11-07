@@ -1,0 +1,11 @@
+Assignment name  : comma_dot
+Expected files   : comma_dot.sh
+Allowed commands : tr, sed, paste
+--------------------------------------------------------------------------------
+Write a shell script that reads lines from standard input and joins them into a
+single line separated by ", " (a comma and a space), ending with a "." (dot)
+and NO trailing newline.
+
+Examples:
+$> printf "alpha\nbeta\ngamma\n" | ./comma_dot.sh | cat -e
+alpha, beta, gamma.$>

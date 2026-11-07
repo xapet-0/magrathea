@@ -1,0 +1,11 @@
+# Examples for ft_split_whitespaces (from official subject specification)
+
+Examples:
+    char **w = ft_split_whitespaces("  hello\tworld\n42 "); for (int i=0; w[i]; i++) printf("%s\n", w[i]);
+    Output: hello
+world
+42
+    char **w = ft_split_whitespaces("   \t\n "); printf("%d\n", w[0] == 0);
+    Output: 1
+    char **w = ft_split_whitespaces("single"); printf("%s|%d\n", w[0], w[1] == 0);
+    Output: single|1

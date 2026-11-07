@@ -1,0 +1,3 @@
+Examples:
+$> ./git_commit.sh | cat -e
+$

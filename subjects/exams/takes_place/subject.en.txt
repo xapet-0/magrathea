@@ -1,0 +1,17 @@
+Assignment name  : takes_place
+Expected files   : takes_place.c
+Allowed functions: printf
+--------------------------------------------------------------------------------
+
+Write a function that takes an integer hour in 24-hour format (from 0 to 23)
+and prints the 12-hour interval on standard output followed by a newline:
+
+THE FOLLOWING TAKES PLACE BETWEEN X.00 A.M. AND Y.00 A.M.
+
+Your function must be declared as follows:
+
+void	takes_place(int hour);
+
+Examples:
+  takes_place(11) -> THE FOLLOWING TAKES PLACE BETWEEN 11.00 A.M. AND 12.00 P.M.
+  takes_place(23) -> THE FOLLOWING TAKES PLACE BETWEEN 11.00 P.M. AND 12.00 A.M.

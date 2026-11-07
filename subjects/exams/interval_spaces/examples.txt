@@ -1,0 +1,7 @@
+# Examples for interval_spaces (from official subject specification)
+
+$> ./interval_spaces "abc" | cat -e
+a   b   c$
+$> ./interval_spaces "dubO a POIL" "ok" | cat -e
+$
+==========================================================================================

@@ -1,0 +1,145 @@
+mode: c_function
+fixed_tests:
+- name: can_max_T01
+  description: 'Functional verification of input: `int a[]={1,7,3}; printf("%d\n",max(a,3))`'
+  call: int a[]={1,7,3}; printf("%d\n",max(a,3))
+  stdout: '7
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_max_T02
+  description: empty_array
+  call: printf("%d\n", max(NULL, 0))
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_max_T03
+  description: all_negative
+  call: int a[]={-10,-3,-42}; printf("%d\n", max(a, 3))
+  stdout: '-3
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_max_T04
+  description: single_element
+  call: int a[]={1337}; printf("%d\n", max(a, 1))
+  stdout: '1337
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_max_at_first
+  call: int a[]={99, 10, 20, 30}; printf("%d\n", max(a, 4))
+  tier: edge
+  stdout: '99
+
+    '
+- name: test_06_max_at_last
+  call: int a[]={10, 20, 30, 99}; printf("%d\n", max(a, 4))
+  tier: edge
+  stdout: '99
+
+    '
+- name: test_07_all_equal
+  call: int a[]={42, 42, 42}; printf("%d\n", max(a, 3))
+  tier: edge
+  stdout: '42
+
+    '
+- name: test_08_with_zero_and_negatives
+  call: int a[]={-100, 0, -1}; printf("%d\n", max(a, 3))
+  tier: baseline
+  stdout: '0
+
+    '
+- name: test_09_int_limits
+  call: int a[]={-2147483648, 2147483647, 0}; printf("%d\n", max(a, 3))
+  tier: edge
+  stdout: '2147483647
+
+    '
+- name: test_10_seven_elements
+  call: int a[]={4, 8, 15, 16, 42, 23, 1}; printf("%d\n", max(a, 7))
+  tier: stress
+  stdout: '42
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval max
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_max_T06
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_max_T07
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "   "
+  expected: Matches 42 reference standard output and exit code
+- id: can_max_T08
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "Papache est un sabre" "a" "o"
+  expected: Matches 42 reference standard output and exit code
+- id: can_max_T09
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "FOR PONY"
+  expected: Matches 42 reference standard output and exit code
+- id: can_max_T10
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "a" "b"
+  expected: Matches 42 reference standard output and exit code
+- id: can_max_T11
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "3:21 Ba  tOut  moUn ki Ka di KE m'en Ka fe fot"
+  expected: Matches 42 reference standard output and exit code
+- id: can_max_T12
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "zaz" "art" "zul"
+  expected: Matches 42 reference standard output and exit code
+- id: can_max_T13
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "this        ...       is sparta, then again, maybe    not"
+  expected: Matches 42 reference standard output and exit code
+- id: can_max_T14
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "jacob" "a" "b" "c" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_max_T15
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "L'eSPrit nE peUt plUs pRogResSer s'Il staGne et sI peRsIsTent VAnIte
+    et auto-justification."
+  expected: Matches 42 reference standard output and exit code
+- id: can_max_T16
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "ZoZ eT Dovid oiME le METol." "o" "a"
+  expected: Matches 42 reference standard output and exit code
+- id: can_max_T17
+  origin: subject_folder/42ExamPractice/max/tester.sh
+  input: ./max "AkjhZ zLKIJz , 23y "
+  expected: Matches 42 reference standard output and exit code
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval max
+  perturbed_input:
+  - max_near_arg_1
+  - max_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_max_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/max/tester.sh)
+  original_input: ./max "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  perturbed_input: ./nax "wNcOre Un ExEmPle Pas Facilw a Ec
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_max_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/max/tester.sh)
+  original_input: ./max "   "
+  perturbed_input: ./nax "   "

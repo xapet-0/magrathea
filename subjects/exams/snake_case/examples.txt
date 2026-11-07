@@ -1,0 +1,3 @@
+Examples:
+$> ./snake_case hello_world_yes | cat -e
+HelloWorldYes$

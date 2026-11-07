@@ -1,0 +1,164 @@
+mode: c_program
+fixed_tests:
+- name: pool_cat_T01
+  description: cat_file
+  args:
+  - a.txt
+  expected: 'hello
+
+    world
+
+    '
+  category: Functional
+  tier: baseline
+  files:
+    a.txt: 'hello
+
+      world
+
+      '
+- name: pool_cat_T02
+  description: cat_stdin
+  args: []
+  expected: 'stdin text
+
+    '
+  category: Functional
+  tier: baseline
+  stdin: 'stdin text
+
+    '
+- name: pool_cat_T03_multi_files
+  description: cat_two_files_concatenated
+  args:
+  - f1.txt
+  - f2.txt
+  expected: 'first
+
+    second
+
+    '
+  category: Functional
+  tier: edge_case
+  files:
+    f1.txt: 'first
+
+      '
+    f2.txt: 'second
+
+      '
+- name: pool_cat_T04_empty_file
+  description: cat_empty_file
+  args:
+  - empty.txt
+  expected: ''
+  category: Edge Case
+  tier: edge_case
+  files:
+    empty.txt: ''
+- name: test_05_three_files
+  args:
+  - f1.txt
+  - f2.txt
+  - f3.txt
+  files:
+    f1.txt: 'A
+
+      '
+    f2.txt: 'B
+
+      '
+    f3.txt: 'C
+
+      '
+  tier: baseline
+  stdout: 'A
+
+    B
+
+    C
+
+    '
+- name: test_06_no_trailing_newline
+  args:
+  - nonl.txt
+  files:
+    nonl.txt: no_newline_here
+  tier: edge
+  stdout: no_newline_here
+- name: test_07_stdin_multiline
+  args: []
+  stdin: 'line1
+
+    line2
+
+    line3
+
+    '
+  tier: baseline
+  stdout: 'line1
+
+    line2
+
+    line3
+
+    '
+- name: test_08_stdin_empty
+  args: []
+  stdin: ''
+  tier: edge
+  stdout: ''
+- name: test_09_empty_between_nonempty
+  args:
+  - a.txt
+  - empty.txt
+  - b.txt
+  files:
+    a.txt: 'start
+
+      '
+    empty.txt: ''
+    b.txt: 'end
+
+      '
+  tier: edge
+  stdout: 'start
+
+    end
+
+    '
+- name: test_10_tabs_and_symbols
+  args:
+  - sym.txt
+  files:
+    sym.txt: "42\t1337\n!@#$%^&*()\n"
+  tier: stress
+  stdout: "42\t1337\n!@#$%^&*()\n"
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval cat
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_fixture_01
+  origin: subject_folder/srcs/main.c
+  input: srcs/main.c
+  expected: '/* **************************************************************************
+    */
+
+    /*                                                                            *'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval cat
+  perturbed_input:
+  - cat_near_arg_1
+  - cat_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_fixture_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/srcs/main.c)
+  original_input: srcs/main.c
+  perturbed_input: trcs/main.c

@@ -1,0 +1,15 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: basic_sum
+    Args       : ['100', '237']
+    Expected Output   : '337\n'
+  [Standard Test 2] Name: carry_chain
+    Args       : ['999', '1']
+    Expected Output   : '1000\n'
+  [Standard Test 3] Name: huge_numbers
+    Args       : ['99999999999999999999', '1']
+    Expected Output   : '100000000000000000000\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: zeros [Test description: "zeros"]
+    Args       : ['0', '0']
+    Expected Output   : '0\n'

@@ -1,0 +1,15 @@
+id: nth_remove
+type: c_program
+module: Piscine Exams 00–Final
+xp: 295
+expected_files:
+- nth_remove.c
+allowed_functions:
+- write
+- atoi
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

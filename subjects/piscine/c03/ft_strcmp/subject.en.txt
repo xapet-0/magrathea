@@ -1,0 +1,18 @@
+Assignment name  : ft_strcmp
+Turn-in directory: ex00/
+Expected files   : ft_strcmp.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Reproduce the behavior of the functionstrcmp (man strcmp).
+• The function should be prototyped as follows:
+int ft_strcmp(char *s1, char *s2);
+
+Your function must be declared as follows:
+    int ft_strcmp(char *s1, char *s2);
+
+Examples:
+    ft_strcmp("abc", "abc") == 0 ? 1 : 0 -> 1
+    ft_strcmp("abc", "abd") < 0 ? 1 : 0 -> 1
+    ft_strcmp("\200", "a") > 0 ? 1 : 0 -> 1
+    ft_strcmp("a", "\200") < 0 ? 1 : 0 -> 1

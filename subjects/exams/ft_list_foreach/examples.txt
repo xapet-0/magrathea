@@ -1,0 +1,4 @@
+[can_ft_list_foreach_T01] Input: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; ft_list_foreach(&a,dt_print); printf("\n")  ==>  Expected: a,b,\n
+[can_ft_list_foreach_T02] Input: Invocations: ft_list_foreach(NULL, concat_data); ft_list_foreach(n1, concat_data)  ==>  Expected: Differential comparison with reference implementation
+[can_ft_list_foreach_T03] Input: Invocations: ft_list_foreach(NULL, add_first); ft_list_foreach(&a, add_first)  ==>  Expected: Differential comparison with reference implementation
+[can_ft_list_foreach_T04] Input: Compiled and run with 4-0-ft_list_foreach_MAIN.c  ==>  Expected: Zero assertion failures (exit code 0)

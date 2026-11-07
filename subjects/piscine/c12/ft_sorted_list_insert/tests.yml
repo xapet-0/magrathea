@@ -1,0 +1,70 @@
+fixed_tests:
+- call: t_list c={"c",0}; t_list a={"a",&c}; t_list *l=&a; ft_sorted_list_insert(&l,"b",dt_cmp);
+    while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  name: pool_ft_sorted_list_insert_T01
+  stdout: 'abc
+
+    '
+- call: t_list *l=NULL; ft_sorted_list_insert(&l,"first",dt_cmp); printf("%s:%d\n",(char*)l->data,l->next==NULL);
+  name: ft_sorted_list_insert_to_empty
+  stdout: 'first:1
+
+    '
+- call: t_list b={"b",0}; t_list *l=&b; ft_sorted_list_insert(&l,"a",dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  name: ft_sorted_list_insert_at_head
+  stdout: 'ab
+
+    '
+- call: t_list a={"a",0}; t_list *l=&a; ft_sorted_list_insert(&l,"z",dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  name: ft_sorted_list_insert_at_tail
+  stdout: 'az
+
+    '
+- name: test_05_insert_duplicate
+  call: t_list c={"c",0},b={"b",&c},a={"a",&b}; t_list *l=&a; ft_sorted_list_insert(&l,"b",dt_cmp);
+    while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  tier: edge
+  stdout: 'abbc
+
+    '
+- name: test_06_insert_empty_string_at_head
+  call: t_list b={"b",0},a={"a",&b}; t_list *l=&a; ft_sorted_list_insert(&l,"",dt_cmp);
+    while(l){printf("[%s]",(char*)l->data);l=l->next;} printf("\n");
+  tier: edge
+  stdout: '[][a][b]
+
+    '
+- name: test_07_build_list_from_scratch
+  call: t_list *l=NULL; ft_sorted_list_insert(&l,"d",dt_cmp); ft_sorted_list_insert(&l,"b",dt_cmp);
+    ft_sorted_list_insert(&l,"a",dt_cmp); ft_sorted_list_insert(&l,"c",dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: stress
+  stdout: 'abcd
+
+    '
+- name: test_08_insert_into_single_before
+  call: t_list *l=ft_create_elem("m"); ft_sorted_list_insert(&l,"a",dt_cmp); printf("%s->%s\n",(char*)l->data,(char*)l->next->data);
+  tier: baseline
+  stdout: 'a->m
+
+    '
+- name: test_09_insert_into_single_after
+  call: t_list *l=ft_create_elem("m"); ft_sorted_list_insert(&l,"z",dt_cmp); printf("%s->%s\n",(char*)l->data,(char*)l->next->data);
+  tier: baseline
+  stdout: 'm->z
+
+    '
+- name: test_10_six_insertions_reverse_order
+  call: t_list *l=NULL; char *v[]={"6","5","4","3","2","1"}; for(int i=0;i<6;i++)
+    ft_sorted_list_insert(&l,v[i],dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: stress
+  stdout: '123456
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,30 @@
+id: microshell
+type: c_program
+module: Exam Rank 04
+xp: 585
+expected_files:
+- '*.c'
+- '*.h'
+allowed_functions:
+- malloc
+- free
+- write
+- close
+- fork
+- waitpid
+- signal
+- kill
+- exit
+- chdir
+- execve
+- dup
+- dup2
+- pipe
+- strcmp
+- strncmp
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

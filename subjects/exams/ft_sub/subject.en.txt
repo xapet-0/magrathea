@@ -1,0 +1,18 @@
+Assignment name  : ft_sub
+Expected files   : ft_sub.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+project name :ft_subtract.c
+
+-----------------------------------------------------------------
+
+create a function that subtracts an integer from an integer pointed by a pointer.the parameters are an integer and a pointer pointing to an integer.
+
+it should be prototyped as such
+
+void    ft_subtract(int a, int *ptr)
+
+[cur_ft_sub_T01] Input: printf("%d\n", x)  ==>  Expected: 42\n
+[cur_ft_sub_T02] Input: printf("%d\n", x)  ==>  Expected: -10\n
+[cur_ft_sub_T03] Input: printf("%d\n", x)  ==>  Expected: 0\n

@@ -1,0 +1,22 @@
+Assignment name  : g_diam
+Expected files   : g_diam.c
+Allowed functions: write, malloc, free
+--------------------------------------------------------------------------------
+
+Write a program that takes a string describing an undirected graph as space-
+separated edges "u-v" and displays the number of nodes in the longest simple
+path (without repeating vertices), followed by a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./g_diam "1-2 2-3 3-4" | cat -e
+4$
+$> ./g_diam "1-2 2-3 3-1" | cat -e
+3$
+$> ./g_diam "10-20" | cat -e
+2$
+$> ./g_diam | cat -e
+$

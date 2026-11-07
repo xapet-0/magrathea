@@ -1,0 +1,24 @@
+allowed_functions:
+- new
+- delete
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+expected_files:
+- Warlock.cpp
+- Warlock.hpp
+- ASpell.cpp
+- ASpell.hpp
+- ATarget.cpp
+- ATarget.hpp
+- Fwoosh.cpp
+- Fwoosh.hpp
+- Dummy.cpp
+- Dummy.hpp
+id: cpp_module_01
+module: Exam Rank 05
+norminette: false
+prototype: class Cpp_module_01 { ... };
+type: cpp
+xp: 670

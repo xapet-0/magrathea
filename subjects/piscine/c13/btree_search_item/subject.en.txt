@@ -1,0 +1,21 @@
+Assignment name  : btree_search_item
+Expected files   : btree_search_item.c ft_btree.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 13 (Official PDF)
+Exercise         : btree_search_item
+Turn-in directory: ex05/
+Expected files   : btree_search_item.c, ft_btree.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function btree_search_item which returns the first element related to
+the reference data given as an argument. The tree should be traversed using infix
+traversal. If the element isn’t found, the function should return NULL.
+
+• Here’s how it should be prototyped :
+void *btree_search_item(t_btree *root, void *data_ref, int (*cmpf)(void *, void *));
+
+Examples:
+    we need to get theam from here  https://git.hexanyn.fr/42/piscine/c13/-/blob/master/ex05/btree_search_item.c?ref_type=heads

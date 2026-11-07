@@ -1,0 +1,3 @@
+# Examples for print_bits (from official subject specification)
+
+Example, if you pass 2 to print_bits, it will print "00000010"

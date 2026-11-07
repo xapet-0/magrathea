@@ -1,0 +1,12 @@
+id: special_filename_MaRViN
+type: shell
+module: Shell 01
+xp: 150
+expected_files:
+- '"\?$*''MaRViN''*$?\"'
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true

@@ -1,0 +1,31 @@
+Assignment name  : ft_ten_queens_puzzle
+Turn-in directory: ex08/
+Expected files   : ft_ten_queens_puzzle.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+The Ten Queens
+Turn-in directory: ex08/
+Files to turn in:ft_ten_queens_puzzle.c
+Allowed functions: write
+• Create a function that displays all possible placements of ten queens on a 10×10
+chessboard, ensuring that no two queens can attack each other in a single move.
+The function should return the total number of valid solutions.
+• Recursion is required to solve this problem.
+• The function should be prototyped as follows:
+int ft_ten_queens_puzzle(void);
+• Output format:
+$>./a.out | cat -e
+0257948136$
+0258693147$
+...
+4605713829$
+4609582731$
+...
+9742051863$
+$>
+• The sequence is read from left to right, where:
+◦ The first digit represents the row position of the queen in the first column
+(index starting at 0).
+◦ The Nth digit represents the row position of the queen in the Nth column.
+• The function should return the total number of valid solutions found.

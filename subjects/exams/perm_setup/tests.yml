@@ -1,0 +1,52 @@
+mode: shell
+fixed_tests:
+- name: perm_setup_verify
+  args: []
+  stdout: ''
+  exit_code: 0
+- name: perm_setup_idempotent
+  args: []
+  exit_code: 0
+- name: perm_setup_with_arg
+  args:
+  - reinit
+  stdout: ''
+  exit_code: 0
+- name: perm_setup_preserve_clean_stdout
+  args:
+  - check
+  stdout: ''
+  exit_code: 0
+- name: test_05_f1
+  args:
+  - f1
+  exit_code: 0
+  stdout: ''
+- name: test_06_f2
+  args:
+  - f2
+  exit_code: 0
+  stdout: ''
+- name: test_07_f3
+  args:
+  - f3
+  exit_code: 0
+  stdout: ''
+- name: test_08_f4
+  args:
+  - f4
+  exit_code: 0
+  stdout: ''
+- name: test_09_f5
+  args:
+  - f5
+  exit_code: 0
+  stdout: ''
+- name: test_10_f6
+  args:
+  - f6
+  exit_code: 0
+  stdout: ''
+subject_examples: []
+folder_examples: []
+near_examples: []

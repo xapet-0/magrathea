@@ -1,0 +1,185 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `remove_duplicate`
+  input: "remove_duplicate(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `remove_duplicate`
+  input: remove_duplicate("   word   ") and remove_duplicate("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `remove_duplicate`
+  input: remove_duplicate("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `remove_duplicate`
+  input: Execute remove_duplicate with no arguments and with 3 arguments
+  expected: Print newline only
+fixed_tests:
+- args:
+  - abracadabra
+  category: Functional
+  description: 'Functional verification of input: `[''abracadabra'']`'
+  expected: 'abrcd
+
+    '
+  name: cur_remove_duplicate_T01
+  stdout: 'abrcd
+
+    '
+  tier: baseline
+- args: []
+  category: Functional
+  description: Standard baseline execution and behavior check for `remove_duplicate`
+  expected: '
+
+    '
+  name: cur_remove_duplicate_T02
+  stdout: '
+
+    '
+  tier: baseline
+- args:
+  - ''
+  category: Edge Case
+  description: edge_remove_duplicate_empty
+  expected: '
+
+    '
+  name: cur_remove_duplicate_T03
+  stdout: '
+
+    '
+  tier: baseline
+- args:
+  - bb aa cc
+  category: Edge Case
+  description: edge_remove_duplicate_order_spaces
+  expected: 'b ac
+
+    '
+  name: cur_remove_duplicate_T04
+  stdout: 'b ac
+
+    '
+  tier: baseline
+- args:
+  - 1, 1, 2, 2, 3, 4, 4, 5
+  expected: '1, 2345
+
+    '
+  name: subj_ex_01
+  stdout: '1, 2345
+
+    '
+  tier: subject_example
+- args:
+  - 1, 1, 2, 2, 3, 4, 4, 5, 9, 9, 8, 8, 7
+  expected: '1, 2345987
+
+    '
+  name: subj_ex_02
+  stdout: '1, 2345987
+
+    '
+  tier: subject_example
+- name: test_07_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: " \n"
+- name: test_09_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '137
+
+    '
+- name: test_10_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '42_Network
+
+    '
+folder_examples:
+- expected: Deterministic output validated by Deepthought oracle
+  id: cur_remove_duplicate_T05
+  input: Dynamic generation rule via basic_test()
+  origin: subject_folder/deepthought/corrections/exams/remove_duplicate/generator.py
+- expected: Deterministic output validated by Deepthought oracle
+  id: cur_remove_duplicate_T06
+  input: Dynamic generation rule via basic_test1()
+  origin: subject_folder/deepthought/corrections/exams/remove_duplicate/generator.py
+- expected: Deterministic output validated by Deepthought oracle
+  id: cur_remove_duplicate_T07
+  input: Dynamic generation rule via basic_test2()
+  origin: subject_folder/deepthought/corrections/exams/remove_duplicate/generator.py
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_lexical_shift
+  original_input: &id001
+  - 1, 1, 2, 2, 3, 4, 4, 5
+  perturbed_input:
+  - 1, 1, 2, 2, 3, 4, 4, 5!
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_01
+  id: near_subj_01_whitespace_envelope
+  original_input: *id001
+  perturbed_input:
+  - '  1, 1, 2, 2, 3, 4, 4, 5  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_02
+  id: near_subj_02_lexical_shift
+  original_input: &id002
+  - 1, 1, 2, 2, 3, 4, 4, 5, 9, 9, 8, 8, 7
+  perturbed_input:
+  - 1, 1, 2, 2, 3, 4, 4, 5, 9, 9, 8, 8, 7!
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_02
+  id: near_subj_02_whitespace_envelope
+  original_input: *id002
+  perturbed_input:
+  - '  1, 1, 2, 2, 3, 4, 4, 5, 9, 9, 8, 8, 7  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: cur_remove_duplicate_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/remove_duplicate/generator.py)
+- derived_from: cur_remove_duplicate_T06
+  id: near_folder_02_boundary_neighbor
+  original_input: Dynamic generation rule via basic_test1()
+  perturbed_input: Eynamic generation rule via basic_test1(
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/remove_duplicate/generator.py)
+subject_examples:
+- args: *id001
+  cat_e: false
+  command: ./remove_duplicates "1, 1, 2, 2, 3, 4, 4, 5"
+  expected: '        1 2 3 4 5;
+
+    '
+  id: subj_ex_01
+  origin: subject.en.txt
+- args: *id002
+  cat_e: false
+  command: ./remove_duplicates "1, 1, 2, 2, 3, 4, 4, 5, 9, 9, 8, 8, 7"
+  expected: '        1 2 3 4 5 9 8 7;
+
+    '
+  id: subj_ex_02
+  origin: subject.en.txt

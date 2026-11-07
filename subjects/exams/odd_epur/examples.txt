@@ -1,0 +1,9 @@
+Examples:
+$> printf "  hello   world  \nignore\n  foo   bar  \n" | sh odd_epur.sh | cat -e
+hello world$
+foo bar$
+$> printf "   42   1337   \n" | sh odd_epur.sh | cat -e
+42 1337$
+$> printf "a   b\nc   d\ne   f\n" | sh odd_epur.sh | cat -e
+a b$
+e f$

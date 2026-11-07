@@ -1,0 +1,5 @@
+# Examples for ft_list_push_back (from official subject specification)
+
+Examples:
+    t_list *l=NULL; ft_list_push_back(&l,"a"); ft_list_push_back(&l,"b"); printf("%s%s\n",(char*)l->data,(char*)l->next->data)
+    Output: ab

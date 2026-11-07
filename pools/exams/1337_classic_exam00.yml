@@ -1,0 +1,74 @@
+name: 1337_classic_exam00
+display_name: "1337 Classic Piscine \u2014 Exam 00"
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 20
+  candidates:
+  - aff_a
+  - aff_first_param
+  - aff_last_param
+  - aff_z
+  - ft_countdown
+  - ft_print_numbers
+  - ft_putstr
+  - ft_strcpy
+  - ft_strlen
+  - ft_swap
+  - hello
+- level: 1
+  points: 20
+  candidates:
+  - maff_alpha
+  - maff_revalpha
+  - only_a
+  - only_z
+  - rev_print
+  - active_bits
+  - add_binary
+  - add_complex
+  - alpha_index_case
+  - alt_case
+  - antidote
+- level: 2
+  points: 20
+  candidates:
+  - ascii_character
+  - ascii_character_v2
+  - base16
+  - biggest_pal
+  - binary_to_decimal
+  - brackets
+  - brainfuck
+  - buzzfizz
+  - bzero
+  - capitalize
+- level: 3
+  points: 20
+  candidates:
+  - circle_perimeter
+  - collatz_conjecture
+  - compact
+  - count_alen
+  - count_alpha
+  - count_digits_sh
+  - count_letters
+  - count_of_2
+  - count_words
+  - count_words_exam
+- level: 4
+  points: 20
+  candidates:
+  - decimal_to_binary
+  - digit_root
+  - digit_sum
+  - epur_str_sh
+  - equation
+  - eval_expr
+  - even
+  - factorial_number
+  - find_pivot
+  - first_last_char
+pool_group: piscine
+rank_order: 1
+prerequisites: []

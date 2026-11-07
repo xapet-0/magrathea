@@ -1,0 +1,16 @@
+Assignment name  : ft_strdup
+Turn-in directory: ex00/
+Expected files   : ft_strdup.c
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+• Reproduce the behavior of the functionstrdup (man strdup).
+• Here’s how it should be prototyped :
+char *ft_strdup(char *src);
+
+Your function must be declared as follows:
+    char *ft_strdup(char *src);
+
+Examples:
+    char *s = ft_strdup("Piscine"); if (s) { printf("%s\n", s); free(s); }
+    Output: Piscine

@@ -1,0 +1,20 @@
+Assignment name  : safe_voyage
+Expected files   : safe_voyage.sh
+Allowed commands : cd, pwd, printf, exit
+--------------------------------------------------------------------------------
+
+Write a POSIX shell script that attempts to change directory to $1 (cd -P -- "$1")
+and prints the new physical path (pwd -P). If changing directory fails, exit
+with status 1.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh safe_voyage.sh "/tmp" | cat -e
+/tmp$
+$> sh safe_voyage.sh "/nonexistent_dir_42" | cat -e
+$
+$> sh safe_voyage.sh "/var" | cat -e
+/var$

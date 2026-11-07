@@ -1,0 +1,14 @@
+id: btree_level_count
+type: c_function
+module: C 13
+xp: 370
+expected_files:
+- btree_level_count.c
+- ft_btree.h
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int btree_level_count(t_btree *root);

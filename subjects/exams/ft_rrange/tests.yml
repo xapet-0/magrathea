@@ -1,0 +1,135 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_rrange_T01
+  description: 'Functional verification of input: `int *a=ft_rrange(1,3); for(int
+    i=0;i<3;i++) p`'
+  call: int *a=ft_rrange(1,3); for(int i=0;i<3;i++) printf("%d,",a[i]); printf("\n");
+    free(a)
+  stdout: '3,2,1,
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_rrange_T02
+  description: descending_input
+  call: int *a=ft_rrange(3,1); for(int i=0;i<3;i++) printf("%d,",a[i]); printf("\n");
+    free(a)
+  stdout: '1,2,3,
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_rrange_T03
+  description: single_val
+  call: int *a=ft_rrange(0,0); printf("%d\n",a[0]); free(a)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_rrange_T04
+  description: negative_range
+  call: int *a=ft_rrange(-1,2); for(int i=0;i<4;i++) printf("%d,",a[i]); printf("\n");
+    free(a)
+  stdout: '2,1,0,-1,
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_zero_to_neg_three
+  call: int *a=ft_rrange(0,-3); for(int i=0;i<4;i++) printf("%d,",a[i]); printf("\n");
+    free(a)
+  tier: baseline
+  stdout: '-3,-2,-1,0,
+
+    '
+- name: test_06_single_negative
+  call: int *a=ft_rrange(-42,-42); printf("%d\n",a[0]); free(a)
+  tier: edge
+  stdout: '-42
+
+    '
+- name: test_07_negative_ascending_args
+  call: int *a=ft_rrange(-4,-1); for(int i=0;i<4;i++) printf("%d,",a[i]); printf("\n");
+    free(a)
+  tier: baseline
+  stdout: '-1,-2,-3,-4,
+
+    '
+- name: test_08_negative_descending_args
+  call: int *a=ft_rrange(-1,-4); for(int i=0;i<4;i++) printf("%d,",a[i]); printf("\n");
+    free(a)
+  tier: baseline
+  stdout: '-4,-3,-2,-1,
+
+    '
+- name: test_09_pos_to_neg
+  call: int *a=ft_rrange(2,-2); for(int i=0;i<5;i++) printf("%d,",a[i]); printf("\n");
+    free(a)
+  tier: edge
+  stdout: '-2,-1,0,1,2,
+
+    '
+- name: test_10_six_elements
+  call: int *a=ft_rrange(5,10); for(int i=0;i<6;i++) printf("%d,",a[i]); printf("\n");
+    free(a)
+  tier: stress
+  stdout: '10,9,8,7,6,5,
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_rrange
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_rrange_T06
+  origin: subject_folder/42ExamPractice/ft_rrange/tester.sh
+  input: ./ft_rrange "-13" "2932"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_rrange_T07
+  origin: subject_folder/42ExamPractice/ft_rrange/tester.sh
+  input: ./ft_rrange "0" "2932"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_rrange_T08
+  origin: subject_folder/42ExamPractice/ft_rrange/tester.sh
+  input: ./ft_rrange "3" "8"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_rrange_T09
+  origin: subject_folder/42ExamPractice/ft_rrange/tester.sh
+  input: ./ft_rrange "1" "2"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_rrange_T10
+  origin: subject_folder/42ExamPractice/ft_rrange/tester.sh
+  input: ./ft_rrange "-1" "2932"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_rrange_T11
+  origin: subject_folder/3-0-ft_rrange_MAIN.c
+  input: Compiled and run with 3-0-ft_rrange_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_07
+  origin: subject_folder/3-0-ft_rrange_MAIN.c
+  input: 3-0-ft_rrange_MAIN.c
+  expected: "#include <stdio.h>\nint *ft_rrange(int start, int end);\n\nint main(void)\n\
+    {\n\tint i;\n\tint *prt;\n\n\ti = 0;\n\tprt = ft_rrange(1, 3);\n\twhile(i <= 2)\n\
+    \t{\n\t\tprintf(\"%d \", p"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_rrange
+  perturbed_input:
+  - ft_rrange_near_arg_1
+  - ft_rrange_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_rrange_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_rrange/tester.sh)
+  original_input: ./ft_rrange "-13" "2932"
+  perturbed_input: ./gt_rrange "-13" "2932"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_ft_rrange_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_rrange/tester.sh)
+  original_input: ./ft_rrange "0" "2932"
+  perturbed_input: ./gt_rrange "0" "2932"

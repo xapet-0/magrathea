@@ -1,0 +1,67 @@
+fixed_tests:
+- call: 'char *s=malloc(4); s[0]=97; s[1]=0; ft_strdel(&s); printf("%s\n", s==0 ?
+    "NULL" : "BAD");'
+  name: cur_ft_strdel_T01
+  stdout: 'NULL
+
+    '
+- call: ft_strdel(NULL); printf("NULL_OK\n");
+  name: ft_strdel_null_ptr
+  stdout: 'NULL_OK
+
+    '
+- call: 'char *s=NULL; ft_strdel(&s); printf("%s\n", s==NULL ? "NULL_OK" : "BAD");'
+  name: ft_strdel_already_null
+  stdout: 'NULL_OK
+
+    '
+- call: 'char *s=malloc(64); s[0]=120; s[1]=0; ft_strdel(&s); printf("%s\n", s==NULL
+    ? "NULL_OK" : "BAD");'
+  name: ft_strdel_larger_buffer
+  stdout: 'NULL_OK
+
+    '
+- name: test_05_empty_heap_string
+  call: char *s=strdup(""); ft_strdel(&s); printf("%d\n", s == NULL);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_double_call_on_same_var
+  call: char *s=strdup("42"); ft_strdel(&s); ft_strdel(&s); printf("%d\n", s == NULL);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_two_independent_strings
+  call: char *a=strdup("first"); char *b=strdup("second"); ft_strdel(&a); printf("%d:%s\n",
+    a==NULL, b); ft_strdel(&b); printf("%d\n", b==NULL);
+  tier: baseline
+  stdout: '1:second
+
+    1
+
+    '
+- name: test_08_single_byte_alloc
+  call: char *s=malloc(1); s[0]=0; ft_strdel(&s); printf("%d\n", s == NULL);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_calloc_buffer
+  call: char *s=calloc(32, 1); ft_strdel(&s); printf("%d\n", s == NULL);
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_10_large_1kb_buffer
+  call: char *s=malloc(1024); memset(s, 'A', 1023); s[1023]=0; ft_strdel(&s); printf("%d\n",
+    s == NULL);
+  tier: stress
+  stdout: '1
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

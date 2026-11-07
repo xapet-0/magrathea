@@ -1,0 +1,13 @@
+id: ft_abs.h
+type: c_function
+module: C 08
+xp: 210
+expected_files:
+- ft_abs.h
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: '#define ...'

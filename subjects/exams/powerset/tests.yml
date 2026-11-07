@@ -1,0 +1,321 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `powerset`
+  input: powerset(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `powerset`
+  input: Input with no valid solution or containing duplicate values in powerset
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `powerset`
+  input: Run powerset with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `powerset`
+  input: Inspect sequence of traversed or printed nodes in powerset
+  expected: Exact match with standard traversal order required in subject
+fixed_tests:
+- args:
+  - '5'
+  - '5'
+  category: Edge Case
+  description: single_5
+  expected: '5
+
+    '
+  name: cur_powerset_T01
+  stdout: '5
+
+    '
+  tier: baseline
+- args:
+  - '10'
+  - '1'
+  - '2'
+  category: Edge Case
+  description: no_match
+  expected: ''
+  name: cur_powerset_T02
+  stdout: ''
+  tier: baseline
+- args:
+  - '0'
+  - '1'
+  - '2'
+  category: Edge Case
+  description: zero_target
+  expected: '
+
+    '
+  name: cur_powerset_T03
+  stdout: '
+
+    '
+  tier: baseline
+- args:
+  - '3'
+  - '1'
+  - '2'
+  category: Functional
+  description: pair_sum
+  expected: '1 2
+
+    '
+  name: cur_powerset_T04
+  stdout: '1 2
+
+    '
+  tier: baseline
+- args:
+  - '3'
+  - '1'
+  - '0'
+  - '2'
+  - '4'
+  - '5'
+  - '3'
+  expected: '1 0 2
+
+    1 2
+
+    0 3
+
+    3
+
+    '
+  name: subj_ex_01
+  stdout: '1 0 2
+
+    1 2
+
+    0 3
+
+    3
+
+    '
+  tier: subject_example
+- args:
+  - '7'
+  - '3'
+  - '8'
+  - '2'
+  expected: ''
+  name: subj_ex_02
+  stdout: ''
+  tier: subject_example
+- args:
+  - '0'
+  - '1'
+  - '-1'
+  expected: '1 -1
+
+
+    '
+  name: subj_ex_03
+  stdout: '1 -1
+
+
+    '
+  tier: subject_example
+- args:
+  - '5'
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  - '5'
+  expected: '1 4
+
+    2 3
+
+    5
+
+    '
+  name: subj_ex_04
+  stdout: '1 4
+
+    2 3
+
+    5
+
+    '
+  tier: subject_example
+folder_examples:
+- expected: Matches 42 reference standard output and exit code
+  id: cur_powerset_T05
+  input: ./powerset 12 5 2 1 8 4 3 7 11; then
+  origin: subject_folder/42ExamPractice/powerset/tester.sh
+- expected: Matches 42 reference standard output and exit code
+  id: cur_powerset_T06
+  input: ./powerset $a 2
+  origin: subject_folder/42ExamPractice/powerset/tester.sh
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_lexical_shift
+  original_input: &id001
+  - '3'
+  - '1'
+  - '0'
+  - '2'
+  - '4'
+  - '5'
+  - '3'
+  perturbed_input:
+  - '4'
+  - '2'
+  - '1'
+  - '3'
+  - '5'
+  - '6'
+  - '4'
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_01
+  id: near_subj_01_whitespace_envelope
+  original_input: *id001
+  perturbed_input:
+  - '  3  '
+  - '1'
+  - '0'
+  - '2'
+  - '4'
+  - '5'
+  - '3'
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_02
+  id: near_subj_02_lexical_shift
+  original_input: &id002
+  - '7'
+  - '3'
+  - '8'
+  - '2'
+  perturbed_input:
+  - '8'
+  - '4'
+  - '9'
+  - '3'
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_02
+  id: near_subj_02_whitespace_envelope
+  original_input: *id002
+  perturbed_input:
+  - '  7  '
+  - '3'
+  - '8'
+  - '2'
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_03
+  id: near_subj_03_lexical_shift
+  original_input: &id003
+  - '0'
+  - '1'
+  - '-1'
+  perturbed_input:
+  - '1'
+  - '2'
+  - '-2'
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_03
+  id: near_subj_03_whitespace_envelope
+  original_input: *id003
+  perturbed_input:
+  - '  0  '
+  - '1'
+  - '-1'
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_04
+  id: near_subj_04_lexical_shift
+  original_input: &id004
+  - '5'
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  - '5'
+  perturbed_input:
+  - '6'
+  - '2'
+  - '3'
+  - '4'
+  - '5'
+  - '6'
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_04
+  id: near_subj_04_whitespace_envelope
+  original_input: *id004
+  perturbed_input:
+  - '  5  '
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  - '5'
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: cur_powerset_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: ./powerset 12 5 2 1 8 4 3 7 11; then
+  perturbed_input: ./qowerset 12 5 2 1 8 4 3 7 11; then
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/powerset/tester.sh)
+- derived_from: cur_powerset_T06
+  id: near_folder_02_boundary_neighbor
+  original_input: ./powerset $a 2
+  perturbed_input: ./qowerset $a 2
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/powerset/tester.sh)
+subject_examples:
+- args: *id001
+  cat_e: true
+  command: ./powerset 3 1 0 2 4 5 3 | cat -e
+  expected: '3
+
+    0 3
+
+    1 2
+
+    1 0 2
+
+    '
+  id: subj_ex_01
+  origin: subject.en.txt
+- args: *id002
+  cat_e: true
+  command: ./powerset 7 3 8 2 | cat -e
+  expected: ''
+  id: subj_ex_02
+  origin: subject.en.txt
+- args: *id003
+  cat_e: true
+  command: ./powerset 0 1 -1 | cat -e
+  expected: '1 -1
+
+
+    The order of lines is not important, but the order of the elements in a subset
+
+    is. You must not have any duplicates (for example ''2 1'' and ''1 2'').
+
+
+    '
+  id: subj_ex_03
+  origin: subject.en.txt
+- args: *id004
+  cat_e: true
+  command: ./powerset 5 1 2 3 4 5 | cat -e
+  expected: 'valid:
+
+    1 4
+
+    2 3
+
+    5
+
+    '
+  id: subj_ex_04
+  origin: subject.en.txt

@@ -1,0 +1,6 @@
+# Examples for intersection (from official subject specification)
+
+Examples:
+    intersection(&a, &b) == &c -> 1
+    intersection(&a, &b) == NULL -> 1
+    intersection(NULL, NULL) == NULL -> 1

@@ -1,0 +1,252 @@
+mode: c_program
+fixed_tests:
+- name: subj_ex_01_faya
+  tier: subject_example
+  args:
+  - faya
+  - fgvvfdxcacpolhyghbreda
+  expected: 'faya
+
+    '
+- name: subj_ex_02_no_match
+  tier: subject_example
+  args:
+  - faya
+  - fgvvfdxcacpolhyghbred
+  expected: '
+
+    '
+- name: subj_ex_03_quarante_deux
+  tier: subject_example
+  args:
+  - quarante deux
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+  expected: 'quarante deux
+
+    '
+- name: subj_ex_04_error
+  tier: subject_example
+  args:
+  - error
+  - rrerrrfiiljdfxjyuifrrvcoojh
+  expected: '
+
+    '
+- name: near_ex_faya_perturbed
+  tier: near_example
+  args:
+  - fayb
+  - fgvvfdxcacpolhyghbredb
+  expected: 'fayb
+
+    '
+- name: near_ex_wrong_argc
+  tier: near_example
+  args:
+  - abc
+  expected: '
+
+    '
+- name: test_07_arg_auto
+  args:
+  - ''
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '42'
+  - '1337'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - pad
+  - test
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '!@#$'
+  - '%^&*'
+  tier: baseline
+  stdout: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./wdmatch "faya" "fgvvfdxcacpolhyghbreda" | cat -e
+  args: &id001
+  - faya
+  - fgvvfdxcacpolhyghbreda
+  expected: 'faya
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./wdmatch "faya" "fgvvfdxcacpolhyghbred" | cat -e
+  args: &id002
+  - faya
+  - fgvvfdxcacpolhyghbred
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./wdmatch "quarante deux" "qfqfsudf arzgsayns tsregfdgs sjytdekuoixq "
+    | cat -e
+  args: &id003
+  - quarante deux
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+  expected: 'quarante deux
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./wdmatch "error" rrerrrfiiljdfxjyuifrrvcoojh | cat -e
+  args: &id004
+  - error
+  - rrerrrfiiljdfxjyuifrrvcoojh
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./wdmatch | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_wdmatch_T09
+  origin: subject_folder/42ExamPractice/wdmatch/tester.sh
+  input: ./wdmatch ddf6vewg64f gtwthgdwthdwfteewhrtag6h4ffdhsd
+  expected: Matches 42 reference standard output and exit code
+- id: can_wdmatch_T10
+  origin: subject_folder/42ExamPractice/wdmatch/tester.sh
+  input: ./wdmatch "rien" "cette phrase ne cache rien"
+  expected: Matches 42 reference standard output and exit code
+- id: can_wdmatch_T11
+  origin: subject_folder/42ExamPractice/wdmatch/tester.sh
+  input: ./wdmatch zpadinton "paqefwtdjetyiytjneytjoeyjnejeyj"
+  expected: Matches 42 reference standard output and exit code
+- id: can_wdmatch_T12
+  origin: subject_folder/42ExamPractice/wdmatch/tester.sh
+  input: ./wdmatch "a" "b"
+  expected: Matches 42 reference standard output and exit code
+- id: can_wdmatch_T13
+  origin: subject_folder/42ExamPractice/wdmatch/tester.sh
+  input: ./wdmatch "this        ...       is sparta, then again, maybe    not" "lol"
+  expected: Matches 42 reference standard output and exit code
+- id: can_wdmatch_T14
+  origin: subject_folder/42ExamPractice/wdmatch/tester.sh
+  input: ./wdmatch "  lorem,ipsum  " "oooo"
+  expected: Matches 42 reference standard output and exit code
+- id: can_wdmatch_T15
+  origin: subject_folder/42ExamPractice/wdmatch/tester.sh
+  input: ./wdmatch "rien"
+  expected: Matches 42 reference standard output and exit code
+- id: can_wdmatch_T16
+  origin: subject_folder/examples.txt
+  input: ./wdmatch "faya" "fgvvfdxcacpolhyghbreda" \| cat -e
+  expected: faya$
+- id: can_wdmatch_T17
+  origin: subject_folder/examples.txt
+  input: ./wdmatch "faya" "fgvvfdxcacpolhyghbred" \| cat -e
+  expected: $
+- id: can_wdmatch_T18
+  origin: subject_folder/examples.txt
+  input: ./wdmatch "quarante deux" "qfqfsudf arzgsayns tsregfdgs sjytdekuoixq " \|
+    cat -e
+  expected: quarante deux$
+- id: can_wdmatch_T19
+  origin: subject_folder/examples.txt
+  input: ./wdmatch "error" rrerrrfiiljdfxjyuifrrvcoojh \| cat -e
+  expected: $
+- id: can_wdmatch_T20
+  origin: subject_folder/examples.txt
+  input: ./wdmatch \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - gaya
+  - ggvvfdxcacpolhyghbreda
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  faya  '
+  - fgvvfdxcacpolhyghbreda
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - gaya
+  - ggvvfdxcacpolhyghbred
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  faya  '
+  - fgvvfdxcacpolhyghbred
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - ruarante deux
+  - 'rfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  quarante deux  '
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - frror
+  - srerrrfiiljdfxjyuifrrvcoojh
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  error  '
+  - rrerrrfiiljdfxjyuifrrvcoojh
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_wdmatch_T09
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/wdmatch/tester.sh)
+  original_input: ./wdmatch ddf6vewg64f gtwthgdwthdwfteewhrtag6h4ffdhsd
+  perturbed_input: ./xdmatch ddf6vewg64f gtwthgdwthdwfteewh
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_wdmatch_T10
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/wdmatch/tester.sh)
+  original_input: ./wdmatch "rien" "cette phrase ne cache rien"
+  perturbed_input: './xdmatch "rien" "cette phrase ne cache '

@@ -1,0 +1,9 @@
+# Examples for rev_str_sh (from official subject specification)
+
+Examples:
+$> FT_LINE="Hello" sh rev_str_sh.sh | cat -e
+olleH$
+$> FT_LINE="1337" sh rev_str_sh.sh | cat -e
+7331$
+$> FT_LINE="a" sh rev_str_sh.sh | cat -e
+a$

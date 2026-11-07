@@ -1,0 +1,21 @@
+Assignment name  : swap_cases
+Expected files   : swap_cases.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that takes a string and reverses the case of all its letters.
+Other characters remain unchanged.
+
+Your function should be declared as follows
+char *swap_cases(char *str);
+
+Your function must be declared as follows:
+    char *swap_cases(char *str);
+
+Examples:
+    char s[] = "Hello 42 World!"; printf("%s\n", swap_cases(s))
+    Output: hELLO 42 wORLD!
+    char s[] = "abcXYZ"; printf("%s\n", swap_cases(s))
+    Output: ABCxyz
+    char s[] = "1337"; printf("%s\n", swap_cases(s))
+    Output: 1337

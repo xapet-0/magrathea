@@ -1,0 +1,70 @@
+fixed_tests:
+- call: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; ft_list_foreach_if(&a,dt_print,"b",dt_cmp);
+    printf("\n");
+  name: pool_ft_list_foreach_if_T01
+  stdout: 'b,
+
+    '
+- call: ft_list_foreach_if(NULL,dt_print,"b",dt_cmp); printf("NULL_OK\n");
+  name: ft_list_foreach_if_null
+  stdout: 'NULL_OK
+
+    '
+- call: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; ft_list_foreach_if(&a,dt_print,"z",dt_cmp);
+    printf("NO_MATCH\n");
+  name: ft_list_foreach_if_no_match
+  stdout: 'NO_MATCH
+
+    '
+- call: t_list b={.data="x",.next=0}; t_list a={.data="x",.next=&b}; ft_list_foreach_if(&a,dt_print,"x",dt_cmp);
+    printf("\n");
+  name: ft_list_foreach_if_all_match
+  stdout: 'x,x,
+
+    '
+- name: test_05_match_head_only
+  call: t_list c={"c",0},b={"b",&c},a={"a",&b}; ft_list_foreach_if(&a,dt_print,"a",dt_cmp);
+    printf("\n");
+  tier: edge
+  stdout: 'a,
+
+    '
+- name: test_06_match_tail_only
+  call: t_list c={"c",0},b={"b",&c},a={"a",&b}; ft_list_foreach_if(&a,dt_print,"c",dt_cmp);
+    printf("\n");
+  tier: edge
+  stdout: 'c,
+
+    '
+- name: test_07_match_multiple_Alternating
+  call: t_list d={"x",0},c={"y",&d},b={"x",&c},a={"y",&b}; ft_list_foreach_if(&a,dt_print,"x",dt_cmp);
+    printf("\n");
+  tier: baseline
+  stdout: 'x,x,
+
+    '
+- name: test_08_match_empty_string
+  call: t_list c={"",0},b={"a",&c},a={"",&b}; ft_list_foreach_if(&a,dt_print,"",dt_cmp);
+    printf("DONE\n");
+  tier: edge
+  stdout: ',,DONE
+
+    '
+- name: test_09_single_node_match_and_nomatch
+  call: t_list a={"42",0}; ft_list_foreach_if(&a,dt_print,"42",dt_cmp); ft_list_foreach_if(&a,dt_print,"0",dt_cmp);
+    printf("\n");
+  tier: baseline
+  stdout: '42,
+
+    '
+- name: test_10_five_nodes_two_matches
+  call: t_list e={"1",0},d={"2",&e},c={"1",&d},b={"3",&c},a={"1",&b}; ft_list_foreach_if(&a,dt_print,"1",dt_cmp);
+    printf("\n");
+  tier: stress
+  stdout: '1,1,1,
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

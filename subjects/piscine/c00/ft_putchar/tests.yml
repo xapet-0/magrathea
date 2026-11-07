@@ -1,0 +1,79 @@
+subject_id: ft_putchar
+fixed_tests:
+- name: test_01_a
+  call: ft_putchar('a')
+  stdout: a
+  tier: baseline
+- name: test_02_z
+  call: ft_putchar('z')
+  stdout: z
+  tier: baseline
+- name: test_03_0
+  call: ft_putchar('0')
+  stdout: '0'
+  tier: baseline
+- name: test_04_newline
+  call: ft_putchar('\n')
+  stdout: '
+
+    '
+  tier: edge_case
+- name: test_05_upper_A
+  call: ft_putchar('A')
+  tier: baseline
+  stdout: A
+- name: test_06_digit_9
+  call: ft_putchar('9')
+  tier: baseline
+  stdout: '9'
+- name: test_07_space
+  call: ft_putchar(' ')
+  tier: edge
+  stdout: ' '
+- name: test_08_tilde
+  call: ft_putchar('~')
+  tier: edge
+  stdout: '~'
+- name: test_09_tab
+  call: ft_putchar('\t')
+  tier: edge
+  stdout: "\t"
+- name: test_10_sequence_42
+  call: ft_putchar('4'); ft_putchar('2'); ft_putchar('\n')
+  tier: stress
+  stdout: '42
+
+    '
+oracle_tests:
+- name: oracle_stress
+  source: "#include <unistd.h>\nvoid ft_putchar(char c);\nint main(void) {\n    ft_putchar('a');\n\
+    \    ft_putchar('\\n');\n    ft_putchar('0');\n    return 0;\n}\n"
+  stdout: 'a
+
+    0'
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_putchar
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: ft_putchar baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_putchar
+  perturbed_input:
+  - ft_putchar_near_arg_1
+  - ft_putchar_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ft_putchar baseline folder fixture
+  perturbed_input: gt_putchar baseline folder fixture

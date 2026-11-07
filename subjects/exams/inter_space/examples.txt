@@ -1,0 +1,9 @@
+Examples:
+$> ./inter_space "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" | cat -e
+p a d i n t o$
+$> ./inter_space "abc" "bcd" | cat -e
+b c$
+$> ./inter_space "a" "a" | cat -e
+a$
+$> ./inter_space | cat -e
+$

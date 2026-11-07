@@ -1,0 +1,23 @@
+# Examples for powerset (from official subject specification)
+
+example '1 1 2').
+hint: the empty set is a subset of any set.
+
+For example this should work:
+$> ./powerset 3 1 0 2 4 5 3 | cat -e
+3$
+0 3$
+1 2$
+1 0 2$
+$> ./powerset 7 3 8 2 | cat -e
+$> ./powerset 0 1 -1 | cat -e
+1 -1$
+
+The order of lines is not important, but the order of the elements in a subset
+is. You must not have any duplicates (for example '2 1' and '1 2').
+
+$> ./powerset 5 1 2 3 4 5 | cat -e
+valid:
+1 4$
+2 3$
+5$

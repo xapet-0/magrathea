@@ -1,0 +1,103 @@
+subject_id: print_nth_char
+fixed_tests:
+- name: test_01_ABCDEF_2
+  call: print_nth_char("ABCDEF", 2)
+  stdout: 'BDF
+
+    '
+  tier: baseline
+- name: test_02_Hello_2
+  call: print_nth_char("Hello", 2)
+  stdout: 'el
+
+    '
+  tier: baseline
+- name: test_03_2
+  call: print_nth_char("", 2)
+  stdout: '
+
+    '
+  tier: baseline
+- name: test_04_A_5
+  call: print_nth_char("A", 5)
+  stdout: '
+
+    '
+  tier: baseline
+- name: test_05_Hello_1
+  call: print_nth_char("Hello", 1)
+  stdout: 'Hello
+
+    '
+  tier: baseline
+- name: case_print_nth_char_whitespace
+  call: print_nth_char(" \t a b c ", 3)
+  stdout: " b \n"
+  tier: baseline
+- name: test_07_n_zero_or_neg
+  call: print_nth_char("abcdef", 0)
+  tier: edge
+  stdout: '
+
+    '
+- name: test_08_every_third_char
+  call: print_nth_char("123456789", 3)
+  tier: baseline
+  stdout: '369
+
+    '
+- name: test_09_exact_length_n
+  call: print_nth_char("abcd", 4)
+  tier: edge
+  stdout: 'd
+
+    '
+- name: test_10_every_fourth_char
+  call: print_nth_char("abcdefghijkl", 4)
+  tier: stress
+  stdout: 'dhl
+
+    '
+oracle_tests:
+- name: case_print_nth_char_oracle
+  source: "\nint main(void)\n{\n    print_nth_char(\" \\t a b c \", 3);\n    print_nth_char(\"\
+    \", 2);\n    print_nth_char(\"Hello\", -5);\n    print_nth_char(\"Hello\", 0);\n\
+    \    print_nth_char(\"Hello\", 10);\n    return (0);\n}\n"
+  stdout: " b \n\n\n\n\n"
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval print_nth_char
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: e1337_print_nth_char_T08
+  origin: subject_folder/examples.txt
+  input: ABCDEF, 2 -> BDF; Hello, 2 -> el.
+  expected: 'Allowed functions: write.'
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "subject_id: print_nth_char\nfixed_tests:\n- call: print_nth_char(\"ABCDEF\"\
+    , 2)\n  stdout: 'BDF\n\n    '\n- call: print_nth_char(\"Hello\", 2)\n  stdout:\
+    \ 'el\n\n    '\n- call"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval print_nth_char
+  perturbed_input:
+  - print_nth_char_near_arg_1
+  - print_nth_char_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_print_nth_char_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ABCDEF, 2 -> BDF; Hello, 2 -> el.
+  perturbed_input: BBCDEF, 2 -> BDF; Hello, 2 -> el.
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

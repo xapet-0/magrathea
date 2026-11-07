@@ -1,0 +1,16 @@
+Assignment name  : count_words_exam
+Expected files   : count_words_exam.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that takes a string and returns the number of words in it.
+A word is a sequence of non-whitespace characters separated by spaces or tabs.
+
+Your function must be declared as follows:
+    int count_words_exam(const char *str);
+
+Examples:
+    count_words_exam("  hello   world 42 ") -> 3
+    count_words_exam("") -> 0
+    count_words_exam("   	  ") -> 0
+    count_words_exam("one") -> 1

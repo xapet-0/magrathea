@@ -1,0 +1,188 @@
+mode: c_program
+fixed_tests:
+- name: can_str_capitalizer_T01
+  description: 'Functional verification of input: `[''hello WORLD'']`'
+  args:
+  - hello WORLD
+  expected: 'Hello World
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_str_capitalizer_T02
+  description: case_str_multiple
+  args:
+  - a FiRSt LiTTlE TESt
+  - SecONd teST A LITtle BiT   Moar comPLEX
+  expected: 'A First Little Test
+
+    Second Test A Little Bit   Moar Complex
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_str_capitalizer_T03
+  description: case_str_bad_argc
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_str_capitalizer_T04
+  description: edge_str_capitalizer_empty
+  args:
+  - ''
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_str_capitalizer_T05
+  description: edge_str_capitalizer_whitespace
+  args:
+  - " \t "
+  expected: " \t \n"
+  category: Edge Case
+  tier: baseline
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - a FiRSt LiTTlE TESt
+  expected: 'A First Little Test
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - __SecONd teST A LITtle BiT   Moar comPLEX
+  - '   But... This iS not THAT COMPLEX'
+  - '     Okay, this is the last 1239809147801 but not    the least    t'
+  expected: "__second Test A Little Bit   Moar Complex\n   But... This Is Not That\
+    \ Complex\n     Okay, This Is The Last 1239809147801 But Not    The Least    T\n"
+- name: folder_ex_02
+  tier: folder_example
+  args:
+  - Premier PETIT TesT
+  expected: 'Premier Petit Test
+
+    '
+- name: folder_ex_03
+  tier: folder_example
+  args:
+  - DeuxiEmE tEST uN PEU moinS  facile
+  - '   attention C''EST pas dur QUAND mEmE'
+  - 'ALLer UN DeRNier 0123456789pour LA rouTE    E '
+  expected: "Deuxieme Test Un Peu Moins  Facile\n   Attention C'est Pas Dur Quand\
+    \ Meme\nAller Un Dernier 0123456789pour La Route    E \n"
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./str_capitalizer | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./str_capitalizer "a FiRSt LiTTlE TESt" | cat -e
+  args: &id001
+  - a FiRSt LiTTlE TESt
+  expected: 'A First Little Test
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./str_capitalizer "__SecONd teST A LITtle BiT   Moar comPLEX" "   But...
+    This iS not THAT COMPLEX" "     Okay, this is the last 1239809147801 but not    the
+    least    t" | cat -e
+  args: &id002
+  - __SecONd teST A LITtle BiT   Moar comPLEX
+  - '   But... This iS not THAT COMPLEX'
+  - '     Okay, this is the last 1239809147801 but not    the least    t'
+  expected: "__second Test A Little Bit   Moar Complex\n   But... This Is Not That\
+    \ Complex\n     Okay, This Is The Last 1239809147801 But Not    The Least    T\n"
+  cat_e: true
+folder_examples:
+- id: can_str_capitalizer_T06
+  origin: subject_folder/42ExamPractice/str_capitalizer/tester.sh
+  input: ./str_capitalizer "10"
+  expected: Matches 42 reference standard output and exit code
+- id: can_str_capitalizer_T07
+  origin: subject_folder/42ExamPractice/str_capitalizer/tester.sh
+  input: ./str_capitalizer "a FiRSt LiTTlE TESt"
+  expected: Matches 42 reference standard output and exit code
+- id: can_str_capitalizer_T08
+  origin: subject_folder/42ExamPractice/str_capitalizer/tester.sh
+  input: ./str_capitalizer "SecONd teST A LITtle BiT   Moar comPLEX" "   But... This
+    iS not THAT COMPLEX" "     Okay, this is the last 1239809147801 but not    the
+    least    t"
+  expected: Matches 42 reference standard output and exit code
+- id: can_str_capitalizer_T09
+  origin: subject_folder/42ExamPractice/str_capitalizer/tester.sh
+  input: ./str_capitalizer "Okay i thing you got it!!! "
+  expected: Matches 42 reference standard output and exit code
+- id: can_str_capitalizer_T10
+  origin: subject_folder/examples.txt
+  input: ./str_capitalizer \| cat -e
+  expected: $
+- id: can_str_capitalizer_T11
+  origin: subject_folder/examples.txt
+  input: ./str_capitalizer "Premier PETIT TesT" \| cat -e
+  expected: Premier Petit Test$
+- id: can_str_capitalizer_T12
+  origin: subject_folder/examples.txt
+  input: ./str_capitalizer "DeuxiEmE tEST uN PEU moinS  facile" "   attention C'EST
+    pas dur QUAND mEmE" "ALLer UN DeRNier 0123456789pour LA rouTE    E " \| cat -e
+  expected: Deuxieme Test Un Peu Moins  Facile$\n   Attention C'est Pas Dur Quand
+    Meme$\nAller Un Dernier 0123456789pour La Route    E $
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./str_capitalizer | cat -e
+  perturbed_input:
+  - str_capitalizer_near_arg_1
+  - str_capitalizer_near_arg_2
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - b FiRSt LiTTlE TESt
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  a FiRSt LiTTlE TESt  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - __TecONd teST A LITtle BiT   Moar comPLEX
+  - '   Cut... This iS not THAT COMPLEX'
+  - '     Pkay, this is the last 1239809147801 but not    the least    t'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  __SecONd teST A LITtle BiT   Moar comPLEX  '
+  - '   But... This iS not THAT COMPLEX'
+  - '     Okay, this is the last 1239809147801 but not    the least    t'
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_str_capitalizer_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/str_capitalizer/tester.sh)
+  original_input: ./str_capitalizer "10"
+  perturbed_input: ./ttr_capitalizer "10"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_str_capitalizer_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/str_capitalizer/tester.sh)
+  original_input: ./str_capitalizer "a FiRSt LiTTlE TESt"
+  perturbed_input: ./ttr_capitalizer "a FiRSt LiTTlE TESt"

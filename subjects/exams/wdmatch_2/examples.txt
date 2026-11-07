@@ -1,0 +1,7 @@
+Examples:
+$> ./wdmatch_2 "faya" "fgvvfdxcacpolhyghbreda" | cat -e
+faya$
+$> ./wdmatch_2 "faya" "fgvvfdxcacpolhyghbred" | cat -e
+$
+$> ./wdmatch_2 "quarante deux" "qfqfsudf arzgsayns tsregfdgs sjytdekuoixq " | cat -e
+quarante deux$

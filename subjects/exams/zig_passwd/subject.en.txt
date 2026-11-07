@@ -1,0 +1,19 @@
+Assignment name  : zig_passwd
+Expected files   : zig_passwd.sh
+Allowed commands : grep, awk, cut, rev, sort, paste, sed, tr
+--------------------------------------------------------------------------------
+
+Write a shell script that reads passwd-formatted lines from standard input,
+ignores comment lines starting with '#', extracts the login field (field 1
+separated by ':'), and prints the logins.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> printf "root:x:0:0::/root:/bin/sh\n" | sh zig_passwd.sh | cat -e
+root$
+$> printf "marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n" | sh zig_passwd.sh | cat -e
+marvin$
+bocal$

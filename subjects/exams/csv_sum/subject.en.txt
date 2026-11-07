@@ -1,0 +1,21 @@
+Assignment name  : csv_sum
+Expected files   : csv_sum.sh
+Allowed commands : awk, cut, paste, bc
+--------------------------------------------------------------------------------
+
+Given a CSV file whose path is stored in $FT_CSV with 3 comma-separated
+columns (name,role,score), write a shell script that computes and prints the
+sum of score (column 3) for all rows where role (column 2) equals "student".
+If no matching row exists, print 0.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> FT_CSV="data.csv" sh csv_sum.sh | cat -e
+142$
+$> FT_CSV="data2.csv" sh csv_sum.sh | cat -e
+0$
+$> FT_CSV="data3.csv" sh csv_sum.sh | cat -e
+42$

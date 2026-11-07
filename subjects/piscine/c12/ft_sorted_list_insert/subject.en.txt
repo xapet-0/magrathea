@@ -1,0 +1,25 @@
+Assignment name  : ft_sorted_list_insert
+Expected files   : ft_sorted_list_insert.c ft_list.h
+Allowed functions: ft_create_elem
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_sorted_list_insert
+Turn-in directory: ex16/
+Expected files   : ft_sorted_list_insert.c, ft_list.h
+Allowed functions: ft_create_elem
+--------------------------------------------------------------------------------
+
+• Create the function ft_sorted_list_insert which creates a new element and
+inserts it into a list sorted so that it remains sorted in ascending order.
+• Here’s how it should be prototyped:
+void ft_sorted_list_insert(t_list **begin_list, void *data, int (*cmp)());
+• Function pointed bycmp will be used as follows:
+(*cmp)(list_ptr->data, list_other_ptr->data);
+
+Your function must be declared as follows:
+    void ft_sorted_list_insert(t_list **begin_list, void *data, int (*cmp)());
+
+Examples:
+    t_list c={"c",0}; t_list a={"a",&c}; t_list *l=&a; ft_sorted_list_insert(&l,"b",dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n")
+    Output: abc

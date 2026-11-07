@@ -1,0 +1,24 @@
+Assignment name  : btree_create_node
+Expected files   : btree_create_node.c ft_btree.h
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 13 (Official PDF)
+Exercise         : btree_create_node
+Turn-in directory: ex00/
+Expected files   : btree_create_node.c, ft_btree.h
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+• Create the function btree_create_node which allocates a new element. It should
+initialise its item to the value of the argument, and all other elements to 0.
+• The address of the created node is returned.
+• Here’s how it should be prototyped :
+t_btree *btree_create_node( void *item);
+
+Your function must be declared as follows:
+    t_btree *btree_create_node(void *item);
+
+Examples:
+    t_btree *n=btree_create_node("x"); printf("%s:%d:%d\n",(char*)n->item,n->left==0,n->right==0)
+    Output: x:1:1

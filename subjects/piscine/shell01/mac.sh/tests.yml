@@ -1,0 +1,110 @@
+mode: shell
+fixed_tests:
+- name: pool_mac_T01_default
+  args: []
+  expected: '02:42:ac:11:00:02
+
+    '
+  tier: baseline
+- name: pool_mac_T02_custom_ether
+  env:
+    DT_MOCK_ETHER: aa:bb:cc:13:37:42
+  args: []
+  expected: 'aa:bb:cc:13:37:42
+
+    '
+  tier: baseline
+- name: pool_mac_T03_zero_mac
+  env:
+    DT_MOCK_ETHER: 00:11:22:33:44:55
+  args: []
+  expected: '00:11:22:33:44:55
+
+    '
+  tier: edge_case
+- name: pool_mac_T04_broadcast_style
+  env:
+    DT_MOCK_ETHER: de:ad:be:ef:00:42
+  args: []
+  expected: 'de:ad:be:ef:00:42
+
+    '
+  tier: edge_case
+- name: test_05_upper_hex_digits
+  env:
+    DT_MOCK_ETHER: 12:34:56:78:9a:bc
+  args: []
+  tier: baseline
+  stdout: '12:34:56:78:9a:bc
+
+    '
+- name: test_06_local_admin_mac
+  env:
+    DT_MOCK_ETHER: 06:00:00:00:00:01
+  args: []
+  tier: baseline
+  stdout: '06:00:00:00:00:01
+
+    '
+- name: test_07_all_ff_mac
+  env:
+    DT_MOCK_ETHER: ff:ff:ff:ff:ff:ff
+  args: []
+  tier: edge
+  stdout: 'ff:ff:ff:ff:ff:ff
+
+    '
+- name: test_08_qemu_prefix_mac
+  env:
+    DT_MOCK_ETHER: '52:54:00:12:34:56'
+  args: []
+  tier: baseline
+  stdout: '52:54:00:12:34:56
+
+    '
+- name: test_09_vmware_prefix_mac
+  env:
+    DT_MOCK_ETHER: 00:50:56:c0:00:08
+  args: []
+  tier: baseline
+  stdout: '00:50:56:c0:00:08
+
+    '
+- name: test_10_42_school_mac
+  env:
+    DT_MOCK_ETHER: '42:42:42:13:37:00'
+  args: []
+  tier: stress
+  stdout: '42:42:42:13:37:00
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./MAC.sh | cat -e
+  args: []
+  expected: '01:23:45:67:89:ab
+
+    02:42:ac:11:00:02
+
+    '
+  cat_e: true
+folder_examples:
+- id: pool_mac-sh_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`sh mac.sh.sh` (standard shell environment)'
+  expected: 02:42:ac:11:00:02\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./MAC.sh | cat -e
+  perturbed_input:
+  - mac.sh_near_arg_1
+  - mac.sh_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_mac-sh_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '`sh mac.sh.sh` (standard shell environment)'
+  perturbed_input: '`th mac.sh.sh` (standard shell environme'

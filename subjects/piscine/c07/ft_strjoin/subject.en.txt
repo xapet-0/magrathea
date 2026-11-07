@@ -1,0 +1,26 @@
+Assignment name  : ft_strjoin
+Expected files   : ft_strjoin.c
+Allowed functions: malloc, free
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 07 (Official PDF)
+Exercise         : ft_strjoin
+Expected files   : ft_strjoin.c
+Allowed functions: malloc, free
+Version          : 1
+--------------------------------------------------------------------------------
+
+Implement the function ft_strjoin, which concatenates two strings into a new string. 
+The function should return a pointer to the new string, which is the concatenation of s1 and s2.
+If memory allocation fails, the function should return NULL.
+
+Your function must be declared as follows:
+
+char *ft_strjoin(char const *s1, char const *s2);
+
+[cur_ft_strjoin_T01] Input: printf("%s\n", s); free(s)  ==>  Expected: Hello 1337\n
+[cur_ft_strjoin_T02] Input: printf("%s\n", s); free(s)  ==>  Expected: 42\n
+[cur_ft_strjoin_T03] Input: Input:  ==>  Expected: Expected:
+[cur_ft_strjoin_T04] Input: Dynamic generation rule via random_string()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_ft_strjoin_T05] Input: Dynamic generation rule via basic_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_ft_strjoin_T06] Input: Dynamic generation rule via empty_first_string_test()  ==>  Expected: Deterministic output validated by Deepthought oracle

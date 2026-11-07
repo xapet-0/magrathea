@@ -1,0 +1,12 @@
+Examples:
+  print_bits_rev(2); printf("\n")
+  Output: 01000000
+    print_bits_rev(0); printf("
+")
+    Output: 00000000
+    print_bits_rev(255); printf("
+")
+    Output: 11111111
+    print_bits_rev(1); printf("
+")
+    Output: 10000000

@@ -1,0 +1,14 @@
+id: print_bits_rev
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- print_bits_rev.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void print_bits_rev(unsigned char octet);

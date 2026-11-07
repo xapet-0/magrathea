@@ -1,0 +1,9 @@
+Examples:
+$> ./digit_sum "1337" | cat -e
+5$
+$> ./digit_sum "42" | cat -e
+6$
+$> ./digit_sum "999" | cat -e
+9$
+$> ./digit_sum "0" | cat -e
+0$

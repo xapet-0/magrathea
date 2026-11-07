@@ -1,0 +1,222 @@
+mode: c_program
+fixed_tests:
+- name: subj_ex_01_padinton
+  tier: subject_example
+  args:
+  - padinton
+  - paqefwtdjetyiytjneytjoeyjnejeyj
+  expected: 'padinto
+
+    '
+- name: subj_ex_02_duplicates
+  tier: subject_example
+  args:
+  - ddf6vewg64f
+  - gtwthgdwthdwfteewhrtag6h4ffdhsd
+  expected: 'df6ewg4
+
+    '
+- name: subj_ex_03_rien
+  tier: subject_example
+  args:
+  - rien
+  - cette phrase ne cache rien
+  expected: 'rien
+
+    '
+- name: subj_ex_04_no_args
+  tier: subject_example
+  args: []
+  expected: '
+
+    '
+- name: folder_ex_no_common
+  tier: folder_example
+  args:
+  - abc
+  - XYZ
+  expected: '
+
+    '
+- name: near_ex_padinton_perturbed
+  tier: near_example
+  args:
+  - padinton!
+  - paqefwtdjetyiytjneytjoeyjnejeyj!
+  expected: 'padinto!
+
+    '
+- name: near_ex_wrong_argc
+  tier: near_example
+  args:
+  - abc
+  expected: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - ''
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_10_arg_auto
+  args:
+  - pad
+  - test
+  tier: baseline
+  stdout: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./inter "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" | cat -e
+  args: &id001
+  - padinton
+  - paqefwtdjetyiytjneytjoeyjnejeyj
+  expected: 'padinto
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./inter ddf6vewg64f gtwthgdwthdwfteewhrtag6h4ffdhsd | cat -e
+  args: &id002
+  - ddf6vewg64f
+  - gtwthgdwthdwfteewhrtag6h4ffdhsd
+  expected: 'df6ewg4
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./inter "rien" "cette phrase ne cache rien" | cat -e
+  args: &id003
+  - rien
+  - cette phrase ne cache rien
+  expected: 'rien
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./inter | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_inter_T10
+  origin: subject_folder/42ExamPractice/inter/tester.sh
+  input: ./inter "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj"
+  expected: Matches 42 reference standard output and exit code
+- id: can_inter_T11
+  origin: subject_folder/42ExamPractice/inter/tester.sh
+  input: ./inter "rien" "cette phrase ne cache rien"
+  expected: Matches 42 reference standard output and exit code
+- id: can_inter_T12
+  origin: subject_folder/42ExamPractice/inter/tester.sh
+  input: ./inter "Too" "Many" "Arguments"
+  expected: Matches 42 reference standard output and exit code
+- id: can_inter_T13
+  origin: subject_folder/42ExamPractice/inter/tester.sh
+  input: ./inter "ddf6vewg64f" "gtwthgdwthdwfteewhrtag6h4ffdhsd"
+  expected: Matches 42 reference standard output and exit code
+- id: can_inter_T14
+  origin: subject_folder/42ExamPractice/inter/tester.sh
+  input: ./inter "Manger pour vivre" "Vivre pour manger"
+  expected: Matches 42 reference standard output and exit code
+- id: can_inter_T15
+  origin: subject_folder/42ExamPractice/inter/tester.sh
+  input: ./inter "Oupsi" "Oups"
+  expected: Matches 42 reference standard output and exit code
+- id: can_inter_T16
+  origin: subject_folder/examples.txt
+  input: ./inter "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" \| cat -e
+  expected: padinto$
+- id: can_inter_T17
+  origin: subject_folder/examples.txt
+  input: ./inter ddf6vewg64f gtwthgdwthdwfteewhrtag6h4ffdhsd \| cat -e
+  expected: df6ewg4$
+- id: can_inter_T18
+  origin: subject_folder/examples.txt
+  input: ./inter "rien" "cette phrase ne cache rien" \| cat -e
+  expected: rien$
+- id: can_inter_T19
+  origin: subject_folder/examples.txt
+  input: ./inter \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - qadinton
+  - qaqefwtdjetyiytjneytjoeyjnejeyj
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  padinton  '
+  - paqefwtdjetyiytjneytjoeyjnejeyj
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - edf6vewg64f
+  - htwthgdwthdwfteewhrtag6h4ffdhsd
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  ddf6vewg64f  '
+  - gtwthgdwthdwfteewhrtag6h4ffdhsd
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - sien
+  - dette phrase ne cache rien
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  rien  '
+  - cette phrase ne cache rien
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./inter | cat -e
+  perturbed_input:
+  - inter_near_arg_1
+  - inter_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_inter_T10
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/inter/tester.sh)
+  original_input: ./inter "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj"
+  perturbed_input: ./jnter "padinton" "paqefwtdjetyiytjneyt
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_inter_T11
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/inter/tester.sh)
+  original_input: ./inter "rien" "cette phrase ne cache rien"
+  perturbed_input: ./jnter "rien" "cette phrase ne cache ri

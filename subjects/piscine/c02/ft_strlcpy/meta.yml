@@ -1,0 +1,13 @@
+id: ft_strlcpy
+type: c_function
+module: C 02
+xp: 155
+expected_files:
+- ft_strlcpy.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: unsigned int ft_strlcpy(char *dest, char *src, unsigned int size);

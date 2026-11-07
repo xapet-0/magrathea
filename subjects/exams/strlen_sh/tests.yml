@@ -1,0 +1,149 @@
+mode: shell
+fixed_tests:
+- name: subj_ex_len_16
+  tier: subject_example
+  env:
+    FT_LINE: 0123456789abcdef
+  args: []
+  stdout: '16
+
+    '
+- name: folder_ex_len_0
+  tier: folder_example
+  env:
+    FT_LINE: ''
+  args: []
+  stdout: '0
+
+    '
+- name: near_ex_len_17_perturbed
+  tier: near_example
+  env:
+    FT_LINE: 0123456789abcdefX
+  args: []
+  stdout: '17
+
+    '
+- name: edge_ex_len_4
+  tier: edge_case
+  env:
+    FT_LINE: '1337'
+  args: []
+  stdout: '4
+
+    '
+- name: test_05_arg_auto
+  args: []
+  tier: baseline
+  stdout: '17
+
+    '
+- name: test_06_arg_auto
+  args:
+  - extra
+  tier: baseline
+  stdout: '17
+
+    '
+- name: test_07_arg_auto
+  args:
+  - a
+  - b
+  tier: baseline
+  stdout: '17
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: '17
+
+    '
+- name: test_09_arg_auto
+  args:
+  - --help
+  tier: baseline
+  stdout: '17
+
+    '
+- name: test_10_arg_auto
+  args:
+  - -v
+  tier: baseline
+  stdout: '17
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: echo $FT_LINE
+  args: &id001
+  - $FT_LINE
+  expected: 'Les stagiaires du staff ne sentent pas toujours tres bon.
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: zsh strlen.sh
+  args: &id002
+  - strlen.sh
+  expected: '57
+
+    '
+  cat_e: false
+folder_examples:
+- id: sh_strlen_sh_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`sh strlen_sh.sh` (standard shell environment)'
+  expected: 16\n
+- id: sh_strlen_sh_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`sh strlen_sh.sh` (standard shell environment)'
+  expected: 0\n
+- id: sh_strlen_sh_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`sh strlen_sh.sh` (standard shell environment)'
+  expected: 24\n
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - $GT_LINE
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  $FT_LINE  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - ttrlen.sh
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  strlen.sh  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: sh_strlen_sh_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '`sh strlen_sh.sh` (standard shell environment)'
+  perturbed_input: '`th strlen_sh.sh` (standard shell enviro'
+- id: near_folder_02_boundary_neighbor
+  derived_from: sh_strlen_sh_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '`sh strlen_sh.sh` (standard shell environment)'
+  perturbed_input: '`th strlen_sh.sh` (standard shell enviro'

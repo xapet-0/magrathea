@@ -1,0 +1,21 @@
+id: c08
+display_name: 1337 / 42 Piscine — C 08
+exercises:
+- ex: ex00
+  subject_id: piscine/c08/ft.h
+  xp: 190
+- ex: ex01
+  subject_id: piscine/c08/ft_boolean.h
+  xp: 190
+- ex: ex02
+  subject_id: piscine/c08/ft_abs.h
+  xp: 210
+- ex: ex03
+  subject_id: piscine/c08/ft_point.h
+  xp: 200
+- ex: ex04
+  subject_id: piscine/c08/ft_strs_to_tab
+  xp: 200
+- ex: ex05
+  subject_id: piscine/c08/ft_show_tab
+  xp: 210

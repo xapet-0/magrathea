@@ -1,0 +1,12 @@
+id: print_groups.sh
+type: shell
+module: Shell 01
+xp: 150
+expected_files:
+- print_groups.sh
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true

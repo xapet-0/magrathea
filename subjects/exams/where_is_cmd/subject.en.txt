@@ -1,0 +1,17 @@
+Assignment name  : where_is_cmd
+Expected files   : where_is_cmd.sh
+Allowed commands : command, which, printf
+--------------------------------------------------------------------------------
+
+Write a shell script that locates and prints the absolute path of the command
+passed as $1 using command -v or which.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh where_is_cmd.sh "sh" | cat -e
+/bin/sh$
+$> sh where_is_cmd.sh "ls" | cat -e
+$

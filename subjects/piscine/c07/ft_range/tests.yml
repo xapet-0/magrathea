@@ -1,0 +1,59 @@
+fixed_tests:
+- call: int *a=ft_range(2,6); for(int i=0;i<4;i++) printf("%d ",a[i]); printf("\n");
+    free(a);
+  name: ft_range_positive_interval
+  stdout: "2 3 4 5 \n"
+- call: int *a=ft_range(-3,2); for(int i=0;i<5;i++) printf("%d ",a[i]); printf("\n");
+    free(a);
+  name: ft_range_negative_to_positive
+  stdout: "-3 -2 -1 0 1 \n"
+- call: int *a=ft_range(5,5); int *b=ft_range(6,5); printf("%d:%d\n", a==NULL, b==NULL);
+  name: ft_range_min_greater_or_equal_max
+  stdout: '1:1
+
+    '
+- call: int *a=ft_range(42,43); printf("%d\n", a[0]); free(a);
+  name: ft_range_single_element
+  stdout: '42
+
+    '
+- name: test_05_zero_to_five
+  call: int *a=ft_range(0,5); for(int i=0;i<5;i++) printf("%d ",a[i]); printf("\n");
+    free(a);
+  tier: baseline
+  stdout: "0 1 2 3 4 \n"
+- name: test_06_negative_interval
+  call: int *a=ft_range(-5,-1); for(int i=0;i<4;i++) printf("%d ",a[i]); printf("\n");
+    free(a);
+  tier: baseline
+  stdout: "-5 -4 -3 -2 \n"
+- name: test_07_zero_to_one
+  call: int *a=ft_range(0,1); printf("%d\n", a[0]); free(a);
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_negative_equal_bounds
+  call: int *a=ft_range(-42,-42); int *b=ft_range(10,-10); printf("%d:%d\n", a==NULL,
+    b==NULL);
+  tier: edge
+  stdout: '1:1
+
+    '
+- name: test_09_neg_one_to_pos_one
+  call: int *a=ft_range(-1,1); printf("%d,%d\n", a[0], a[1]); free(a);
+  tier: baseline
+  stdout: '-1,0
+
+    '
+- name: test_10_ten_elements
+  call: int *a=ft_range(10,20); for(int i=0;i<10;i++) printf("%d,",a[i]); printf("\n");
+    free(a);
+  tier: stress
+  stdout: '10,11,12,13,14,15,16,17,18,19,
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

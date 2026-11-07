@@ -1,0 +1,116 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_abs-h_T01
+  description: 'Functional verification of input: `ABS(-42)`'
+  expr: ABS(-42)
+  stdout: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_abs-h_T02
+  description: 'Functional verification of input: `ABS(17)`'
+  expr: ABS(17)
+  stdout: '17
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_abs-h_T03
+  description: edge_ft_abs_zero
+  expr: ABS(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_abs-h_T04
+  description: edge_ft_abs_positive
+  expr: ABS(42)
+  stdout: '42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_neg_one
+  expr: ABS(-1)
+  tier: baseline
+  stdout: __CAPTURE__
+- name: test_06_pos_one
+  expr: ABS(1)
+  tier: baseline
+  stdout: __CAPTURE__
+- name: test_07_expression_arg
+  expr: ABS(-10 + 3)
+  tier: edge
+  stdout: __CAPTURE__
+- name: test_08_int_max
+  expr: ABS(2147483647)
+  tier: edge
+  stdout: __CAPTURE__
+- name: test_09_neg_1337
+  expr: ABS(-1337)
+  tier: baseline
+  stdout: __CAPTURE__
+- name: test_10_nested_abs
+  expr: ABS(-ABS(-99))
+  tier: stress
+  stdout: __CAPTURE__
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_abs.h
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_abs-h_T05
+  origin: subject_folder/mini-moulinette/ex02/ft_abs.c
+  input: 'Input: 5'
+  expected: 'Expected: 5'
+- id: pool_ft_abs-h_T06
+  origin: subject_folder/mini-moulinette/ex02/ft_abs.c
+  input: 'Input: -5'
+  expected: 'Expected: 5'
+- id: pool_ft_abs-h_T07
+  origin: subject_folder/mini-moulinette/ex02/ft_abs.c
+  input: 'Input: 0'
+  expected: 'Expected: 0'
+- id: pool_ft_abs-h_T08
+  origin: subject_folder/deepthought/corrections/exams/ft_abs/generator.py
+  input: Dynamic generation rule via test_positive_number()
+  expected: Deterministic output validated by Deepthought oracle
+- id: pool_ft_abs-h_T09
+  origin: subject_folder/deepthought/corrections/exams/ft_abs/generator.py
+  input: Dynamic generation rule via test_negative_number()
+  expected: Deterministic output validated by Deepthought oracle
+- id: pool_ft_abs-h_T10
+  origin: subject_folder/deepthought/corrections/exams/ft_abs/generator.py
+  input: Dynamic generation rule via test_zero()
+  expected: Deterministic output validated by Deepthought oracle
+- id: pool_ft_abs-h_T11
+  origin: subject_folder/deepthought/corrections/exams/ft_abs/generator.py
+  input: Dynamic generation rule via test_large_positive()
+  expected: Deterministic output validated by Deepthought oracle
+- id: pool_ft_abs-h_T12
+  origin: subject_folder/deepthought/corrections/exams/ft_abs/generator.py
+  input: Dynamic generation rule via test_large_negative()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_abs.h
+  perturbed_input:
+  - ft_abs.h_near_arg_1
+  - ft_abs.h_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_abs-h_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_abs.c)
+  original_input: 'Input: 5'
+  perturbed_input: 'Jnput: 5'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_abs-h_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_abs.c)
+  original_input: 'Input: -5'
+  perturbed_input: 'Jnput: -5'

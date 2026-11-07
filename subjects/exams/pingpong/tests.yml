@@ -1,0 +1,2754 @@
+fixed_tests:
+- name: no_args
+  args: []
+  stdout: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+  tier: baseline
+- name: one_arg
+  args:
+  - ignored
+  stdout: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+  tier: baseline
+- name: empty_arg
+  args:
+  - ''
+  stdout: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+  tier: baseline
+- name: two_args
+  args:
+  - '1337'
+  - '42'
+  stdout: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+  tier: baseline
+- name: many_args
+  args:
+  - a
+  - b
+  - c
+  - d
+  stdout: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+subject_id: pingpong
+mode: c_program
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./pingpong | cat -e
+  args: []
+  expected: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./pingpong "ignored" | cat -e
+  args: &id001
+  - ignored
+  expected: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./pingpong "" | cat -e
+  args: &id002
+  - ''
+  expected: '1
+
+    2
+
+    ping
+
+    4
+
+    pong
+
+    ping
+
+    7
+
+    8
+
+    ping
+
+    pong
+
+    11
+
+    ping
+
+    13
+
+    14
+
+    pingpong
+
+    16
+
+    17
+
+    ping
+
+    19
+
+    pong
+
+    ping
+
+    22
+
+    23
+
+    ping
+
+    pong
+
+    26
+
+    ping
+
+    28
+
+    29
+
+    pingpong
+
+    31
+
+    32
+
+    ping
+
+    34
+
+    pong
+
+    ping
+
+    37
+
+    38
+
+    ping
+
+    pong
+
+    41
+
+    ping
+
+    43
+
+    44
+
+    pingpong
+
+    46
+
+    47
+
+    ping
+
+    49
+
+    pong
+
+    ping
+
+    52
+
+    53
+
+    ping
+
+    pong
+
+    56
+
+    ping
+
+    58
+
+    59
+
+    pingpong
+
+    61
+
+    62
+
+    ping
+
+    64
+
+    pong
+
+    ping
+
+    67
+
+    68
+
+    ping
+
+    pong
+
+    71
+
+    ping
+
+    73
+
+    74
+
+    pingpong
+
+    76
+
+    77
+
+    ping
+
+    79
+
+    pong
+
+    ping
+
+    82
+
+    83
+
+    ping
+
+    pong
+
+    86
+
+    ping
+
+    88
+
+    89
+
+    pingpong
+
+    91
+
+    92
+
+    ping
+
+    94
+
+    pong
+
+    ping
+
+    97
+
+    98
+
+    ping
+
+    pong
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_pingpong_T06
+  origin: subject_folder/examples.txt
+  input: ./pingpong \| cat -e
+  expected: 1$\n2$\nping$\n4$\npong$\nping$\n7$\n8$\nping$\npong$\n11$\nping$\n13$\n14$\npingpong$\n16$\n17$\nping$\n19$\npong$\nping$\n22$\n23$\nping$\npong$\n26$\nping$\n28$\n29$\npingpong$\n31$\n32$\nping$\n34$\npong$\nping$\n37$\n38$\nping$\npong$\n41$\nping$\n43$\n44$\npingpong$\n46$\n47$\nping$\n49$\npong$\nping$\n52$\n53$\nping$\npong$\n56$\nping$\n58$\n59$\npingpong$\n61$\n62$\nping$\n64$\npong$\nping$\n67$\n68$\nping$\npong$\n71$\nping$\n73$\n74$\npingpong$\n76$\n77$\nping$\n79$\npong$\nping$\n82$\n83$\nping$\npong$\n86$\nping$\n88$\n89$\npingpong$\n91$\n92$\nping$\n94$\npong$\nping$\n97$\n98$\nping$\npong$
+- id: e1337_pingpong_T07
+  origin: subject_folder/examples.txt
+  input: ./pingpong "ignored" \| cat -e
+  expected: 1$\n2$\nping$\n4$\npong$\nping$\n7$\n8$\nping$\npong$\n11$\nping$\n13$\n14$\npingpong$\n16$\n17$\nping$\n19$\npong$\nping$\n22$\n23$\nping$\npong$\n26$\nping$\n28$\n29$\npingpong$\n31$\n32$\nping$\n34$\npong$\nping$\n37$\n38$\nping$\npong$\n41$\nping$\n43$\n44$\npingpong$\n46$\n47$\nping$\n49$\npong$\nping$\n52$\n53$\nping$\npong$\n56$\nping$\n58$\n59$\npingpong$\n61$\n62$\nping$\n64$\npong$\nping$\n67$\n68$\nping$\npong$\n71$\nping$\n73$\n74$\npingpong$\n76$\n77$\nping$\n79$\npong$\nping$\n82$\n83$\nping$\npong$\n86$\nping$\n88$\n89$\npingpong$\n91$\n92$\nping$\n94$\npong$\nping$\n97$\n98$\nping$\npong$
+- id: e1337_pingpong_T08
+  origin: subject_folder/examples.txt
+  input: ./pingpong "" \| cat -e
+  expected: 1$\n2$\nping$\n4$\npong$\nping$\n7$\n8$\nping$\npong$\n11$\nping$\n13$\n14$\npingpong$\n16$\n17$\nping$\n19$\npong$\nping$\n22$\n23$\nping$\npong$\n26$\nping$\n28$\n29$\npingpong$\n31$\n32$\nping$\n34$\npong$\nping$\n37$\n38$\nping$\npong$\n41$\nping$\n43$\n44$\npingpong$\n46$\n47$\nping$\n49$\npong$\nping$\n52$\n53$\nping$\npong$\n56$\nping$\n58$\n59$\npingpong$\n61$\n62$\nping$\n64$\npong$\nping$\n67$\n68$\nping$\npong$\n71$\nping$\n73$\n74$\npingpong$\n76$\n77$\nping$\n79$\npong$\nping$\n82$\n83$\nping$\npong$\n86$\nping$\n88$\n89$\npingpong$\n91$\n92$\nping$\n94$\npong$\nping$\n97$\n98$\nping$\npong$
+- id: folder_fixture_04
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- name: no_args\n  args: []\n  stdout: '1\n\n    2\n\n\
+    \    ping\n\n    4\n\n    pong\n\n    ping\n\n    7\n\n    8\n\n    ping\n\n \
+    \   pong\n\n    11\n\n    ping\n\n    13\n\n  "
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./pingpong | cat -e
+  perturbed_input:
+  - pingpong_near_arg_1
+  - pingpong_near_arg_2
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - jgnored
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  ignored  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - ' '
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '    '
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_pingpong_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./pingpong \| cat -e
+  perturbed_input: ./qingpong \| cat -e
+- id: near_folder_02_boundary_neighbor
+  derived_from: e1337_pingpong_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./pingpong "ignored" \| cat -e
+  perturbed_input: ./qingpong "ignored" \| cat -e

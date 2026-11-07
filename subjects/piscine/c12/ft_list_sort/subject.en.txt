@@ -1,0 +1,26 @@
+Assignment name  : ft_list_sort
+Expected files   : ft_list_sort.c ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_list_sort
+Turn-in directory: ex14/
+Expected files   : ft_list_sort.c, ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create the function ft_list_sort which sorts the list’s elements in ascending order
+by comparing two elements and their data using a comparison function.
+• Here’s how it should be prototyped:
+void ft_list_sort(t_list **begin_list, int (*cmp)());
+• The function pointed to bycmp will be used as follows:
+(*cmp)(list_ptr->data, list_other_ptr->data);
+cmp could be for instance ft_strcmp.
+
+Your function must be declared as follows:
+    void ft_list_sort(t_list **begin_list, int (*cmp)());
+
+Examples:
+    t_list c={"b",0}; t_list b={"c",&c}; t_list a={"a",&b}; t_list *l=&a; ft_list_sort(&l,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n")
+    Output: abc

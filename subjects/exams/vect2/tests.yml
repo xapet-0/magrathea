@@ -1,0 +1,97 @@
+expected_stdout: 'v1: {0, 0}
+
+  v1: {0, 0}
+
+  v2: {1, 2}
+
+  v3: {1, 2}
+
+  v4: {1, 2}
+
+  {1, 2}
+
+  {3, 4}
+
+  {3, 4}
+
+  {1, 2}
+
+  v1: {-84, -168}
+
+  v2: {20, 40}
+
+  -v2: {-20, -40}
+
+  v1[1]: -168
+
+  v1[1]: 12
+
+  v3[1]: 2
+
+  v1 == v3: 0
+
+  v1 == v1: 1
+
+  v1 != v3: 1
+
+  v1 != v1: 0
+
+  '
+fixed_tests:
+- name: vect2_canonical_driver
+  main_code: ''
+  expected: ''
+- name: vect2_coplien_and_const_contract
+  main_code: ''
+  expected: ''
+- name: vect2_boundary_and_state_invariants
+  main_code: ''
+  expected: ''
+- name: vect2_destructor_and_resource_lifecycle
+  main_code: ''
+  expected: ''
+- name: test_05_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_06_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_07_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_08_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_09_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_10_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+main_cpp: "#include \"vect2.hpp\"\n#include <iostream>\n\nint main()\n{\n\tvect2 v1;\
+  \ // 0, 0\n\tvect2 v2(1, 2); // 1, 2\n\tconst vect2 v3(v2); // 1, 2\n\tvect2 v4\
+  \ = v2; // 1, 2\n\tstd::cout << \"v1: \" << v1 << std::endl;\n\tstd::cout << \"\
+  v1: \" << \"{\" << v1[0] << \", \" << v1[1] << \"}\" << std::endl; //should be the\
+  \ same as the line above\n\tstd::cout << \"v2: \" << v2 << std::endl;\n\tstd::cout\
+  \ << \"v3: \" << v3 << std::endl;\n\tstd::cout << \"v4: \" << v4 << std::endl;\n\
+  \tstd::cout << v4++ << std::endl; // 2, 3\n\tstd::cout << ++v4 << std::endl; //\
+  \ 3, 4\n\tstd::cout << v4-- << std::endl; // 2, 3\n\tstd::cout << --v4 << std::endl;\
+  \ // 1, 2\n\tv2 += v3; // 2, 4\n\tv1 -= v2; // -2, -4\n\tv2 = v3 + v3 * 2; // 3,\
+  \ 6\n\tv2 = 3 * v2; // 9, 18\n\tv2 += v2 += v3; // 20, 40\n\tv1 *= 42; // -84, -168\n\
+  \tv1 = v1 - v1 + v1;\n\tstd::cout << \"v1: \" << v1 << std::endl;\n\tstd::cout <<\
+  \ \"v2: \" << v2 << std::endl;\n\tstd::cout << \"-v2: \" << -v2 << std::endl;\n\t\
+  std::cout << \"v1[1]: \" << v1[1] << std::endl;\n\tv1[1] = 12;\n\tstd::cout << \"\
+  v1[1]: \" << v1[1] << std::endl;\n\tstd::cout << \"v3[1]: \" << v3[1] << std::endl;\n\
+  \tstd::cout << \"v1 == v3: \" << (v1 == v3) << std::endl;\n\tstd::cout << \"v1 ==\
+  \ v1: \" << (v1 == v1) << std::endl;\n\tstd::cout << \"v1 != v3: \" << (v1 != v3)\
+  \ << std::endl;\n\tstd::cout << \"v1 != v1: \" << (v1 != v1) << std::endl;\n}"
+mode: cpp
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,21 @@
+allowed_functions:
+- atoi
+- read
+- putchar
+- malloc
+- calloc
+- realloc
+- free
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+expected_files:
+- '*.c'
+- '*.h'
+id: life
+module: Exam Rank 05
+norminette: false
+prototype: int main(int argc, char **argv);
+type: c_program
+xp: 635

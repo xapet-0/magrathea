@@ -1,0 +1,5 @@
+# Examples for ft_list_find (from official subject specification)
+
+Examples:
+    t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%s\n",(char*)ft_list_find(&a,"b",dt_cmp)->data)
+    Output: b

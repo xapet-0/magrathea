@@ -1,0 +1,20 @@
+Assignment name  : glob_shield
+Expected files   : glob_shield.sh
+Allowed commands : printf
+--------------------------------------------------------------------------------
+
+Write a POSIX shell script that prints the exact first argument `$1` (or
+`$FT_PAYLOAD`) followed by a newline, preserving all multiple consecutive
+spaces and literal `*` or `?` characters without pathname expansion.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh glob_shield.sh "a * b   c" | cat -e
+a * b   c$
+$> sh glob_shield.sh "Hello    *    World?" | cat -e
+Hello    *    World?$
+$> sh glob_shield.sh "1337   42" | cat -e
+1337   42$

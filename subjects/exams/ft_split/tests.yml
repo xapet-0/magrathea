@@ -1,0 +1,158 @@
+mode: c_function
+fixed_tests:
+- name: subj_ex_multi_spaces_and_tabs
+  tier: subject_example
+  setup:
+  - char **w = ft_split("  hello \t 1337 \n world  ");
+  call: 'printf("%s|%s|%s|%d\n", w[0] ? w[0] : "NULL", w[1] ? w[1] : "NULL", w[2]
+    ? w[2] : "NULL", w[3] == NULL)'
+  stdout: 'hello|1337|world|1
+
+    '
+- name: near_ex_perturbed_words
+  tier: near_example
+  setup:
+  - char **w = ft_split(" \t alpha   beta_42 \n ");
+  call: 'printf("%s|%s|%d\n", w[0] ? w[0] : "NULL", w[1] ? w[1] : "NULL", w[2] ==
+    NULL)'
+  stdout: 'alpha|beta_42|1
+
+    '
+- name: folder_ex_empty_string
+  tier: folder_example
+  setup:
+  - char **w = ft_split("   \t\n  ");
+  call: 'printf("w[0]=%s\n", w && w[0] ? w[0] : "NULL")'
+  stdout: 'w[0]=NULL
+
+    '
+- name: edge_ex_single_token
+  tier: edge_case
+  setup:
+  - char **w = ft_split("Magrathea42");
+  call: 'printf("%s|%d\n", w[0] ? w[0] : "NULL", w[1] == NULL)'
+  stdout: 'Magrathea42|1
+
+    '
+- name: test_05_truly_empty_string
+  setup:
+  - char **w = ft_split("");
+  call: printf("%d\n", w != NULL && w[0] == NULL)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_single_char_words
+  setup:
+  - char **w = ft_split("a b c d");
+  call: for(int i=0;w[i];i++) printf("[%s]", w[i]); printf("\n")
+  tier: baseline
+  stdout: '[a][b][c][d]
+
+    '
+- name: test_07_no_leading_or_trailing_ws
+  setup:
+  - char **w = ft_split("first\tsecond\nthird");
+  call: for(int i=0;w[i];i++) printf("[%s]", w[i]); printf("\n")
+  tier: baseline
+  stdout: '[first][second][third]
+
+    '
+- name: test_08_only_newlines_and_tabs
+  setup:
+  - char **w = ft_split("\n\n\t\t\n");
+  call: printf("%d\n", w != NULL && w[0] == NULL)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_punctuation_preserved
+  setup:
+  - char **w = ft_split("  !@#   $%^  &*() ");
+  call: for(int i=0;w[i];i++) printf("[%s]", w[i]); printf("\n")
+  tier: baseline
+  stdout: '[!@#][$%^][&*()]
+
+    '
+- name: test_10_six_words_mixed_ws
+  setup:
+  - char **w = ft_split(" 1 \t 22 \n 333  4444 \t\n 55555   6 ");
+  call: for(int i=0;w[i];i++) printf("%s,", w[i]); printf("\n")
+  tier: stress
+  stdout: '1,22,333,4444,55555,6,
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_split
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_split_T03
+  origin: subject_folder/42ExamPractice/ft_split/tester.sh
+  input: ./ft_split "    b"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_split_T04
+  origin: subject_folder/42ExamPractice/ft_split/tester.sh
+  input: ./ft_split "    "
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_split_T05
+  origin: subject_folder/42ExamPractice/ft_split/tester.sh
+  input: ./ft_split "  starting and ending   "
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_split_T06
+  origin: subject_folder/42ExamPractice/ft_split/tester.sh
+  input: ./ft_split "three words apart"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_split_T07
+  origin: subject_folder/42ExamPractice/ft_split/tester.sh
+  input: ./ft_split "    a  "
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_split_T08
+  origin: subject_folder/42ExamPractice/ft_split/tester.sh
+  input: ./ft_split "t a b c "
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_split_T09
+  origin: subject_folder/mini-moulinette/ex05/ft_split.c
+  input: 'Input:'
+  expected: 'Expected:'
+- id: can_ft_split_T10
+  origin: subject_folder/mini-moulinette/ex05/ft_split.c
+  input: 'Input: hello'
+  expected: 'Expected:'
+- id: can_ft_split_T11
+  origin: subject_folder/mini-moulinette/ex05/ft_split.c
+  input: 'Input: ,,hello,world,,'
+  expected: 'Expected:'
+- id: can_ft_split_T12
+  origin: subject_folder/mini-moulinette/ex05/ft_split.c
+  input: 'Input: hello,,,,world'
+  expected: 'Expected:'
+- id: can_ft_split_T13
+  origin: subject_folder/mini-moulinette/ex05/ft_split.c
+  input: 'Input: aaabbbaaaccc'
+  expected: 'Expected:'
+- id: can_ft_split_T14
+  origin: subject_folder/ft_split_MAIN.c
+  input: Compiled and run with ft_split_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_split
+  perturbed_input:
+  - ft_split_near_arg_1
+  - ft_split_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_split_T03
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_split/tester.sh)
+  original_input: ./ft_split "    b"
+  perturbed_input: ./gt_split "    b"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_ft_split_T04
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_split/tester.sh)
+  original_input: ./ft_split "    "
+  perturbed_input: ./gt_split "    "

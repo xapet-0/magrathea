@@ -1,0 +1,78 @@
+fixed_tests:
+- call: char s[]="Bonjour"; ft_print_memory(s, 0);
+  name: pool_ft_print_memory_zero_size
+  stdout: ''
+- call: 'char s[]="Bonjour"; void *r = ft_print_memory(s, 0); printf("%s\n", r ==
+    s ? "RET_ADDR_OK" : "KO");'
+  name: ft_print_memory_returns_address
+  stdout: 'RET_ADDR_OK
+
+    '
+- call: 'void *r = ft_print_memory(NULL, 0); printf("%s\n", r == NULL ? "NULL_OK"
+    : "KO");'
+  name: ft_print_memory_null_pointer_safety
+  stdout: 'NULL_OK
+
+    '
+- call: 'int a[4] = {1, 2, 3, 4}; void *r = ft_print_memory(a, 0); printf("%s\n",
+    r == a ? "RET_INT_OK" : "KO");'
+  name: ft_print_memory_int_array_identity
+  stdout: 'RET_INT_OK
+
+    '
+- call: char s[] = "Bonjour\n"; int pfd[2]; pipe(pfd); fflush(stdout); int saved =
+    dup(1); dup2(pfd[1], 1); close(pfd[1]); ft_print_memory(s, 8); fflush(stdout);
+    dup2(saved, 1); close(saved); char buf[128] = {0}; int n = read(pfd[0], buf, 127);
+    close(pfd[0]); if (n > 16) printf("%s", buf + 16);
+  name: ft_print_memory_nonzero_hex_ascii_dump
+  stdout: ': 426f 6e6a 6f75 720a                     Bonjour.
+
+    '
+- name: test_06_single_byte
+  call: char s[] = "A"; int pfd[2]; pipe(pfd); fflush(stdout); int saved = dup(1);
+    dup2(pfd[1], 1); close(pfd[1]); ft_print_memory(s, 1); fflush(stdout); dup2(saved,
+    1); close(saved); char buf[128] = {0}; int n = read(pfd[0], buf, 127); close(pfd[0]);
+    if (n > 16) printf("%s", buf + 16);
+  tier: edge
+  stdout: ': 41                                      A
+
+    '
+- name: test_07_exact_16_bytes
+  call: char s[] = "0123456789abcdef"; int pfd[2]; pipe(pfd); fflush(stdout); int
+    saved = dup(1); dup2(pfd[1], 1); close(pfd[1]); ft_print_memory(s, 16); fflush(stdout);
+    dup2(saved, 1); close(saved); char buf[128] = {0}; int n = read(pfd[0], buf, 127);
+    close(pfd[0]); if (n > 16) printf("%s", buf + 16);
+  tier: baseline
+  stdout: ': 3031 3233 3435 3637 3839 6162 6364 6566 0123456789abcdef
+
+    '
+- name: test_08_non_printable_dots
+  call: char s[] = {0, 1, 31, 127, '4', '2', 0}; int pfd[2]; pipe(pfd); fflush(stdout);
+    int saved = dup(1); dup2(pfd[1], 1); close(pfd[1]); ft_print_memory(s, 6); fflush(stdout);
+    dup2(saved, 1); close(saved); char buf[128] = {0}; int n = read(pfd[0], buf, 127);
+    close(pfd[0]); if (n > 16) printf("%s", buf + 16);
+  tier: edge
+  stdout: ': 0001 1f7f 3432                          ....42
+
+    '
+- name: test_09_odd_length_5
+  call: char s[] = "Hello"; int pfd[2]; pipe(pfd); fflush(stdout); int saved = dup(1);
+    dup2(pfd[1], 1); close(pfd[1]); ft_print_memory(s, 5); fflush(stdout); dup2(saved,
+    1); close(saved); char buf[128] = {0}; int n = read(pfd[0], buf, 127); close(pfd[0]);
+    if (n > 16) printf("%s", buf + 16);
+  tier: baseline
+  stdout: ': 4865 6c6c 6f                            Hello
+
+    '
+- name: test_10_return_addr_nonzero_size
+  call: char s[] = "42"; int pfd[2]; pipe(pfd); fflush(stdout); int saved = dup(1);
+    dup2(pfd[1], 1); close(pfd[1]); void *r = ft_print_memory(s, 2); fflush(stdout);
+    dup2(saved, 1); close(saved); close(pfd[0]); printf("%d\n", r == s);
+  tier: edge
+  stdout: '1
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

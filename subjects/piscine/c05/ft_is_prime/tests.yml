@@ -1,0 +1,108 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_is_prime_T01
+  description: 'Functional verification of input: `ft_is_prime(-42)`'
+  expr: ft_is_prime(-42)
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_is_prime_T02
+  description: 'Functional verification of input: `ft_is_prime(0)`'
+  expr: ft_is_prime(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_is_prime_T03
+  description: 'Functional verification of input: `ft_is_prime(1)`'
+  expr: ft_is_prime(1)
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_is_prime_T04
+  description: 'Functional verification of input: `ft_is_prime(2)`'
+  expr: ft_is_prime(2)
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_is_prime_T05
+  description: 'Functional verification of input: `ft_is_prime(97)`'
+  expr: ft_is_prime(97)
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_is_prime_T06
+  description: 'Functional verification of input: `ft_is_prime(100)`'
+  expr: ft_is_prime(100)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_is_prime_T07
+  description: 'Functional verification of input: `ft_is_prime(2147483646)`'
+  expr: ft_is_prime(2147483646)
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_is_prime_T08
+  description: 'Functional verification of input: `ft_is_prime(2147483647)`'
+  expr: ft_is_prime(2147483647)
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_is_prime_T09
+  description: edge_is_prime_four
+  expr: ft_is_prime(4)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_is_prime
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_is_prime_T10
+  origin: subject_folder/mini-moulinette/ex06/ft_is_prime.c
+  input: 'Input:'
+  expected: 'Expected: 0'
+- id: pool_ft_is_prime_T11
+  origin: subject_folder/mini-moulinette/ex06/ft_is_prime.c
+  input: 'Input:'
+  expected: 'Expected: 1'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_is_prime
+  perturbed_input:
+  - ft_is_prime_near_arg_1
+  - ft_is_prime_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_is_prime_T10
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex06/ft_is_prime.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_is_prime_T11
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex06/ft_is_prime.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'

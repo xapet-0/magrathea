@@ -1,0 +1,27 @@
+Assignment name  : clean
+Expected files   : clean
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine Shell 00 (Official PDF)
+Exercise         : clean
+Turn-in directory: ex08/
+Expected files   : clean
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• In a file called clean write a single command that:
+◦ Searches for all files in the current directory and its subdirectories that end
+with ~ (tilde) or, start and end with # (hash).
+◦ Displays the found files and deletes them.
+• Only one command is allowed, no ’;’ or ’&&’ or other chaining tricks.
+• man find
+• Collaboration is key to success!
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh clean | cat -e
+$

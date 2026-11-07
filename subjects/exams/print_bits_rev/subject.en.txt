@@ -1,0 +1,21 @@
+Assignment name  : print_bits_rev
+Expected files   : print_bits_rev.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a function that takes a byte (unsigned char octet) and prints its 8
+bits in reverse order (from least significant bit to most significant bit) on
+standard output, without a newline at the end.
+
+Your function must be declared as follows:
+    void print_bits_rev(unsigned char octet);
+
+Examples:
+    print_bits_rev(2); printf("\n")
+    Output: 01000000
+    print_bits_rev(0); printf("\n")
+    Output: 00000000
+    print_bits_rev(255); printf("\n")
+    Output: 11111111
+    print_bits_rev(1); printf("\n")
+    Output: 10000000

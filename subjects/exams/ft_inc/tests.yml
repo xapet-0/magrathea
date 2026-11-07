@@ -1,0 +1,150 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `ft_inc`
+  input: ft_inc(INT_MIN), ft_inc(0), ft_inc(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `ft_inc`
+  input: Run ft_inc with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `ft_inc`
+  input: ft_inc(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `ft_inc`
+  input: Call ft_inc on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out
+fixed_tests:
+- name: test_01_d_n_x
+  call: printf("%d\n", x)
+  setup:
+  - int x = 41
+  - ft_inc(&x)
+  stdout: '42
+
+    '
+- name: test_02_d_n_x
+  call: printf("%d\n", x)
+  setup:
+  - int x = -1
+  - ft_inc(&x)
+  stdout: '0
+
+    '
+- name: test_03_d_n_x
+  call: printf("%d\n", x)
+  setup:
+  - int x = 0
+  - ft_inc(&x)
+  stdout: '1
+
+    '
+- name: test_04_d_n_x
+  call: printf("%d\n", x)
+  setup:
+  - int x = -43
+  - ft_inc(&x)
+  stdout: '-42
+
+    '
+- name: test_05_hundred
+  setup:
+  - int x = 99
+  - ft_inc(&x)
+  call: printf("%d\n", x)
+  tier: baseline
+  stdout: '100
+
+    '
+- name: test_06_pos_one
+  setup:
+  - int x = 1
+  - ft_inc(&x)
+  call: printf("%d\n", x)
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_07_int_min
+  setup:
+  - int x = -2147483648
+  - ft_inc(&x)
+  call: printf("%d\n", x)
+  tier: edge
+  stdout: '-2147483647
+
+    '
+- name: test_08_double_inc
+  setup:
+  - int x = 40
+  - ft_inc(&x)
+  - ft_inc(&x)
+  call: printf("%d\n", x)
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_09_1336_to_1337
+  setup:
+  - int x = 1336
+  - ft_inc(&x)
+  call: printf("%d\n", x)
+  tier: baseline
+  stdout: '1337
+
+    '
+- name: test_10_five_incs
+  setup:
+  - int x = -5
+  - for(int i=0;i<5;i++) ft_inc(&x);
+  call: printf("%d\n", x)
+  tier: stress
+  stdout: '0
+
+    '
+folder_examples:
+- expected: 42\n
+  id: cur_ft_inc_T01
+  input: printf("%d\n", x)
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: 0\n
+  id: cur_ft_inc_T02
+  input: printf("%d\n", x)
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: 1\n
+  id: cur_ft_inc_T03
+  input: printf("%d\n", x)
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval ft_inc
+  perturbed_input:
+  - ft_inc_near_arg_1
+  - ft_inc_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: cur_ft_inc_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: printf("%d\n", x)
+  perturbed_input: qrintf("%d\n", x)
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+- derived_from: cur_ft_inc_T02
+  id: near_folder_02_boundary_neighbor
+  original_input: printf("%d\n", x)
+  perturbed_input: qrintf("%d\n", x)
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval ft_inc
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

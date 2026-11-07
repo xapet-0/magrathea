@@ -1,0 +1,19 @@
+Assignment name  : upcase_sh
+Expected files   : upcase_sh.sh
+Allowed commands : printf, tr
+--------------------------------------------------------------------------------
+
+Write a shell script that converts all lowercase letters in the environment
+variable FT_LINE to uppercase and prints the result followed by a newline.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> FT_LINE="hello 42" sh upcase_sh.sh | cat -e
+HELLO 42$
+$> FT_LINE="AbCdEf" sh upcase_sh.sh | cat -e
+ABCDEF$
+$> FT_LINE="1337!" sh upcase_sh.sh | cat -e
+1337!$

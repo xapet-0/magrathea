@@ -1,0 +1,124 @@
+mode: c_function
+fixed_tests:
+- name: can_lcm_T01
+  description: 'Functional verification of input: `lcm(6, 8)`'
+  expr: lcm(6, 8)
+  stdout: '24
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_lcm_T02
+  description: 'Functional verification of input: `lcm(0, 5)`'
+  expr: lcm(0, 5)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_lcm_T03
+  description: 'Functional verification of input: `lcm(14, 21)`'
+  expr: lcm(14, 21)
+  stdout: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_lcm_T04
+  description: 'Functional verification of input: `lcm(13, 17)`'
+  expr: lcm(13, 17)
+  stdout: '221
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_lcm_T05
+  description: 'Functional verification of input: `lcm(21, 21)`'
+  expr: lcm(21, 21)
+  stdout: '21
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_right_zero
+  expr: lcm(5, 0)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_both_zero
+  expr: lcm(0, 0)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_one_and_number
+  expr: lcm(1, 42)
+  tier: edge
+  stdout: '42
+
+    '
+- name: test_09_negative_unsigned_rejected
+  expr: lcm(-1, 5) + lcm(5, -1)
+  tier: edge
+  stdout: '10
+
+    '
+- name: test_10_twelve_and_eighteen
+  expr: lcm(12, 18)
+  tier: stress
+  stdout: '36
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval lcm
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_lcm_T07
+  origin: subject_folder/42ExamPractice/lcm/tester.sh
+  input: ./lcm "98"
+  expected: Matches 42 reference standard output and exit code
+- id: can_lcm_T08
+  origin: subject_folder/42ExamPractice/lcm/tester.sh
+  input: ./lcm "42" "12"
+  expected: Matches 42 reference standard output and exit code
+- id: can_lcm_T09
+  origin: subject_folder/42ExamPractice/lcm/tester.sh
+  input: ./lcm "2" "8"
+  expected: Matches 42 reference standard output and exit code
+- id: can_lcm_T10
+  origin: subject_folder/42ExamPractice/lcm/tester.sh
+  input: ./lcm "42" "10"
+  expected: Matches 42 reference standard output and exit code
+- id: can_lcm_T11
+  origin: subject_folder/3-4-lcm_MAIN.c
+  input: Compiled and run with 3-4-lcm_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_06
+  origin: subject_folder/3-4-lcm_MAIN.c
+  input: 3-4-lcm_MAIN.c
+  expected: "#include <stdio.h>\n\nunsigned int\tlcm(unsigned int a, unsigned int\
+    \ b);\n\nint\tmain(void)\n{\n\tprintf(\"%d\\n\", lcm(122, 22));\n\tprintf(\"%d\\\
+    n\", lcm(100, 10));\n\tprintf(\"%"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval lcm
+  perturbed_input:
+  - lcm_near_arg_1
+  - lcm_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_lcm_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/lcm/tester.sh)
+  original_input: ./lcm "98"
+  perturbed_input: ./mcm "98"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_lcm_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/lcm/tester.sh)
+  original_input: ./lcm "42" "12"
+  perturbed_input: ./mcm "42" "12"

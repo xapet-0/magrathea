@@ -1,0 +1,182 @@
+mode: c_program
+fixed_tests:
+- name: cur_prev_character_T01
+  description: 'Functional verification of input: `[''b'']`'
+  args:
+  - b
+  expected: 'a
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_prev_character_T02
+  description: 'Functional verification of input: `[''a'']`'
+  args:
+  - a
+  expected: 'z
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_prev_character_T03
+  description: Standard baseline execution and behavior check for `prev_character`
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_prev_character_T04
+  description: edge_prev_digit
+  args:
+  - '0'
+  expected: '/
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_06_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_10_arg_auto
+  args:
+  - a b c d e
+  tier: baseline
+  stdout: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: prev_character ('B') = A
+  args: &id001
+  - (B)
+  - '='
+  - A
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: prev_character('a') = z
+  args: &id002
+  - '='
+  - z
+  expected: ''
+  cat_e: false
+folder_examples:
+- id: cur_prev_character_T05
+  origin: subject_folder/deepthought/corrections/exams/prev_character/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_prev_character_T06
+  origin: subject_folder/deepthought/corrections/exams/prev_character/generator.py
+  input: Dynamic generation rule via basic_test1()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_prev_character_T07
+  origin: subject_folder/deepthought/corrections/exams/prev_character/generator.py
+  input: Dynamic generation rule via random_character()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_prev_character_T08
+  origin: subject_folder/deepthought/corrections/exams/prev_character/generator.py
+  input: Dynamic generation rule via empty_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_prev_character_T09
+  origin: subject_folder/deepthought/corrections/exams/prev_character/generator.py
+  input: Dynamic generation rule via multiple_arguments_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - (C)
+  - =!
+  - B
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  (B)  '
+  - '='
+  - A
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - =!
+  - z!
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  =  '
+  - z
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_prev_character_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/prev_character/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_prev_character_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/prev_character/generator.py)
+  original_input: Dynamic generation rule via basic_test1()
+  perturbed_input: Eynamic generation rule via basic_test1(
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and non-printable characters in `prev_character`
+  input: "prev_character(\"\") and prev_character(\"\t\n\x01\x1F\")"
+  expected: Preserve non-alphabetic characters unmodified
+- name: edge_02_B
+  code: '[B]'
+  title: Argument count verification (argc != 2) in `prev_character`
+  input: Execute prev_character with 0 arguments and with > 1 argument
+  expected: Print newline only
+- name: edge_03_D
+  code: '[D]'
+  title: Idempotence and involution property check for `prev_character`
+  input: 'Apply transformation twice: prev_character(prev_character(s))'
+  expected: Valid transformation output matching mathematical cipher cycle
+- name: edge_04_B
+  code: '[B]'
+  title: Boundary alphabetic letters ('a', 'z', 'A', 'Z') in `prev_character`
+  input: prev_character("a z A Z")
+  expected: Accurate wraparound without overflowing outside alphabet bounds

@@ -1,0 +1,15 @@
+id: btree_create_node
+type: c_function
+module: C 13
+xp: 370
+expected_files:
+- btree_create_node.c
+- ft_btree.h
+allowed_functions:
+- malloc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: t_btree *btree_create_node(void *item);

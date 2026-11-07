@@ -1,0 +1,9 @@
+# Examples for ft_print_alphabet (from official subject specification)
+
+Examples:
+    ft_print_alphabet()
+    Output: abcdefghijklmnopqrstuvwxyz
+    ft_print_alphabet(); write(1, "\n", 1)
+    Output: abcdefghijklmnopqrstuvwxyz
+    ft_print_alphabet(); ft_print_alphabet(); write(1, "\n", 1)
+    Output: abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz

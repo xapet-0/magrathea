@@ -1,0 +1,3 @@
+Examples:
+$> printf "Z 1042\nS 1001\n" | sh zombie_hunter.sh | cat -e
+1042$

@@ -1,0 +1,17 @@
+Assignment name  : unmatch
+Expected files   : unmatch.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that takes an array of integers tab and its length length,
+where every value appears an even number of times except for one value that
+appears an odd number of times, and returns that unmatched value.
+
+Your function must be declared as follows:
+    int unmatch(int *tab, int length);
+
+Examples:
+    unmatch(a, 7) -> 3
+    unmatch(a, 1) -> 42
+    unmatch(a, 5) -> 5
+    unmatch(a, 3) -> -42

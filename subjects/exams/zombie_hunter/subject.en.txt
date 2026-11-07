@@ -1,0 +1,15 @@
+Assignment name  : zombie_hunter
+Expected files   : zombie_hunter.sh
+Allowed commands : ps, awk, printf
+--------------------------------------------------------------------------------
+
+Write a shell script that inspects the process table for zombie processes (Z
+state) or outputs 0 when no zombie processes are present.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> printf "Z 1042\nS 1001\n" | sh zombie_hunter.sh | cat -e
+1042$

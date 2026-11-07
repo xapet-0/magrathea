@@ -1,0 +1,3 @@
+Examples:
+$> ./ft_ten_queens_puzzle | cat -e
+$

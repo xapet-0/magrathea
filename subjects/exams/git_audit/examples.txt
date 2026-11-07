@@ -1,0 +1,3 @@
+Examples:
+$> sh git_audit.sh | cat -e
+OK$

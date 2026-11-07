@@ -1,0 +1,50 @@
+Assignment name  : ft_list_remove_if
+Expected files   : ft_list_remove_if.c ft_list.h
+Allowed functions: free
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_list_remove_if
+Turn-in directory: ex12/
+Expected files   : ft_list_remove_if.c, ft_list.h
+Allowed functions: free
+--------------------------------------------------------------------------------
+
+• Create the function ft_list_remove_if which removes from the list all elements
+whose data, when compared todata_ref using cmp, causes cmp to return 0.
+• The data from an element to be erased should be freed using free_fct.
+• Here’s how it should be prototyped:
+void ft_list_remove_if(t_list **begin_list, void *data_ref, int (*cmp)(), void (*free_fct)(void *));
+• The functions pointed to bycmp and free_fct will be used as follows:
+(*cmp)(list_ptr->data, data_ref);
+(*free_fct)(list_ptr->data);
+
+Your function must be declared as follows:
+    void ft_list_remove_if(t_list **begin_list, void *data_ref, int (*cmp)(), void (*free_fct)(void *));
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Setup Code : ['t_list *a = malloc(sizeof(t_list))', 't_list *b = malloc(sizeof(t_list))', 't_list *c = malloc(sizeof(t_list))', 'a->data = "remove"; a->next = b', 'b->data = "keep"; b->next = c', 'c->data = "remove"; c->next = NULL', 't_list *head = a', 'ft_list_remove_if(&head, "remove", __dt_cmp)']
+    Call / Invocation : printf("%s|%d\n", (char *)head->data, head->next == NULL); free(head)
+    Expected Output   : 'keep|1\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: exam_ft_list_remove_if_edges
+    C Source Driver:
+    int main(void)
+    {
+        t_list *a = malloc(sizeof(t_list));
+        t_list *b = malloc(sizeof(t_list));
+        t_list *c = malloc(sizeof(t_list));
+        a->data = "remove"; a->next = b;
+        b->data = "keep";   b->next = c;
+        c->data = "remove"; c->next = NULL;
+        t_list *head = a;
+        ft_list_remove_if(&head, "remove", __dt_cmp);
+        if (!head || strcmp((char *)head->data, "keep") != 0 || head->next != NULL) return (1);
+        ft_list_remove_if(&head, "keep", __dt_cmp);
+        if (head != NULL) return (1);
+        return (0);
+    }

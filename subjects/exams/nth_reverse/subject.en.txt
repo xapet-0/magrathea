@@ -1,0 +1,21 @@
+Assignment name  : nth_reverse
+Expected files   : nth_reverse.c
+Allowed functions: write, atoi
+--------------------------------------------------------------------------------
+
+Write a program that takes a string and an integer N, and reverses every block
+of N characters in the string, followed by a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./nth_reverse "abcdef" "2" | cat -e
+badcfe$
+$> ./nth_reverse | cat -e
+$
+$> ./nth_reverse "ABCDEFG" "3" | cat -e
+CBAFEDG$
+$> ./nth_reverse "ABC" | cat -e
+$

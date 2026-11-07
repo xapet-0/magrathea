@@ -1,0 +1,15 @@
+id: add_binary
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- add_binary.c
+allowed_functions:
+- malloc
+- free
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: char *add_binary(const char *a, const char *b);

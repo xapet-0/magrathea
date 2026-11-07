@@ -1,0 +1,106 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_find_next_prime_T01
+  description: 'Functional verification of input: `ft_find_next_prime(-10)`'
+  expr: ft_find_next_prime(-10)
+  stdout: '2
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_find_next_prime_T02
+  description: 'Functional verification of input: `ft_find_next_prime(14)`'
+  expr: ft_find_next_prime(14)
+  stdout: '17
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_find_next_prime_T03
+  description: edge_find_next_prime_zero
+  expr: ft_find_next_prime(0)
+  stdout: '2
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_find_next_prime_T04
+  description: edge_find_next_prime_two
+  expr: ft_find_next_prime(2)
+  stdout: '2
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_find_next_prime_T05
+  description: edge_find_next_prime_max
+  expr: ft_find_next_prime(2147483647)
+  stdout: '2147483647
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_06_one_returns_2
+  expr: ft_find_next_prime(1)
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_07_three_returns_3
+  expr: ft_find_next_prime(3)
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_08_four_returns_5
+  expr: ft_find_next_prime(4)
+  tier: baseline
+  stdout: '5
+
+    '
+- name: test_09_square_of_prime_49
+  expr: ft_find_next_prime(49)
+  tier: edge
+  stdout: '53
+
+    '
+- name: test_10_prime_97
+  expr: ft_find_next_prime(97)
+  tier: stress
+  stdout: '97
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_find_next_prime
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_find_next_prime_T07
+  origin: subject_folder/mini-moulinette/ex07/ft_find_next_prime.c
+  input: 'Input:'
+  expected: 'Expected: 2'
+- id: pool_ft_find_next_prime_T08
+  origin: subject_folder/mini-moulinette/ex07/ft_find_next_prime.c
+  input: 'Input:'
+  expected: 'Expected: 11'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_find_next_prime
+  perturbed_input:
+  - ft_find_next_prime_near_arg_1
+  - ft_find_next_prime_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_find_next_prime_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex07/ft_find_next_prime.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_find_next_prime_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex07/ft_find_next_prime.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'

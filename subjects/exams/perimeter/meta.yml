@@ -1,0 +1,14 @@
+id: perimeter
+type: c_function
+module: "Piscine Exams 00\u2013Final"
+xp: 300
+expected_files:
+- perimeter.c
+allowed_functions:
+- printf
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void perimeter(struct s_node *root);

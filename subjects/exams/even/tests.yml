@@ -1,0 +1,147 @@
+fixed_tests:
+- name: no_args
+  args: []
+  stdout: '0246810
+
+    '
+  tier: baseline
+- name: one_arg
+  args:
+  - ignored
+  stdout: '0246810
+
+    '
+  tier: baseline
+- name: empty_arg
+  args:
+  - ''
+  stdout: '0246810
+
+    '
+  tier: baseline
+- name: two_args
+  args:
+  - '1337'
+  - '42'
+  stdout: '0246810
+
+    '
+  tier: baseline
+- name: many_args
+  args:
+  - a
+  - b
+  - c
+  - d
+  stdout: '0246810
+
+    '
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: '0246810
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: '0246810
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: '0246810
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: '0246810
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: '0246810
+
+    '
+subject_id: even
+mode: c_program
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./even
+  args: []
+  expected: '0246810
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./even | cat -e
+  args: []
+  expected: '0246810
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_even_T06
+  origin: subject_folder/examples.txt
+  input: ./even
+  expected: 0246810
+- id: e1337_even_T07
+  origin: subject_folder/examples.txt
+  input: ./even \| cat -e
+  expected: 0246810$
+- id: folder_fixture_03
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- name: no_args\n  args: []\n  stdout: '0246810\n\n   \
+    \ '\n- name: one_arg\n  args:\n  - ignored\n  stdout: '0246810\n\n    '\n- name:\
+    \ empty_arg\n  args:\n  - ''"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./even
+  perturbed_input:
+  - even_near_arg_1
+  - even_near_arg_2
+- id: near_subj_02_arity_perturbation
+  derived_from: subj_ex_02
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./even | cat -e
+  perturbed_input:
+  - even_near_arg_1
+  - even_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_even_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./even
+  perturbed_input: ./fven
+- id: near_folder_02_boundary_neighbor
+  derived_from: e1337_even_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./even \| cat -e
+  perturbed_input: ./fven \| cat -e

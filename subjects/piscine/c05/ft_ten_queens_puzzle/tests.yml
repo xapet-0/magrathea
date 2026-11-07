@@ -1,0 +1,12 @@
+fixed_tests:
+- call: int saved=dup(1); FILE *sink=fopen("/dev/null","w"); dup2(fileno(sink),1);
+    int r=ft_ten_queens_puzzle(); fflush(stdout); dup2(saved,1); close(saved); fclose(sink);
+    printf("%d\n",r);
+  name: ten_queens_total_count_724
+  stdout: '724
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

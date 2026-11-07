@@ -1,0 +1,337 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `permutation`
+  input: permutation(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `permutation`
+  input: Input with no valid solution or containing duplicate values in permutation
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `permutation`
+  input: Run permutation with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `permutation`
+  input: Inspect sequence of traversed or printed nodes in permutation
+  expected: Exact match with standard traversal order required in subject
+fixed_tests:
+- name: cur_permutation_T01
+  description: ab
+  args:
+  - ab
+  stdout: 'ab
+
+    ba
+
+    '
+  expected: 'ab
+
+    ba
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_permutation_T02
+  description: a
+  args:
+  - a
+  stdout: 'a
+
+    '
+  expected: 'a
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_permutation_T03
+  description: abc
+  args:
+  - abc
+  stdout: 'abc
+
+    acb
+
+    bac
+
+    bca
+
+    cab
+
+    cba
+
+    '
+  expected: 'abc
+
+    acb
+
+    bac
+
+    bca
+
+    cab
+
+    cba
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_permutation_T04
+  description: unsorted_cba
+  args:
+  - cba
+  stdout: 'abc
+
+    acb
+
+    bac
+
+    bca
+
+    cab
+
+    cba
+
+    '
+  expected: 'abc
+
+    acb
+
+    bac
+
+    bca
+
+    cab
+
+    cba
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_permutation_T05
+  description: no_args
+  args: []
+  stdout: '
+
+    '
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_single_char
+  args:
+  - z
+  tier: baseline
+  stdout: 'z
+
+    '
+- name: test_06_two_chars
+  args:
+  - cd
+  tier: baseline
+  stdout: 'cd
+
+    dc
+
+    '
+- name: test_07_three_digits
+  args:
+  - '123'
+  tier: baseline
+  stdout: '123
+
+    132
+
+    213
+
+    231
+
+    312
+
+    321
+
+    '
+- name: test_08_foo
+  args:
+  - foo
+  tier: edge
+  stdout: 'foo
+
+    foo
+
+    ofo
+
+    oof
+
+    ofo
+
+    oof
+
+    '
+- name: test_09_four_chars
+  args:
+  - abcd
+  tier: stress
+  stdout: 'abcd
+
+    abdc
+
+    acbd
+
+    acdb
+
+    adbc
+
+    adcb
+
+    bacd
+
+    badc
+
+    bcad
+
+    bcda
+
+    bdac
+
+    bdca
+
+    cabd
+
+    cadb
+
+    cbad
+
+    cbda
+
+    cdab
+
+    cdba
+
+    dabc
+
+    dacb
+
+    dbac
+
+    dbca
+
+    dcab
+
+    dcba
+
+    '
+- name: test_10_two_digits
+  args:
+  - '42'
+  tier: edge
+  stdout: '24
+
+    42
+
+    '
+folder_examples:
+- expected: Matches 42 reference standard output and exit code
+  id: cur_permutation_T05
+  input: ./permutation "$arg" 2
+  origin: subject_folder/42ExamPractice/permutations/tester.sh
+- expected: Matches 42 reference standard output and exit code
+  id: cur_permutation_T06
+  input: ./permutation abcd; then
+  origin: subject_folder/42ExamPractice/permutations/tester.sh
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_lexical_shift
+  original_input: &id001
+  - a
+  perturbed_input:
+  - b
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_01
+  id: near_subj_01_whitespace_envelope
+  original_input: *id001
+  perturbed_input:
+  - '  a  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_02
+  id: near_subj_02_lexical_shift
+  original_input: &id002
+  - ab
+  perturbed_input:
+  - bb
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_02
+  id: near_subj_02_whitespace_envelope
+  original_input: *id002
+  perturbed_input:
+  - '  ab  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_03
+  id: near_subj_03_lexical_shift
+  original_input: &id003
+  - abc
+  perturbed_input:
+  - bbc
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_03
+  id: near_subj_03_whitespace_envelope
+  original_input: *id003
+  perturbed_input:
+  - '  abc  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: cur_permutation_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: ./permutation "$arg" 2
+  perturbed_input: ./qermutation "$arg" 2
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/permutations/tester.sh)
+- derived_from: cur_permutation_T06
+  id: near_folder_02_boundary_neighbor
+  original_input: ./permutation abcd; then
+  perturbed_input: ./qermutation abcd; then
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/permutations/tester.sh)
+subject_examples:
+- args: *id001
+  cat_e: true
+  command: ./permutations a | cat -e
+  expected: 'a
+
+    '
+  id: subj_ex_01
+  origin: subject.en.txt
+- args: *id002
+  cat_e: true
+  command: ./permutations ab | cat -e
+  expected: 'ab
+
+    ba
+
+    '
+  id: subj_ex_02
+  origin: subject.en.txt
+- args: *id003
+  cat_e: true
+  command: ./permutations abc | cat -e
+  expected: 'abc
+
+    acb
+
+    bac
+
+    bca
+
+    cab
+
+    cba
+
+    '
+  id: subj_ex_03
+  origin: subject.en.txt

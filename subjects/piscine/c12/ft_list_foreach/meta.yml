@@ -1,0 +1,14 @@
+id: ft_list_foreach
+type: c_function
+module: C 12
+xp: 340
+expected_files:
+- ft_list_foreach.c
+- ft_list.h
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: (*f)(list_ptr->data);

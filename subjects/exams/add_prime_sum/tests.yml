@@ -1,0 +1,162 @@
+mode: c_program
+fixed_tests:
+- name: can_add_prime_sum_T01
+  description: 'Functional verification of input: `[''10'']`'
+  args:
+  - '10'
+  expected: '17
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_add_prime_sum_T02
+  description: small_prime
+  args:
+  - '2'
+  expected: '2
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_add_prime_sum_T03
+  description: zero
+  args:
+  - '0'
+  expected: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_add_prime_sum_T04
+  description: negative
+  args:
+  - '-5'
+  expected: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - '5'
+  expected: '10
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - '7'
+  expected: '17
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args: []
+  expected: '0
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '0
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./add_prime_sum 5
+  args: &id001
+  - '5'
+  expected: '10
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./add_prime_sum 7 | cat -e
+  args: &id002
+  - '7'
+  expected: '17
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./add_prime_sum | cat -e
+  args: []
+  expected: '0
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_add_prime_sum_T05
+  origin: subject_folder/42ExamPractice/add_prime_sum/tester.sh
+  input: ./add_prime_sum "Too" "Many" "Arguments"
+  expected: Matches 42 reference standard output and exit code
+- id: can_add_prime_sum_T06
+  origin: subject_folder/42ExamPractice/add_prime_sum/tester.sh
+  input: ./add_prime_sum "5"
+  expected: Matches 42 reference standard output and exit code
+- id: can_add_prime_sum_T07
+  origin: subject_folder/42ExamPractice/add_prime_sum/tester.sh
+  input: ./add_prime_sum "7"
+  expected: Matches 42 reference standard output and exit code
+- id: can_add_prime_sum_T08
+  origin: subject_folder/examples.txt
+  input: ./add_prime_sum 5
+  expected: '10'
+- id: can_add_prime_sum_T09
+  origin: subject_folder/examples.txt
+  input: ./add_prime_sum 7 \| cat -e
+  expected: 17$
+- id: can_add_prime_sum_T10
+  origin: subject_folder/examples.txt
+  input: ./add_prime_sum \| cat -e
+  expected: 0$
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '6'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  5  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - '8'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  7  '
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./add_prime_sum | cat -e
+  perturbed_input:
+  - add_prime_sum_near_arg_1
+  - add_prime_sum_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_add_prime_sum_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/add_prime_sum/tester.sh)
+  original_input: ./add_prime_sum "Too" "Many" "Arguments"
+  perturbed_input: ./bdd_prime_sum "Too" "Many" "Arguments"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_add_prime_sum_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/add_prime_sum/tester.sh)
+  original_input: ./add_prime_sum "5"
+  perturbed_input: ./bdd_prime_sum "5"

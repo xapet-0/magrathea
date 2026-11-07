@@ -1,0 +1,37 @@
+Assignment name  : ft_sort_params
+Expected files   : ft_sort_params.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 06 (Official PDF)
+Exercise         : ft_sort_params
+Turn-in directory: ex03/
+Expected files   : ft_sort_params.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+• Since this is a program, your .c file must contain amain function.
+• Write a program that displays its given arguments sorted in ASCII order.
+• The program should display all arguments exceptargv[0].
+• Each argument should be printed on a new line.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./ft_sort_params "bbb" "aaa" "ccc" | cat -e
+aaa$
+bbb$
+ccc$
+$> ./ft_sort_params "z" "A" "a" "0" | cat -e
+0$
+A$
+a$
+z$
+$> ./ft_sort_params | cat -e
+$
+$> ./ft_sort_params "b" "a" "b" | cat -e
+a$
+b$
+b$

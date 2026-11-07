@@ -1,0 +1,61 @@
+mode: c_function
+fixed_tests:
+- name: cur_triangle_perimeter_T01
+  call: printf("%d\n", triangle_perimeter(3, 4, 5))
+  stdout: '12
+
+    '
+- name: cur_triangle_perimeter_T02
+  call: printf("%d\n", triangle_perimeter(10, 10, 10))
+  stdout: '30
+
+    '
+- name: triangle_perimeter_zero
+  call: printf("%d\n", triangle_perimeter(0, 4, 5))
+  stdout: '0
+
+    '
+- name: triangle_perimeter_negative
+  call: printf("%d\n", triangle_perimeter(-3, 4, 5))
+  stdout: '0
+
+    '
+- name: test_05_second_zero
+  call: printf("%d\n", triangle_perimeter(3, 0, 5))
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_06_third_zero
+  call: printf("%d\n", triangle_perimeter(3, 4, 0))
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_second_negative
+  call: printf("%d\n", triangle_perimeter(3, -4, 5))
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_third_negative
+  call: printf("%d\n", triangle_perimeter(3, 4, -5))
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_unit_equilateral
+  call: printf("%d\n", triangle_perimeter(1, 1, 1))
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_10_right_triangle_5_12_13
+  call: printf("%d\n", triangle_perimeter(5, 12, 13))
+  tier: stress
+  stdout: '30
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

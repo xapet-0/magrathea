@@ -1,0 +1,13 @@
+id: ft_any
+type: c_function
+module: C 11
+xp: 270
+expected_files:
+- ft_any.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int ft_any(char **tab, int (*f)(char *));

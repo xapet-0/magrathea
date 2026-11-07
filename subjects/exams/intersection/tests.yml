@@ -1,0 +1,133 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty list (NULL) and single-node list in `intersection`
+  input: intersection(NULL, ...)
+  expected: Safely return NULL or 0 without dereferencing NULL pointer
+- name: edge_02_M
+  code: '[M]'
+  title: Zero node leaks and use-after-free prevention in `intersection`
+  input: Execute intersection under leak detection (DT_CHECK_LEAKS=1)
+  expected: 0 bytes leaked and valid node pointers
+- name: edge_03_B
+  code: '[B]'
+  title: All elements matching condition or identical in `intersection`
+  input: Pass list where every element matches filter or deletion predicate
+  expected: Properly update list head pointer without dangling references
+- name: edge_04_B
+  code: '[B]'
+  title: Cycle detection and self-referencing nodes in `intersection`
+  input: Pass cyclical linked list to intersection
+  expected: Terminate correctly or detect loop without infinite iteration
+fixed_tests:
+- name: test_01_a_b
+  expr: intersection(&a, &b) == &c
+  setup:
+  - struct s_node c={0,0}, a={0,&c}, b={0,&c}
+  stdout: '1
+
+    '
+- name: test_02_a_b
+  expr: intersection(&a, &b) == NULL
+  setup:
+  - struct s_node a={0,0}, b={0,0}
+  stdout: '1
+
+    '
+- name: test_03_NULL_NULL
+  expr: intersection(NULL, NULL) == NULL
+  stdout: '1
+
+    '
+- name: test_04_a_a
+  expr: intersection(&a, &a) == &a
+  setup:
+  - struct s_node a={0,0}
+  stdout: '1
+
+    '
+- name: test_05_first_null
+  setup:
+  - struct s_node a={0,0};
+  expr: intersection(NULL, &a) == NULL
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_second_null
+  setup:
+  - struct s_node a={0,0};
+  expr: intersection(&a, NULL) == NULL
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_unequal_prefix_lengths
+  setup:
+  - struct s_node d={0,0}, c={0,&d}, b={0,&c}, a1={0,&b}, a2={0,&c};
+  expr: intersection(&a1, &a2) == &c
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_intersect_at_tail_of_3
+  setup:
+  - struct s_node t={0,0}, a2={0,&t}, a1={0,&a2}, b1={0,&t};
+  expr: intersection(&a1, &b1) == &t
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_09_b_is_sublist_of_a
+  setup:
+  - struct s_node c={0,0}, b={0,&c}, a={0,&b};
+  expr: intersection(&a, &b) == &b
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_10_disjoint_multi_node_lists
+  setup:
+  - struct s_node a3={0,0},a2={0,&a3},a1={0,&a2},b3={0,0},b2={0,&b3},b1={0,&b2};
+  expr: intersection(&a1, &b1) == NULL
+  tier: stress
+  stdout: '1
+
+    '
+folder_examples:
+- expected: Zero assertion failures (exit code 0)
+  id: can_intersection_T05
+  input: Compiled and run with intersection_MAIN.c
+  origin: subject_folder/intersection_MAIN.c
+- expected: "struct s_node {\n\tvoid *content;\n\tstruct s_node *next;\n};\n\nvoid\
+    \ *intersection(struct s_node *lst1, struct s_node *lst2)\n{\n\tstruct s_node\
+    \ *l2 = lst2;\n\twhile (lst1"
+  id: folder_fixture_02
+  input: intersection_MAIN.c
+  origin: subject_folder/intersection_MAIN.c
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval intersection
+  perturbed_input:
+  - intersection_near_arg_1
+  - intersection_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_intersection_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: Compiled and run with intersection_MAIN.c
+  perturbed_input: Dompiled and run with intersection_MAIN.
+  strategy: Neighbouring perturbation of folder example (subject_folder/intersection_MAIN.c)
+- derived_from: folder_fixture_02
+  id: near_folder_02_boundary_neighbor
+  original_input: intersection_MAIN.c
+  perturbed_input: jntersection_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/intersection_MAIN.c)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval intersection
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

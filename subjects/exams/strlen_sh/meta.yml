@@ -1,0 +1,13 @@
+id: strlen_sh
+type: shell
+module: Piscine Exams 00–Final
+xp: 290
+expected_files:
+- strlen.sh
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh strlen_sh.sh [args...]

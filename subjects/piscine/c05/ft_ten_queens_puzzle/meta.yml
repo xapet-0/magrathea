@@ -1,0 +1,14 @@
+id: ft_ten_queens_puzzle
+type: c_function
+module: C 05
+xp: 195
+expected_files:
+- ft_ten_queens_puzzle.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int ft_ten_queens_puzzle(void);

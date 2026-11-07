@@ -1,0 +1,33 @@
+Assignment name  : ft_split_whitespaces
+Expected files   : ft_split_whitespaces.c
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 07 (Official PDF)
+Exercise         : ft_split_whitespaces
+Expected files   : ft_split_whitespaces.c
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+Write a function that splits a string of characters into words.
+Separators are spaces, tabs, and line breaks (' ', '\t', '\n').
+
+This function returns an array where each element is the address of a string
+representing a word. The last element of the array must be 0 to mark the end.
+
+Your function must be declared as follows:
+
+char	**ft_split_whitespaces(char *str);
+
+Your function must be declared as follows:
+    char **ft_split_whitespaces(char *str);
+
+Examples:
+    char **w = ft_split_whitespaces("  hello\tworld\n42 "); for (int i=0; w[i]; i++) printf("%s\n", w[i]);
+    Output: hello
+world
+42
+    char **w = ft_split_whitespaces("   \t\n "); printf("%d\n", w[0] == 0);
+    Output: 1
+    char **w = ft_split_whitespaces("single"); printf("%s|%d\n", w[0], w[1] == 0);
+    Output: single|1

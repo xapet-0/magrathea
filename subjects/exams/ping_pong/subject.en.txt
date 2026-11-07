@@ -1,0 +1,25 @@
+Assignment name  : ping_pong
+Expected files   : ping_pong.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes one positive integer argument and prints:
+
+- ping pong if the number is divisible by both 3 and 5;
+- ping if the number is divisible by 3 only;
+- pong if the number is divisible by 5 only;
+- the number itself otherwise.
+
+For this practice subject, 0 is treated as divisible by both 3 and 5. If the number of arguments is not exactly 1, print only a newline.
+
+Examples:
+
+
+$> ./ping_pong 3 | cat -e
+ping$
+$> ./ping_pong 5 | cat -e
+pong$
+$> ./ping_pong 15 | cat -e
+ping pong$
+
+Allowed functions: write.

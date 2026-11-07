@@ -1,0 +1,9 @@
+Examples:
+$> ./aff_a "abc" | cat -e
+a$
+$> ./aff_a "dubO a POIL" | cat -e
+a$
+$> ./aff_a "zz sent le poney" | cat -e
+$
+$> ./aff_a | cat -e
+a$

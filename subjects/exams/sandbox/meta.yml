@@ -1,0 +1,24 @@
+allowed_functions:
+- fork
+- waitpid
+- alarm
+- kill
+- sigaction
+- sigemptyset
+- errno
+- exit
+- printf
+- puts
+- strsignal
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+expected_files:
+- sandbox.c
+id: sandbox
+module: Exam Rank 04
+norminette: false
+prototype: int sandbox(void (*f)(void), unsigned int timeout, bool verbose);
+type: c_function
+xp: 570

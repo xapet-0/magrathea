@@ -1,0 +1,36 @@
+Assignment name  : c09_makefile
+Turn-in directory: ex01/
+Expected files   : Makefile
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Makefile
+Turn-in directory: ex01/
+Files to turn in:Makefile
+Allowed functions: None
+• Create the Makefile that will compile a librarylibft.a.
+• Your Makefile should print all the commands it’s running.
+• Your Makefile should not run any unnecessary commands.
+• The Makefile will get its source files from the "srcs" directory.
+• Thesefileswillbe: ft_putchar.c, ft_swap.c, ft_putstr.c, ft_strlen.c, ft_strcmp.c.
+• The Makefile will get its header files from the "includes" directory.
+• These files will be:ft.h.
+• It should compile the .c files withcc and with -Wall -Wextra -Werror flags in
+that order.
+• The lib should be at the root of the exercise.
+• .o files should be near their corresponding .c files.
+• The Makefile should also implement the following rules:clean, fclean, re, all,
+and of courselibft.a.
+• Running just make should be equivalent tomake all .
+• The all rule should be equivalent tomake libft.a .
+• The clean rule should remove all the temporary generated files.
+• The fclean rule should be like amake clean , plus removing all the binaries gen-
+erated with make all .
+• The re rule should be like amake fclean followed bymake all .
+• Your Makefile should not compile any file unnecessarily.
+• We’ll only fetch your Makefile and test it with our files.
+Watch out for wildcards!
+
+Examples:
+$> ./c09_makefile | cat -e
+$

@@ -1,0 +1,160 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_strcmp_T01
+  description: 'Functional verification of input: `ft_strcmp("abc", "abc") == 0 ?
+    1 : 0`'
+  expr: 'ft_strcmp("abc", "abc") == 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_strcmp_T02
+  description: 'Functional verification of input: `ft_strcmp("abc", "abd") < 0 ? 1
+    : 0`'
+  expr: 'ft_strcmp("abc", "abd") < 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_strcmp_T03
+  description: 'Functional verification of input: `ft_strcmp("\200", "a") > 0 ? 1
+    : 0`'
+  expr: 'ft_strcmp("\200", "a") > 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_strcmp_T04
+  description: 'Functional verification of input: `ft_strcmp("a", "\200") < 0 ? 1
+    : 0`'
+  expr: 'ft_strcmp("a", "\200") < 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_strcmp_T05_empty_both
+  description: 'Both strings empty: `ft_strcmp("", "") == 0`'
+  expr: 'ft_strcmp("", "") == 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: edge
+- name: can_ft_strcmp_T06_empty_first
+  description: 'First string empty: `ft_strcmp("", "a") < 0`'
+  expr: 'ft_strcmp("", "a") < 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: edge
+- name: can_ft_strcmp_T07_empty_second
+  description: 'Second string empty: `ft_strcmp("a", "") > 0`'
+  expr: 'ft_strcmp("a", "") > 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: edge
+- name: can_ft_strcmp_T08_prefix_shorter
+  description: 'First string is prefix of second: `ft_strcmp("ab", "abc") < 0`'
+  expr: 'ft_strcmp("ab", "abc") < 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: edge
+- name: can_ft_strcmp_T09_prefix_longer
+  description: 'Second string is prefix of first: `ft_strcmp("abc", "ab") > 0`'
+  expr: 'ft_strcmp("abc", "ab") > 0 ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: edge
+- name: can_ft_strcmp_T10_exact_diff_middle
+  description: 'Difference in middle character: `ft_strcmp("Hello", "He1lo") == (''l'' - ''1'')`'
+  expr: 'ft_strcmp("Hello", "He1lo") == (''l'' - ''1'') ? 1 : 0'
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: edge
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strcmp
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_strcmp_T05
+  origin: subject_folder/42ExamPractice/ft_strcmp/tester.sh
+  input: ./ft_strcmp "hello World" ""
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strcmp_T06
+  origin: subject_folder/42ExamPractice/ft_strcmp/tester.sh
+  input: ./ft_strcmp "hello World" "hello world"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strcmp_T07
+  origin: subject_folder/42ExamPractice/ft_strcmp/tester.sh
+  input: ./ft_strcmp "13268!" "+13268!"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strcmp_T08
+  origin: subject_folder/42ExamPractice/ft_strcmp/tester.sh
+  input: ./ft_strcmp "OH ! 13268!"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strcmp_T09
+  origin: subject_folder/42ExamPractice/ft_strcmp/tester.sh
+  input: ./ft_strcmp "Ceci permet de decouvrir le fonctionnement de ton ft_atoi."
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strcmp_T10
+  origin: subject_folder/mini-moulinette/ex00/ft_strcmp.c
+  input: 'Input: Hello'
+  expected: 'Expected: 0'
+- id: can_ft_strcmp_T11
+  origin: subject_folder/mini-moulinette/ex00/ft_strcmp.c
+  input: 'Input: Hello'
+  expected: 'Expected: 108'
+- id: can_ft_strcmp_T12
+  origin: subject_folder/mini-moulinette/ex00/ft_strcmp.c
+  input: 'Input: Hello'
+  expected: 'Expected: -49'
+- id: can_ft_strcmp_T13
+  origin: subject_folder/mini-moulinette/ex00/ft_strcmp.c
+  input: 'Input:'
+  expected: 'Expected: 0'
+- id: can_ft_strcmp_T14
+  origin: subject_folder/mini-moulinette/ex00/ft_strcmp.c
+  input: 'Input: Hello'
+  expected: 'Expected: 72'
+- id: can_ft_strcmp_T15
+  origin: subject_folder/mini-moulinette/ex00/ft_strcmp.c
+  input: 'Input: a'
+  expected: 'Expected: -1'
+- id: can_ft_strcmp_T16
+  origin: subject_folder/mini-moulinette/ex00/ft_strcmp.c
+  input: 'Input: b'
+  expected: 'Expected: 1'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strcmp
+  perturbed_input:
+  - ft_strcmp_near_arg_1
+  - ft_strcmp_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_strcmp_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strcmp/tester.sh)
+  original_input: ./ft_strcmp "hello World" ""
+  perturbed_input: ./gt_strcmp "hello World" ""
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_ft_strcmp_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strcmp/tester.sh)
+  original_input: ./ft_strcmp "hello World" "hello world"
+  perturbed_input: ./gt_strcmp "hello World" "hello world"

@@ -1,0 +1,21 @@
+Assignment name  : first_unique
+Expected files   : first_unique.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a single string and prints the first character that appears only once, followed by a newline.
+If every character appears more than once (or argc != 2), print only a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./first_unique "aabbccd" | cat -e
+d$
+$> ./first_unique "abacabad" | cat -e
+c$
+$> ./first_unique "aabb" | cat -e
+$
+$> ./first_unique | cat -e
+$

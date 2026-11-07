@@ -1,0 +1,97 @@
+fixed_tests:
+- name: test_01_files
+  files:
+    junk~: x
+    '#tmp#': y
+  stdout: './junk~
+
+    ./#tmp#
+
+    '
+- name: test_02_files
+  files:
+    a~: '1'
+  stdout: './a~
+
+    '
+- name: test_03_hash_only
+  files:
+    '#autosave#': data
+  stdout: './#autosave#
+
+    '
+- name: test_04_multiple_tilde
+  files:
+    one~: '1'
+    two~: '2'
+  stdout_contains:
+  - ./one~
+  - ./two~
+- name: test_05_mixed_clean_and_keep
+  files:
+    keep.c: int x;
+    old.c~: int x;
+    '#draft.c#': int y;
+  tier: baseline
+  stdout: './old.c~
+
+    ./#draft.c#
+
+    '
+- name: test_06_leading_hash_only_kept
+  files:
+    '#keep': '1'
+    del~: '2'
+  tier: edge
+  stdout: './del~
+
+    '
+- name: test_07_trailing_hash_only_kept
+  files:
+    keep#: '1'
+    '#del#': '2'
+  tier: edge
+  stdout: './#del#
+
+    '
+- name: test_08_nested_subdir
+  files:
+    sub/a~: '1'
+    sub/#b#: '2'
+    sub/ok.h: '3'
+  tier: edge
+  stdout: './sub/a~
+
+    ./sub/#b#
+
+    '
+- name: test_09_three_backups
+  files:
+    f1~: '1'
+    f2~: '2'
+    '#f3#': '3'
+  tier: baseline
+  stdout: './f2~
+
+    ./f1~
+
+    ./#f3#
+
+    '
+- name: test_10_deep_hierarchy
+  files:
+    a/b/c~: '1'
+    a/#d#: '2'
+    root~: '3'
+  tier: stress
+  stdout: './root~
+
+    ./a/b/c~
+
+    ./a/#d#
+
+    '
+subject_id: find_clean
+subject_examples: []
+folder_examples: []
+near_examples: []

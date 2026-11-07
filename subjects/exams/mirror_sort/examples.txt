@@ -1,0 +1,10 @@
+Examples:
+$> printf "ba\nab\n" | sh mirror_sort.sh | cat -e
+ab$
+ba$
+$> printf "dc\nba\n" | sh mirror_sort.sh | cat -e
+ab$
+cd$
+$> printf "z\na\n" | sh mirror_sort.sh | cat -e
+a$
+z$

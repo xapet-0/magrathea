@@ -1,0 +1,70 @@
+fixed_tests:
+- call: int a=2,b=1,c=3; t_btree *root=0; btree_insert_data(&root,&a,dt_cmp); btree_insert_data(&root,&b,dt_cmp);
+    btree_insert_data(&root,&c,dt_cmp); printf("%d:%d:%d\n",*(int*)root->item,*(int*)root->left->item,*(int*)root->right->item);
+  name: pool_btree_insert_data_T01
+  stdout: '2:1:3
+
+    '
+- call: int a=42; t_btree *root=0; btree_insert_data(&root,&a,dt_cmp); printf("%d:%d:%d\n",*(int*)root->item,root->left==0,root->right==0);
+  name: btree_insert_data_single_item
+  stdout: '42:1:1
+
+    '
+- call: int a=3,b=2,c=1; t_btree *root=0; btree_insert_data(&root,&a,dt_cmp); btree_insert_data(&root,&b,dt_cmp);
+    btree_insert_data(&root,&c,dt_cmp); printf("%d:%d:%d\n",*(int*)root->item,*(int*)root->left->item,*(int*)root->left->left->item);
+  name: btree_insert_data_left_skewed
+  stdout: '3:2:1
+
+    '
+- call: int a=1,b=2,c=3; t_btree *root=0; btree_insert_data(&root,&a,dt_cmp); btree_insert_data(&root,&b,dt_cmp);
+    btree_insert_data(&root,&c,dt_cmp); printf("%d:%d:%d\n",*(int*)root->item,*(int*)root->right->item,*(int*)root->right->right->item);
+  name: btree_insert_data_right_skewed
+  stdout: '1:2:3
+
+    '
+- name: test_05_duplicate_goes_right
+  call: int a=5,b=5; t_btree *root=0; btree_insert_data(&root,&a,dt_cmp); btree_insert_data(&root,&b,dt_cmp);
+    printf("%d:%d:%d\n",*(int*)root->item,root->left==0,*(int*)root->right->item);
+  tier: edge
+  stdout: '5:1:5
+
+    '
+- name: test_06_five_elements_infix_sorted
+  call: int v[]={4,2,5,1,3}; t_btree *root=0; for(int i=0;i<5;i++) btree_insert_data(&root,&v[i],dt_cmp);
+    printf("%d:%d:%d:%d:%d\n",*(int*)root->left->left->item,*(int*)root->left->item,*(int*)root->left->right->item,*(int*)root->item,*(int*)root->right->item);
+  tier: baseline
+  stdout: '1:2:3:4:5
+
+    '
+- name: test_07_negative_numbers
+  call: int a=-10,b=-20,c=-5; t_btree *root=0; btree_insert_data(&root,&a,dt_cmp);
+    btree_insert_data(&root,&b,dt_cmp); btree_insert_data(&root,&c,dt_cmp); printf("%d:%d:%d\n",*(int*)root->left->item,*(int*)root->item,*(int*)root->right->item);
+  tier: baseline
+  stdout: '-20:-10:-5
+
+    '
+- name: test_08_three_duplicates
+  call: int a=7,b=7,c=7; t_btree *root=0; btree_insert_data(&root,&a,dt_cmp); btree_insert_data(&root,&b,dt_cmp);
+    btree_insert_data(&root,&c,dt_cmp); printf("%d:%d:%d\n",*(int*)root->item,*(int*)root->right->item,*(int*)root->right->right->item);
+  tier: edge
+  stdout: '7:7:7
+
+    '
+- name: test_09_two_elements_left
+  call: int a=10,b=5; t_btree *root=0; btree_insert_data(&root,&a,dt_cmp); btree_insert_data(&root,&b,dt_cmp);
+    printf("%d:%d:%d\n",*(int*)root->item,*(int*)root->left->item,root->right==0);
+  tier: baseline
+  stdout: '10:5:1
+
+    '
+- name: test_10_seven_balanced_bst
+  call: int v[]={4,2,6,1,3,5,7}; t_btree *r=0; for(int i=0;i<7;i++) btree_insert_data(&r,&v[i],dt_cmp);
+    printf("%d,%d,%d,%d,%d,%d,%d\n",*(int*)r->item,*(int*)r->left->item,*(int*)r->right->item,*(int*)r->left->left->item,*(int*)r->left->right->item,*(int*)r->right->left->item,*(int*)r->right->right->item);
+  tier: stress
+  stdout: '4,2,6,1,3,5,7
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

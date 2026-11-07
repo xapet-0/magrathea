@@ -1,0 +1,26 @@
+Assignment name  : ft_list_foreach
+Expected files   : ft_list_foreach.c ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_list_foreach
+Turn-in directory: ex09/
+Expected files   : ft_list_foreach.c, ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create the function ft_list_foreach, which applies the function given as an ar-
+gument to each of the list’s elements.
+• f should be applied in the same order as the list.
+• Here is how it should be prototyped:
+void ft_list_foreach(t_list *begin_list, void (*f)(void *));
+• The function pointed to byf will be used as follows:
+(*f)(list_ptr->data);
+
+Your function must be declared as follows:
+    void ft_list_foreach(t_list *begin_list, void (*f)(void *));
+
+Examples:
+    t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; ft_list_foreach(&a,dt_print); printf("\n")
+    Output: a,b,

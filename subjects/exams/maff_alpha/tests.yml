@@ -1,0 +1,106 @@
+mode: c_program
+fixed_tests:
+- name: can_maff_alpha_T01
+  description: Standard baseline execution and behavior check for `maff_alpha`
+  args: []
+  expected: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_maff_alpha_T02
+  description: case_maff_alpha_with_args
+  args:
+  - ignored
+  expected: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_maff_alpha_T03
+  description: edge_maff_alpha_empty
+  args:
+  - ''
+  expected: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_maff_alpha_T04
+  description: edge_maff_alpha_whitespace
+  args:
+  - " \t "
+  expected: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+    '
+- name: test_06_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+    '
+- name: test_08_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+    '
+- name: test_10_arg_auto
+  args:
+  - a b c d e
+  tier: baseline
+  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./maff_alpha | cat -e
+  args: []
+  expected: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_maff_alpha_T05
+  origin: subject_folder/examples.txt
+  input: ./maff_alpha \| cat -e
+  expected: aBcDeFgHiJkLmNoPqRsTuVwXyZ$
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./maff_alpha | cat -e
+  perturbed_input:
+  - maff_alpha_near_arg_1
+  - maff_alpha_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_maff_alpha_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./maff_alpha \| cat -e
+  perturbed_input: ./naff_alpha \| cat -e

@@ -1,0 +1,144 @@
+subject_id: first_last_char
+fixed_tests:
+- args:
+  - Hello
+  stdout: 'Ho
+
+    '
+  name: friend_example
+  tier: baseline
+- args:
+  - a
+  stdout: 'aa
+
+    '
+  name: single_char_friend_example
+  tier: baseline
+- args: []
+  stdout: '
+
+    '
+  name: wrong_arg_count
+  tier: baseline
+- args:
+  - ''
+  stdout: '
+
+    '
+  name: empty_string
+  tier: baseline
+- args:
+  - ab
+  stdout: 'ab
+
+    '
+  name: two_chars
+  tier: baseline
+- args:
+  - Hello World
+  stdout: 'Hd
+
+    '
+  name: space_argument
+  tier: baseline
+- name: test_07_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: "  \n"
+- name: test_09_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '17
+
+    '
+- name: test_10_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '4k
+
+    '
+mode: c_program
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./first_last_char Hello | cat -e
+  args: &id001
+  - Hello
+  expected: 'Ho
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./first_last_char a | cat -e
+  args: &id002
+  - a
+  expected: 'aa
+
+
+    Allowed functions: write.
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_first_last_char_T07
+  origin: subject_folder/examples.txt
+  input: ./first_last_char Hello \| cat -e
+  expected: Ho$
+- id: e1337_first_last_char_T08
+  origin: subject_folder/examples.txt
+  input: ./first_last_char a \| cat -e
+  expected: 'aa$\n\nAllowed functions: write.'
+- id: folder_fixture_03
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "subject_id: first_last_char\nfixed_tests:\n- args:\n  - Hello\n  stdout:\
+    \ 'Ho\n\n    '\n  name: friend_example\n- args:\n  - a\n  stdout: 'aa\n\n    '\n\
+    \  name: single_char_fr"
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - Iello
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  Hello  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - b
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  a  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_first_last_char_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./first_last_char Hello \| cat -e
+  perturbed_input: ./girst_last_char Hello \| cat -e
+- id: near_folder_02_boundary_neighbor
+  derived_from: e1337_first_last_char_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./first_last_char a \| cat -e
+  perturbed_input: ./girst_last_char a \| cat -e

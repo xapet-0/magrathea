@@ -1,0 +1,216 @@
+mode: c_program
+fixed_tests:
+- name: can_alpha_mirror_T01
+  description: 'Functional verification of input: `[''abc XYZ'']`'
+  args:
+  - abc XYZ
+  expected: 'zyx CBA
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_alpha_mirror_T02
+  description: mixed_letters_symbols
+  args:
+  - My horse is Amazing.
+  expected: 'Nb slihv rh Znzarmt.
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_alpha_mirror_T03
+  description: wrong_arg_count
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_alpha_mirror_T04
+  description: case_level2_alpha_lower_alphabet
+  args:
+  - abcdefghijklmnopqrstuvwxyz
+  expected: 'zyxwvutsrqponmlkjihgfedcba
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_alpha_mirror_T05
+  description: case_level2_alpha_upper_alphabet
+  args:
+  - ABCDEFGHIJKLMNOPQRSTUVWXYZ
+  expected: 'ZYXWVUTSRQPONMLKJIHGFEDCBA
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_alpha_mirror_T06
+  description: case_level2_alpha_bad_argc_many
+  args:
+  - abc
+  - def
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_alpha_mirror_T07
+  description: case_level2_alpha_mixed_punctuation
+  args:
+  - aBc-Zz!
+  expected: 'zYx-Aa!
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_alpha_mirror_T08
+  description: edge_alpha_mirror_empty
+  args:
+  - ''
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_alpha_mirror_T09
+  description: edge_alpha_mirror_whitespace
+  args:
+  - " \t "
+  expected: " \t \n"
+  category: Edge Case
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - abc
+  expected: 'zyx
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./alpha_mirror "abc"
+  args: &id001
+  - abc
+  expected: 'zyx
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./alpha_mirror "My horse is Amazing." | cat -e
+  args: &id002
+  - My horse is Amazing.
+  expected: 'Nb slihv rh Znzarmt.
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./alpha_mirror | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_alpha_mirror_T10
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_alpha_mirror_T11
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "   "
+  expected: Matches 42 reference standard output and exit code
+- id: can_alpha_mirror_T12
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "Papache est un sabre" "a" "o"
+  expected: Matches 42 reference standard output and exit code
+- id: can_alpha_mirror_T13
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "FOR PONY"
+  expected: Matches 42 reference standard output and exit code
+- id: can_alpha_mirror_T14
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "a" "b"
+  expected: Matches 42 reference standard output and exit code
+- id: can_alpha_mirror_T15
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "3:21 Ba  tOut  moUn ki Ka di KE m'en Ka fe fot"
+  expected: Matches 42 reference standard output and exit code
+- id: can_alpha_mirror_T16
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "zaz" "art" "zul"
+  expected: Matches 42 reference standard output and exit code
+- id: can_alpha_mirror_T17
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "this        ...       is sparta, then again, maybe    not"
+  expected: Matches 42 reference standard output and exit code
+- id: can_alpha_mirror_T18
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "jacob" "a" "b" "c" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_alpha_mirror_T19
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "ZoZ eT Dovid oiME le METol." "o" "a"
+  expected: Matches 42 reference standard output and exit code
+- id: can_alpha_mirror_T20
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "abc"
+  expected: Matches 42 reference standard output and exit code
+- id: can_alpha_mirror_T21
+  origin: subject_folder/42ExamPractice/alpha_mirror/tester.sh
+  input: ./alpha_mirror "AkjhZ zLKIJz , 23y "
+  expected: Matches 42 reference standard output and exit code
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - bbc
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  abc  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - Ny horse is Amazing.
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  My horse is Amazing.  '
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./alpha_mirror | cat -e
+  perturbed_input:
+  - alpha_mirror_near_arg_1
+  - alpha_mirror_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_alpha_mirror_T10
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/alpha_mirror/tester.sh)
+  original_input: ./alpha_mirror "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  perturbed_input: ./blpha_mirror "wNcOre Un ExEmPle Pas Fa
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_alpha_mirror_T11
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/alpha_mirror/tester.sh)
+  original_input: ./alpha_mirror "   "
+  perturbed_input: ./blpha_mirror "   "

@@ -1,0 +1,7 @@
+For example, the following function used as cmp will sort the list 
+in ascending order:
+
+int ascending(int a, int b)
+{
+	return (a <= b);
+}

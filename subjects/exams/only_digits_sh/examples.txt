@@ -1,0 +1,6 @@
+# Examples for only_digits_sh (from official subject specification)
+
+Examples:
+$> export FT_LINE="42 is the answer to 1337!"
+$> ./only_digits.sh | cat -e
+421337$>

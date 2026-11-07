@@ -1,0 +1,7 @@
+# Examples for sastantua (from official subject specification)
+
+Examples:
+    sastantua(0); sastantua(1)
+    Output: /*\
+ /***\
+/**|**\

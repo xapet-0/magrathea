@@ -1,0 +1,18 @@
+Assignment name  : volume_histogram
+Expected files   : volume_histogram.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that computes the total volume of water trapped between bars of
+a histogram of given size after rain.
+
+Prototype:
+int	volume_histogram(int *histogram, int size);
+
+Your function must be declared as follows:
+    int volume_histogram(int *histogram, int size);
+
+Examples:
+    volume_histogram(h, 5) -> 3
+    volume_histogram(h, 16) -> 26
+    volume_histogram(h, 3) -> 0

@@ -1,0 +1,13 @@
+id: ft_swap
+type: c_function
+module: Exam Rank 02
+xp: 420
+expected_files:
+- ft_swap.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void ft_swap(int *a, int *b);

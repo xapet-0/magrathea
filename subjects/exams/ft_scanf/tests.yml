@@ -1,0 +1,145 @@
+edge_cases:
+- name: edge_01_P
+  code: '[P]'
+  title: File descriptor leak audit in `ft_scanf`
+  input: Run ft_scanf and check open file descriptors in /proc/self/fd
+  expected: Only stdin, stdout, stderr remain open
+- name: edge_02_P
+  code: '[P]'
+  title: Child process reaping and zombie prevention in `ft_scanf`
+  input: Spawn multiple processes in ft_scanf and verify with waitpid
+  expected: No zombie processes remain in process table
+- name: edge_03_B
+  code: '[B]'
+  title: Command-line arguments contract enforcement in `ft_scanf`
+  input: Invoke ft_scanf with invalid argument counts
+  expected: Emit exact error string to stderr and exit with non-zero status
+- name: edge_04_M
+  code: '[M]'
+  title: Stream buffer cleanup on EOF in `ft_scanf`
+  input: Stream large input to ft_scanf until EOF
+  expected: 0 bytes leaked
+fixed_tests:
+- name: test_01_d_d_s_n_r_d_s
+  call: printf("%d:%d:%s\n", r, d, s)
+  setup:
+  - FILE *fp = fopen("in.txt", "w"); fputs("42 hello", fp); fclose(fp); freopen("in.txt",
+    "r", stdin); int d=0; char s[32]={0}; int r = ft_scanf("%d %s", &d, s);
+  stdout: '2:42:hello
+
+    '
+- name: test_02_d_d_c_n_r_d_c
+  call: printf("%d:%d:%c\n", r, d, c)
+  setup:
+  - FILE *fp = fopen("in2.txt", "w"); fputs("  -1337 X", fp); fclose(fp); freopen("in2.txt",
+    "r", stdin); int d=0; char c=0; int r = ft_scanf("%d %c", &d, &c);
+  stdout: '2:-1337:X
+
+    '
+- name: test_03_d_s_n_r_s
+  call: printf("%d:%s\n", r, s)
+  setup:
+  - FILE *fp = fopen("in3.txt", "w"); fputs("piscine", fp); fclose(fp); freopen("in3.txt",
+    "r", stdin); char s[32]={0}; int r = ft_scanf("%s", s);
+  stdout: '1:piscine
+
+    '
+- name: test_04_d_n_r_0
+  call: printf("%d\n", r <= 0)
+  setup:
+  - FILE *fp = fopen("in4.txt", "w"); fclose(fp); freopen("in4.txt", "r", stdin);
+    int d=0; int r = ft_scanf("%d", &d);
+  stdout: '1
+
+    '
+- name: test_05_zero_and_positive
+  setup:
+  - FILE *fp = fopen("in5.txt", "w"); fputs("0 +99", fp); fclose(fp); freopen("in5.txt",
+    "r", stdin); int a=-1, b=-1; int r = ft_scanf("%d %d", &a, &b);
+  call: printf("%d:%d:%d\n", r, a, b)
+  tier: edge
+  stdout: '2:0:99
+
+    '
+- name: test_06_two_strings
+  setup:
+  - FILE *fp = fopen("in6.txt", "w"); fputs("  hello   world  ", fp); fclose(fp);
+    freopen("in6.txt", "r", stdin); char s1[16]={0}, s2[16]={0}; int r = ft_scanf("%s
+    %s", s1, s2);
+  call: printf("%d:%s|%s\n", r, s1, s2)
+  tier: baseline
+  stdout: '2:hello|world
+
+    '
+- name: test_07_char_reads_whitespace_or_char
+  setup:
+  - FILE *fp = fopen("in7.txt", "w"); fputs("Z", fp); fclose(fp); freopen("in7.txt",
+    "r", stdin); char c=0; int r = ft_scanf("%c", &c);
+  call: printf("%d:%c\n", r, c)
+  tier: edge
+  stdout: '1:Z
+
+    '
+- name: test_08_invalid_int_stops
+  setup:
+  - FILE *fp = fopen("in8.txt", "w"); fputs("abc", fp); fclose(fp); freopen("in8.txt",
+    "r", stdin); int d=77; int r = ft_scanf("%d", &d);
+  call: printf("%d:%d\n", r, d)
+  tier: edge
+  stdout: '0:77
+
+    '
+- name: test_09_partial_match_two_of_three
+  setup:
+  - FILE *fp = fopen("in9.txt", "w"); fputs("42 word xyz", fp); fclose(fp); freopen("in9.txt",
+    "r", stdin); int d1=0, d2=99; char s[16]={0}; int r = ft_scanf("%d %s %d", &d1,
+    s, &d2);
+  call: printf("%d:%d:%s:%d\n", r, d1, s, d2)
+  tier: edge
+  stdout: '2:42:word:99
+
+    '
+- name: test_10_three_ints_with_newlines
+  setup:
+  - FILE *fp = fopen("in10.txt", "w"); fputs("10\n-20\t30\n", fp); fclose(fp); freopen("in10.txt",
+    "r", stdin); int a=0,b=0,c=0; int r = ft_scanf("%d %d %d", &a, &b, &c);
+  call: printf("%d:%d,%d,%d\n", r, a, b, c)
+  tier: stress
+  stdout: '3:10,-20,30
+
+    '
+folder_examples:
+- expected: Matches 42 reference standard output and exit code
+  id: cur_ft_scanf_T05
+  input: ./ft_scanf "$id"
+  origin: subject_folder/42ExamPractice/ft_scanf/tester.sh
+- expected: Matches 42 reference standard output and exit code
+  id: cur_ft_scanf_T06
+  input: ./ft_scanf 0; then
+  origin: subject_folder/42ExamPractice/ft_scanf/tester.sh
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval ft_scanf
+  perturbed_input:
+  - ft_scanf_near_arg_1
+  - ft_scanf_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: cur_ft_scanf_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: ./ft_scanf "$id"
+  perturbed_input: ./gt_scanf "$id"
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_scanf/tester.sh)
+- derived_from: cur_ft_scanf_T06
+  id: near_folder_02_boundary_neighbor
+  original_input: ./ft_scanf 0; then
+  perturbed_input: ./gt_scanf 0; then
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_scanf/tester.sh)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval ft_scanf
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

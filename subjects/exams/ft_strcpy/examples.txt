@@ -1,0 +1,64 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : char d[16]; printf("%s\n", ft_strcpy(d, "abc"))
+    Expected Output   : 'abc\n'
+  [Standard Test 2] Name: longer_src
+    Call / Invocation : char d[32]; printf("%s\n", ft_strcpy(d, "1337_Piscine"))
+    Expected Output   : '1337_Piscine\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: empty_src [Test description: "empty_src"]
+    Call / Invocation : char d[16] = "xxxxxxx"; printf("%s\n", ft_strcpy(d, ""))
+    Expected Output   : '\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: ft_strcpy_oracle_stress
+    C Source Driver:
+    int main(void)
+    {
+        const char *cases[] = {"", "abc", "hello world", "symbols !?", 0};
+        char dest[128];
+        int i;
+        for (i = 0; cases[i]; ++i)
+        {
+            memset(dest, 'X', sizeof(dest));
+            if (ft_strcpy(dest, (char *)cases[i]) != dest || strcmp(dest, cases[i]) != 0)
+            {
+                fprintf(stderr, "ft_strcpy mismatch on case %d\n", i);
+                return (1);
+            }
+        }
+        return (0);
+    }
+
+>>> DEDICATED _MAIN.c TEST DRIVERS (Nigal / Samuel Karani / Official):
+  File: 1-0-ft_strcpy_MAIN.c
+    #include <stdio.h>
+    
+    char *ft_strcpy(char *s1, char *s2);
+    
+    int main(void)
+    {
+        char boy[] = "harry";
+        char girl[] = "sally";
+    
+        printf("boy is: %s\n", boy);
+        printf("girl is: %s\n", girl);
+        ft_strcpy(boy, girl);
+        printf("boy is: %s\n", boy);
+        return (0);
+    }
+  File: 1-0-ft_strcpy02_MAIN.c
+    #include <stdio.h>
+    
+    char *ft_strcpy(char *dest, char *src);
+    	
+    int main(void)
+    {
+    	char hero[] = "pacman";
+    	char villian [] = "frogger";
+    
+    	ft_strcpy(hero, villian);
+    	printf("%s\n", hero);
+    	return 0;
+    }

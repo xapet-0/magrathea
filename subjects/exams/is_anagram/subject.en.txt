@@ -1,0 +1,19 @@
+Assignment name  : is_anagram
+Expected files   : is_anagram.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that returns 1 if strings a and b are anagrams of each other
+(consist of the exact same printable ASCII characters with the same frequencies),
+and 0 otherwise.
+
+Prototype:
+int	is_anagram(char *a, char *b);
+
+Your function must be declared as follows:
+    int is_anagram(char *a, char *b);
+
+Examples:
+    is_anagram("cinema", "iceman") -> 1
+    is_anagram("hello", "world") -> 0
+    is_anagram("", "") -> 1

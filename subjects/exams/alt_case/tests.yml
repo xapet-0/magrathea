@@ -1,0 +1,114 @@
+subject_id: alt_case
+fixed_tests:
+- name: friend_example
+  args:
+  - hello world yes
+  stdout: 'hello WORLD yes
+
+    '
+  tier: baseline
+- name: normalizes_case
+  args:
+  - HeLLo WoRLd YES
+  stdout: 'hello WORLD yes
+
+    '
+  tier: baseline
+- name: tabs_are_separators
+  args:
+  - "one\ttwo three"
+  stdout: "one\tTWO three\n"
+  tier: baseline
+- name: multiple_spaces_preserved
+  args:
+  - '  alpha  beta  gamma  '
+  stdout: "  alpha  BETA  gamma  \n"
+  tier: baseline
+- name: empty_string
+  args:
+  - ''
+  stdout: '
+
+    '
+  tier: baseline
+- name: wrong_arg_count
+  args: []
+  stdout: '
+
+    '
+  tier: baseline
+- name: test_07_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: "   \n"
+- name: test_09_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '1337
+
+    '
+- name: test_10_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '42_network
+
+    '
+mode: c_program
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./alt_case "hello world yes" | cat -e
+  args: &id001
+  - hello world yes
+  expected: 'hello WORLD yes
+
+
+    Allowed functions: write.
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_alt_case_T07
+  origin: subject_folder/examples.txt
+  input: ./alt_case "hello world yes" \| cat -e
+  expected: 'hello WORLD yes$\n\nAllowed functions: write.'
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "subject_id: alt_case\nfixed_tests:\n- name: friend_example\n  args:\n\
+    \  - hello world yes\n  stdout: 'hello WORLD yes\n\n    '\n- name: normalizes_case\n\
+    \  args:\n  - HeLLo"
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - iello world yes
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  hello world yes  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_alt_case_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./alt_case "hello world yes" \| cat -e
+  perturbed_input: ./blt_case "hello world yes" \| cat -e
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

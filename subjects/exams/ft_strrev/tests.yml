@@ -1,0 +1,142 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_strrev_T01
+  description: 'Functional verification of input: `char s[]="abcd"; printf("%s\n",ft_strrev(s))`'
+  call: char s[]="abcd"; printf("%s\n",ft_strrev(s))
+  stdout: 'dcba
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_strrev_T02
+  description: empty_str
+  call: char s[] = ""; printf("[%s]\n", ft_strrev(s))
+  stdout: '[]
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_strrev_T03
+  description: single_char
+  call: char s[] = "X"; printf("%s\n", ft_strrev(s))
+  stdout: 'X
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_strrev_T04
+  description: odd_len
+  call: char s[] = "12345"; printf("%s\n", ft_strrev(s))
+  stdout: '54321
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_two_chars
+  call: char s[] = "42"; printf("%s\n", ft_strrev(s))
+  tier: edge
+  stdout: '24
+
+    '
+- name: test_06_palindrome
+  call: char s[] = "racecar"; printf("%s\n", ft_strrev(s))
+  tier: edge
+  stdout: 'racecar
+
+    '
+- name: test_07_returns_same_pointer
+  call: char s[] = "hello"; char *r = ft_strrev(s); printf("%d:%s\n", r == s, s)
+  tier: edge
+  stdout: '1:olleh
+
+    '
+- name: test_08_double_reverse_restores
+  call: char s[] = "Magrathea_1337"; ft_strrev(ft_strrev(s)); printf("%s\n", s)
+  tier: baseline
+  stdout: 'Magrathea_1337
+
+    '
+- name: test_09_with_spaces_and_symbols
+  call: char s[] = "a b!c?"; printf("%s\n", ft_strrev(s))
+  tier: baseline
+  stdout: '?c!b a
+
+    '
+- name: test_10_ten_digits
+  call: char s[] = "0123456789"; printf("%s\n", ft_strrev(s))
+  tier: stress
+  stdout: '9876543210
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strrev
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_strrev_T06
+  origin: subject_folder/42ExamPractice/ft_strrev/tester.sh
+  input: ./ft_strrev "   "
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strrev_T07
+  origin: subject_folder/42ExamPractice/ft_strrev/tester.sh
+  input: ./ft_strrev "dub0 a POIL"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strrev_T08
+  origin: subject_folder/42ExamPractice/ft_strrev/tester.sh
+  input: ./ft_strrev "FOR PONY"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strrev_T09
+  origin: subject_folder/42ExamPractice/ft_strrev/tester.sh
+  input: ./ft_strrev "3:21 Ba  tOut  moUn ki Ka di KE m'en Ka fe fot"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strrev_T10
+  origin: subject_folder/42ExamPractice/ft_strrev/tester.sh
+  input: ./ft_strrev "this        ...       is sparta, then again, maybe    not"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strrev_T11
+  origin: subject_folder/42ExamPractice/ft_strrev/tester.sh
+  input: ./ft_strrev "AkjhZ zLKIJz , 23y "
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strrev_T12
+  origin: subject_folder/42ExamPractice/ft_strrev/tester.sh
+  input: ./ft_strrev "  lorem,ipsum  "
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strrev_T13
+  origin: subject_folder/42ExamPractice/ft_strrev/tester.sh
+  input: ./ft_strrev "zaz"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strrev_T14
+  origin: subject_folder/42ExamPractice/ft_strrev/tester.sh
+  input: ./ft_strrev ""
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strrev_T15
+  origin: subject_folder/2-5-ft_strrev_MAIN.c
+  input: Compiled and run with 2-5-ft_strrev_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_11
+  origin: subject_folder/2-5-ft_strrev_MAIN.c
+  input: 2-5-ft_strrev_MAIN.c
+  expected: "#include <stdio.h>\n#include <unistd.h>\n\nchar *ft_strrev(char *str);\n\
+    \nint main(int argc, char **argv)\n{\n\tint i;\n\n\ti = 0;\n\tif (argc != 2)\n\
+    \t{\n\t\twrite(1, \"\\n\", 1);\n"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strrev
+  perturbed_input:
+  - ft_strrev_near_arg_1
+  - ft_strrev_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_strrev_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strrev/tester.sh)
+  original_input: ./ft_strrev "   "
+  perturbed_input: ./gt_strrev "   "
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_ft_strrev_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strrev/tester.sh)
+  original_input: ./ft_strrev "dub0 a POIL"
+  perturbed_input: ./gt_strrev "dub0 a POIL"

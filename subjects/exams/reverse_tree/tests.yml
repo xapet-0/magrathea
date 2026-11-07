@@ -1,0 +1,133 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `reverse_tree`
+  input: reverse_tree(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `reverse_tree`
+  input: Input with no valid solution or containing duplicate values in reverse_tree
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `reverse_tree`
+  input: Run reverse_tree with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `reverse_tree`
+  input: Inspect sequence of traversed or printed nodes in reverse_tree
+  expected: Exact match with standard traversal order required in subject
+fixed_tests:
+- name: test_01_expr
+  expr: r.left->value == 2 && r.right->value == 1
+  setup:
+  - struct s_node a={1,0,0}, b={2,0,0}, r={3,&a,&b}
+  - reverse_tree(&r)
+  stdout: '1
+
+    '
+- name: test_02_NULL_printf_ok_n
+  call: reverse_tree(NULL); printf("ok\n")
+  stdout: 'ok
+
+    '
+- name: test_03_expr
+  expr: r.value == 42 && r.left == NULL && r.right == NULL
+  setup:
+  - struct s_node r={42,0,0}
+  - reverse_tree(&r)
+  stdout: '1
+
+    '
+- name: test_04_expr
+  expr: r.left == NULL && r.right == &a
+  setup:
+  - struct s_node a={10,0,0}, r={20,&a,0}
+  - reverse_tree(&r)
+  stdout: '1
+
+    '
+- name: test_05_right_child_only
+  setup:
+  - struct s_node b={10,0,0}, r={20,0,&b};
+  - reverse_tree(&r);
+  expr: r.left == &b && r.right == NULL
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_double_reverse_restores
+  setup:
+  - struct s_node a={1,0,0}, b={2,0,0}, r={3,&a,&b};
+  - reverse_tree(&r); reverse_tree(&r);
+  expr: r.left == &a && r.right == &b
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_three_levels_full
+  setup:
+  - struct s_node n4={4,0,0},n5={5,0,0},n6={6,0,0},n7={7,0,0},n2={2,&n4,&n5},n3={3,&n6,&n7},n1={1,&n2,&n3};
+  - reverse_tree(&n1);
+  expr: n1.left==&n3 && n1.right==&n2 && n3.left==&n7 && n3.right==&n6 && n2.left==&n5
+    && n2.right==&n4
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_08_left_chain_of_3
+  setup:
+  - struct s_node c={3,0,0}, b={2,&c,0}, a={1,&b,0};
+  - reverse_tree(&a);
+  expr: a.left==0 && a.right==&b && b.left==0 && b.right==&c
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_zigzag_chain
+  setup:
+  - struct s_node c={3,0,0}, b={2,0,&c}, a={1,&b,0};
+  - reverse_tree(&a);
+  expr: a.right==&b && a.left==0 && b.left==&c && b.right==0
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_10_asymmetric_five_nodes
+  setup:
+  - struct s_node ll={4,0,0}, lr={5,0,0}, l={2,&ll,&lr}, r={3,0,0}, root={1,&l,&r};
+  - reverse_tree(&root);
+  expr: root.left==&r && root.right==&l && l.left==&lr && l.right==&ll
+  tier: stress
+  stdout: '1
+
+    '
+folder_examples:
+- expected: 'reverse_tree(NULL); printf("ok\n")\n    Output: ok\n    r.value == 42
+    && r.left == NULL && r.right == NULL -> 1'
+  id: can_reverse_tree_T05
+  input: r.left->value == 2 && r.right->value == 1 -> 1
+  origin: subject_folder/examples.txt
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval reverse_tree
+  perturbed_input:
+  - reverse_tree_near_arg_1
+  - reverse_tree_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_reverse_tree_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: r.left->value == 2 && r.right->value == 1 -> 1
+  perturbed_input: 's.left->value == 2 && r.right->value == '
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval reverse_tree
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

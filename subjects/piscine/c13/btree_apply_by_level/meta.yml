@@ -1,0 +1,17 @@
+id: btree_apply_by_level
+type: c_function
+module: C 13
+xp: 370
+expected_files:
+- btree_apply_by_level.c
+- ft_btree.h
+allowed_functions:
+- malloc
+- free
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void btree_apply_by_level(t_btree *root, void (*applyf)(void *item, int
+  current_level, int is_first_elem));

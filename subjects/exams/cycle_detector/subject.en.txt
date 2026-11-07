@@ -1,0 +1,108 @@
+Assignment name  : cycle_detector
+Expected files   : cycle_detector.c
+Allowed functions: malloc, free
+--------------------------------------------------------------------------------
+
+Create a function named cycle_detector that takes a const t_list *list
+as argument, and check if the given linked list contains no cycles.
+
+A cycle is defined when you go at least twice through the same link, when you
+travel inside a linked list.
+
+This function should returnw 1 if it detects a cycle inside the given linked
+list, otherwise it returns 0.
+
+This function should be prototyped like this:
+
+    int        cycle_detector(const t_list *list)
+
+The type t_list is:
+
+    typedef struct     s_list
+    {
+        int            data;
+        struct s_list  *next;
+    }                  t_list;
+
+This type will be included in a header named "list.h". You don't have to turn-in
+your "list.h", we will use ours during the evaluation.
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: has_cycle [Null pointer, zero, or boundary input in call]
+    Call / Invocation : t_list a = {1, 0}; t_list b = {2, 0}; t_list c = {3, 0}; a.next = &b; b.next = &c; c.next = &b; printf("%d\n", cycle_detector(&a))
+    Expected Output   : '1\n'
+  [Edge Case 2] Name: linear_list [Null pointer, zero, or boundary input in call]
+    Call / Invocation : t_list a = {1, 0}; t_list b = {2, 0}; t_list c = {3, 0}; a.next = &b; b.next = &c; printf("%d\n", cycle_detector(&a))
+    Expected Output   : '0\n'
+  [Edge Case 3] Name: null_list [Test description: "null_list"]
+    Call / Invocation : printf("%d\n", cycle_detector(0))
+    Expected Output   : '0\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: cycle_detector_oracle_stress
+    C Source Driver:
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "list.h"
+    
+    int cycle_detector(const t_list *list);
+    
+    static t_list *new_node(int data)
+    {
+        t_list *n = malloc(sizeof(t_list));
+        n->data = data;
+        n->next = NULL;
+        return n;
+    }
+    
+    int main(void)
+    {
+        if (cycle_detector(NULL) != 0) return 1;
+        
+        t_list *n1 = new_node(1);
+        if (cycle_detector(n1) != 0) return 1;
+        
+        n1->next = n1;
+        if (cycle_detector(n1) != 1) return 1;
+        
+        t_list *n2 = new_node(2);
+        t_list *n3 = new_node(3);
+        t_list *n4 = new_node(4);
+        n2->next = n3; n3->next = n4; n4->next = NULL;
+        if (cycle_detector(n2) != 0) return 1;
+        
+        n4->next = n2;
+        if (cycle_detector(n2) != 1) return 1;
+        
+        return 0;
+    }
+
+>>> DEDICATED _MAIN.c TEST DRIVERS (Nigal / Samuel Karani / Official):
+  File: cycle_detector_MAIN.c
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "list.h"
+    
+    int cycle_detector(const t_list *list);
+    
+    int main(void)
+    {
+        t_list a, b, c;
+        a.next = &b;
+        b.next = &c;
+        c.next = NULL;
+    
+        printf("No cycle: %d\n", cycle_detector(&a)); // 0
+    
+        c.next = &b;
+        printf("Cycle b->c->b: %d\n", cycle_detector(&a)); // 1
+    
+        c.next = &a;
+        printf("Cycle a->b->c->a: %d\n", cycle_detector(&a)); // 1
+    
+        printf("NULL list: %d\n", cycle_detector(NULL)); // 0
+    
+        return 0;
+    }

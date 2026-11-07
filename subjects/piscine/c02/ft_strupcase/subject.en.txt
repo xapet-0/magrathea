@@ -1,0 +1,23 @@
+Assignment name  : ft_strupcase
+Expected files   : ft_strupcase.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 02 (Official PDF)
+Exercise         : ft_strupcase
+Turn-in directory: ex07/
+Expected files   : ft_strupcase.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function that converts every letter to uppercase.
+• Here is how it should be prototyped:
+char *ft_strupcase(char *str);
+• It should return str.
+
+Your function must be declared as follows:
+    char *ft_strupcase(char *str);
+
+Examples:
+    char s[] = "hello"; ft_strupcase(s); printf("%s\n", s)
+    Output: HELLO

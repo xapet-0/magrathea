@@ -1,0 +1,85 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_print_numbers_T01
+  description: 'Functional verification of input: `ft_print_numbers()`'
+  expr: ft_print_numbers()
+  stdout: '0123456789
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_print_numbers_T02
+  description: case_numbers_once
+  call: ft_print_numbers(); write(1, "\n", 1)
+  stdout: '0123456789
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_print_numbers_T03
+  description: case_numbers_twice
+  call: ft_print_numbers(); ft_print_numbers(); write(1, "\n", 1)
+  stdout: '01234567890123456789
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_print_numbers_T04_wrapped
+  description: bracket_wrapped_digits
+  call: write(1, "[", 1); ft_print_numbers(); write(1, "]\n", 2)
+  stdout: '[0123456789]
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_print
+  expr: ft_print_numbers()
+  tier: baseline
+  stdout: 0123456789
+- name: test_06_print
+  expr: ft_print_numbers()
+  tier: baseline
+  stdout: 0123456789
+- name: test_07_print
+  expr: ft_print_numbers()
+  tier: baseline
+  stdout: 0123456789
+- name: test_08_print
+  expr: ft_print_numbers()
+  tier: baseline
+  stdout: 0123456789
+- name: test_09_print
+  expr: ft_print_numbers()
+  tier: baseline
+  stdout: 0123456789
+- name: test_10_print
+  expr: ft_print_numbers()
+  tier: baseline
+  stdout: 0123456789
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./ft_print_numbers | cat -e
+  args: []
+  expected: '0123456789
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_ft_print_numbers_T05
+  origin: subject_folder/examples.txt
+  input: ./ft_print_numbers \| cat -e
+  expected: 0123456789$
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./ft_print_numbers | cat -e
+  perturbed_input:
+  - ft_print_numbers_near_arg_1
+  - ft_print_numbers_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_print_numbers_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./ft_print_numbers \| cat -e
+  perturbed_input: ./gt_print_numbers \| cat -e

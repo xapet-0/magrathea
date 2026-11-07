@@ -1,0 +1,34 @@
+mode: shell
+fixed_tests:
+- name: pool_ft_magic_T01
+  description: Standard baseline execution and behavior check for `ft_magic`
+  args: []
+  input: '`sh ft_magic.sh` (standard shell environment)'
+  expected: '*(none)*'
+  category: Functional
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_magic
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_fixture_01
+  origin: subject_folder/ft_magic
+  input: ft_magic
+  expected: "41\tstring 42\t42 file"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_magic
+  perturbed_input:
+  - ft_magic_near_arg_1
+  - ft_magic_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_fixture_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/ft_magic)
+  original_input: ft_magic
+  perturbed_input: gt_magic

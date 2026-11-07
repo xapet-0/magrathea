@@ -1,0 +1,3 @@
+Examples:
+$> ./special_filename_MaRViN | cat -e
+$

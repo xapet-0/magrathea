@@ -1,0 +1,26 @@
+Assignment name  : add_chelou.sh
+Turn-in directory: ex07/
+Expected files   : add_chelou.sh
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+r_dwssap.sh
+Turn-in directory: ex07/
+Files to turn in:r_dwssap.sh
+Allowed functions:None
+• Write a command line that processes the output of cat /etc/passwd with the
+following modifications:
+◦ Remove comments.
+◦ Keep every other line, starting from the second line.
+◦ Reverse each login name.
+◦ Sort the results in reverse alphabetical order.
+◦ Keep only logins between the environment variables FT_LINE1 and FT_LINE2
+(inclusive).
+◦ Join them in a single line, separated by ", ".
+◦ End the output with a "."
+• Example Output (for lines 7 to 15):
+$> ./r_dwssap.sh
+sstq_, sorebrek_brk_, soibten_, sergtsop_, scodved_, rlaxcm_, rgmecived_, revreswodniw_,
+revressta_.$>
+• Follow the steps in the exact order given!
+• Did you check with your left-side neighbor?

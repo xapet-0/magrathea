@@ -1,0 +1,39 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: multi_spaces_and_tabs [Test description: "multi_spaces_and_tabs"]
+    Setup Code : ['char **w = ft_split("  hello   1337\\tworld\\n ")']
+    Call / Invocation : printf("%s|%s|%s|%d\n", w[0] ? w[0] : "NULL", w[1] ? w[1] : "NULL", w[2] ? w[2] : "NULL", w[3] == NULL)
+    Expected Output   : 'hello|1337|world|1\n'
+  [Edge Case 2] Name: empty_string_edge_case [Test description: "empty_string_edge_case"]
+    Setup Code : ['char **w = ft_split("")']
+    Call / Invocation : printf("w[0]=%s\n", w && w[0] ? w[0] : "NULL")
+    Expected Output   : 'w[0]=NULL\n'
+  [Edge Case 3] Name: only_spaces_edge_case [Test description: "only_spaces_edge_case"]
+    Setup Code : ['char **w = ft_split("   \\t  \\n ")']
+    Call / Invocation : printf("w[0]=%s\n", w && w[0] ? w[0] : "NULL")
+    Expected Output   : 'w[0]=NULL\n'
+
+>>> DEDICATED _MAIN.c TEST DRIVERS (Nigal / Samuel Karani / Official):
+  File: ft_split_MAIN.c
+    #include <stdio.h>
+    #include <stdlib.h>
+    
+    char **ft_split(char *str);
+    
+    int main(void)
+    {
+        char **w;
+        int i;
+    
+        w = ft_split("  hello   1337\tworld\n ");
+        printf("Test 1: %s|%s|%s|%d\n", w[0] ? w[0] : "NULL", w[1] ? w[1] : "NULL", w[2] ? w[2] : "NULL", w[3] == NULL);
+    
+        w = ft_split("");
+        printf("Test 2 (empty): w[0]=%s\n", w && w[0] ? w[0] : "NULL");
+    
+        w = ft_split("   \t  \n ");
+        printf("Test 3 (spaces): w[0]=%s\n", w && w[0] ? w[0] : "NULL");
+    
+        return 0;
+    }

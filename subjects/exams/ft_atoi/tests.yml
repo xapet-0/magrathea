@@ -1,0 +1,127 @@
+mode: c_function
+fixed_tests:
+- name: subj_ex_zero
+  tier: subject_example
+  expr: ft_atoi("0")
+  stdout: '0
+
+    '
+- name: subj_ex_positive_42
+  tier: subject_example
+  expr: ft_atoi("42")
+  stdout: '42
+
+    '
+- name: folder_ex_spaces_negative
+  tier: folder_example
+  expr: ft_atoi("   \t\n\v\f\r  -42")
+  stdout: '-42
+
+    '
+- name: near_ex_positive_43_padded
+  tier: near_example
+  expr: ft_atoi("  +43abc")
+  stdout: '43
+
+    '
+- name: near_ex_plus_1337
+  tier: near_example
+  expr: ft_atoi("+1337abc")
+  stdout: '1337
+
+    '
+- name: boundary_int_min_and_empty
+  call: printf("%d:%d\n", ft_atoi("-2147483648"), ft_atoi("   "))
+  stdout: '-2147483648:0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: edge_embedded_nul_terminator
+  tier: edge_case
+  setup:
+  - char buf_nul[] = {' ', '\0', '1', '2', '3', '\0'};
+  expr: ft_atoi(buf_nul)
+  stdout: '0
+
+    '
+- name: edge_double_sign_stops
+  tier: edge_case
+  expr: ft_atoi("   --42") + ft_atoi("   +-42") + ft_atoi("abc42")
+  stdout: '0
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_atoi
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_atoi_T18
+  origin: subject_folder/42ExamPractice/ft_atoi/tester.sh
+  input: ./ft_atoi "13268!"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_atoi_T19
+  origin: subject_folder/42ExamPractice/ft_atoi/tester.sh
+  input: ./ft_atoi "-13268!"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_atoi_T20
+  origin: subject_folder/42ExamPractice/ft_atoi/tester.sh
+  input: ./ft_atoi "+13268!"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_atoi_T21
+  origin: subject_folder/42ExamPractice/ft_atoi/tester.sh
+  input: ./ft_atoi "OH ! 13268!"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_atoi_T22
+  origin: subject_folder/42ExamPractice/ft_atoi/tester.sh
+  input: ./ft_atoi "Ceci permet de decouvrir le fonctionnement de ton ft_atoi."
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_atoi_T23
+  origin: subject_folder/mini-moulinette/ex03/ft_atoi.c
+  input: 'Input: 12345'
+  expected: 'Expected: 12345'
+- id: can_ft_atoi_T24
+  origin: subject_folder/mini-moulinette/ex03/ft_atoi.c
+  input: 'Input: -54321'
+  expected: 'Expected: -54321'
+- id: can_ft_atoi_T25
+  origin: subject_folder/mini-moulinette/ex03/ft_atoi.c
+  input: 'Input:     4567'
+  expected: 'Expected: 4567'
+- id: can_ft_atoi_T26
+  origin: subject_folder/mini-moulinette/ex03/ft_atoi.c
+  input: 'Input: +6789'
+  expected: 'Expected: 6789'
+- id: can_ft_atoi_T27
+  origin: subject_folder/mini-moulinette/ex03/ft_atoi.c
+  input: 'Input: 123abc'
+  expected: 'Expected: 123'
+- id: can_ft_atoi_T28
+  origin: subject_folder/mini-moulinette/ex03/ft_atoi.c
+  input: 'Input: 0'
+  expected: 'Expected: 0'
+- id: can_ft_atoi_T29
+  origin: subject_folder/mini-moulinette/ex03/ft_atoi.c
+  input: 'Input: -0'
+  expected: 'Expected: 0'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_atoi
+  perturbed_input:
+  - ft_atoi_near_arg_1
+  - ft_atoi_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_atoi_T18
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_atoi/tester.sh)
+  original_input: ./ft_atoi "13268!"
+  perturbed_input: ./gt_atoi "13268!"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_ft_atoi_T19
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_atoi/tester.sh)
+  original_input: ./ft_atoi "-13268!"
+  perturbed_input: ./gt_atoi "-13268!"

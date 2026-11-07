@@ -1,0 +1,5 @@
+# Examples for ft_sorted_list_merge (from official subject specification)
+
+Examples:
+    t_list d={"d",0}; t_list b={"b",&d}; t_list c={"c",0}; t_list a={"a",&c}; t_list *l=&a; ft_sorted_list_merge(&l,&b,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n")
+    Output: abcd

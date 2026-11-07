@@ -1,0 +1,23 @@
+id: argo
+type: c_program
+module: Exam Rank 04
+xp: 585
+expected_files:
+- argo.c
+allowed_functions:
+- getc
+- ungetc
+- printf
+- malloc
+- calloc
+- realloc
+- free
+- isdigit
+- fscanf
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

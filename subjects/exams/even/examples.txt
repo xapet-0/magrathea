@@ -1,0 +1,5 @@
+Examples:
+$> ./even
+0246810
+$> ./even | cat -e
+0246810$

@@ -1,0 +1,19 @@
+Assignment name  : collatz_conjecture
+Expected files   : collatz_conjecture.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a recursive function that returns the number of steps required to reach 1
+following the Collatz conjecture starting from base:
+- If base is 1, 0 steps are required (return 0).
+- If base is even, divide it by 2.
+- If base is odd, multiply it by 3 and add 1.
+- If base <= 0, return 0.
+
+Your function must be declared as follows:
+
+unsigned int	collatz_conjecture(unsigned int base);
+
+Examples:
+  collatz_conjecture(1)  -> 0
+  collatz_conjecture(12) -> 9

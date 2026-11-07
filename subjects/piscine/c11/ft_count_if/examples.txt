@@ -1,0 +1,5 @@
+# Examples for ft_count_if (from official subject specification)
+
+Examples:
+    char *a[]={"a","bb","c"}; printf("%d\n",ft_count_if(a,3,dt_is_short))
+    Output: 2

@@ -1,0 +1,61 @@
+fixed_tests:
+- call: printf("%d\n", ascii_character(65));
+  name: cur_ascii_character_T01
+  stdout: '65
+
+    '
+- call: printf("%d\n", ascii_character(122));
+  name: cur_ascii_character_T02
+  stdout: '122
+
+    '
+- call: printf("%d\n", ascii_character(48));
+  name: ascii_character_digit_zero
+  stdout: '48
+
+    '
+- call: printf("%d\n", ascii_character(0));
+  name: ascii_character_nul_byte
+  stdout: '0
+
+    '
+- name: test_05_uppercase_Z
+  call: printf("%d\n", ascii_character(90));
+  tier: baseline
+  stdout: '90
+
+    '
+- name: test_06_lowercase_a
+  call: printf("%d\n", ascii_character(97));
+  tier: baseline
+  stdout: '97
+
+    '
+- name: test_07_space_32
+  call: printf("%d\n", ascii_character(32));
+  tier: edge
+  stdout: '32
+
+    '
+- name: test_08_del_127
+  call: printf("%d\n", ascii_character(127));
+  tier: edge
+  stdout: '127
+
+    '
+- name: test_09_negative_val
+  call: printf("%d\n", ascii_character(-1));
+  tier: edge
+  stdout: '-1
+
+    '
+- name: test_10_above_127
+  call: printf("%d\n", ascii_character(200));
+  tier: stress
+  stdout: '-56
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

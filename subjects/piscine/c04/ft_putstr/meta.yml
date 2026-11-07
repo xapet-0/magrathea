@@ -1,0 +1,14 @@
+id: ft_putstr
+type: c_function
+module: C 04
+xp: 170
+expected_files:
+- ft_putstr.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void ft_putstr(char *str);

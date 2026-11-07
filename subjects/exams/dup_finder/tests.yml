@@ -1,0 +1,165 @@
+fixed_tests:
+- name: test_01_files
+  files:
+    a.txt: '42
+
+      '
+    b.txt: '42
+
+      '
+  stdout: '42
+
+    '
+- name: test_02_files
+  files:
+    x.txt: '1337
+
+      alpha
+
+      '
+    y.txt: '1337
+
+      beta
+
+      '
+  stdout: '1337
+
+    '
+- name: test_03_multi_dups
+  files:
+    f1.txt: 'aa
+
+      bb
+
+      '
+    f2.txt: 'bb
+
+      cc
+
+      '
+  stdout: 'bb
+
+    '
+- name: test_04_no_dups
+  files:
+    f1.txt: 'only1
+
+      '
+    f2.txt: 'only2
+
+      '
+  stdout: ''
+  expect_empty: true
+- name: test_05_three_identical_lines
+  files:
+    a.txt: 'dup
+
+      '
+    b.txt: 'dup
+
+      '
+    c.txt: 'dup
+
+      '
+  tier: edge
+  stdout: 'dup
+
+    '
+- name: test_06_dup_within_same_file
+  files:
+    a.txt: 'same
+
+      same
+
+      unique
+
+      '
+  tier: edge
+  stdout: 'same
+
+    '
+- name: test_07_numeric_dups
+  files:
+    n1.txt: '10
+
+      20
+
+      30
+
+      '
+    n2.txt: '20
+
+      40
+
+      '
+  tier: baseline
+  stdout: '20
+
+    '
+- name: test_08_multiple_distinct_dups
+  files:
+    f1.txt: 'b
+
+      a
+
+      c
+
+      '
+    f2.txt: 'c
+
+      a
+
+      d
+
+      '
+  tier: baseline
+  stdout: 'a
+
+    c
+
+    '
+- name: test_09_single_file_no_dup
+  files:
+    only.txt: '1
+
+      2
+
+      3
+
+      '
+  stdout: ''
+  tier: edge
+- name: test_10_four_files_mixed
+  files:
+    1.txt: 'x
+
+      y
+
+      '
+    2.txt: 'y
+
+      z
+
+      '
+    3.txt: 'z
+
+      w
+
+      '
+    4.txt: 'x
+
+      m
+
+      '
+  tier: stress
+  stdout: 'x
+
+    y
+
+    z
+
+    '
+subject_id: dup_finder
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,3 @@
+Examples:
+$> ./testShell00 | cat -e
+$

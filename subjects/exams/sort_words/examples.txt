@@ -1,0 +1,10 @@
+# Examples for sort_words (from official subject specification)
+
+Example:
+
+$> ./sort_words "Is Are Am" | cat -e
+Am Are Is$
+$> ./sort_words "banana cat apple" | cat -e
+apple banana cat$
+$>./sort_words "" | cat -e
+$

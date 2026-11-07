@@ -1,0 +1,61 @@
+fixed_tests:
+- call: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%s\n",(char*)ft_list_find(&a,"b",dt_cmp)->data);
+  name: pool_ft_list_find_T01
+  stdout: 'b
+
+    '
+- call: printf("%d\n",ft_list_find(NULL,"b",dt_cmp)==NULL);
+  name: ft_list_find_null_list
+  stdout: '1
+
+    '
+- call: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%d\n",ft_list_find(&a,"z",dt_cmp)==NULL);
+  name: ft_list_find_not_found
+  stdout: '1
+
+    '
+- call: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%s\n",(char*)ft_list_find(&a,"a",dt_cmp)->data);
+  name: ft_list_find_first_element
+  stdout: 'a
+
+    '
+- name: test_05_find_last_of_four
+  call: t_list d={"d",0},c={"c",&d},b={"b",&c},a={"a",&b}; printf("%d\n",ft_list_find(&a,"d",dt_cmp)==&d);
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_06_returns_first_matching_node
+  call: t_list c={"x",0},b={"x",&c},a={"a",&b}; printf("%d\n",ft_list_find(&a,"x",dt_cmp)==&b);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_single_node_found_and_not_found
+  call: t_list a={"42",0}; printf("%d:%d\n",ft_list_find(&a,"42",dt_cmp)==&a,ft_list_find(&a,"0",dt_cmp)==NULL);
+  tier: edge
+  stdout: '1:1
+
+    '
+- name: test_08_find_empty_string
+  call: t_list b={"",0},a={"nonempty",&b}; printf("%d\n",ft_list_find(&a,"",dt_cmp)==&b);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_find_middle_node
+  call: t_list e={"5",0},d={"4",&e},c={"3",&d},b={"2",&c},a={"1",&b}; printf("%s\n",(char*)ft_list_find(&a,"3",dt_cmp)->data);
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_10_prefix_not_equal
+  call: t_list b={"abc",0},a={"ab",&b}; printf("%d:%d\n",ft_list_find(&a,"a",dt_cmp)==NULL,ft_list_find(&a,"abc",dt_cmp)==&b);
+  tier: stress
+  stdout: '1:1
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

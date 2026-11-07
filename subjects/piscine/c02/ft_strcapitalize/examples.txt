@@ -1,0 +1,4 @@
+For example:
+hi, how are you? 42words forty-two; fifty+and+one
+• Becomes:
+Hi, How Are You? 42words Forty-Two; Fifty+And+One

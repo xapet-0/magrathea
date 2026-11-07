@@ -1,0 +1,18 @@
+Assignment name  : alt_case
+Expected files   : alt_case.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes one string argument and alternates the case of whole words.
+
+Words are separated by spaces or tabs. The first word must be printed in lowercase, the second word in uppercase, the third word in lowercase, and so on. Separators must be preserved exactly.
+
+If the number of arguments is not exactly 1, print only a newline.
+
+Example:
+
+
+$> ./alt_case "hello world yes" | cat -e
+hello WORLD yes$
+
+Allowed functions: write.

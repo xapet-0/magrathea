@@ -1,0 +1,35 @@
+mode: shell
+fixed_tests:
+- name: pool_midls_T01
+  description: Standard baseline execution and behavior check for `midls`
+  args: []
+  input: '`sh midls.sh` (standard shell environment)'
+  expected: '*(none)*'
+  category: Functional
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval midls
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_midls_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`sh midls.sh` (standard shell environment)'
+  expected: '*(none)*'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval midls
+  perturbed_input:
+  - midls_near_arg_1
+  - midls_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_midls_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '`sh midls.sh` (standard shell environment)'
+  perturbed_input: '`th midls.sh` (standard shell environmen'

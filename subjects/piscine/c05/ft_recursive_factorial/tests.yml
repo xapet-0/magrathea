@@ -1,0 +1,114 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_recursive_factorial_T01
+  description: 'Functional verification of input: `ft_recursive_factorial(-1)`'
+  expr: ft_recursive_factorial(-1)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_recursive_factorial_T02
+  description: 'Functional verification of input: `ft_recursive_factorial(6)`'
+  expr: ft_recursive_factorial(6)
+  stdout: '720
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_recursive_factorial_T03
+  description: edge_recursive_factorial_zero
+  expr: ft_recursive_factorial(0)
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_recursive_factorial_T04
+  description: edge_recursive_factorial_negative
+  expr: ft_recursive_factorial(-5)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_recursive_factorial_T05
+  description: edge_recursive_factorial_five
+  expr: ft_recursive_factorial(5)
+  stdout: '120
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_06_one
+  expr: ft_recursive_factorial(1)
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_07_two
+  expr: ft_recursive_factorial(2)
+  tier: baseline
+  stdout: '2
+
+    '
+- name: test_08_four
+  expr: ft_recursive_factorial(4)
+  tier: baseline
+  stdout: '24
+
+    '
+- name: test_09_ten
+  expr: ft_recursive_factorial(10)
+  tier: stress
+  stdout: '3628800
+
+    '
+- name: test_10_twelve
+  expr: ft_recursive_factorial(12)
+  tier: stress
+  stdout: '479001600
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_recursive_factorial
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_recursive_factorial_T07
+  origin: subject_folder/mini-moulinette/ex01/ft_recursive_factorial.c
+  input: 'Input:'
+  expected: 'Expected: 1'
+- id: pool_ft_recursive_factorial_T08
+  origin: subject_folder/mini-moulinette/ex01/ft_recursive_factorial.c
+  input: 'Input:'
+  expected: 'Expected: 2'
+- id: pool_ft_recursive_factorial_T09
+  origin: subject_folder/mini-moulinette/ex01/ft_recursive_factorial.c
+  input: 'Input:'
+  expected: 'Expected: 3628800'
+- id: pool_ft_recursive_factorial_T10
+  origin: subject_folder/mini-moulinette/ex01/ft_recursive_factorial.c
+  input: 'Input:'
+  expected: 'Expected: 0'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_recursive_factorial
+  perturbed_input:
+  - ft_recursive_factorial_near_arg_1
+  - ft_recursive_factorial_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_recursive_factorial_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex01/ft_recursive_factorial.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_recursive_factorial_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex01/ft_recursive_factorial.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'

@@ -1,0 +1,81 @@
+subject_id: rle_sh
+fixed_tests:
+- name: test_01_no_args
+  env:
+    FT_LINE: aaabbc
+  args: []
+  stdout: '3a2b1c
+
+    '
+- name: test_02_no_args
+  env:
+    FT_LINE: xxxx
+  args: []
+  stdout: '4x
+
+    '
+- name: test_03_no_args
+  env:
+    FT_LINE: ab
+  args: []
+  stdout: '1a1b
+
+    '
+- name: test_04_single_run
+  env:
+    FT_LINE: zzzzzz
+  args: []
+  stdout: '6z
+
+    '
+- name: test_05_empty_line
+  env:
+    FT_LINE: ''
+  args: []
+  tier: edge
+  stdout: '
+
+    '
+- name: test_06_single_char
+  env:
+    FT_LINE: a
+  args: []
+  tier: edge
+  stdout: '1a
+
+    '
+- name: test_07_alternating_chars
+  env:
+    FT_LINE: ababab
+  args: []
+  tier: edge
+  stdout: '1a1b1a1b1a1b
+
+    '
+- name: test_08_repeated_later_group
+  env:
+    FT_LINE: aabbaa
+  args: []
+  tier: baseline
+  stdout: '2a2b2a
+
+    '
+- name: test_09_three_equal_runs
+  env:
+    FT_LINE: '111222333'
+  args: []
+  tier: baseline
+  stdout: '313233
+
+    '
+- name: test_10_ten_char_run
+  env:
+    FT_LINE: aaaaaaaaaabbbcc
+  args: []
+  tier: stress
+  stdout: '10a3b2c
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

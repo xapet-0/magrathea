@@ -1,0 +1,32 @@
+subject_id: git_ignore.sh
+fixed_tests:
+- name: runs_without_error
+  args: []
+  exit_code: 0
+  tier: baseline
+mode: shell
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval git_ignore.sh
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: git_ignore.sh baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval git_ignore.sh
+  perturbed_input:
+  - git_ignore.sh_near_arg_1
+  - git_ignore.sh_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: git_ignore.sh baseline folder fixture
+  perturbed_input: hit_ignore.sh baseline folder fixture

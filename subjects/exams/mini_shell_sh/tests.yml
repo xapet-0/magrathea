@@ -1,0 +1,123 @@
+fixed_tests:
+- name: test_01_stdin
+  stdin: 'echo 42
+
+    exit
+
+    '
+  stdout: '42
+
+    '
+- name: test_02_stdin
+  stdin: 'echo hello
+
+    echo 1337
+
+    exit
+
+    '
+  stdout: 'hello
+
+    1337
+
+    '
+- name: test_03_stdin
+  stdin: 'exit
+
+    '
+  stdout: ''
+- name: test_04_three_commands
+  stdin: 'echo alpha
+
+    echo beta
+
+    echo gamma
+
+    exit
+
+    '
+  stdout: 'alpha
+
+    beta
+
+    gamma
+
+    '
+- name: test_05_printf_command
+  stdin: 'printf 1337\n
+
+    exit
+
+    '
+  tier: baseline
+  stdout: 1337n
+- name: test_06_commands_after_exit_ignored
+  stdin: 'echo before
+
+    exit
+
+    echo after
+
+    '
+  tier: edge
+  stdout: 'before
+
+    '
+- name: test_07_expr_command
+  stdin: 'expr 40 + 2
+
+    exit
+
+    '
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_08_true_and_echo
+  stdin: 'true
+
+    echo ok
+
+    exit
+
+    '
+  tier: edge
+  stdout: 'ok
+
+    '
+- name: test_09_multi_word_echo
+  stdin: 'echo 42 1337 magrathea
+
+    exit
+
+    '
+  tier: baseline
+  stdout: '42 1337 magrathea
+
+    '
+- name: test_10_four_sequential_cmds
+  stdin: 'echo 1
+
+    echo 2
+
+    echo 3
+
+    echo 4
+
+    exit
+
+    '
+  tier: stress
+  stdout: '1
+
+    2
+
+    3
+
+    4
+
+    '
+subject_id: mini_shell_sh
+subject_examples: []
+folder_examples: []
+near_examples: []

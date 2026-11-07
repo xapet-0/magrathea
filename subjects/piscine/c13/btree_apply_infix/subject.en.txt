@@ -1,0 +1,23 @@
+Assignment name  : btree_apply_infix
+Expected files   : btree_apply_infix.c ft_btree.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 13 (Official PDF)
+Exercise         : btree_apply_infix
+Turn-in directory: ex02/
+Expected files   : btree_apply_infix.c, ft_btree.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function btree_apply_infix which applies the function given as an ar-
+gument to theitem of each node, usinginfix traversal to traverse the tree.
+• Here’s how it should be prototyped :
+void btree_apply_infix(t_btree *root, void (*applyf)(void *));
+
+Your function must be declared as follows:
+    void btree_apply_infix(t_btree *root, void (*applyf)(void *));
+
+Examples:
+    t_btree l={"L",0,0}; t_btree r={"R",0,0}; t_btree root={"C",&l,&r}; btree_apply_infix(&root,dt_print); printf("\n")
+    Output: LCR

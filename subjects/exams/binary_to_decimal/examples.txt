@@ -1,0 +1,21 @@
+# Examples for binary_to_decimal (from official subject specification)
+
+Example conversion for "101":
+1*(2²) + 0*(2¹) + 1*(2⁰) = 4 + 0 + 1 = 5 (decimal)
+
+Your program should:
+1. Validate the input contains only '0's and '1's
+2. Implement the conversion algorithm
+3. Handle edge cases (empty string, invalid characters)
+
+Examples:
+$>./binary_to_decimal "010" | cat -e
+2$
+$>./binary_to_decimal "1000100001" | cat -e
+545$
+$>./binary_to_decimal "53" | cat -e
+$
+$>./binary_to_decimal "ftughbj" | cat -e
+$
+$>./binary_to_decimal "" | cat -e
+$

@@ -1,0 +1,134 @@
+mode: c_function
+fixed_tests:
+- name: cur_occ_a_T01
+  description: 'Functional verification of input: `occ_a("ABRACADABRA")`'
+  expr: occ_a("ABRACADABRA")
+  stdout: '5
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_occ_a_T02
+  description: 'Functional verification of input: `occ_a("abc")`'
+  expr: occ_a("abc")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_occ_a_T03
+  description: 'Functional verification of input: `occ_a("A")`'
+  expr: occ_a("A")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_occ_a_T04
+  description: 'Functional verification of input: `occ_a("")`'
+  expr: occ_a("")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_occ_a_T05
+  description: 'Functional verification of input: `occ_a("AAAaaaAAA")`'
+  expr: occ_a("AAAaaaAAA")
+  stdout: '6
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_no_uppercase_A
+  expr: occ_a("hello world 1337")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_single_lowercase_a
+  expr: occ_a("a")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_ten_uppercase_A
+  expr: occ_a("AAAAAAAAAA")
+  tier: baseline
+  stdout: '10
+
+    '
+- name: test_09_A_at_boundaries
+  expr: occ_a("A12345A")
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_10_mixed_symbols_and_A
+  expr: occ_a("!A@a#A$a%A^")
+  tier: stress
+  stdout: '3
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval occ_a
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_occ_a_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: occ_a("ABRACADABRA")
+  expected: 5\n
+- id: cur_occ_a_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: occ_a("abc")
+  expected: 0\n
+- id: cur_occ_a_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: occ_a("A")
+  expected: 1\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval occ_a
+  perturbed_input:
+  - occ_a_near_arg_1
+  - occ_a_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_occ_a_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: occ_a("ABRACADABRA")
+  perturbed_input: pcc_a("ABRACADABRA")
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_occ_a_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: occ_a("abc")
+  perturbed_input: pcc_a("abc")
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: "Test `occ_a` with high ASCII characters (unsigned char > 127 like '\x80\
+    ' and 'ÿ')"
+  input: "occ_a(\"\x80\", \"\x7F\", ...)"
+  expected: Compare and inspect characters as unsigned char conforming to POSIX libc
+- name: edge_02_B
+  code: '[B]'
+  title: Test `occ_a` at zero length (n = 0 / size = 0) and empty string ""
+  input: occ_a("", "", 0)
+  expected: Do not read or write any byte out of bounds and return canonical value
+- name: edge_03_D
+  code: '[D]'
+  title: Differential property check for `occ_a` against libc oracle
+  input: Compare occ_a against standard library function across random permutations
+  expected: 100% exact match in return value and destination buffer state
+- name: edge_04_M
+  code: '[M]'
+  title: Canary Redzone check on string buffer boundaries in `occ_a`
+  input: Pass heap buffer allocated to exact strlen(s) + 1 size to occ_a
+  expected: No read or write beyond terminating null byte

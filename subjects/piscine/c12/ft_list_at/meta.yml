@@ -1,0 +1,14 @@
+id: ft_list_at
+type: c_function
+module: C 12
+xp: 340
+expected_files:
+- ft_list_at.c
+- ft_list.h
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: t_list *ft_list_at(t_list *begin_list, unsigned int nbr);

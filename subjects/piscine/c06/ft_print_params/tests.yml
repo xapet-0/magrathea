@@ -1,0 +1,183 @@
+mode: c_program
+fixed_tests:
+- name: pool_ft_print_params_T01
+  description: two_args
+  args:
+  - one
+  - two
+  expected: 'one
+
+    two
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_print_params_T02
+  description: three_args
+  args:
+  - test1
+  - test2
+  - test3
+  expected: 'test1
+
+    test2
+
+    test3
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_print_params_T03
+  description: no_args
+  args: []
+  expected: ''
+  category: Functional
+  tier: baseline
+- name: pool_ft_print_params_T04
+  description: empty_arg
+  args:
+  - ''
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_single_arg
+  args:
+  - '42'
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_06_args_with_spaces
+  args:
+  - hello world
+  - 1337 school
+  tier: edge
+  stdout: 'hello world
+
+    1337 school
+
+    '
+- name: test_07_flags_and_dashes
+  args:
+  - -n
+  - -e
+  - --version
+  tier: edge
+  stdout: '-n
+
+    -e
+
+    --version
+
+    '
+- name: test_08_multiple_empty_and_nonempty
+  args:
+  - ''
+  - a
+  - ''
+  - b
+  tier: edge
+  stdout: '
+
+    a
+
+
+    b
+
+    '
+- name: test_09_symbols_and_punctuation
+  args:
+  - '!@#$%'
+  - ^&*()
+  - '[]{}<>'
+  tier: baseline
+  stdout: '!@#$%
+
+    ^&*()
+
+    []{}<>
+
+    '
+- name: test_10_six_params
+  args:
+  - p1
+  - p2
+  - p3
+  - p4
+  - p5
+  - p6
+  tier: stress
+  stdout: 'p1
+
+    p2
+
+    p3
+
+    p4
+
+    p5
+
+    p6
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./a.out test1 test2 test3 | cat -e
+  args: &id001
+  - test1
+  - test2
+  - test3
+  expected: 'test1
+
+    test2
+
+    test3
+
+    '
+  cat_e: true
+folder_examples:
+- id: pool_ft_print_params_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''one'', ''two'']'
+  expected: one\ntwo\n
+- id: pool_ft_print_params_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''test1'', ''test2'', ''test3'']'
+  expected: test1\ntest2\ntest3\n
+- id: pool_ft_print_params_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`./ft_print_params` (no CLI arguments passed, `argc == 1`)'
+  expected: '`\n` (Single newline emitted on argument count mismatch)'
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - uest1
+  - uest2
+  - uest3
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  test1  '
+  - test2
+  - test3
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_print_params_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''one'', ''two'']'
+  perturbed_input: '[''pne'', ''two'']'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_print_params_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''test1'', ''test2'', ''test3'']'
+  perturbed_input: '[''uest1'', ''test2'', ''test3'']'

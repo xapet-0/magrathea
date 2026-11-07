@@ -1,0 +1,57 @@
+Assignment name  : ft_putstr
+Expected files   : ft_putstr.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a function that displays a string on the standard output.
+
+The pointer passed to the function contains the address of the string's first
+character.
+
+Your function must be declared as follows:
+
+void	ft_putstr(char *str);
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : ft_putstr("Hello World")
+    Expected Output   : 'Hello World'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: empty_string [Test description: "empty_string"]
+    Call / Invocation : ft_putstr(""); write(1, "\n", 1)
+    Expected Output   : '\n'
+  [Edge Case 2] Name: single_char [Test description: "single_char"]
+    Call / Invocation : ft_putstr("Z"); write(1, "\n", 1)
+    Expected Output   : 'Z\n'
+  [Edge Case 3] Name: with_spaces [Test description: "with_spaces"]
+    Call / Invocation : ft_putstr("1337 Benguerir"); write(1, "\n", 1)
+    Expected Output   : '1337 Benguerir\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: ft_putstr_oracle_stress
+    C Source Driver:
+    int main(void)
+    {
+        ft_putstr("");
+        ft_putstr("hello");
+        ft_putstr(" world");
+        return (0);
+    }
+
+>>> DEDICATED _MAIN.c TEST DRIVERS (Nigal / Samuel Karani / Official):
+  File: ft_putstr_MAIN.c
+    #include <unistd.h>
+    
+    void ft_putstr(char *str);
+    
+    int main(void)
+    {
+        ft_putstr("");
+        write(1, "\n", 1);
+        ft_putstr("Hello World");
+        write(1, "\n", 1);
+        ft_putstr("1337 Benguerir");
+        write(1, "\n", 1);
+        return 0;
+    }

@@ -1,0 +1,18 @@
+# 42 / 1337 Deepthought Dual-Compiler Verification Matrix
+compilers:
+  primary: gcc
+  secondary: clang
+  policy:
+    strict_on_host: false
+    fallback_behavior: warn_on_missing_secondary
+  flags:
+    common:
+      - -Wall
+      - -Wextra
+      - -Werror
+      - -std=c99
+    clang_specific:
+      - -fsyntax-only
+      - -Wno-unknown-warning-option
+    gcc_specific:
+      - -Wno-builtin-declaration-mismatch

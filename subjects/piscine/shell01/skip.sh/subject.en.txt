@@ -1,0 +1,32 @@
+Assignment name  : skip.sh
+Turn-in directory: ex05/
+Expected files   : skip.sh
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Can you create it ?
+Turn-in directory: ex05/
+Files to turn in:"\?$*'MaRViN'*$?\"
+Allowed functions:None
+• Create a file containing only "42", and nothing else.
+• The file name must be:
+"\?$*'MaRViN'*$?\"
+• Example output:
+$>ls -lRa *MaRV* | cat -e
+-rw---xr-- 1 75355 32015 2 Oct 2 12:21 "\?$* 'MaRViN'*$?\"$
+$>
+Milestone Achieved, Keep Going!
+You’ve completed the mandatory exercises for this project. Now, you have a choice:
+• Continue with theoptional exercisesto explore more.
+• Move on to yournext project.
+Both paths will introduce you to useful concepts. Consider the following before making
+your decision:
+• Your first exam, as well as the end-of-week rush, will focus on C programming. It
+might therefore be useful to gain experience in this field beforehand. (You’ll learn
+more about the rush soon).
+• Your performance in this Piscine is evaluated on multiple factors:
+◦ Project completion is one aspect.
+◦ Overall progress through the full list of Piscine projects is another. Choose
+wisely to maximize your results.
+• You can retry the same project in a few days or weeks until the end of the Piscine.
+• Staying in sync with your peers promotes better collaboration.

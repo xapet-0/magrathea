@@ -1,0 +1,14 @@
+id: ft_list_remove_if
+type: c_function
+module: Exam Rank 02
+xp: 440
+expected_files:
+- ft_list_remove_if.c
+allowed_functions:
+- free
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void ft_list_remove_if(t_list **begin_list, void *data_ref, int (*cmp)());

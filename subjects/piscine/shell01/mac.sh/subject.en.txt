@@ -1,0 +1,22 @@
+Assignment name  : mac.sh
+Expected files   : MAC.sh
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine Shell 01 (v8.1 PDF)
+Exercise         : Exercise 04 — MAC.sh
+Turn-in directory: ex04/
+Files to turn in : MAC.sh
+Allowed functions: None (POSIX /bin/sh + ifconfig + awk / sed / grep)
+Toolchain Gate   : shnorm_v42 + /bin/sh
+--------------------------------------------------------------------------------
+
+• Write a command line that displays your machine's MAC addresses.
+• Each address must be followed by a line break (newline), with no leading or
+  trailing spaces.
+
+Example of output:
+$> ./MAC.sh | cat -e
+01:23:45:67:89:ab$
+02:42:ac:11:00:02$
+$>

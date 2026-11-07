@@ -1,0 +1,13 @@
+id: swap_bits
+type: c_function
+module: Exam Rank 02
+xp: 430
+expected_files:
+- swap_bits.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: unsigned char swap_bits(unsigned char octet);

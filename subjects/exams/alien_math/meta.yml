@@ -1,0 +1,18 @@
+id: alien_math
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- alien_math.sh
+allowed_functions:
+- echo
+- printf
+- tr
+- bc
+- expr
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh alien_math.sh [args...]

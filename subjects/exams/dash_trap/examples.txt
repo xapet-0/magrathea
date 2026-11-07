@@ -1,0 +1,16 @@
+# Examples for dash_trap (from official subject specification)
+
+example: `"-e"` or `"-n"`), using the POSIX `--` end-of-options
+delimiter.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh dash_trap.sh "-e" | cat -e
+42_secret$
+$> sh dash_trap.sh "-n" | cat -e
+hello_1337$
+$> sh dash_trap.sh "normal.txt" | cat -e
+ok$

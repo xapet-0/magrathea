@@ -1,0 +1,30 @@
+id: c05
+display_name: 1337 / 42 Piscine — C 05
+exercises:
+- ex: ex00
+  subject_id: piscine/c05/ft_iterative_factorial
+  xp: 205
+- ex: ex01
+  subject_id: piscine/c05/ft_recursive_factorial
+  xp: 205
+- ex: ex02
+  subject_id: piscine/c05/ft_iterative_power
+  xp: 205
+- ex: ex03
+  subject_id: piscine/c05/ft_recursive_power
+  xp: 205
+- ex: ex04
+  subject_id: piscine/c05/ft_fibonacci
+  xp: 205
+- ex: ex05
+  subject_id: piscine/c05/ft_sqrt
+  xp: 205
+- ex: ex06
+  subject_id: piscine/c05/ft_is_prime
+  xp: 205
+- ex: ex07
+  subject_id: piscine/c05/ft_find_next_prime
+  xp: 205
+- ex: ex08
+  subject_id: piscine/c05/ft_ten_queens_puzzle
+  xp: 195

@@ -1,0 +1,5 @@
+Examples:
+$> ./perm_setup.sh && ls -ld box box/key shortcut
+drwxr-x--- 2 marvin 42 4096 box
+-r--r----- 1 marvin 42   42 box/key
+lrwxrwxrwx 1 marvin 42    7 shortcut -> box/key

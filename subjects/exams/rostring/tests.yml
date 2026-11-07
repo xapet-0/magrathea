@@ -1,0 +1,214 @@
+mode: c_program
+fixed_tests:
+- name: can_rostring_T01
+  description: 'Functional verification of input: `[''abc def ghi'']`'
+  args:
+  - abc def ghi
+  expected: 'def ghi abc
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_rostring_T02
+  description: case_rostring_extra_spaces
+  args:
+  - '   abc   def   ghi  '
+  expected: 'def ghi abc
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_rostring_T03
+  description: case_rostring_one_word
+  args:
+  - abc
+  expected: 'abc
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_rostring_T04
+  description: case_rostring_bad_argc
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - 'abc   '
+  expected: 'abc
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - Que la      lumiere soit et la lumiere fut
+  expected: 'la lumiere soit et la lumiere fut Que
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - '     AkjhZ zLKIJz , 23y'
+  expected: 'zLKIJz , 23y AkjhZ
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args:
+  - first
+  - '2'
+  - '11000000'
+  expected: 'first
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./rostring "abc   " | cat -e
+  args: &id001
+  - 'abc   '
+  expected: 'abc
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./rostring "Que la      lumiere soit et la lumiere fut"
+  args: &id002
+  - Que la      lumiere soit et la lumiere fut
+  expected: 'la lumiere soit et la lumiere fut Que
+
+    '
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./rostring "     AkjhZ zLKIJz , 23y"
+  args: &id003
+  - '     AkjhZ zLKIJz , 23y'
+  expected: 'zLKIJz , 23y AkjhZ
+
+    '
+  cat_e: false
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./rostring "first" "2" "11000000"
+  args: &id004
+  - first
+  - '2'
+  - '11000000'
+  expected: 'first
+
+    '
+  cat_e: false
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./rostring | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_rostring_T05
+  origin: subject_folder/42ExamPractice/rostring/tester.sh
+  input: ./rostring "first" "2" "11000000"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rostring_T06
+  origin: subject_folder/42ExamPractice/rostring/tester.sh
+  input: ./rostring "     AkjhZ zLKIJz , 23y"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rostring_T07
+  origin: subject_folder/42ExamPractice/rostring/tester.sh
+  input: ./rostring "abc   "
+  expected: Matches 42 reference standard output and exit code
+- id: can_rostring_T08
+  origin: subject_folder/42ExamPractice/rostring/tester.sh
+  input: ./rostring "Que la      lumiere soit et la lumiere fut"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rostring_T09
+  origin: subject_folder/examples.txt
+  input: ./rostring "abc   " \| cat -e
+  expected: abc$
+- id: can_rostring_T10
+  origin: subject_folder/examples.txt
+  input: ./rostring "Que la      lumiere soit et la lumiere fut"
+  expected: la lumiere soit et la lumiere fut Que
+- id: can_rostring_T11
+  origin: subject_folder/examples.txt
+  input: ./rostring "     AkjhZ zLKIJz , 23y"
+  expected: zLKIJz , 23y AkjhZ
+- id: can_rostring_T12
+  origin: subject_folder/examples.txt
+  input: ./rostring \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - 'bbc   '
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  abc     '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - Rue la      lumiere soit et la lumiere fut
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  Que la      lumiere soit et la lumiere fut  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - '     BkjhZ zLKIJz , 23y'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '       AkjhZ zLKIJz , 23y  '
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - girst
+  - '3'
+  - '11000001'
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  first  '
+  - '2'
+  - '11000000'
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_rostring_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rostring/tester.sh)
+  original_input: ./rostring "first" "2" "11000000"
+  perturbed_input: ./sostring "first" "2" "11000000"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_rostring_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rostring/tester.sh)
+  original_input: ./rostring "     AkjhZ zLKIJz , 23y"
+  perturbed_input: ./sostring "     AkjhZ zLKIJz , 23y"

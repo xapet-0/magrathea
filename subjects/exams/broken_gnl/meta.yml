@@ -1,0 +1,17 @@
+allowed_functions:
+- read
+- free
+- malloc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+expected_files:
+- get_next_line.c
+- get_next_line.h
+id: broken_gnl
+module: Exam Rank 03
+norminette: false
+prototype: char *get_next_line(int fd);
+type: c_function
+xp: 510

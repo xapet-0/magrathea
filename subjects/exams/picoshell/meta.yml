@@ -1,0 +1,20 @@
+id: picoshell
+type: c_function
+module: Exam Rank 04
+xp: 570
+expected_files:
+- picoshell.c
+allowed_functions:
+- close
+- fork
+- wait
+- exit
+- execvp
+- dup2
+- pipe
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int picoshell(char **cmds[]);

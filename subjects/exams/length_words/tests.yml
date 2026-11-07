@@ -1,0 +1,205 @@
+mode: c_program
+fixed_tests:
+- name: cur_length_words_T01
+  description: 'Functional verification of input: `[''Hello world!'']`'
+  args:
+  - Hello world!
+  expected: '5, 6
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_length_words_T02
+  description: 'Functional verification of input: `[''Hi there how are you?'']`'
+  args:
+  - Hi there how are you?
+  expected: '2, 5, 3, 3, 4
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_length_words_T03
+  description: 'Functional verification of input: `['''']`'
+  args:
+  - ''
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_length_words_T04
+  description: Standard baseline execution and behavior check for `length_words`
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+- name: test_06_arg_auto
+  args:
+  - ''
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '42'
+  - '1337'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - pad
+  - test
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '!@#$'
+  - '%^&*'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_10_arg_auto
+  args:
+  - abc
+  - abcdef
+  tier: baseline
+  stdout: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./length_words "Hello world!" | cat -e
+  args: &id001
+  - Hello world!
+  expected: '5, 6
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./length_words "Hi there how are you?" | cat -e
+  args: &id002
+  - Hi there how are you?
+  expected: '2, 5, 3, 3, 4
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./length_words "" | cat -e
+  args: &id003
+  - ''
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: cur_length_words_T05
+  origin: subject_folder/deepthought/corrections/exams/length_words/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_length_words_T06
+  origin: subject_folder/deepthought/corrections/exams/length_words/generator.py
+  input: Dynamic generation rule via basic_test1()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_length_words_T07
+  origin: subject_folder/deepthought/corrections/exams/length_words/generator.py
+  input: Dynamic generation rule via basic_test2()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_length_words_T08
+  origin: subject_folder/deepthought/corrections/exams/length_words/generator.py
+  input: Dynamic generation rule via empty_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_length_words_T09
+  origin: subject_folder/deepthought/corrections/exams/length_words/generator.py
+  input: Dynamic generation rule via random_string()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - Iello world!
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  Hello world!  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - Ii there how are you?
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  Hi there how are you?  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - ' '
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '    '
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_length_words_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/length_words/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_length_words_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/length_words/generator.py)
+  original_input: Dynamic generation rule via basic_test1()
+  perturbed_input: Eynamic generation rule via basic_test1(
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `length_words`
+  input: "length_words(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `length_words`
+  input: length_words("   word   ") and length_words("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `length_words`
+  input: length_words("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `length_words`
+  input: Execute length_words with no arguments and with 3 arguments
+  expected: Print newline only

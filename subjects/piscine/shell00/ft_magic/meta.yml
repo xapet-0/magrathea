@@ -1,0 +1,13 @@
+id: ft_magic
+type: shell
+module: Shell 00
+xp: 140
+expected_files:
+- ft_magic
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: sh ft_magic.sh [args...]

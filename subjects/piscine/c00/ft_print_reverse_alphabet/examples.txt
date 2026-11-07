@@ -1,0 +1,9 @@
+# Examples for ft_print_reverse_alphabet (from official subject specification)
+
+Examples:
+    ft_print_reverse_alphabet()
+    Output: zyxwvutsrqponmlkjihgfedcba
+    ft_print_reverse_alphabet(); write(1, "\n", 1)
+    Output: zyxwvutsrqponmlkjihgfedcba
+    ft_print_reverse_alphabet(); ft_print_reverse_alphabet(); write(1, "\n", 1)
+    Output: zyxwvutsrqponmlkjihgfedcbazyxwvutsrqponmlkjihgfedcba

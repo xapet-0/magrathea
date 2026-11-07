@@ -1,0 +1,7 @@
+# Examples for ascii_character (from official subject specification)
+
+Example:
+
+    $> ascii_character('A') = 65
+    $> ascii_character('z') = 122
+    $> ascii_character('B') = 66

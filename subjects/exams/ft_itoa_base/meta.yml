@@ -1,0 +1,14 @@
+id: ft_itoa_base
+type: c_function
+module: Piscine Exams 00–Final
+xp: 290
+expected_files:
+- ft_itoa_base.c
+allowed_functions:
+- malloc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: char *ft_itoa_base(int value, int base);

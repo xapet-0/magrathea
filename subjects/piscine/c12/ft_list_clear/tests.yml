@@ -1,0 +1,102 @@
+fixed_tests:
+- call: ft_list_clear(NULL, my_free); ft_list_clear(n1, my_free); printf("CB=%d\n",
+    g_cb);
+  name: pool_ft_list_clear_callback_and_null_verification
+  setup:
+  - static int g_cb = 0; void my_free(void *d) { if (d) { g_cb += *(char *)d; free(d);
+    } }
+  - t_list *n1 = ft_create_elem(strdup("A")); t_list *n2 = ft_create_elem(strdup("B"));
+    n1->next = n2;
+  stdout: 'CB=131
+
+    '
+- call: ft_list_clear(a, my_free2); printf("CB2=%d\n", g_cb2);
+  name: pool_ft_list_clear_3node_verification
+  setup:
+  - static int g_cb2 = 0; void my_free2(void *d) { if (d) { g_cb2 += *(char *)d; free(d);
+    } }
+  - t_list *a = ft_create_elem(strdup("X")); t_list *b = ft_create_elem(strdup("Y"));
+    t_list *c = ft_create_elem(strdup("Z")); a->next = b; b->next = c;
+  stdout: 'CB2=267
+
+    '
+- call: ft_list_clear(n, my_free3); printf("CB3=%d\n", g_cb3);
+  name: ft_list_clear_single_node
+  setup:
+  - static int g_cb3 = 0; void my_free3(void *d) { if (d) { g_cb3++; free(d); } }
+  - t_list *n = ft_create_elem(strdup("1"));
+  stdout: 'CB3=1
+
+    '
+- call: ft_list_clear(NULL, dummy_free); printf("CLEAR_NULL_OK\n");
+  name: ft_list_clear_null_safe
+  setup:
+  - void dummy_free(void *d) { (void)d; }
+  stdout: 'CLEAR_NULL_OK
+
+    '
+- name: test_05_two_nodes_sum
+  setup:
+  - static int g_cb5 = 0; void my_free5(void *d) { if (d) { g_cb5 += (int)strlen((char
+    *)d); free(d); } }
+  - t_list *a = ft_create_elem(strdup("hello")); a->next = ft_create_elem(strdup("42"));
+  call: ft_list_clear(a, my_free5); printf("LEN=%d\n", g_cb5);
+  tier: baseline
+  stdout: 'LEN=7
+
+    '
+- name: test_06_four_nodes_count
+  setup:
+  - static int g_cb6 = 0; void my_free6(void *d) { if (d) { g_cb6++; free(d); } }
+  - t_list *a = ft_create_elem(strdup("1")); t_list *b = ft_create_elem(strdup("2"));
+    t_list *c = ft_create_elem(strdup("3")); t_list *d = ft_create_elem(strdup("4"));
+    a->next = b; b->next = c; c->next = d;
+  call: ft_list_clear(a, my_free6); printf("CNT=%d\n", g_cb6);
+  tier: baseline
+  stdout: 'CNT=4
+
+    '
+- name: test_07_five_nodes_order
+  setup:
+  - static int g_cb7 = 0; void my_free7(void *d) { if (d) { g_cb7 = g_cb7 * 10 + (*(char
+    *)d - '0'); free(d); } }
+  - t_list *n1 = ft_create_elem(strdup("1")); t_list *n2 = ft_create_elem(strdup("2"));
+    t_list *n3 = ft_create_elem(strdup("3")); t_list *n4 = ft_create_elem(strdup("4"));
+    t_list *n5 = ft_create_elem(strdup("5")); n1->next=n2; n2->next=n3; n3->next=n4;
+    n4->next=n5;
+  call: ft_list_clear(n1, my_free7); printf("ORD=%d\n", g_cb7);
+  tier: stress
+  stdout: 'ORD=12345
+
+    '
+- name: test_08_empty_string_data
+  setup:
+  - static int g_cb8 = 0; void my_free8(void *d) { if (d) { g_cb8 += 1; free(d); }
+    }
+  - t_list *n = ft_create_elem(strdup(""));
+  call: ft_list_clear(n, my_free8); printf("EMPTY=%d\n", g_cb8);
+  tier: edge
+  stdout: 'EMPTY=1
+
+    '
+- name: test_09_null_fct_with_null_list
+  call: ft_list_clear(NULL, NULL); printf("NULL_BOTH_OK\n");
+  tier: edge
+  stdout: 'NULL_BOTH_OK
+
+    '
+- name: test_10_six_nodes
+  setup:
+  - static int g_cb10 = 0; void my_free10(void *d) { if (d) { g_cb10++; free(d); }
+    }
+  - t_list *h = NULL; for(int i=0;i<6;i++){ t_list *x = ft_create_elem(strdup("x"));
+    x->next = h; h = x; }
+  call: ft_list_clear(h, my_free10); printf("SIX=%d\n", g_cb10);
+  tier: stress
+  stdout: 'SIX=6
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

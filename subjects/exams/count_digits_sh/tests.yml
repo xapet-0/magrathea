@@ -1,0 +1,81 @@
+subject_id: count_digits_sh
+fixed_tests:
+- name: test_01_no_args
+  env:
+    FT_LINE: 1337 Benguerir 42
+  args: []
+  stdout: '6
+
+    '
+- name: test_02_no_args
+  env:
+    FT_LINE: no digits
+  args: []
+  stdout: '0
+
+    '
+- name: test_03_no_args
+  env:
+    FT_LINE: 0123456789
+  args: []
+  stdout: '10
+
+    '
+- name: test_04_no_args
+  env:
+    FT_LINE: ''
+  args: []
+  stdout: '0
+
+    '
+- name: test_05_single_digit
+  env:
+    FT_LINE: '7'
+  args: []
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_mixed_symbols
+  env:
+    FT_LINE: '!@#1$%^2&*(3)'
+  args: []
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_07_spaces_and_zeros
+  env:
+    FT_LINE: 0 0 0 0
+  args: []
+  tier: edge
+  stdout: '4
+
+    '
+- name: test_08_letters_only
+  env:
+    FT_LINE: abcdefGHIJKL
+  args: []
+  tier: baseline
+  stdout: '0
+
+    '
+- name: test_09_two_numbers
+  env:
+    FT_LINE: 42 1337
+  args: []
+  tier: baseline
+  stdout: '6
+
+    '
+- name: test_10_twenty_digits
+  env:
+    FT_LINE: 01234567890123456789
+  args: []
+  tier: stress
+  stdout: '20
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

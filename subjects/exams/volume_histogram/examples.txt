@@ -1,0 +1,6 @@
+# Examples for volume_histogram (from official subject specification)
+
+Examples:
+    volume_histogram(h, 5) -> 3
+    volume_histogram(h, 16) -> 26
+    volume_histogram(h, 3) -> 0

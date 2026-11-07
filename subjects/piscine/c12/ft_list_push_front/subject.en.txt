@@ -1,0 +1,25 @@
+Assignment name  : ft_list_push_front
+Expected files   : ft_list_push_front.c ft_list.h
+Allowed functions: ft_create_elem
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_list_push_front
+Turn-in directory: ex01/
+Expected files   : ft_list_push_front.c, ft_list.h
+Allowed functions: ft_create_elem
+--------------------------------------------------------------------------------
+
+• Createthe function ft_list_push_front, which adds a new element of type t_list
+to the beginning of the list.
+• It should assigndata to the given argument.
+• If necessary, it will update the pointer at the beginning of the list.
+• Here is how it should be prototyped:
+void ft_list_push_front(t_list **begin_list, void *data);
+
+Your function must be declared as follows:
+    void ft_list_push_front(t_list **begin_list, void *data);
+
+Examples:
+    t_list *l=NULL; ft_list_push_front(&l,"b"); ft_list_push_front(&l,"a"); printf("%s%s\n",(char*)l->data,(char*)l->next->data)
+    Output: ab

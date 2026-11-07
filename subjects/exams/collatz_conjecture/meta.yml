@@ -1,0 +1,13 @@
+id: collatz_conjecture
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- collatz_conjecture.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: unsigned int collatz_conjecture(unsigned int base);

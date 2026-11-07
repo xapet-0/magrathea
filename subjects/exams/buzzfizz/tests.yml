@@ -1,0 +1,2166 @@
+fixed_tests:
+- name: no_args
+  args: []
+  stdout: '1
+
+    2
+
+    3
+
+    buzz
+
+    5
+
+    6
+
+    fizz
+
+    buzz
+
+    9
+
+    10
+
+    11
+
+    buzz
+
+    13
+
+    fizz
+
+    15
+
+    buzz
+
+    17
+
+    18
+
+    19
+
+    buzz
+
+    fizz
+
+    22
+
+    23
+
+    buzz
+
+    25
+
+    26
+
+    27
+
+    buzzfizz
+
+    29
+
+    30
+
+    31
+
+    buzz
+
+    33
+
+    34
+
+    fizz
+
+    buzz
+
+    37
+
+    38
+
+    39
+
+    buzz
+
+    41
+
+    fizz
+
+    43
+
+    buzz
+
+    45
+
+    46
+
+    47
+
+    buzz
+
+    fizz
+
+    50
+
+    51
+
+    buzz
+
+    53
+
+    54
+
+    55
+
+    buzzfizz
+
+    57
+
+    58
+
+    59
+
+    buzz
+
+    61
+
+    62
+
+    fizz
+
+    buzz
+
+    65
+
+    66
+
+    67
+
+    buzz
+
+    69
+
+    fizz
+
+    71
+
+    buzz
+
+    73
+
+    74
+
+    75
+
+    buzz
+
+    fizz
+
+    78
+
+    79
+
+    buzz
+
+    81
+
+    82
+
+    83
+
+    buzzfizz
+
+    85
+
+    86
+
+    87
+
+    buzz
+
+    89
+
+    90
+
+    fizz
+
+    buzz
+
+    93
+
+    94
+
+    95
+
+    buzz
+
+    97
+
+    fizz
+
+    99
+
+    buzz
+
+    '
+  tier: baseline
+- name: one_arg
+  args:
+  - ignored
+  stdout: '1
+
+    2
+
+    3
+
+    buzz
+
+    5
+
+    6
+
+    fizz
+
+    buzz
+
+    9
+
+    10
+
+    11
+
+    buzz
+
+    13
+
+    fizz
+
+    15
+
+    buzz
+
+    17
+
+    18
+
+    19
+
+    buzz
+
+    fizz
+
+    22
+
+    23
+
+    buzz
+
+    25
+
+    26
+
+    27
+
+    buzzfizz
+
+    29
+
+    30
+
+    31
+
+    buzz
+
+    33
+
+    34
+
+    fizz
+
+    buzz
+
+    37
+
+    38
+
+    39
+
+    buzz
+
+    41
+
+    fizz
+
+    43
+
+    buzz
+
+    45
+
+    46
+
+    47
+
+    buzz
+
+    fizz
+
+    50
+
+    51
+
+    buzz
+
+    53
+
+    54
+
+    55
+
+    buzzfizz
+
+    57
+
+    58
+
+    59
+
+    buzz
+
+    61
+
+    62
+
+    fizz
+
+    buzz
+
+    65
+
+    66
+
+    67
+
+    buzz
+
+    69
+
+    fizz
+
+    71
+
+    buzz
+
+    73
+
+    74
+
+    75
+
+    buzz
+
+    fizz
+
+    78
+
+    79
+
+    buzz
+
+    81
+
+    82
+
+    83
+
+    buzzfizz
+
+    85
+
+    86
+
+    87
+
+    buzz
+
+    89
+
+    90
+
+    fizz
+
+    buzz
+
+    93
+
+    94
+
+    95
+
+    buzz
+
+    97
+
+    fizz
+
+    99
+
+    buzz
+
+    '
+  tier: baseline
+- name: empty_arg
+  args:
+  - ''
+  stdout: '1
+
+    2
+
+    3
+
+    buzz
+
+    5
+
+    6
+
+    fizz
+
+    buzz
+
+    9
+
+    10
+
+    11
+
+    buzz
+
+    13
+
+    fizz
+
+    15
+
+    buzz
+
+    17
+
+    18
+
+    19
+
+    buzz
+
+    fizz
+
+    22
+
+    23
+
+    buzz
+
+    25
+
+    26
+
+    27
+
+    buzzfizz
+
+    29
+
+    30
+
+    31
+
+    buzz
+
+    33
+
+    34
+
+    fizz
+
+    buzz
+
+    37
+
+    38
+
+    39
+
+    buzz
+
+    41
+
+    fizz
+
+    43
+
+    buzz
+
+    45
+
+    46
+
+    47
+
+    buzz
+
+    fizz
+
+    50
+
+    51
+
+    buzz
+
+    53
+
+    54
+
+    55
+
+    buzzfizz
+
+    57
+
+    58
+
+    59
+
+    buzz
+
+    61
+
+    62
+
+    fizz
+
+    buzz
+
+    65
+
+    66
+
+    67
+
+    buzz
+
+    69
+
+    fizz
+
+    71
+
+    buzz
+
+    73
+
+    74
+
+    75
+
+    buzz
+
+    fizz
+
+    78
+
+    79
+
+    buzz
+
+    81
+
+    82
+
+    83
+
+    buzzfizz
+
+    85
+
+    86
+
+    87
+
+    buzz
+
+    89
+
+    90
+
+    fizz
+
+    buzz
+
+    93
+
+    94
+
+    95
+
+    buzz
+
+    97
+
+    fizz
+
+    99
+
+    buzz
+
+    '
+  tier: baseline
+- name: two_args
+  args:
+  - '1337'
+  - '42'
+  stdout: '1
+
+    2
+
+    3
+
+    buzz
+
+    5
+
+    6
+
+    fizz
+
+    buzz
+
+    9
+
+    10
+
+    11
+
+    buzz
+
+    13
+
+    fizz
+
+    15
+
+    buzz
+
+    17
+
+    18
+
+    19
+
+    buzz
+
+    fizz
+
+    22
+
+    23
+
+    buzz
+
+    25
+
+    26
+
+    27
+
+    buzzfizz
+
+    29
+
+    30
+
+    31
+
+    buzz
+
+    33
+
+    34
+
+    fizz
+
+    buzz
+
+    37
+
+    38
+
+    39
+
+    buzz
+
+    41
+
+    fizz
+
+    43
+
+    buzz
+
+    45
+
+    46
+
+    47
+
+    buzz
+
+    fizz
+
+    50
+
+    51
+
+    buzz
+
+    53
+
+    54
+
+    55
+
+    buzzfizz
+
+    57
+
+    58
+
+    59
+
+    buzz
+
+    61
+
+    62
+
+    fizz
+
+    buzz
+
+    65
+
+    66
+
+    67
+
+    buzz
+
+    69
+
+    fizz
+
+    71
+
+    buzz
+
+    73
+
+    74
+
+    75
+
+    buzz
+
+    fizz
+
+    78
+
+    79
+
+    buzz
+
+    81
+
+    82
+
+    83
+
+    buzzfizz
+
+    85
+
+    86
+
+    87
+
+    buzz
+
+    89
+
+    90
+
+    fizz
+
+    buzz
+
+    93
+
+    94
+
+    95
+
+    buzz
+
+    97
+
+    fizz
+
+    99
+
+    buzz
+
+    '
+  tier: baseline
+- name: many_args
+  args:
+  - a
+  - b
+  - c
+  - d
+  stdout: '1
+
+    2
+
+    3
+
+    buzz
+
+    5
+
+    6
+
+    fizz
+
+    buzz
+
+    9
+
+    10
+
+    11
+
+    buzz
+
+    13
+
+    fizz
+
+    15
+
+    buzz
+
+    17
+
+    18
+
+    19
+
+    buzz
+
+    fizz
+
+    22
+
+    23
+
+    buzz
+
+    25
+
+    26
+
+    27
+
+    buzzfizz
+
+    29
+
+    30
+
+    31
+
+    buzz
+
+    33
+
+    34
+
+    fizz
+
+    buzz
+
+    37
+
+    38
+
+    39
+
+    buzz
+
+    41
+
+    fizz
+
+    43
+
+    buzz
+
+    45
+
+    46
+
+    47
+
+    buzz
+
+    fizz
+
+    50
+
+    51
+
+    buzz
+
+    53
+
+    54
+
+    55
+
+    buzzfizz
+
+    57
+
+    58
+
+    59
+
+    buzz
+
+    61
+
+    62
+
+    fizz
+
+    buzz
+
+    65
+
+    66
+
+    67
+
+    buzz
+
+    69
+
+    fizz
+
+    71
+
+    buzz
+
+    73
+
+    74
+
+    75
+
+    buzz
+
+    fizz
+
+    78
+
+    79
+
+    buzz
+
+    81
+
+    82
+
+    83
+
+    buzzfizz
+
+    85
+
+    86
+
+    87
+
+    buzz
+
+    89
+
+    90
+
+    fizz
+
+    buzz
+
+    93
+
+    94
+
+    95
+
+    buzz
+
+    97
+
+    fizz
+
+    99
+
+    buzz
+
+    '
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    3
+
+    buzz
+
+    5
+
+    6
+
+    fizz
+
+    buzz
+
+    9
+
+    10
+
+    11
+
+    buzz
+
+    13
+
+    fizz
+
+    15
+
+    buzz
+
+    17
+
+    18
+
+    19
+
+    buzz
+
+    fizz
+
+    22
+
+    23
+
+    buzz
+
+    25
+
+    26
+
+    27
+
+    buzzfizz
+
+    29
+
+    30
+
+    31
+
+    buzz
+
+    33
+
+    34
+
+    fizz
+
+    buzz
+
+    37
+
+    38
+
+    39
+
+    buzz
+
+    41
+
+    fizz
+
+    43
+
+    buzz
+
+    45
+
+    46
+
+    47
+
+    buzz
+
+    fizz
+
+    50
+
+    51
+
+    buzz
+
+    53
+
+    54
+
+    55
+
+    buzzfizz
+
+    57
+
+    58
+
+    59
+
+    buzz
+
+    61
+
+    62
+
+    fizz
+
+    buzz
+
+    65
+
+    66
+
+    67
+
+    buzz
+
+    69
+
+    fizz
+
+    71
+
+    buzz
+
+    73
+
+    74
+
+    75
+
+    buzz
+
+    fizz
+
+    78
+
+    79
+
+    buzz
+
+    81
+
+    82
+
+    83
+
+    buzzfizz
+
+    85
+
+    86
+
+    87
+
+    buzz
+
+    89
+
+    90
+
+    fizz
+
+    buzz
+
+    93
+
+    94
+
+    95
+
+    buzz
+
+    97
+
+    fizz
+
+    99
+
+    buzz
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    3
+
+    buzz
+
+    5
+
+    6
+
+    fizz
+
+    buzz
+
+    9
+
+    10
+
+    11
+
+    buzz
+
+    13
+
+    fizz
+
+    15
+
+    buzz
+
+    17
+
+    18
+
+    19
+
+    buzz
+
+    fizz
+
+    22
+
+    23
+
+    buzz
+
+    25
+
+    26
+
+    27
+
+    buzzfizz
+
+    29
+
+    30
+
+    31
+
+    buzz
+
+    33
+
+    34
+
+    fizz
+
+    buzz
+
+    37
+
+    38
+
+    39
+
+    buzz
+
+    41
+
+    fizz
+
+    43
+
+    buzz
+
+    45
+
+    46
+
+    47
+
+    buzz
+
+    fizz
+
+    50
+
+    51
+
+    buzz
+
+    53
+
+    54
+
+    55
+
+    buzzfizz
+
+    57
+
+    58
+
+    59
+
+    buzz
+
+    61
+
+    62
+
+    fizz
+
+    buzz
+
+    65
+
+    66
+
+    67
+
+    buzz
+
+    69
+
+    fizz
+
+    71
+
+    buzz
+
+    73
+
+    74
+
+    75
+
+    buzz
+
+    fizz
+
+    78
+
+    79
+
+    buzz
+
+    81
+
+    82
+
+    83
+
+    buzzfizz
+
+    85
+
+    86
+
+    87
+
+    buzz
+
+    89
+
+    90
+
+    fizz
+
+    buzz
+
+    93
+
+    94
+
+    95
+
+    buzz
+
+    97
+
+    fizz
+
+    99
+
+    buzz
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    3
+
+    buzz
+
+    5
+
+    6
+
+    fizz
+
+    buzz
+
+    9
+
+    10
+
+    11
+
+    buzz
+
+    13
+
+    fizz
+
+    15
+
+    buzz
+
+    17
+
+    18
+
+    19
+
+    buzz
+
+    fizz
+
+    22
+
+    23
+
+    buzz
+
+    25
+
+    26
+
+    27
+
+    buzzfizz
+
+    29
+
+    30
+
+    31
+
+    buzz
+
+    33
+
+    34
+
+    fizz
+
+    buzz
+
+    37
+
+    38
+
+    39
+
+    buzz
+
+    41
+
+    fizz
+
+    43
+
+    buzz
+
+    45
+
+    46
+
+    47
+
+    buzz
+
+    fizz
+
+    50
+
+    51
+
+    buzz
+
+    53
+
+    54
+
+    55
+
+    buzzfizz
+
+    57
+
+    58
+
+    59
+
+    buzz
+
+    61
+
+    62
+
+    fizz
+
+    buzz
+
+    65
+
+    66
+
+    67
+
+    buzz
+
+    69
+
+    fizz
+
+    71
+
+    buzz
+
+    73
+
+    74
+
+    75
+
+    buzz
+
+    fizz
+
+    78
+
+    79
+
+    buzz
+
+    81
+
+    82
+
+    83
+
+    buzzfizz
+
+    85
+
+    86
+
+    87
+
+    buzz
+
+    89
+
+    90
+
+    fizz
+
+    buzz
+
+    93
+
+    94
+
+    95
+
+    buzz
+
+    97
+
+    fizz
+
+    99
+
+    buzz
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    3
+
+    buzz
+
+    5
+
+    6
+
+    fizz
+
+    buzz
+
+    9
+
+    10
+
+    11
+
+    buzz
+
+    13
+
+    fizz
+
+    15
+
+    buzz
+
+    17
+
+    18
+
+    19
+
+    buzz
+
+    fizz
+
+    22
+
+    23
+
+    buzz
+
+    25
+
+    26
+
+    27
+
+    buzzfizz
+
+    29
+
+    30
+
+    31
+
+    buzz
+
+    33
+
+    34
+
+    fizz
+
+    buzz
+
+    37
+
+    38
+
+    39
+
+    buzz
+
+    41
+
+    fizz
+
+    43
+
+    buzz
+
+    45
+
+    46
+
+    47
+
+    buzz
+
+    fizz
+
+    50
+
+    51
+
+    buzz
+
+    53
+
+    54
+
+    55
+
+    buzzfizz
+
+    57
+
+    58
+
+    59
+
+    buzz
+
+    61
+
+    62
+
+    fizz
+
+    buzz
+
+    65
+
+    66
+
+    67
+
+    buzz
+
+    69
+
+    fizz
+
+    71
+
+    buzz
+
+    73
+
+    74
+
+    75
+
+    buzz
+
+    fizz
+
+    78
+
+    79
+
+    buzz
+
+    81
+
+    82
+
+    83
+
+    buzzfizz
+
+    85
+
+    86
+
+    87
+
+    buzz
+
+    89
+
+    90
+
+    fizz
+
+    buzz
+
+    93
+
+    94
+
+    95
+
+    buzz
+
+    97
+
+    fizz
+
+    99
+
+    buzz
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    3
+
+    buzz
+
+    5
+
+    6
+
+    fizz
+
+    buzz
+
+    9
+
+    10
+
+    11
+
+    buzz
+
+    13
+
+    fizz
+
+    15
+
+    buzz
+
+    17
+
+    18
+
+    19
+
+    buzz
+
+    fizz
+
+    22
+
+    23
+
+    buzz
+
+    25
+
+    26
+
+    27
+
+    buzzfizz
+
+    29
+
+    30
+
+    31
+
+    buzz
+
+    33
+
+    34
+
+    fizz
+
+    buzz
+
+    37
+
+    38
+
+    39
+
+    buzz
+
+    41
+
+    fizz
+
+    43
+
+    buzz
+
+    45
+
+    46
+
+    47
+
+    buzz
+
+    fizz
+
+    50
+
+    51
+
+    buzz
+
+    53
+
+    54
+
+    55
+
+    buzzfizz
+
+    57
+
+    58
+
+    59
+
+    buzz
+
+    61
+
+    62
+
+    fizz
+
+    buzz
+
+    65
+
+    66
+
+    67
+
+    buzz
+
+    69
+
+    fizz
+
+    71
+
+    buzz
+
+    73
+
+    74
+
+    75
+
+    buzz
+
+    fizz
+
+    78
+
+    79
+
+    buzz
+
+    81
+
+    82
+
+    83
+
+    buzzfizz
+
+    85
+
+    86
+
+    87
+
+    buzz
+
+    89
+
+    90
+
+    fizz
+
+    buzz
+
+    93
+
+    94
+
+    95
+
+    buzz
+
+    97
+
+    fizz
+
+    99
+
+    buzz
+
+    '
+subject_id: buzzfizz
+mode: c_program
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./buzzfizz | head -n 30
+  args: []
+  expected: '1
+
+    2
+
+    3
+
+    buzz
+
+    5
+
+    6
+
+    fizz
+
+    buzz
+
+    9
+
+    10
+
+    11
+
+    buzz
+
+    13
+
+    fizz
+
+    15
+
+    buzz
+
+    17
+
+    18
+
+    19
+
+    buzz
+
+    fizz
+
+    22
+
+    23
+
+    buzz
+
+    25
+
+    26
+
+    27
+
+    buzzfizz
+
+    29
+
+    30
+
+    '
+  cat_e: false
+folder_examples:
+- id: e1337_buzzfizz_T06
+  origin: subject_folder/examples.txt
+  input: ./buzzfizz \| head -n 30
+  expected: 1\n2\n3\nbuzz\n5\n6\nfizz\nbuzz\n9\n10\n11\nbuzz\n13\nfizz\n15\nbuzz\n17\n18\n19\nbuzz\nfizz\n22\n23\nbuzz\n25\n26\n27\nbuzzfizz\n29\n30
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- name: no_args\n  args: []\n  stdout: '1\n\n    2\n\n\
+    \    3\n\n    buzz\n\n    5\n\n    6\n\n    fizz\n\n    buzz\n\n    9\n\n    10\n\
+    \n    11\n\n    buzz\n\n    13\n\n    fiz"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./buzzfizz | head -n 30
+  perturbed_input:
+  - buzzfizz_near_arg_1
+  - buzzfizz_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_buzzfizz_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./buzzfizz \| head -n 30
+  perturbed_input: ./cuzzfizz \| head -n 30
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

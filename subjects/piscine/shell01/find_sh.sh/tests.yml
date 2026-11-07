@@ -1,0 +1,161 @@
+mode: shell
+fixed_tests:
+- name: pool_find_sh_T01
+  args: []
+  expected: 'a
+
+    b
+
+    '
+  files:
+    a.sh: ''
+    sub/b.sh: ''
+  tier: baseline
+- name: pool_find_sh_T02
+  args: []
+  expected: 'alpha
+
+    beta
+
+    gamma
+
+    '
+  files:
+    alpha.sh: ''
+    nested/beta.sh: ''
+    nested/deep/gamma.sh: ''
+    ignore.txt: ''
+  tier: baseline
+- name: pool_find_sh_T03_single
+  args: []
+  expected: 'run
+
+    '
+  files:
+    run.sh: ''
+    readme.md: ''
+  tier: edge_case
+- name: pool_find_sh_T04_deep_tree
+  args: []
+  expected: 's1
+
+    s2
+
+    '
+  files:
+    a/b/s1.sh: ''
+    a/c/s2.sh: ''
+    a/b/not_sh.txt: ''
+  tier: edge_case
+- name: test_05_dot_sh_in_middle_ignored
+  args: []
+  files:
+    real.sh: ''
+    fake.sh.bak: ''
+    notes.txt: ''
+  tier: edge
+  stdout: 'real
+
+    '
+- name: test_06_four_scripts_flat
+  args: []
+  files:
+    s1.sh: ''
+    s2.sh: ''
+    s3.sh: ''
+    s4.sh: ''
+  tier: baseline
+  stdout: 's1
+
+    s2
+
+    s3
+
+    s4
+
+    '
+- name: test_07_deep_nested_3_levels
+  args: []
+  files:
+    d1/d2/d3/leaf.sh: ''
+    root.sh: ''
+  tier: edge
+  stdout: 'leaf
+
+    root
+
+    '
+- name: test_08_numeric_names
+  args: []
+  files:
+    42.sh: ''
+    1337.sh: ''
+  tier: baseline
+  stdout: '1337
+
+    42
+
+    '
+- name: test_09_underscore_and_dash
+  args: []
+  files:
+    my_script.sh: ''
+    sub/test-run.sh: ''
+  tier: baseline
+  stdout: 'my_script
+
+    test-run
+
+    '
+- name: test_10_five_scripts_mixed_dirs
+  args: []
+  files:
+    a/one.sh: ''
+    b/two.sh: ''
+    c/three.sh: ''
+    four.sh: ''
+    d/e/five.sh: ''
+  tier: stress
+  stdout: 'five
+
+    four
+
+    one
+
+    three
+
+    two
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./find_sh.sh | cat -e
+  args: []
+  expected: 'file1
+
+    file2
+
+    find_sh
+
+    '
+  cat_e: true
+folder_examples:
+- id: pool_find_sh-sh_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`sh find_sh.sh.sh` (standard shell environment)'
+  expected: a\nb\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./find_sh.sh | cat -e
+  perturbed_input:
+  - find_sh.sh_near_arg_1
+  - find_sh.sh_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_find_sh-sh_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '`sh find_sh.sh.sh` (standard shell environment)'
+  perturbed_input: '`th find_sh.sh.sh` (standard shell envir'

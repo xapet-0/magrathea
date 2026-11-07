@@ -1,0 +1,135 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_putnbr_base_T01
+  description: decimal_positive
+  call: ft_putnbr_base(42, "0123456789"); printf("\n")
+  stdout: '42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_putnbr_base_T02
+  description: binary_positive
+  call: ft_putnbr_base(42, "01"); printf("\n")
+  stdout: '101010
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_putnbr_base_T03
+  description: decimal_negative
+  call: ft_putnbr_base(-42, "0123456789"); printf("\n")
+  stdout: '-42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_putnbr_base_T04
+  description: int_min
+  call: ft_putnbr_base(-2147483648, "0123456789"); printf("\n")
+  stdout: '-2147483648
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_putnbr_base_T05
+  description: invalid_duplicate_base
+  call: ft_putnbr_base(42, "001"); printf("X\n")
+  stdout: 'X
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_putnbr_base_T06
+  description: invalid_single_char_base
+  call: ft_putnbr_base(42, "0"); printf("X\n")
+  stdout: 'X
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_putnbr_base_T07
+  description: invalid_plus_base
+  call: ft_putnbr_base(42, "012+"); printf("X\n")
+  stdout: 'X
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_08_zero_in_hex_and_bin
+  call: ft_putnbr_base(0, "0123456789abcdef"); printf(":"); ft_putnbr_base(0, "01");
+    printf("\n")
+  tier: edge
+  stdout: '0:0
+
+    '
+- name: test_09_int_max_hex
+  call: ft_putnbr_base(2147483647, "0123456789ABCDEF"); printf("\n")
+  tier: edge
+  stdout: '7FFFFFFF
+
+    '
+- name: test_10_custom_octal_poneyvif
+  call: ft_putnbr_base(-64, "poneyvif"); printf("\n")
+  tier: baseline
+  stdout: '-opp
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_putnbr_base
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_putnbr_base_T09
+  origin: subject_folder/mini-moulinette/ex04/ft_putnbr_base.c
+  input: 'Input: -12'
+  expected: 'Expected: -1100'
+- id: pool_ft_putnbr_base_T10
+  origin: subject_folder/mini-moulinette/ex04/ft_putnbr_base.c
+  input: 'Input: 40'
+  expected: 'Expected: vp'
+- id: pool_ft_putnbr_base_T11
+  origin: subject_folder/mini-moulinette/ex04/ft_putnbr_base.c
+  input: 'Input: 894867'
+  expected: 'Expected: 894867'
+- id: pool_ft_putnbr_base_T12
+  origin: subject_folder/mini-moulinette/ex04/ft_putnbr_base.c
+  input: 'Input: 53'
+  expected: 'Expected: 35'
+- id: pool_ft_putnbr_base_T13
+  origin: subject_folder/mini-moulinette/ex04/ft_putnbr_base.c
+  input: 'Input: 0'
+  expected: 'Expected: 0'
+- id: pool_ft_putnbr_base_T14
+  origin: subject_folder/mini-moulinette/ex04/ft_putnbr_base.c
+  input: 'Input: 123'
+  expected: 'Expected:'
+- id: pool_ft_putnbr_base_T15
+  origin: subject_folder/mini-moulinette/ex04/ft_putnbr_base.c
+  input: 'Input: -2147483648'
+  expected: 'Expected: -10000000000000000000000000000000'
+- id: pool_ft_putnbr_base_T16
+  origin: subject_folder/mini-moulinette/ex04/ft_putnbr_base.c
+  input: 'Input: 2147483647'
+  expected: 'Expected: 7fffffff'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_putnbr_base
+  perturbed_input:
+  - ft_putnbr_base_near_arg_1
+  - ft_putnbr_base_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_putnbr_base_T09
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex04/ft_putnbr_base.c)
+  original_input: 'Input: -12'
+  perturbed_input: 'Jnput: -12'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_putnbr_base_T10
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex04/ft_putnbr_base.c)
+  original_input: 'Input: 40'
+  perturbed_input: 'Jnput: 40'

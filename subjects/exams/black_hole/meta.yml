@@ -1,0 +1,16 @@
+id: black_hole
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- black_hole.sh
+allowed_functions:
+- printf
+- echo
+- ls
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh black_hole.sh [args...]

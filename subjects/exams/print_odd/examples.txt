@@ -1,0 +1,6 @@
+# Examples for print_odd (from official subject specification)
+
+Example:
+
+./a.out "FOR 42" | cat -e
+O 2$

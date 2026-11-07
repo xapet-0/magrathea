@@ -1,0 +1,146 @@
+edge_cases:
+- name: edge_01_P
+  code: '[P]'
+  title: File descriptor leak audit in `ft_popen`
+  input: Run ft_popen and check open file descriptors in /proc/self/fd
+  expected: Only stdin, stdout, stderr remain open
+- name: edge_02_P
+  code: '[P]'
+  title: Child process reaping and zombie prevention in `ft_popen`
+  input: Spawn multiple processes in ft_popen and verify with waitpid
+  expected: No zombie processes remain in process table
+- name: edge_03_B
+  code: '[B]'
+  title: Command-line arguments contract enforcement in `ft_popen`
+  input: Invoke ft_popen with invalid argument counts
+  expected: Emit exact error string to stderr and exit with non-zero status
+- name: edge_04_M
+  code: '[M]'
+  title: Stream buffer cleanup on EOF in `ft_popen`
+  input: Stream large input to ft_popen until EOF
+  expected: 0 bytes leaked
+fixed_tests:
+- name: test_01_s_buf
+  call: printf("%s", buf)
+  setup:
+  - char *av[] = {"echo", "42", NULL}; int fd = ft_popen("echo", av, 'r'); char buf[16]={0};
+    read(fd, buf, 15); close(fd); wait(NULL);
+  stdout: '42
+
+    '
+- name: test_02_NULL_NULL_r
+  expr: ft_popen(NULL, NULL, 'r')
+  stdout: '-1
+
+    '
+- name: test_03_echo_av_x
+  expr: ft_popen("echo", av, 'x')
+  setup:
+  - char *av[] = {"echo", "42", NULL};
+  stdout: '-1
+
+    '
+- name: test_04_s_buf
+  call: printf("%s", buf)
+  setup:
+  - char *av[] = {"echo", "hello 1337", NULL}; int fd = ft_popen("echo", av, 'r');
+    char buf[32]={0}; read(fd, buf, 31); close(fd); wait(NULL);
+  stdout: 'hello 1337
+
+    '
+- name: test_05_null_argv
+  expr: ft_popen("echo", NULL, 'r')
+  tier: edge
+  stdout: '-1
+
+    '
+- name: test_06_invalid_type_char
+  setup:
+  - char *av[] = {"echo", "1", NULL};
+  expr: ft_popen("echo", av, 'a')
+  tier: edge
+  stdout: '-1
+
+    '
+- name: test_07_null_file_with_valid_av
+  setup:
+  - char *av[] = {"echo", "1", NULL};
+  expr: ft_popen(NULL, av, 'w')
+  tier: edge
+  stdout: '-1
+
+    '
+- name: test_08_read_printf_no_newline
+  setup:
+  - char *av[] = {"printf", "1337_OK", NULL}; int fd = ft_popen("printf", av, 'r');
+    char buf[32]={0}; read(fd, buf, 31); close(fd); wait(NULL);
+  call: printf("%s\n", buf)
+  tier: baseline
+  stdout: '1337_OK
+
+    '
+- name: test_09_write_mode_to_cat
+  setup:
+  - FILE *fp = fopen("out9.txt", "w"); fclose(fp); char *av[] = {"sh", "-c", "cat
+    > out9.txt", NULL}; int fd = ft_popen("sh", av, 'w'); write(fd, "written_42\n",
+    11); close(fd); wait(NULL); FILE *r = fopen("out9.txt", "r"); char buf[32]={0};
+    fgets(buf, 31, r); fclose(r);
+  call: printf("%s", buf)
+  tier: baseline
+  stdout: 'written_42
+
+    '
+- name: test_10_read_multiline_seq
+  setup:
+  - char *av[] = {"printf", "a\nb\nc\n", NULL}; int fd = ft_popen("printf", av, 'r');
+    char buf[32]={0}; read(fd, buf, 31); close(fd); wait(NULL);
+  call: printf("%s", buf)
+  tier: stress
+  stdout: 'a
+
+    b
+
+    c
+
+    '
+folder_examples:
+- expected: 42\n
+  id: cur_ft_popen_T01
+  input: printf("%s", buf)
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: -1\n
+  id: cur_ft_popen_T02
+  input: ft_popen(NULL, NULL, 'r')
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: -1\n
+  id: cur_ft_popen_T03
+  input: ft_popen("echo", av, 'x')
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval ft_popen
+  perturbed_input:
+  - ft_popen_near_arg_1
+  - ft_popen_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: cur_ft_popen_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: printf("%s", buf)
+  perturbed_input: qrintf("%s", buf)
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+- derived_from: cur_ft_popen_T02
+  id: near_folder_02_boundary_neighbor
+  original_input: ft_popen(NULL, NULL, 'r')
+  perturbed_input: gt_popen(NULL, NULL, 'r')
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval ft_popen
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

@@ -1,0 +1,7 @@
+# Examples for eval_expr (from official subject specification)
+
+Examples:
+    printf("%d\n", eval_expr("3 + 42 * (1 - 2 / (3 + 4) - 1 % 21) + 1"))
+    Output: 4
+    printf("%d\n", eval_expr(" ( 10 + 20 ) * 3 - 48 "))
+    Output: 42

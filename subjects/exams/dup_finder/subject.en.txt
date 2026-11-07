@@ -1,0 +1,17 @@
+Assignment name  : dup_finder
+Expected files   : dup_finder.sh
+Allowed commands : find, md5sum, cksum, sort, uniq, awk, cat
+--------------------------------------------------------------------------------
+
+Write a shell script that identifies duplicate file contents in the current
+directory and prints the duplicated content/hash summary.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh dup_finder.sh | cat -e
+42$
+$> sh dup_finder.sh | cat -e
+42$

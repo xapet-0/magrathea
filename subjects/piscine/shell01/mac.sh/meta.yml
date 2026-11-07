@@ -1,0 +1,13 @@
+id: mac.sh
+type: shell
+module: Shell 01
+xp: 160
+expected_files:
+- MAC.sh
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: sh mac.sh.sh [args...]

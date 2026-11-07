@@ -1,0 +1,66 @@
+fixed_tests:
+- call: t_list *l=NULL; ft_list_push_back(&l,"a"); ft_list_push_back(&l,"b"); printf("%s%s\n",(char*)l->data,(char*)l->next->data);
+  name: pool_ft_list_push_back_T01
+  stdout: 'ab
+
+    '
+- call: t_list *l=NULL; ft_list_push_back(&l,"first"); printf("%s:%d\n",(char*)l->data,
+    l->next==NULL);
+  name: ft_list_push_back_to_empty
+  stdout: 'first:1
+
+    '
+- call: t_list *l=NULL; ft_list_push_back(&l,"1"); ft_list_push_back(&l,"2"); ft_list_push_back(&l,"3");
+    printf("%s%s%s\n",(char*)l->data,(char*)l->next->data,(char*)l->next->next->data);
+  name: ft_list_push_back_three_elements
+  stdout: '123
+
+    '
+- call: t_list a={"head",0}; t_list *l=&a; ft_list_push_back(&l,"tail"); printf("%s->%s\n",(char*)l->data,(char*)l->next->data);
+  name: ft_list_push_back_appends_to_existing
+  stdout: 'head->tail
+
+    '
+- name: test_05_null_data_push
+  call: t_list *l=NULL; ft_list_push_back(&l,NULL); printf("%d:%d\n",l->data==NULL,l->next==NULL);
+  tier: edge
+  stdout: '1:1
+
+    '
+- name: test_06_four_elements
+  call: t_list *l=NULL; ft_list_push_back(&l,"a"); ft_list_push_back(&l,"b"); ft_list_push_back(&l,"c");
+    ft_list_push_back(&l,"d"); while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  tier: baseline
+  stdout: 'abcd
+
+    '
+- name: test_07_five_numbers
+  call: t_list *l=NULL; for(int i=1;i<=5;i++) ft_list_push_back(&l,(void*)(long)i);
+    while(l){printf("%ld,",(long)l->data);l=l->next;} printf("\n");
+  tier: stress
+  stdout: '1,2,3,4,5,
+
+    '
+- name: test_08_preserves_head_pointer
+  call: t_list *l=NULL; ft_list_push_back(&l,"1"); t_list *h=l; ft_list_push_back(&l,"2");
+    ft_list_push_back(&l,"3"); printf("%d\n",l==h);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_tail_next_is_null
+  call: t_list *l=NULL; ft_list_push_back(&l,"x"); ft_list_push_back(&l,"y"); printf("%d\n",l->next->next==NULL);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_10_empty_strings
+  call: t_list *l=NULL; ft_list_push_back(&l,""); ft_list_push_back(&l,"end"); printf("[%s]->%s\n",(char*)l->data,(char*)l->next->data);
+  tier: baseline
+  stdout: '[]->end
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

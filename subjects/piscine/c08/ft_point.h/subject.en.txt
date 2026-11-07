@@ -1,0 +1,27 @@
+Assignment name  : ft_point.h
+Expected files   : ft_point.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 08 (Official PDF)
+Exercise         : ft_point.h
+Turn-in directory: ex03/
+Expected files   : ft_point.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a file ft_point.h that will compile the following main:
+#include "ft_point.h"
+void set_point(t_point *point)
+{
+point->x = 42;
+point->y = 21;
+}
+int main(void)
+{
+t_point point;
+set_point(&point);
+return (0);
+}
+
+[pool_ft_point-h_T01] Input: Harness driver specified in subject.en.txt  ==>  Expected: Compilation succeeds cleanly; exits with code 0

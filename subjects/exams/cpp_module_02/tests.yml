@@ -1,0 +1,63 @@
+mode: cpp
+main_cpp: "#include \"Warlock.hpp\"\n#include \"BrickWall.hpp\"\n#include \"Polymorph.hpp\"\
+  \n#include \"Fireball.hpp\"\n#include \"TargetGenerator.hpp\"\nint main()\n{\n \
+  \ Warlock richard(\"Richard\", \"foo\");\n  richard.setTitle(\"Hello, I'm Richard\
+  \ the Warlock!\");\n  BrickWall model1;\n\n  Polymorph* polymorph = new Polymorph();\n\
+  \  TargetGenerator tarGen;\n\n  tarGen.learnTargetType(&model1);\n  richard.learnSpell(polymorph);\n\
+  \n  Fireball* fireball = new Fireball();\n\n  richard.learnSpell(fireball);\n\n\
+  \  ATarget* wall = tarGen.createTarget(\"Inconspicuous Red-brick Wall\");\n\n  richard.introduce();\n\
+  \  richard.launchSpell(\"Polymorph\", *wall);\n  richard.launchSpell(\"Fireball\"\
+  , *wall);\n  delete polymorph;\n  delete fireball;\n  delete wall;\n  return 0;\n\
+  }\n"
+expected_stdout: 'Richard: This looks like another boring day.
+
+  Richard: I am Richard, Hello, I''m Richard the Warlock!!
+
+  Inconspicuous Red-brick Wall has been turned into a critter!
+
+  Inconspicuous Red-brick Wall has been burnt to a crisp!
+
+  Richard: My job here is done!
+
+  '
+must_not_compile: []
+fixed_tests:
+- name: cpp_module_02_canonical_driver
+  main_code: ''
+  expected: ''
+- name: cpp_module_02_coplien_and_const_contract
+  main_code: ''
+  expected: ''
+- name: cpp_module_02_boundary_and_state_invariants
+  main_code: ''
+  expected: ''
+- name: cpp_module_02_destructor_and_resource_lifecycle
+  main_code: ''
+  expected: ''
+- name: test_05_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_06_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_07_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_08_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_09_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_10_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+subject_examples: []
+folder_examples: []
+near_examples: []

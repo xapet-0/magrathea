@@ -1,0 +1,156 @@
+fixed_tests:
+- call: int r1 = sandbox(fn_nice, 2, true); int r2 = sandbox(fn_exit42, 2, true);
+    int r3 = sandbox(fn_segv, 2, true); int r4 = sandbox(fn_hang, 1, true); printf("R=%d:%d:%d:%d\n",
+    r1, r2, r3, r4);
+  name: sandbox_multi_behavior_verification
+  setup:
+  - void fn_nice(void) {}
+  - void fn_exit42(void) { exit(42); }
+  - void fn_segv(void) { volatile int *p = 0; *p = 1; }
+  - void fn_hang(void) { while (1) {} }
+  stdout: 'Nice function!
+
+    Bad function: exited with code 42
+
+    Bad function: Segmentation fault
+
+    Bad function: timed out after 1 seconds
+
+    R=1:0:0:0
+
+    '
+- call: int a = sandbox(fn_ok, 2, false); int b = sandbox(fn_bad, 2, false); printf("QUIET=%d:%d\n",
+    a, b);
+  name: sandbox_quiet_mode_verification
+  setup:
+  - void fn_ok(void) {}
+  - void fn_bad(void) { exit(7); }
+  stdout: 'QUIET=1:0
+
+    '
+- call: int r = sandbox(fn_nice2, 2, true); printf("V_NICE=%d\n", r);
+  name: sandbox_verbose_nice_returns_1
+  setup:
+  - void fn_nice2(void) {}
+  stdout: 'Nice function!
+
+    V_NICE=1
+
+    '
+- call: int r = sandbox(fn_bad2, 2, false); printf("Q_BAD=%d\n", r);
+  name: sandbox_quiet_exit_nonzero
+  setup:
+  - void fn_bad2(void) { exit(13); }
+  stdout: 'Q_BAD=0
+
+    '
+- name: test_05_sigabrt_verbose
+  setup:
+  - void fn_abrt(void) { abort(); }
+  call: int r = sandbox(fn_abrt, 2, true); printf("ABRT=%d\n", r);
+  tier: edge
+  stdout: 'Bad function: Aborted
+
+    ABRT=0
+
+    '
+- name: test_06_sigfpe_quiet
+  setup:
+  - void fn_fpe(void) { raise(SIGFPE); }
+  call: int r = sandbox(fn_fpe, 2, false); printf("FPE=%d\n", r);
+  tier: edge
+  stdout: 'FPE=0
+
+    '
+- name: test_07_exit_1_verbose
+  setup:
+  - void fn_e1(void) { exit(1); }
+  call: int r = sandbox(fn_e1, 2, true); printf("E1=%d\n", r);
+  tier: baseline
+  stdout: 'Bad function: exited with code 1
+
+    E1=0
+
+    '
+- name: test_08_exit_255_verbose
+  setup:
+  - void fn_e255(void) { exit(255); }
+  call: int r = sandbox(fn_e255, 2, true); printf("E255=%d\n", r);
+  tier: edge
+  stdout: 'Bad function: exited with code 255
+
+    E255=0
+
+    '
+- name: test_09_sigkill_self_verbose
+  setup:
+  - void fn_kill(void) { raise(SIGKILL); }
+  call: int r = sandbox(fn_kill, 2, true); printf("KILL=%d\n", r);
+  tier: edge
+  stdout: 'Bad function: Killed
+
+    KILL=0
+
+    '
+- name: test_10_fast_return_zero_exit
+  setup:
+  - void fn_exit0(void) { exit(0); }
+  call: int r = sandbox(fn_exit0, 2, true); printf("E0=%d\n", r);
+  tier: stress
+  stdout: 'Nice function!
+
+    E0=1
+
+    '
+- name: test_05_fast_exit_1
+  setup:
+  - void fn_e1(void) { exit(1); }
+  call: int r = sandbox(fn_e1, 1, false); printf("E1=%d\n", r);
+  tier: baseline
+  stdout: 'E1=0
+
+    '
+- name: test_06_fast_exit_2
+  setup:
+  - void fn_e2(void) { exit(2); }
+  call: int r = sandbox(fn_e2, 1, false); printf("E2=%d\n", r);
+  tier: baseline
+  stdout: 'E2=0
+
+    '
+- name: test_07_fast_exit_3
+  setup:
+  - void fn_e3(void) { exit(3); }
+  call: int r = sandbox(fn_e3, 1, false); printf("E3=%d\n", r);
+  tier: baseline
+  stdout: 'E3=0
+
+    '
+- name: test_08_fast_exit_4
+  setup:
+  - void fn_e4(void) { exit(4); }
+  call: int r = sandbox(fn_e4, 1, false); printf("E4=%d\n", r);
+  tier: edge
+  stdout: 'E4=0
+
+    '
+- name: test_09_fast_exit_5
+  setup:
+  - void fn_e5(void) { exit(5); }
+  call: int r = sandbox(fn_e5, 1, false); printf("E5=%d\n", r);
+  tier: edge
+  stdout: 'E5=0
+
+    '
+- name: test_10_fast_exit_0
+  setup:
+  - void fn_e0(void) { exit(0); }
+  call: int r = sandbox(fn_e0, 1, false); printf("E0=%d\n", r);
+  tier: stress
+  stdout: 'E0=1
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

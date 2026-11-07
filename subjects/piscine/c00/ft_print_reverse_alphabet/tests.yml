@@ -1,0 +1,113 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_print_reverse_alphabet_T01
+  description: 'Functional verification of input: `ft_print_reverse_alphabet()`'
+  expr: ft_print_reverse_alphabet()
+  stdout: 'zyxwvutsrqponmlkjihgfedcba
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_print_reverse_alphabet_T02
+  description: case_reverse_once
+  call: ft_print_reverse_alphabet(); write(1, "\n", 1)
+  stdout: 'zyxwvutsrqponmlkjihgfedcba
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_print_reverse_alphabet_T03
+  description: case_reverse_twice
+  call: ft_print_reverse_alphabet(); ft_print_reverse_alphabet(); write(1, "\n", 1)
+  stdout: 'zyxwvutsrqponmlkjihgfedcbazyxwvutsrqponmlkjihgfedcba
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_print_reverse_alphabet_T04_delimited
+  description: delimited_reverse_alphabet
+  call: write(1, "<", 1); ft_print_reverse_alphabet(); write(1, ">\n", 2)
+  stdout: '<zyxwvutsrqponmlkjihgfedcba>
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_bracketed
+  call: write(1, "[", 1); ft_print_reverse_alphabet(); write(1, "]\n", 2)
+  tier: baseline
+  stdout: '[zyxwvutsrqponmlkjihgfedcba]
+
+    '
+- name: test_06_colon_separated
+  call: ft_print_reverse_alphabet(); write(1, ":", 1); ft_print_reverse_alphabet();
+    write(1, "\n", 1)
+  tier: baseline
+  stdout: 'zyxwvutsrqponmlkjihgfedcba:zyxwvutsrqponmlkjihgfedcba
+
+    '
+- name: test_07_prefix_tag
+  call: write(1, "ZA=", 3); ft_print_reverse_alphabet(); write(1, "\n", 1)
+  tier: edge
+  stdout: 'ZA=zyxwvutsrqponmlkjihgfedcba
+
+    '
+- name: test_08_suffix_tag
+  call: ft_print_reverse_alphabet(); write(1, "=26\n", 4)
+  tier: edge
+  stdout: 'zyxwvutsrqponmlkjihgfedcba=26
+
+    '
+- name: test_09_triple_call
+  call: ft_print_reverse_alphabet(); write(1, "|", 1); ft_print_reverse_alphabet();
+    write(1, "|", 1); ft_print_reverse_alphabet(); write(1, "\n", 1)
+  tier: stress
+  stdout: 'zyxwvutsrqponmlkjihgfedcba|zyxwvutsrqponmlkjihgfedcba|zyxwvutsrqponmlkjihgfedcba
+
+    '
+- name: test_10_pipe_wrapped
+  call: write(1, "|", 1); ft_print_reverse_alphabet(); write(1, "|\n", 2)
+  tier: edge
+  stdout: '|zyxwvutsrqponmlkjihgfedcba|
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_print_reverse_alphabet
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_print_reverse_alphabet_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: ft_print_reverse_alphabet()
+  expected: zyxwvutsrqponmlkjihgfedcba
+- id: pool_ft_print_reverse_alphabet_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: ft_print_reverse_alphabet(); write(1, "\n", 1)
+  expected: zyxwvutsrqponmlkjihgfedcba\n
+- id: pool_ft_print_reverse_alphabet_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: ft_print_reverse_alphabet(); ft_print_reverse_alphabet(); write(1, "\n",
+    1)
+  expected: zyxwvutsrqponmlkjihgfedcbazyxwvutsrqponmlkjihgfedcba\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_print_reverse_alphabet
+  perturbed_input:
+  - ft_print_reverse_alphabet_near_arg_1
+  - ft_print_reverse_alphabet_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_print_reverse_alphabet_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: ft_print_reverse_alphabet()
+  perturbed_input: gt_print_reverse_alphabet()
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_print_reverse_alphabet_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: ft_print_reverse_alphabet(); write(1, "\n", 1)
+  perturbed_input: gt_print_reverse_alphabet(); write(1, "\

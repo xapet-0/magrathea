@@ -1,0 +1,4 @@
+# Examples for btree_search_item (from official subject specification)
+
+Examples:
+    we need to get theam from here  https://git.hexanyn.fr/42/piscine/c13/-/blob/master/ex05/btree_search_item.c?ref_type=heads

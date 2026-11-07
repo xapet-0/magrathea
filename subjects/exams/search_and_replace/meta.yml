@@ -1,0 +1,15 @@
+id: search_and_replace
+type: c_program
+module: Exam Rank 02
+xp: 445
+expected_files:
+- search_and_replace.c
+allowed_functions:
+- write
+- exit
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

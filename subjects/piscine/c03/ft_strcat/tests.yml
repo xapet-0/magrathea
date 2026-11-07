@@ -1,0 +1,141 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_strcat_T01
+  description: 'Functional verification of input: `char d[20] = "Hello"; ft_strcat(d,
+    " World");`'
+  call: char d[20] = "Hello"; ft_strcat(d, " World"); printf("%s\n", d)
+  stdout: 'Hello World
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_strcat_T02
+  description: append_empty
+  call: char d[20] = "42"; ft_strcat(d, ""); printf("%s\n", d)
+  stdout: '42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_strcat_T03
+  description: into_empty
+  call: char d[20] = ""; ft_strcat(d, "1337"); printf("%s\n", d)
+  stdout: '1337
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_strcat_T04_return_pointer
+  description: returns_dest_pointer
+  call: char d[20] = "A"; char *r = ft_strcat(d, "BC"); printf("%s|%d\n", r, r ==
+    d)
+  stdout: 'ABC|1
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_both_empty
+  call: char d[16] = ""; ft_strcat(d, ""); printf("[%s]\n", d)
+  tier: edge
+  stdout: '[]
+
+    '
+- name: test_06_chained_calls
+  call: char d[32] = "1"; ft_strcat(d, "3"); ft_strcat(d, "3"); ft_strcat(d, "7");
+    printf("%s\n", d)
+  tier: stress
+  stdout: '1337
+
+    '
+- name: test_07_spaces_and_symbols
+  call: char d[32] = "foo "; ft_strcat(d, "bar!@#"); printf("%s\n", d)
+  tier: baseline
+  stdout: 'foo bar!@#
+
+    '
+- name: test_08_null_terminated
+  call: char d[16] = "ab"; d[4] = 'X'; ft_strcat(d, "cd"); printf("%s|%d\n", d, d[4]
+    == 0)
+  tier: edge
+  stdout: 'abcd|1
+
+    '
+- name: test_09_single_char_append
+  call: char d[16] = "4"; ft_strcat(d, "2"); printf("%s\n", d)
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_10_longer_sentence
+  call: char d[64] = "Welcome to "; ft_strcat(d, "Magrathea 42!"); printf("%s\n",
+    d)
+  tier: baseline
+  stdout: 'Welcome to Magrathea 42!
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strcat
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_ft_strcat_T05
+  origin: subject_folder/mini-moulinette/ex02/ft_strcat.c
+  input: 'Input: Hello'
+  expected: 'Expected: Hello'
+- id: cur_ft_strcat_T06
+  origin: subject_folder/mini-moulinette/ex02/ft_strcat.c
+  input: 'Input: Network'
+  expected: 'Expected: 42 Network'
+- id: cur_ft_strcat_T07
+  origin: subject_folder/mini-moulinette/ex02/ft_strcat.c
+  input: 'Input: Hello'
+  expected: 'Expected: HelloHello'
+- id: cur_ft_strcat_T08
+  origin: subject_folder/mini-moulinette/ex02/ft_strcat.c
+  input: 'Input:'
+  expected: 'Expected: Hello'
+- id: cur_ft_strcat_T09
+  origin: subject_folder/mini-moulinette/ex02/ft_strcat.c
+  input: 'Input:'
+  expected: 'Expected:'
+- id: cur_ft_strcat_T10
+  origin: subject_folder/deepthought/corrections/exams/ft_strcat/generator.py
+  input: Dynamic generation rule via random_string()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strcat_T11
+  origin: subject_folder/deepthought/corrections/exams/ft_strcat/generator.py
+  input: Dynamic generation rule via basic_concatenation()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strcat_T12
+  origin: subject_folder/deepthought/corrections/exams/ft_strcat/generator.py
+  input: Dynamic generation rule via empty_s2()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strcat_T13
+  origin: subject_folder/deepthought/corrections/exams/ft_strcat/generator.py
+  input: Dynamic generation rule via empty_s1()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strcat_T14
+  origin: subject_folder/deepthought/corrections/exams/ft_strcat/generator.py
+  input: Dynamic generation rule via edge_case()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strcat
+  perturbed_input:
+  - ft_strcat_near_arg_1
+  - ft_strcat_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ft_strcat_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_strcat.c)
+  original_input: 'Input: Hello'
+  perturbed_input: 'Jnput: Hello'
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ft_strcat_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_strcat.c)
+  original_input: 'Input: Network'
+  perturbed_input: 'Jnput: Network'

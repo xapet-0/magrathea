@@ -1,0 +1,27 @@
+# Examples for is_looping (from official subject specification)
+
+Example 1:
+1 -> 2 -> 3 -> 4 -> 5
+          ^         |
+          |         v
+          7 <- 6 <- *
+Returns: 1
+
+Example 2:
+12 -> 150 -> 30 -> 50 -> 345 -> 120 -> 200 -> NULL
+Returns: 0
+
+Example 3:
+12 -> 150 -> 30 -> 50 -> 345 -> 120
+       ^                         |
+       |                         v
+       * <- 200 <- 220 <- 100 <- *
+Returns: 1
+
+Example 4:
+12 -> 19 -> 14 -> NULL
+Returns: 0
+
+Example 5 (Self-loop on single node):
+42 -> 42 (node->next == node)
+Returns: 1

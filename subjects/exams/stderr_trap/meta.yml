@@ -1,0 +1,16 @@
+id: stderr_trap
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- stderr_trap.sh
+allowed_functions:
+- sh
+- printf
+- echo
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh stderr_trap.sh [args...]

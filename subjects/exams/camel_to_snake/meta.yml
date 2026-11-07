@@ -1,0 +1,17 @@
+id: camel_to_snake
+type: c_program
+module: Exam Rank 02
+xp: 445
+expected_files:
+- camel_to_snake.c
+allowed_functions:
+- malloc
+- free
+- realloc
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

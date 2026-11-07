@@ -1,0 +1,6 @@
+# Examples for rtfm_ls (from official subject specification)
+
+Examples:
+$> sh rtfm_ls.sh | cat -e
+large$
+small$

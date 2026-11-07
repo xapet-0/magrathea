@@ -1,0 +1,9 @@
+name: sample_42_exam
+description: "1337 / 42 ExamShell Pool Manifest Template (No bundled exercises)"
+duration_hours: 4
+cooldown_base_seconds: 10
+max_score: 100
+levels:
+  - level: 0
+    points: 16
+    candidates: []

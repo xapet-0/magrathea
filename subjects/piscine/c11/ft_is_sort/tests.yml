@@ -1,0 +1,61 @@
+fixed_tests:
+- call: int a[]={1,2,3}; printf("%d\n",ft_is_sort(a,3,dt_cmp));
+  name: pool_ft_is_sort_T01
+  stdout: '1
+
+    '
+- call: int a[]={1,3,2}; printf("%d\n",ft_is_sort(a,3,dt_cmp));
+  name: pool_ft_is_sort_T02
+  stdout: '0
+
+    '
+- call: int a[]={3,2,1}; printf("%d\n",ft_is_sort(a,3,dt_cmp));
+  name: ft_is_sort_reverse_sorted
+  stdout: '1
+
+    '
+- call: int a[]={5,5,5}; int b[]={42}; printf("%d:%d\n",ft_is_sort(a,3,dt_cmp),ft_is_sort(b,1,dt_cmp));
+  name: ft_is_sort_all_equal_and_single
+  stdout: '1:1
+
+    '
+- name: test_05_zero_length
+  call: int a[]={3,1}; printf("%d\n",ft_is_sort(a,0,dt_cmp));
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_two_elements_sorted_and_unsorted
+  call: int a[]={1,2}; int b[]={2,1}; printf("%d:%d\n",ft_is_sort(a,2,dt_cmp),ft_is_sort(b,2,dt_cmp));
+  tier: baseline
+  stdout: '1:1
+
+    '
+- name: test_07_sorted_with_duplicates
+  call: int a[]={-5,-5,0,2,2,10}; printf("%d\n",ft_is_sort(a,6,dt_cmp));
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_descending_with_duplicates
+  call: int a[]={10,10,5,0,-2,-2}; printf("%d\n",ft_is_sort(a,6,dt_cmp));
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_valley_unsorted
+  call: int a[]={5,1,5}; printf("%d\n",ft_is_sort(a,3,dt_cmp));
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_peak_unsorted
+  call: int a[]={1,5,2,4}; printf("%d\n",ft_is_sort(a,4,dt_cmp));
+  tier: stress
+  stdout: '0
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

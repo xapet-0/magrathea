@@ -1,0 +1,147 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_isdigit_T01
+  description: 'Functional verification of input: `ft_isdigit(''5'')`'
+  expr: ft_isdigit('5')
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_isdigit_T02
+  description: 'Functional verification of input: `ft_isdigit(''a'')`'
+  expr: ft_isdigit('a')
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_isdigit_T03
+  description: edge_ft_isdigit_zero
+  expr: ft_isdigit('0')
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_isdigit_T04
+  description: edge_ft_isdigit_before_zero
+  expr: ft_isdigit('/')
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_isdigit_T05
+  description: edge_ft_isdigit_after_nine
+  expr: ft_isdigit(':')
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_06_digit_9
+  expr: ft_isdigit('9')
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_digit_1
+  expr: ft_isdigit('1')
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_08_uppercase_A
+  expr: ft_isdigit('A')
+  tier: baseline
+  stdout: '0
+
+    '
+- name: test_09_space
+  expr: ft_isdigit(' ')
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_nul_and_negative
+  expr: ft_isdigit(0) + ft_isdigit(-1)
+  tier: stress
+  stdout: '0
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_isdigit
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_ft_isdigit_T07
+  origin: subject_folder/deepthought/corrections/exams/ft_isdigit/generator.py
+  input: Dynamic generation rule via random_digit()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_isdigit_T08
+  origin: subject_folder/deepthought/corrections/exams/ft_isdigit/generator.py
+  input: Dynamic generation rule via random_non_digit()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_isdigit_T09
+  origin: subject_folder/deepthought/corrections/exams/ft_isdigit/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_isdigit_T10
+  origin: subject_folder/deepthought/corrections/exams/ft_isdigit/generator.py
+  input: Dynamic generation rule via non_digit_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_isdigit_T11
+  origin: subject_folder/deepthought/corrections/exams/ft_isdigit/generator.py
+  input: Dynamic generation rule via ascii_edge_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_isdigit_T12
+  origin: subject_folder/deepthought/corrections/exams/ft_isdigit/generator.py
+  input: Dynamic generation rule via negative_input_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_isdigit_T13
+  origin: subject_folder/deepthought/corrections/exams/ft_isdigit/generator.py
+  input: Dynamic generation rule via large_ascii_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_isdigit
+  perturbed_input:
+  - ft_isdigit_near_arg_1
+  - ft_isdigit_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ft_isdigit_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ft_isdigit/generator.py)
+  original_input: Dynamic generation rule via random_digit()
+  perturbed_input: Eynamic generation rule via random_digit
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ft_isdigit_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ft_isdigit/generator.py)
+  original_input: Dynamic generation rule via random_non_digit()
+  perturbed_input: Eynamic generation rule via random_non_d
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and non-printable characters in `ft_isdigit`
+  input: "ft_isdigit(\"\") and ft_isdigit(\"\t\n\x01\x1F\")"
+  expected: Preserve non-alphabetic characters unmodified
+- name: edge_02_B
+  code: '[B]'
+  title: Argument count verification (argc != 2) in `ft_isdigit`
+  input: Execute ft_isdigit with 0 arguments and with > 1 argument
+  expected: Print newline only
+- name: edge_03_D
+  code: '[D]'
+  title: Idempotence and involution property check for `ft_isdigit`
+  input: 'Apply transformation twice: ft_isdigit(ft_isdigit(s))'
+  expected: Valid transformation output matching mathematical cipher cycle
+- name: edge_04_B
+  code: '[B]'
+  title: Boundary alphabetic letters ('a', 'z', 'A', 'Z') in `ft_isdigit`
+  input: ft_isdigit("a z A Z")
+  expected: Accurate wraparound without overflowing outside alphabet bounds

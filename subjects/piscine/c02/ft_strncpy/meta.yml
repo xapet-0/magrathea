@@ -1,0 +1,13 @@
+id: ft_strncpy
+type: c_function
+module: C 02
+xp: 155
+expected_files:
+- ft_strncpy.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: char *ft_strncpy(char *dest, char *src, unsigned int n);

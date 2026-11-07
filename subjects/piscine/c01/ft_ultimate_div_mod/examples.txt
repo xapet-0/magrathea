@@ -1,0 +1,5 @@
+# Examples for ft_ultimate_div_mod (from official subject specification)
+
+Examples:
+    int a = 10, b = 3; ft_ultimate_div_mod(&a, &b); printf("%d %d\n", a, b)
+    Output: 3 1

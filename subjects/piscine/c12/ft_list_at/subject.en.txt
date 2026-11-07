@@ -1,0 +1,24 @@
+Assignment name  : ft_list_at
+Expected files   : ft_list_at.c ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_list_at
+Turn-in directory: ex07/
+Expected files   : ft_list_at.c, ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create the function ft_list_at, which returns the Nth element of the list, knowing
+that the first element of the list is whennbr equals 0.
+• In case of error, it should return a null pointer.
+• Here is how it should be prototyped:
+t_list *ft_list_at(t_list *begin_list, unsigned int nbr);
+
+Your function must be declared as follows:
+    t_list *ft_list_at(t_list *begin_list, unsigned int nbr);
+
+Examples:
+    t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%s\n",(char*)ft_list_at(&a,1)->data)
+    Output: b

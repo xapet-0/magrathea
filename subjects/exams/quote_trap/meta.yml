@@ -1,0 +1,14 @@
+id: quote_trap
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 300
+expected_files:
+- quote_trap.sh
+allowed_functions:
+- printf
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh quote_trap.sh [args...]

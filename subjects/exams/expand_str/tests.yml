@@ -1,0 +1,287 @@
+mode: c_program
+fixed_tests:
+- name: can_expand_str_T01
+  description: 'Functional verification of input: `[''  hello   world  '']`'
+  args:
+  - '  hello   world  '
+  expected: 'hello   world
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_expand_str_T02
+  description: tabs_and_spaces
+  args:
+  - "\t42\t\tSchool\t Forge  "
+  expected: '42   School   Forge
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_expand_str_T03
+  description: already_clean
+  args:
+  - abc
+  expected: 'abc
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_expand_str_T04
+  description: wrong_arg_count
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - See? It's easy to print the same thing
+  expected: 'See?   It''s   easy   to   print   the   same   thing
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - ' this        time it      will     be    more complex  '
+  expected: 'this   time   it   will   be   more   complex
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - No S*** Sherlock...
+  - nAw S*** ShErLaWQ...
+  expected: '
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args:
+  - ''
+  expected: '
+
+    '
+- name: subj_ex_05
+  tier: subject_example
+  args:
+  - vous   voyez   c'est   facile   d'afficher   la   meme   chose
+  expected: 'vous   voyez   c''est   facile   d''afficher   la   meme   chose
+
+    '
+- name: subj_ex_06
+  tier: subject_example
+  args:
+  - ' seulement          la c''est      plus dur '
+  expected: 'seulement   la   c''est   plus   dur
+
+    '
+- name: subj_ex_07
+  tier: subject_example
+  args:
+  - comme c'est cocasse
+  - vous avez entendu, Mathilde ?
+  expected: '
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./expand_str "See? It's easy to print the same thing" | cat -e
+  args: &id001
+  - See? It's easy to print the same thing
+  expected: 'See?   It''s   easy   to   print   the   same   thing
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./expand_str " this        time it      will     be    more complex  "
+    | cat -e
+  args: &id002
+  - ' this        time it      will     be    more complex  '
+  expected: 'this   time   it   will   be   more   complex
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./expand_str "No S*** Sherlock..." "nAw S*** ShErLaWQ..." | cat -e
+  args: &id003
+  - No S*** Sherlock...
+  - nAw S*** ShErLaWQ...
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./expand_str "" | cat -e
+  args: &id004
+  - ''
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./expand_str "vous   voyez   c'est   facile   d'afficher   la   meme   chose"
+    | cat -e
+  args:
+  - vous   voyez   c'est   facile   d'afficher   la   meme   chose
+  expected: 'vous   voyez   c''est   facile   d''afficher   la   meme   chose
+
+    '
+  cat_e: true
+- id: subj_ex_06
+  origin: subject.en.txt
+  command: ./expand_str " seulement          la c'est      plus dur " | cat -e
+  args:
+  - ' seulement          la c''est      plus dur '
+  expected: 'seulement   la   c''est   plus   dur
+
+    '
+  cat_e: true
+- id: subj_ex_07
+  origin: subject.en.txt
+  command: ./expand_str "comme c'est cocasse" "vous avez entendu, Mathilde ?" | cat
+    -e
+  args:
+  - comme c'est cocasse
+  - vous avez entendu, Mathilde ?
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_08
+  origin: subject.en.txt
+  command: ./expand_str "" | cat -e
+  args:
+  - ''
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_expand_str_T05
+  origin: subject_folder/42ExamPractice/expand_str/tester.sh
+  input: ./expand_str "comme c'est cocasse" "vous avez entendu, Mathilde ?"
+  expected: Matches 42 reference standard output and exit code
+- id: can_expand_str_T06
+  origin: subject_folder/42ExamPractice/expand_str/tester.sh
+  input: ./expand_str "See? It's easy to print the same thing"
+  expected: Matches 42 reference standard output and exit code
+- id: can_expand_str_T07
+  origin: subject_folder/42ExamPractice/expand_str/tester.sh
+  input: ./expand_str "7"
+  expected: Matches 42 reference standard output and exit code
+- id: can_expand_str_T08
+  origin: subject_folder/42ExamPractice/expand_str/tester.sh
+  input: ./expand_str " this        time it      will     be    more complex  . "
+  expected: Matches 42 reference standard output and exit code
+- id: can_expand_str_T09
+  origin: subject_folder/42ExamPractice/expand_str/tester.sh
+  input: ./expand_str "No S*** Sherlock..." "nAw S*** ShErLaWQ..."
+  expected: Matches 42 reference standard output and exit code
+- id: can_expand_str_T10
+  origin: subject_folder/42ExamPractice/expand_str/tester.sh
+  input: ./expand_str "Too" "Many" "Arguments"
+  expected: Matches 42 reference standard output and exit code
+- id: can_expand_str_T11
+  origin: subject_folder/42ExamPractice/expand_str/tester.sh
+  input: ./expand_str "5"
+  expected: Matches 42 reference standard output and exit code
+- id: can_expand_str_T12
+  origin: subject_folder/examples.txt
+  input: ./expand_str "vous   voyez   c'est   facile   d'afficher   la   meme   chose"
+    \| cat -e
+  expected: vous   voyez   c'est   facile   d'afficher   la   meme   chose$
+- id: can_expand_str_T13
+  origin: subject_folder/examples.txt
+  input: ./expand_str " seulement          la c'est      plus dur " \| cat -e
+  expected: seulement   la   c'est   plus   dur$
+- id: can_expand_str_T14
+  origin: subject_folder/examples.txt
+  input: ./expand_str "comme c'est cocasse" "vous avez entendu, Mathilde ?" \| cat
+    -e
+  expected: $
+- id: can_expand_str_T15
+  origin: subject_folder/examples.txt
+  input: ./expand_str "" \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - Tee? It's easy to print the same thing
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  See? It''s easy to print the same thing  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - ' uhis        time it      will     be    more complex  '
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '   this        time it      will     be    more complex    '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - Oo S*** Sherlock...
+  - oAw S*** ShErLaWQ...
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  No S*** Sherlock...  '
+  - nAw S*** ShErLaWQ...
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - ' '
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '    '
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_expand_str_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/expand_str/tester.sh)
+  original_input: ./expand_str "comme c'est cocasse" "vous avez entendu, Mathilde
+    ?"
+  perturbed_input: ./fxpand_str "comme c'est cocasse" "vous
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_expand_str_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/expand_str/tester.sh)
+  original_input: ./expand_str "See? It's easy to print the same thing"
+  perturbed_input: ./fxpand_str "See? It's easy to print th

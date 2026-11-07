@@ -1,0 +1,6 @@
+Examples:
+  atoi_base("1a", 16) -> 26
+  atoi_base("-2a", 16) -> -42
+atoi_base("101010", 2) -> 42
+atoi_base("42", 10) -> 42
+atoi_base("", 10) -> 0

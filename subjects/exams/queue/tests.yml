@@ -1,0 +1,152 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty list (NULL) and single-node list in `queue`
+  input: queue(NULL, ...)
+  expected: Safely return NULL or 0 without dereferencing NULL pointer
+- name: edge_02_M
+  code: '[M]'
+  title: Zero node leaks and use-after-free prevention in `queue`
+  input: Execute queue under leak detection (DT_CHECK_LEAKS=1)
+  expected: 0 bytes leaked and valid node pointers
+- name: edge_03_B
+  code: '[B]'
+  title: All elements matching condition or identical in `queue`
+  input: Pass list where every element matches filter or deletion predicate
+  expected: Properly update list head pointer without dangling references
+- name: edge_04_B
+  code: '[B]'
+  title: Cycle detection and self-referencing nodes in `queue`
+  input: Pass cyclical linked list to queue
+  expected: Terminate correctly or detect loop without infinite iteration
+fixed_tests:
+- name: test_01_s_d_n_v1_e1_free_q
+  setup:
+  - struct s_queue *q = init()
+  - enqueue(q, "1337")
+  - char *v1 = (char *)dequeue(q)
+  - int e1 = isEmpty(q)
+  call: printf("%s,%d\n", v1, e1); free(q)
+  stdout: '1337,1
+
+    '
+- name: test_02_d_d_d_n_isEmpty_q_pe
+  setup:
+  - struct s_queue *q = init()
+  call: printf("%d,%d,%d\n", isEmpty(q), peek(q) == NULL, dequeue(q) == NULL); free(q)
+  stdout: '1,1,1
+
+    '
+- name: test_03_s_s_s_d_n_p1_d1_d2_e
+  setup:
+  - struct s_queue *q = init()
+  - enqueue(q, "a")
+  - enqueue(q, "b")
+  - char *p1 = (char *)peek(q)
+  - char *d1 = (char *)dequeue(q)
+  - char *d2 = (char *)dequeue(q)
+  - int e2 = isEmpty(q)
+  call: printf("%s,%s,%s,%d\n", p1, d1, d2, e2); free(q)
+  stdout: 'a,a,b,1
+
+    '
+- name: test_04_NULL
+  expr: isEmpty(NULL)
+  stdout: '1
+
+    '
+- name: test_05_null_guards
+  call: enqueue(NULL, "x"); printf("%d,%d,%d\n", isEmpty(NULL), peek(NULL) == NULL,
+    dequeue(NULL) == NULL)
+  tier: edge
+  stdout: '1,1,1
+
+    '
+- name: test_06_enqueue_after_empty_reuse
+  setup:
+  - struct s_queue *q = init()
+  - enqueue(q, "first")
+  - void *d1 = dequeue(q)
+  - enqueue(q, "second")
+  - void *d2 = dequeue(q)
+  call: printf("%s,%s,%d\n", (char *)d1, (char *)d2, isEmpty(q)); free(q)
+  tier: edge
+  stdout: 'first,second,1
+
+    '
+- name: test_07_peek_does_not_remove
+  setup:
+  - struct s_queue *q = init()
+  - enqueue(q, "keep")
+  - char *p1 = (char *)peek(q)
+  - char *p2 = (char *)peek(q)
+  - char *d1 = (char *)dequeue(q)
+  call: printf("%s,%s,%s,%d\n", p1, p2, d1, isEmpty(q)); free(q)
+  tier: edge
+  stdout: 'keep,keep,keep,1
+
+    '
+- name: test_08_four_elements_fifo
+  setup:
+  - struct s_queue *q = init()
+  - enqueue(q, "1"); enqueue(q, "2"); enqueue(q, "3"); enqueue(q, "4");
+  call: while(!isEmpty(q)) printf("%s,", (char *)dequeue(q)); printf("\n"); free(q)
+  tier: baseline
+  stdout: '1,2,3,4,
+
+    '
+- name: test_09_interleaved_ops
+  setup:
+  - struct s_queue *q = init()
+  - enqueue(q, "a"); enqueue(q, "b");
+  - char *x = (char *)dequeue(q);
+  - enqueue(q, "c");
+  - char *y = (char *)dequeue(q);
+  - char *z = (char *)dequeue(q);
+  call: printf("%s,%s,%s,%d\n", x, y, z, isEmpty(q)); free(q)
+  tier: baseline
+  stdout: 'a,b,c,1
+
+    '
+- name: test_10_six_elements_fifo
+  setup:
+  - struct s_queue *q = init()
+  - char *v[] = {"A","B","C","D","E","F"}; for(int i=0;i<6;i++) enqueue(q, v[i]);
+  call: while(!isEmpty(q)) printf("%s", (char *)dequeue(q)); printf("|%d\n", dequeue(q)==NULL);
+    free(q)
+  tier: stress
+  stdout: 'ABCDEF|1
+
+    '
+folder_examples:
+- expected: 'Output: 1337,1\n    struct s_queue *q = init(); printf("%d,%d,%d\n",
+    isEmpty(q), peek(q) == NULL, dequeue(q) == NULL)\n    Output: 1,1,1\n    struct
+    s_queue *q = init(); enqueue(q, "a"); enqueue(q, "b"); char *p1 = (char *)peek(q);
+    char *d1 = (char *)dequeue(q); char *d2 = (char *)dequeue(q); int e2 = isEmpty(q);
+    printf("%s,%s,%s,%d\n", p1, d1, d2, e2)\n    Output: a,a,b,1'
+  id: can_queue_T05
+  input: struct s_queue *q = init(); enqueue(q, "1337"); char *v1 = (char *)dequeue(q);
+    int e1 = isEmpty(q); printf("%s,%d\n", v1, e1)
+  origin: subject_folder/examples.txt
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval queue
+  perturbed_input:
+  - queue_near_arg_1
+  - queue_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_queue_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: struct s_queue *q = init(); enqueue(q, "1337"); char *v1 = (char
+    *)dequeue(q); int e1 = isEmpty(q); printf("%s,%d\n", v1, e1)
+  perturbed_input: ttruct s_queue *q = init(); enqueue(q, "
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval queue
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

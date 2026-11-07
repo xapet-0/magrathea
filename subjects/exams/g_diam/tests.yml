@@ -1,0 +1,210 @@
+mode: c_program
+fixed_tests:
+- name: can_g_diam_T01
+  description: line_4
+  args:
+  - 1-2 2-3 3-4
+  expected: '4
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_g_diam_T02
+  description: triangle
+  args:
+  - 1-2 2-3 3-1
+  expected: '3
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_g_diam_T03
+  description: single_edge
+  args:
+  - 10-20
+  expected: '2
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_g_diam_T04
+  description: no_args
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_chain_4
+  args:
+  - 1-2 2-3 3-4 4-5
+  tier: baseline
+  stdout: '5
+
+    '
+- name: test_06_disconnected
+  args:
+  - 1-2 3-4
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_07_loop_2
+  args:
+  - 1-2 2-1
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_08_branch
+  args:
+  - 1-2 2-3 3-4 2-5 5-6
+  tier: edge
+  stdout: '5
+
+    '
+- name: test_09_two_cycles
+  args:
+  - 1-2 2-3 3-4 4-1 2-5 5-6 6-2
+  tier: stress
+  stdout: '6
+
+    '
+- name: test_10_large_ids
+  args:
+  - 42-1337
+  tier: edge
+  stdout: '2
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./g_diam "1-2 2-3 3-4" | cat -e
+  args: &id001
+  - 1-2 2-3 3-4
+  expected: '4
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./g_diam "1-2 2-3 3-1" | cat -e
+  args: &id002
+  - 1-2 2-3 3-1
+  expected: '3
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./g_diam "10-20" | cat -e
+  args: &id003
+  - 10-20
+  expected: '2
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./g_diam | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_g_diam_T05
+  origin: subject_folder/examples.txt
+  input: ./g_diam "1-2 2-3 3-4" \| cat -e
+  expected: 4$
+- id: can_g_diam_T06
+  origin: subject_folder/examples.txt
+  input: ./g_diam "1-2 2-3 3-1" \| cat -e
+  expected: 3$
+- id: can_g_diam_T07
+  origin: subject_folder/examples.txt
+  input: ./g_diam "10-20" \| cat -e
+  expected: 2$
+- id: can_g_diam_T08
+  origin: subject_folder/examples.txt
+  input: ./g_diam \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - 1-2 2-3 3-4!
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  1-2 2-3 3-4  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - 1-2 2-3 3-1!
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  1-2 2-3 3-1  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - 10-20!
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  10-20  '
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./g_diam | cat -e
+  perturbed_input:
+  - g_diam_near_arg_1
+  - g_diam_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_g_diam_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./g_diam "1-2 2-3 3-4" \| cat -e
+  perturbed_input: ./h_diam "1-2 2-3 3-4" \| cat -e
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_g_diam_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./g_diam "1-2 2-3 3-1" \| cat -e
+  perturbed_input: ./h_diam "1-2 2-3 3-1" \| cat -e
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `g_diam`
+  input: g_diam(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `g_diam`
+  input: Input with no valid solution or containing duplicate values in g_diam
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `g_diam`
+  input: Run g_diam with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `g_diam`
+  input: Inspect sequence of traversed or printed nodes in g_diam
+  expected: Exact match with standard traversal order required in subject

@@ -1,0 +1,42 @@
+id: c02
+display_name: 1337 / 42 Piscine — C 02
+exercises:
+- ex: ex00
+  subject_id: piscine/c02/ft_strcpy
+  xp: 145
+- ex: ex01
+  subject_id: piscine/c02/ft_strncpy
+  xp: 155
+- ex: ex02
+  subject_id: piscine/c02/ft_str_is_alpha
+  xp: 155
+- ex: ex03
+  subject_id: piscine/c02/ft_str_is_numeric
+  xp: 155
+- ex: ex04
+  subject_id: piscine/c02/ft_str_is_lowercase
+  xp: 155
+- ex: ex05
+  subject_id: piscine/c02/ft_str_is_uppercase
+  xp: 155
+- ex: ex06
+  subject_id: piscine/c02/ft_str_is_printable
+  xp: 155
+- ex: ex07
+  subject_id: piscine/c02/ft_strupcase
+  xp: 155
+- ex: ex08
+  subject_id: piscine/c02/ft_strlowcase
+  xp: 155
+- ex: ex09
+  subject_id: piscine/c02/ft_strcapitalize
+  xp: 155
+- ex: ex10
+  subject_id: piscine/c02/ft_strlcpy
+  xp: 155
+- ex: ex11
+  subject_id: piscine/c02/ft_putstr_non_printable
+  xp: 155
+- ex: ex12
+  subject_id: piscine/c02/ft_print_memory
+  xp: 155

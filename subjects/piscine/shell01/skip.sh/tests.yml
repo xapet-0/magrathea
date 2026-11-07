@@ -1,0 +1,122 @@
+subject_id: skip.sh
+fixed_tests:
+- name: skip_ls_l_4files
+  files:
+    a: '1'
+    b: '2'
+    c: '3'
+    d: '4'
+  args: []
+  tier: baseline
+- name: skip_ls_l_6files
+  files:
+    alpha: '10'
+    beta: '20'
+    gamma: '30'
+    delta: '40'
+    epsilon: '50'
+    zeta: '60'
+  args: []
+  tier: baseline
+- name: skip_ls_l_2files
+  files:
+    x: '1'
+    y: '2'
+  args: []
+  tier: edge_case
+- name: skip_ls_l_1file
+  files:
+    solo: '42'
+  args: []
+  tier: edge_case
+- name: test_05_3files
+  files:
+    f1: '1'
+    f2: '2'
+    f3: '3'
+  args: []
+  tier: baseline
+- name: test_06_5files
+  files:
+    p1: '1'
+    p2: '2'
+    p3: '3'
+    p4: '4'
+    p5: '5'
+  args: []
+  tier: baseline
+- name: test_07_7files
+  files:
+    a1: '1'
+    a2: '2'
+    a3: '3'
+    a4: '4'
+    a5: '5'
+    a6: '6'
+    a7: '7'
+  tier: stress
+- name: test_08_8files
+  files:
+    b1: '1'
+    b2: '2'
+    b3: '3'
+    b4: '4'
+    b5: '5'
+    b6: '6'
+    b7: '7'
+    b8: '8'
+  tier: stress
+- name: test_09_numeric_filenames
+  files:
+    '01': x
+    '02': y
+    '03': z
+  args: []
+  tier: edge
+- name: test_10_underscore_filenames
+  files:
+    _a: '1'
+    _b: '2'
+    _c: '3'
+    _d: '4'
+    _e: '5'
+  args: []
+  tier: edge
+mode: shell
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ls -lRa *MaRV* | cat -e
+  args: &id001
+  - -lRa
+  - '*MaRV*'
+  expected: '-rw---xr-- 1 75355 32015 2 Oct 2 12:21 "\?$* ''MaRViN''*$?\"
+
+    '
+  cat_e: true
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: skip.sh baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - -mRa
+  - '*NaRV*'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  -lRa  '
+  - '*MaRV*'
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: skip.sh baseline folder fixture
+  perturbed_input: tkip.sh baseline folder fixture

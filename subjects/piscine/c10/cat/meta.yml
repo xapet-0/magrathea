@@ -1,0 +1,19 @@
+id: cat
+type: c_program
+module: C 10
+xp: 335
+expected_files:
+- Makefile
+allowed_functions:
+- close
+- open
+- read
+- write
+- strerror
+- basename
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int main(int argc, char **argv);

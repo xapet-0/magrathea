@@ -1,0 +1,23 @@
+name: rank03
+display_name: "42 Common Core \u2014 Exam Rank 03"
+pool_group: cursus
+rank_order: 23
+prerequisites:
+- rank02
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 33
+  candidates:
+  - broken_gnl
+  - filter
+- level: 1
+  points: 33
+  candidates:
+  - ft_printf
+  - ft_scanf
+- level: 2
+  points: 34
+  candidates:
+  - get_next_line
+  - permutation

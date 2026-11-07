@@ -1,0 +1,91 @@
+mode: c_program
+fixed_tests:
+- name: test_01_no_args
+  args: []
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_02_8080_extra
+  args:
+  - '8080'
+  - extra
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_03_neg_1
+  args:
+  - '-1'
+  expected_returncode: 1
+  expected_stderr: 'Fatal error
+
+    '
+- name: test_04_three_args
+  args:
+  - '8080'
+  - extra1
+  - extra2
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_05_four_args
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_06_flag
+  args:
+  - -p
+  - '8080'
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_07_empty_arg
+  args:
+  - '8080'
+  - ''
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_08_triple_empty
+  args:
+  - ''
+  - ''
+  - ''
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_09_neg_999
+  args:
+  - '-999'
+  expected_returncode: 1
+  expected_stderr: 'Fatal error
+
+    '
+- name: multi_client_broadcast_and_disconnect
+  python_harness: "import socket, subprocess, sys, time\nexe = sys.argv[1]\ns = socket.socket()\n\
+    s.bind((\"127.0.0.1\", 0))\nport = s.getsockname()[1]\ns.close()\np = subprocess.Popen([exe,\
+    \ str(port)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)\ntry:\n    time.sleep(0.15)\n\
+    \    c0 = socket.create_connection((\"127.0.0.1\", port), timeout=1.0)\n    time.sleep(0.05)\n\
+    \    c1 = socket.create_connection((\"127.0.0.1\", port), timeout=1.0)\n    time.sleep(0.05)\n\
+    \    assert c0.recv(1024) == b\"server: client 1 just arrived\\n\"\n    c0.sendall(b\"\
+    hello\\nworld\\n\")\n    time.sleep(0.05)\n    got = c1.recv(1024)\n    assert\
+    \ got == b\"client 0: hello\\nclient 0: world\\n\", f\"Got {got!r}\"\n    c1.close()\n\
+    \    time.sleep(0.05)\n    assert c0.recv(1024) == b\"server: client 1 just left\\\
+    n\"\n    c0.close()\n    print(\"OK\")\nfinally:\n    p.kill()\n    p.wait()\n"
+  expected: 'OK
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

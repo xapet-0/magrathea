@@ -1,0 +1,3 @@
+Examples:
+$> ./skip.sh | cat -e
+$

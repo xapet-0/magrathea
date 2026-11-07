@@ -1,0 +1,7 @@
+Examples:
+  struct s_node r={92,0,0}; perimeter(&r)
+  Output: 92
+    perimeter(NULL)
+    Output: 
+    struct s_node l={10,0,0}, r={20,0,0}, root={92,&l,&r}; perimeter(&root)
+    Output: 92 10 20

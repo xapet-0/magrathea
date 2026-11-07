@@ -1,0 +1,24 @@
+id: ft_scanf
+type: c_function
+module: Exam Rank 03
+xp: 510
+expected_files:
+- ft_scanf.c
+allowed_functions:
+- fgetc
+- ungetc
+- ferror
+- feof
+- isspace
+- isdigit
+- stdin
+- va_start
+- va_arg
+- va_copy
+- va_end
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int ft_scanf(const char *, ... );

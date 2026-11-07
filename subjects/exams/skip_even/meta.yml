@@ -1,0 +1,15 @@
+id: skip_even
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- skip_even.sh
+allowed_functions:
+- awk
+- sed
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh skip_even.sh [args...]

@@ -1,0 +1,19 @@
+Assignment name  : alien_math
+Expected files   : alien_math.sh
+Allowed commands : echo, printf, tr, bc, expr
+--------------------------------------------------------------------------------
+
+Write a shell script that adds the integer values stored in the environment
+variables FT_NBR1 and FT_NBR2 and prints their sum followed by a newline.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> FT_NBR1="1" FT_NBR2="1" sh alien_math.sh | cat -e
+2$
+$> FT_NBR1="40" FT_NBR2="2" sh alien_math.sh | cat -e
+42$
+$> FT_NBR1="1300" FT_NBR2="37" sh alien_math.sh | cat -e
+1337$

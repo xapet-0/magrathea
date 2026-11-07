@@ -1,0 +1,18 @@
+id: epur_str_sh
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 290
+expected_files:
+- epur_str_sh.sh
+allowed_functions:
+- echo
+- printf
+- awk
+- sed
+- tr
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh epur_str_sh.sh [args...]

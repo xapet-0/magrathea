@@ -1,0 +1,96 @@
+fixed_tests:
+- call: sastantua(1);
+  name: sastantua_size_1
+  stdout: "  /*\\\n /***\\\n/**|**\\\n"
+- call: sastantua(0); sastantua(-3); printf("ZERO_OK\n");
+  name: sastantua_zero_and_negative
+  stdout: 'ZERO_OK
+
+    '
+- call: sastantua(2);
+  name: sastantua_size_2
+  stdout: "       /*\\\n      /***\\\n     /*****\\\n   /*********\\\n  /***********\\\
+    \n /*************\\\n/*******|*******\\\n"
+- call: sastantua(1); sastantua(1);
+  name: sastantua_idempotence
+  stdout: "  /*\\\n /***\\\n/**|**\\\n  /*\\\n /***\\\n/**|**\\\n"
+- name: test_05_size_3
+  call: sastantua(3);
+  tier: baseline
+  stdout: "             /*\\\n            /***\\\n           /*****\\\n         /*********\\\
+    \n        /***********\\\n       /*************\\\n      /***************\\\n\
+    \    /*******************\\\n   /*********************\\\n  /**********|||**********\\\
+    \n /***********|||***********\\\n/************|||************\\\n"
+- name: test_06_size_4
+  call: sastantua(4);
+  tier: stress
+  stdout: "                     /*\\\n                    /***\\\n               \
+    \    /*****\\\n                 /*********\\\n                /***********\\\n\
+    \               /*************\\\n              /***************\\\n         \
+    \   /*******************\\\n           /*********************\\\n          /***********************\\\
+    \n         /*************************\\\n        /***************************\\\
+    \n     /*********************************\\\n    /***********************************\\\
+    \n   /*************************************\\\n  /******************|||******************\\\
+    \n /*******************|||*******************\\\n/********************|||********************\\\
+    \n"
+- name: test_07_size_5
+  call: sastantua(5);
+  tier: stress
+  stdout: "                              /*\\\n                             /***\\\
+    \n                            /*****\\\n                          /*********\\\
+    \n                         /***********\\\n                        /*************\\\
+    \n                       /***************\\\n                     /*******************\\\
+    \n                    /*********************\\\n                   /***********************\\\
+    \n                  /*************************\\\n                 /***************************\\\
+    \n              /*********************************\\\n             /***********************************\\\
+    \n            /*************************************\\\n           /***************************************\\\
+    \n          /*****************************************\\\n         /*******************************************\\\
+    \n      /*************************************************\\\n     /***************************************************\\\
+    \n    /************************|||||************************\\\n   /*************************|||||*************************\\\
+    \n  /**************************|||$|**************************\\\n /***************************|||||***************************\\\
+    \n/****************************|||||****************************\\\n"
+- name: test_08_neg_one
+  call: sastantua(-1); printf("NEG1_OK\n");
+  tier: edge
+  stdout: 'NEG1_OK
+
+    '
+- name: test_09_neg_42
+  call: sastantua(-42); printf("NEG42_OK\n");
+  tier: edge
+  stdout: 'NEG42_OK
+
+    '
+- name: test_10_zero_alone
+  call: sastantua(0); printf("ZERO_ALONE_OK\n");
+  tier: edge
+  stdout: 'ZERO_ALONE_OK
+
+    '
+folder_examples:
+- expected: /*\\n /***\\n/**\|**\\n
+  id: pool_sastantua_T01
+  input: sastantua(0); sastantua(1)
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval sastantua
+  perturbed_input:
+  - sastantua_near_arg_1
+  - sastantua_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: pool_sastantua_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: sastantua(0); sastantua(1)
+  perturbed_input: tastantua(0); sastantua(1)
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval sastantua
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

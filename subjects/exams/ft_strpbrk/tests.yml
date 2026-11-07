@@ -1,0 +1,107 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_strpbrk_T01
+  description: 'Functional verification of input: `char *p=ft_strpbrk("abcdef","dx");
+    printf("%s`'
+  call: char *p=ft_strpbrk("abcdef","dx"); printf("%s\n",p)
+  stdout: 'def
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_strpbrk_T02
+  description: not_found
+  call: printf("%d\n", ft_strpbrk("hello", "xyz") == NULL)
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_strpbrk_T03
+  description: first_char
+  call: printf("%s\n", ft_strpbrk("hello", "h"))
+  stdout: 'hello
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_strpbrk_T04_last_char
+  description: match_at_end_of_string
+  call: printf("%s\n", ft_strpbrk("12345z", "z"))
+  stdout: 'z
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_empty_accept
+  call: printf("%d\n", ft_strpbrk("hello", "") == NULL)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_empty_s1
+  call: printf("%d\n", ft_strpbrk("", "abc") == NULL)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_both_empty
+  call: printf("%d\n", ft_strpbrk("", "") == NULL)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_earliest_in_s1_wins
+  call: printf("%s\n", ft_strpbrk("abcdef", "fa"))
+  tier: edge
+  stdout: 'abcdef
+
+    '
+- name: test_09_digits_in_text
+  call: printf("%s\n", ft_strpbrk("school_1337_42", "0123456789"))
+  tier: baseline
+  stdout: '1337_42
+
+    '
+- name: test_10_pointer_identity
+  call: const char *s = "abcde"; printf("%d\n", ft_strpbrk(s, "cd") == s + 2)
+  tier: stress
+  stdout: '1
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strpbrk
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_strpbrk_T05
+  origin: subject_folder/examples.txt
+  input: char *p=ft_strpbrk("abcdef","dx"); printf("%s\n",p)
+  expected: 'Output: def'
+- id: folder_fixture_02
+  origin: subject_folder/strpbrk.man.txt
+  input: strpbrk.man.txt
+  expected: "STRPBRK(3)               BSD Library Functions Manual               STRPBRK(3)\n\
+    \nNAME\n\tstrpbrk -- locate multiple characters in string\n\nLIBRARY\n\t\tStandard\
+    \ C Libr"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strpbrk
+  perturbed_input:
+  - ft_strpbrk_near_arg_1
+  - ft_strpbrk_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_strpbrk_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: char *p=ft_strpbrk("abcdef","dx"); printf("%s\n",p)
+  perturbed_input: dhar *p=ft_strpbrk("abcdef","dx"); print
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/strpbrk.man.txt)
+  original_input: strpbrk.man.txt
+  perturbed_input: ttrpbrk.man.txt

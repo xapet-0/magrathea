@@ -1,0 +1,150 @@
+mode: c_program
+fixed_tests:
+- name: cur_list_trait_T01
+  description: 'Functional verification of input: `[''0'', ''-5'', ''8'', ''7'']`'
+  args:
+  - '0'
+  - '-5'
+  - '8'
+  - '7'
+  expected: "List: 0 -5 8 7 \nSum: 10\nMax: 8\nCount: 4\n"
+  category: Edge Case
+  tier: baseline
+- name: cur_list_trait_T02
+  description: 'Functional verification of input: `[''42'']`'
+  args:
+  - '42'
+  expected: "List: 42 \nSum: 42\nMax: 42\nCount: 1\n"
+  category: Functional
+  tier: baseline
+- name: cur_list_trait_T03
+  description: edge_empty_str
+  args:
+  - ''
+  expected: "List: 0 \nSum: 0\nMax: 0\nCount: 1\n"
+  category: Edge Case
+  tier: baseline
+- name: cur_list_trait_T04
+  description: edge_whitespace
+  args:
+  - "   \t  "
+  expected: "List: 0 \nSum: 0\nMax: 0\nCount: 1\n"
+  category: Edge Case
+  tier: baseline
+- name: cur_list_trait_T05
+  description: edge_single_char
+  args:
+  - a
+  expected: "List: 0 \nSum: 0\nMax: 0\nCount: 1\n"
+  category: Edge Case
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: "List: 1 2 3 4 \nSum: 10\nMax: 4\nCount: 4\n"
+- name: test_07_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: "List: 0 0 0 0 \nSum: 0\nMax: 0\nCount: 4\n"
+- name: test_08_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: "List: -1 5 10 20 \nSum: 34\nMax: 20\nCount: 4\n"
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: "List: 42 1337 100 200 \nSum: 1679\nMax: 1337\nCount: 4\n"
+- name: test_10_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: "List: 1 2 3 \nSum: 6\nMax: 3\nCount: 3\n"
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval list_trait
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_list_trait_T06
+  origin: subject_folder/deepthought/corrections/exams/list_trait/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_list_trait_T07
+  origin: subject_folder/deepthought/corrections/exams/list_trait/generator.py
+  input: Dynamic generation rule via basic_test1()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_list_trait_T08
+  origin: subject_folder/deepthought/corrections/exams/list_trait/generator.py
+  input: Dynamic generation rule via basic_test2()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_list_trait_T09
+  origin: subject_folder/deepthought/corrections/exams/list_trait/generator.py
+  input: Dynamic generation rule via basic_test3()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_list_trait_T10
+  origin: subject_folder/deepthought/corrections/exams/list_trait/generator.py
+  input: Dynamic generation rule via basic_test4()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_list_trait_T11
+  origin: subject_folder/deepthought/corrections/exams/list_trait/generator.py
+  input: Dynamic generation rule via basic_test5()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval list_trait
+  perturbed_input:
+  - list_trait_near_arg_1
+  - list_trait_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_list_trait_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/list_trait/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_list_trait_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/list_trait/generator.py)
+  original_input: Dynamic generation rule via basic_test1()
+  perturbed_input: Eynamic generation rule via basic_test1(
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty list (NULL) and single-node list in `list_trait`
+  input: list_trait(NULL, ...)
+  expected: Safely return NULL or 0 without dereferencing NULL pointer
+- name: edge_02_M
+  code: '[M]'
+  title: Zero node leaks and use-after-free prevention in `list_trait`
+  input: Execute list_trait under leak detection (DT_CHECK_LEAKS=1)
+  expected: 0 bytes leaked and valid node pointers
+- name: edge_03_B
+  code: '[B]'
+  title: All elements matching condition or identical in `list_trait`
+  input: Pass list where every element matches filter or deletion predicate
+  expected: Properly update list head pointer without dangling references
+- name: edge_04_B
+  code: '[B]'
+  title: Cycle detection and self-referencing nodes in `list_trait`
+  input: Pass cyclical linked list to list_trait
+  expected: Terminate correctly or detect loop without infinite iteration

@@ -1,0 +1,6 @@
+Examples:
+$> printf "root:x:0:0::/root:/bin/sh\n" | sh zig_passwd.sh | cat -e
+root$
+$> printf "marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n" | sh zig_passwd.sh | cat -e
+marvin$
+bocal$

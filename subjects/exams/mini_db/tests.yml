@@ -1,0 +1,87 @@
+fixed_tests:
+- name: test_01_no_args
+  args: []
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_02_single_arg
+  args:
+  - '8080'
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_03_too_many
+  args:
+  - '8080'
+  - db.txt
+  - extra
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_04_four_args
+  args:
+  - '8080'
+  - db.txt
+  - extra1
+  - extra2
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_05_negative_port
+  args:
+  - '-1'
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_06_alpha_port
+  args:
+  - abc
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_07_empty_arg
+  args:
+  - ''
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_08_help_flag
+  args:
+  - --help
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- name: test_09_extra_empty
+  args:
+  - '8080'
+  - db.txt
+  - ''
+  expected_returncode: 1
+  expected_stderr: 'Wrong number of arguments
+
+    '
+- expected: 'OK
+
+    '
+  name: tcp_post_get_delete_persistence
+  python_harness: "import socket, subprocess, sys, time\nexe = sys.argv[1]\ns = socket.socket()\n\
+    s.bind(('127.0.0.1', 0))\nport = s.getsockname()[1]\ns.close()\np = subprocess.Popen([exe,\
+    \ str(port), 'test_db.txt'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n\
+    try:\n    time.sleep(0.15)\n    c = socket.create_connection(('127.0.0.1', port),\
+    \ timeout=1.0)\n    c.sendall(b'POST school 1337\\n')\n    assert c.recv(1024)\
+    \ == b'0\\n'\n    c.sendall(b'GET school\\n')\n    assert c.recv(1024) == b'0\
+    \ 1337\\n'\n    c.sendall(b'DELETE school\\n')\n    assert c.recv(1024) == b'0\\\
+    n'\n    c.sendall(b'GET school\\n')\n    assert c.recv(1024) == b'1\\n'\n    c.close()\n\
+    \    print('OK')\nfinally:\n    p.kill()\n    p.wait()\n"
+mode: c_program
+subject_examples: []
+folder_examples: []
+near_examples: []

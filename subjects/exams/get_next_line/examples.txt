@@ -1,0 +1,11 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Setup Code : ['FILE *fp = fopen("gnl_test.txt", "w"); fputs("hello\\n1337\\n42", fp); fclose(fp);', 'int fd = open("gnl_test.txt", 0);', 'char *l1 = get_next_line(fd); char *l2 = get_next_line(fd); char *l3 = get_next_line(fd); char *l4 = get_next_line(fd); close(fd);']
+    Call / Invocation : printf("%s|%s|%s|%d\n", l1 ? l1 : "NULL", l2 ? l2 : "NULL", l3 ? l3 : "NULL", l4 == NULL); free(l1); free(l2); free(l3)
+    Expected Output   : 'hello\n|1337\n|42|1\n'
+  [Edge Case 2] Name: test [Null pointer, zero, or boundary input in call]
+    Setup Code : ['FILE *fp = fopen("gnl_empty.txt", "w"); fclose(fp);', 'int fd = open("gnl_empty.txt", 0); char *l1 = get_next_line(fd); close(fd);']
+    Call / Invocation : printf("%d\n", l1 == NULL)
+    Expected Output   : '1\n'

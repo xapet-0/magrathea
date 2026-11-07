@@ -1,0 +1,6 @@
+[cur_ft_strchr_T01] Input: char *p=ft_strchr("hello",'l'); printf("%s\n", p)  ==>  Expected: llo\n
+[cur_ft_strchr_T02] Input: printf("%p\n", (void*)ft_strchr("hello",'z'))  ==>  Expected: (nil)\n
+[cur_ft_strchr_T03] Input: Invocations: ft_strchr(cases[i], needles[j])  ==>  Expected: Differential comparison with reference implementation
+[cur_ft_strchr_T04] Input: Dynamic generation rule via basic_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_ft_strchr_T05] Input: Dynamic generation rule via not_found_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_ft_strchr_T06] Input: Dynamic generation rule via empty_string_test()  ==>  Expected: Deterministic output validated by Deepthought oracle

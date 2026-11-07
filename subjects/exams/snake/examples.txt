@@ -1,0 +1,9 @@
+Examples:
+$> ./snake "hello_world_yes" | cat -e
+HelloWorldYes$
+$> ./snake "piscine" | cat -e
+Piscine$
+$> ./snake "" | cat -e
+$
+$> ./snake | cat -e
+$

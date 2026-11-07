@@ -1,0 +1,81 @@
+name: c_piscine_exam_01
+display_name: "42 / 1337 C Piscine \u2014 Exam 01 (Intermediate)"
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 16
+  candidates:
+  - first_word
+  - fizzbuzz
+  - repeat_alpha
+  - rot_13
+  - rotone
+  - search_and_replace
+  - ulstr
+  - alpha_mirror
+  - do_op
+  - first_unique
+- level: 1
+  points: 16
+  candidates:
+  - fix_a
+  - fix_loop
+  - fix_parser
+  - fix_result
+  - fix_z
+  - frequency_character
+  - ft_abs
+  - ft_add
+  - ft_atoi
+- level: 2
+  points: 17
+  candidates:
+  - ft_bubblesort
+  - ft_bzero
+  - ft_count_words
+  - ft_dec
+  - ft_div
+  - ft_inc
+  - ft_interval
+  - ft_isdigit
+  - ft_mod
+- level: 3
+  points: 17
+  candidates:
+  - ft_mul
+  - ft_pow
+  - ft_searchinsert
+  - ft_strchr
+  - ft_strdel
+  - ft_strdiff
+  - ft_strdup
+  - ft_sub
+  - ft_subtract
+- level: 4
+  points: 17
+  candidates:
+  - ft_sum_digits
+  - git_audit
+  - gold_gain
+  - index_case
+  - infin_add
+  - infin_mult
+  - inter
+  - inter_space
+  - inter_union
+- level: 5
+  points: 17
+  candidates:
+  - interval_space
+  - interval_spaces
+  - is_anagram
+  - is_consonant
+  - is_palindrome
+  - last_word
+  - max
+  - union
+  - wdmatch
+pool_group: piscine
+rank_order: 4
+prerequisites:
+- c_piscine_exam_00

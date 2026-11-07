@@ -1,0 +1,6 @@
+# Examples for can_split (from official subject specification)
+
+Examples:
+    can_split(&n2) -> 1
+    can_split(&n3) -> 0
+    can_split(&n4) -> 1

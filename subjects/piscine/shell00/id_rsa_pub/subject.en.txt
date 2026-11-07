@@ -1,0 +1,22 @@
+Assignment name  : id_rsa_pub
+Turn-in directory: ex03/
+Expected files   : id_rsa_pub
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+SSH Key
+Turn-in directory: ex03/
+Files to turn in: id_rsa_pub
+Allowed functions: None
+• Create your own SSH key. Once done:
+◦ Add your public key to your repository in a file named id_rsa_pub
+◦ Update your SSH key on the intranet. This will allow you to push the reposi-
+tory to our git server.
+• The file name was not chosen randomly.
+• Make sure you understand the difference between the public key
+and the private key.
+Did you check with your left-side neighbor?
+
+Examples:
+$> ./id_rsa_pub | cat -e
+$

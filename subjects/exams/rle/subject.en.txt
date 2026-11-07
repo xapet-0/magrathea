@@ -1,0 +1,22 @@
+Assignment name  : rle
+Expected files   : rle.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a string and compresses consecutive identical
+characters using Run-Length Encoding: print the count before the character ONLY
+when the count is greater than 1, followed by a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./rle "AAABBC" | cat -e
+3A2BC$
+$> ./rle "ABC" | cat -e
+ABC$
+$> ./rle "" | cat -e
+$
+$> ./rle | cat -e
+$

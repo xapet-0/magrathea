@@ -1,0 +1,3 @@
+Examples:
+$> ./alt_case "hello world yes" | cat -e
+hello WORLD yes$

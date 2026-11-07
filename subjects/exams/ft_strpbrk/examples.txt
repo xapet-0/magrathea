@@ -1,0 +1,3 @@
+Examples:
+  char *p=ft_strpbrk("abcdef","dx"); printf("%s\n",p)
+  Output: def

@@ -1,0 +1,13 @@
+id: unmatch
+type: c_function
+module: "Piscine Exams 00\u2013Final"
+xp: 280
+expected_files:
+- unmatch.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int unmatch(int *tab, int length);

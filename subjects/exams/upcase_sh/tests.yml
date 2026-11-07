@@ -1,0 +1,81 @@
+subject_id: upcase_sh
+fixed_tests:
+- name: test_01_no_args
+  env:
+    FT_LINE: hello 42
+  args: []
+  stdout: 'HELLO 42
+
+    '
+- name: test_02_no_args
+  env:
+    FT_LINE: AbCdEf
+  args: []
+  stdout: 'ABCDEF
+
+    '
+- name: test_03_no_args
+  env:
+    FT_LINE: 1337!
+  args: []
+  stdout: '1337!
+
+    '
+- name: test_04_mixed_symbols
+  env:
+    FT_LINE: zZz_99
+  args: []
+  stdout: 'ZZZ_99
+
+    '
+- name: test_05_empty_line
+  env:
+    FT_LINE: ''
+  args: []
+  tier: edge
+  stdout: '
+
+    '
+- name: test_06_already_uppercase
+  env:
+    FT_LINE: ALREADY UPPER
+  args: []
+  tier: edge
+  stdout: 'ALREADY UPPER
+
+    '
+- name: test_07_all_lowercase_alphabet
+  env:
+    FT_LINE: abcdefghijklmnopqrstuvwxyz
+  args: []
+  tier: baseline
+  stdout: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ
+
+    '
+- name: test_08_digits_and_punctuation
+  env:
+    FT_LINE: 0123456789!@#$%
+  args: []
+  tier: edge
+  stdout: '0123456789!@#$%
+
+    '
+- name: test_09_single_char
+  env:
+    FT_LINE: m
+  args: []
+  tier: baseline
+  stdout: 'M
+
+    '
+- name: test_10_sentence
+  env:
+    FT_LINE: welcome to 1337 magrathea
+  args: []
+  tier: stress
+  stdout: 'WELCOME TO 1337 MAGRATHEA
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,9 @@
+Examples:
+  struct s_stack *s = init(); push(s, "42"); char *v1 = (char *)pop(s); int e1 = isEmpty(s); printf("%s,%d\n", v1, e1)
+  Output: 42,1
+    struct s_stack *s = init(); printf("%d,%d,%d
+", isEmpty(s), peek(s) == NULL, pop(s) == NULL)
+    Output: 1,1,1
+    struct s_stack *s = init(); push(s, "a"); push(s, "b"); char *p1 = (char *)peek(s); char *d1 = (char *)pop(s); char *d2 = (char *)pop(s); int e2 = isEmpty(s); printf("%s,%s,%s,%d
+", p1, d1, d2, e2)
+    Output: b,b,a,1

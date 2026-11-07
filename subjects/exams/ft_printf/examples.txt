@@ -1,0 +1,15 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : int r = ft_printf("Hex %s is %d and %x\n", "number", 42, 42); printf("%d\n", r);
+    Expected Output   : 'Hex number is 42 and 2a\n24\n'
+  [Standard Test 2] Name: test
+    Call / Invocation : int r = ft_printf("%s\n", (char *)0); printf("%d\n", r);
+    Expected Output   : '(null)\n7\n'
+  [Standard Test 3] Name: test
+    Call / Invocation : int r = ft_printf("1337"); printf(":%d\n", r);
+    Expected Output   : '1337:4\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Call / Invocation : int r = ft_printf("%d %d %x\n", 0, -2147483648, 0); printf("%d\n", r);
+    Expected Output   : '0 -2147483648 0\n16\n'

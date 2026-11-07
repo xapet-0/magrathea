@@ -1,0 +1,228 @@
+mode: c_program
+fixed_tests:
+- name: can_check_mate_T01
+  description: bishop_check
+  args:
+  - '....'
+  - .K..
+  - ..B.
+  - '....'
+  expected: 'Success
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_check_mate_T02
+  description: rook_safe
+  args:
+  - '....'
+  - .K..
+  - '....'
+  - '...R'
+  expected: 'Fail
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_check_mate_T03
+  description: rook_check
+  args:
+  - .K..
+  - .R..
+  - '....'
+  - '....'
+  expected: 'Success
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_check_mate_T04
+  description: queen_check
+  args:
+  - K...
+  - '....'
+  - ..Q.
+  - '....'
+  expected: 'Success
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_check_mate_T05
+  description: no_args
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: 'Fail
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: 'Fail
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: 'Fail
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: 'Fail
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: 'Fail
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./chessmate '..' '.K' | cat -e
+  args: &id001
+  - ..
+  - .K
+  expected: 'Fail
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./chessmate 'R...' '..P.' '.K..' '....' | cat -e
+  args: &id002
+  - R...
+  - ..P.
+  - .K..
+  - '....'
+  expected: 'Success
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./chessmate 'R...' 'iheK' '....' 'jeiR' | cat -e
+  args: &id003
+  - R...
+  - iheK
+  - '....'
+  - jeiR
+  expected: 'Success
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./chessmate | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_check_mate_T06
+  origin: subject_folder/examples.txt
+  input: 'Pion / Pawn (P):'
+  expected: ". . . . . . .\\n\t. . . . . . .\\n\t. . X . X . .\\n\t. . . P . . .\\\
+    n\t. . . . . . .\\n\t. . . . . . .\\n\t. . . . . . .\\n\\nFou / Bishop (B):\\\
+    n\\n\tX . . . . . X\\n\t. X . . . X .\\n\t. . X . X . .\\n\t. . . B . . .\\n\t\
+    . . X . X . .\\n\t. X . . . X .\\n\tX . . . . . X\\n\\nTour / Rook (R):\\n\\n\t\
+    . . . X . . .\\n\t. . . X . . .\\n\t. . . X . . .\\n\tX X X R X X X\\n\t. . .\
+    \ X . . .\\n\t. . . X . . .\\n\t. . . X . . .\\n\\nDame / Queen (Q)\\n\\n\tX .\
+    \ . X . . X\\n\t. X . X . X .\\n\t. . X X X . .\\n\tX X X Q X X X\\n\t. . X X\
+    \ X . .\\n\t. X . X . X .\\n\tX . . X . . X"
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - ..!
+  - .L
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  ..  '
+  - .K
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - S...
+  - ..Q.
+  - .L..
+  - '....!'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  R...  '
+  - ..P.
+  - .K..
+  - '....'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - S...
+  - jheK
+  - '....!'
+  - keiR
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  R...  '
+  - iheK
+  - '....'
+  - jeiR
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./chessmate | cat -e
+  perturbed_input:
+  - check_mate_near_arg_1
+  - check_mate_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_check_mate_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: 'Pion / Pawn (P):'
+  perturbed_input: 'Qion / Pawn (P):'

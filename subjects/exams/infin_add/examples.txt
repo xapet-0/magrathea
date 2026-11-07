@@ -1,0 +1,9 @@
+Examples:
+$> ./infin_add "879879087" "67548976597" | cat -e
+68428855684$
+$> ./infin_add "-21" "-21" | cat -e
+-42$
+$> ./infin_add "-42" "42" | cat -e
+0$
+$> ./infin_add "0" "0" | cat -e
+0$

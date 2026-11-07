@@ -1,0 +1,6 @@
+# Examples for width_tree (from official subject specification)
+
+Examples:
+    width_tree(NULL) -> 0
+    width_tree(&a) -> 1
+    width_tree(&r) -> 3

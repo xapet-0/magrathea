@@ -1,0 +1,3 @@
+Examples:
+$> ./ft_split | cat -e
+$

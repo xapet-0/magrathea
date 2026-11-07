@@ -1,0 +1,14 @@
+id: only_a
+type: c_program
+module: Piscine Exams 00–Final
+xp: 285
+expected_files:
+- only_a.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

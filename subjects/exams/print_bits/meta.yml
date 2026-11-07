@@ -1,0 +1,14 @@
+id: print_bits
+type: c_function
+module: Exam Rank 02
+xp: 430
+expected_files:
+- print_bits.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void print_bits(unsigned char octet);

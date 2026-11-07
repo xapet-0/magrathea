@@ -1,0 +1,9 @@
+# Examples for only_sh (from official subject specification)
+
+Examples:
+$> sh only_sh.sh | cat -e
+"$*'1337'*$?"
+$> sh only_sh.sh "ignored" | cat -e
+"$*'1337'*$?"
+$> sh only_sh.sh "a" "b" | cat -e
+"$*'1337'*$?"

@@ -1,0 +1,36 @@
+# Python Bytecode and Caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Compiled Objects and Binaries
+*.o
+*.obj
+a.out
+core.[0-9]*
+
+# Ignore shared libraries except bundled libmemsentinel.so
+*.so
+!bin/libmemsentinel.so
+
+# Editor and OS Artifacts
+*~
+*.swp
+*.swo
+.#*
+.DS_Store
+Thumbs.db
+
+# Workspace Runtime State (Preserve Structural .gitkeep)
+workspace/rendu/*
+!workspace/rendu/.gitkeep
+workspace/subject/*
+!workspace/subject/.gitkeep
+workspace/traces/
+workspace/*.json
+workspace/vogsphere.git/
+
+# Vogsphere Runtime Bare Repositories
+vogsphere/*
+!vogsphere/.gitkeep
+build/

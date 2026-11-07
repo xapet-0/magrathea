@@ -1,0 +1,158 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_range_T01
+  tier: baseline
+  setup:
+  - int *r = ft_range(1, 3);
+  call: printf("%d,%d,%d\n", r[0], r[1], r[2]); free(r)
+  stdout: '1,2,3
+
+    '
+- name: can_ft_range_T02
+  tier: baseline
+  setup:
+  - int *r = ft_range(0, -3);
+  call: printf("%d,%d,%d,%d\n", r[0], r[1], r[2], r[3]); free(r)
+  stdout: '0,-1,-2,-3
+
+    '
+- name: can_ft_range_T03
+  tier: baseline
+  setup:
+  - int *r = ft_range(0, 0);
+  call: printf("%d\n", r[0]); free(r)
+  stdout: '0
+
+    '
+- name: can_ft_range_T04_neg_to_pos
+  tier: edge_case
+  setup:
+  - int *r = ft_range(-2, 2);
+  call: printf("%d,%d,%d,%d,%d\n", r[0], r[1], r[2], r[3], r[4]); free(r)
+  stdout: '-2,-1,0,1,2
+
+    '
+- name: test_05_descending_positive
+  setup:
+  - int *r = ft_range(3, 1);
+  call: printf("%d,%d,%d\n", r[0], r[1], r[2]); free(r)
+  tier: baseline
+  stdout: '3,2,1
+
+    '
+- name: test_06_single_negative
+  setup:
+  - int *r = ft_range(-42, -42);
+  call: printf("%d\n", r[0]); free(r)
+  tier: edge
+  stdout: '-42
+
+    '
+- name: test_07_negative_ascending
+  setup:
+  - int *r = ft_range(-5, -2);
+  call: printf("%d,%d,%d,%d\n", r[0], r[1], r[2], r[3]); free(r)
+  tier: baseline
+  stdout: '-5,-4,-3,-2
+
+    '
+- name: test_08_negative_descending
+  setup:
+  - int *r = ft_range(-2, -5);
+  call: printf("%d,%d,%d,%d\n", r[0], r[1], r[2], r[3]); free(r)
+  tier: baseline
+  stdout: '-2,-3,-4,-5
+
+    '
+- name: test_09_pos_to_neg
+  setup:
+  - int *r = ft_range(2, -1);
+  call: printf("%d,%d,%d,%d\n", r[0], r[1], r[2], r[3]); free(r)
+  tier: edge
+  stdout: '2,1,0,-1
+
+    '
+- name: test_10_six_elements
+  setup:
+  - int *r = ft_range(10, 15);
+  call: for(int i=0;i<6;i++) printf("%d,", r[i]); printf("\n"); free(r)
+  tier: stress
+  stdout: '10,11,12,13,14,15,
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_range
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_range_T05
+  origin: subject_folder/42ExamPractice/ft_range/tester.sh
+  input: ./ft_range "-13" "2932"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_range_T06
+  origin: subject_folder/42ExamPractice/ft_range/tester.sh
+  input: ./ft_range "3" "8"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_range_T07
+  origin: subject_folder/42ExamPractice/ft_range/tester.sh
+  input: ./ft_range "0" "2932"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_range_T08
+  origin: subject_folder/42ExamPractice/ft_range/tester.sh
+  input: ./ft_range "0" "0"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_range_T09
+  origin: subject_folder/42ExamPractice/ft_range/tester.sh
+  input: ./ft_range "0" "-3"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_range_T10
+  origin: subject_folder/42ExamPractice/ft_range/tester.sh
+  input: ./ft_range "1" "2"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_range_T11
+  origin: subject_folder/42ExamPractice/ft_range/tester.sh
+  input: ./ft_range "1" "3"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_range_T12
+  origin: subject_folder/42ExamPractice/ft_range/tester.sh
+  input: ./ft_range "-1" "2932"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_range_T13
+  origin: subject_folder/42ExamPractice/ft_range/tester.sh
+  input: ./ft_range "-1" "2"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_range_T14
+  origin: subject_folder/mini-moulinette/ex01/ft_range.c
+  input: 'Input:'
+  expected: 'Expected:'
+- id: can_ft_range_T15
+  origin: subject_folder/3-3-ft_range_MAIN.c
+  input: Compiled and run with 3-3-ft_range_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_12
+  origin: subject_folder/3-3-ft_range_MAIN.c
+  input: 3-3-ft_range_MAIN.c
+  expected: "#include <unistd.h>\n#include <stdlib.h>\n#include <stdio.h>\n\nint\t\
+    *ft_range(int min, int max);\n\nvoid\tft_putchar(char c)\n{\n\twrite(1, &c, 1);\n\
+    \treturn;\n}\n\nvoid ft_pu"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_range
+  perturbed_input:
+  - ft_range_near_arg_1
+  - ft_range_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_range_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_range/tester.sh)
+  original_input: ./ft_range "-13" "2932"
+  perturbed_input: ./gt_range "-13" "2932"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_ft_range_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_range/tester.sh)
+  original_input: ./ft_range "3" "8"
+  perturbed_input: ./gt_range "3" "8"

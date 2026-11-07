@@ -1,0 +1,7 @@
+Examples:
+$> ./snake_to_camel "here_is_a_snake_case_word"
+hereIsASnakeCaseWord
+$> ./snake_to_camel "hello_world" | cat -e
+helloWorld$
+$> ./snake_to_camel | cat -e
+$

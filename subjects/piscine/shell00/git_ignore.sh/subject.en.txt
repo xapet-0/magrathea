@@ -1,0 +1,20 @@
+Assignment name  : git_ignore.sh
+Turn-in directory: ex06/
+Expected files   : git_ignore.sh
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+GiT
+Turn-in directory: ex06/
+Files to turn in: git_ignore.sh
+Allowed functions: None
+• Write a short shell script that lists all the existing files ignored by your Git reposi-
+tory.
+Example output:
+%> bash git_ignore.sh | cat -e
+.DS_Store$
+mywork.c~$
+%>
+• Your script will be tested in our own environment.
+• RTFM!
+• Get inspired by others, but don’t let them do your work!

@@ -1,0 +1,16 @@
+id: odd_epur
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- odd_epur.sh
+allowed_functions:
+- awk
+- sed
+- tr
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh odd_epur.sh [args...]

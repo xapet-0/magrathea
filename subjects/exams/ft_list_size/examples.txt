@@ -1,0 +1,4 @@
+[can_ft_list_size_T01] Input: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%d\n",ft_list_size(&a))  ==>  Expected: 2\n
+[can_ft_list_size_T02] Input: Invocations: ft_list_size(NULL); ft_list_size(n1); ft_list_size(n1)  ==>  Expected: Differential comparison with reference implementation
+[can_ft_list_size_T03] Input: Invocations: ft_list_size(NULL); ft_list_size(&a)  ==>  Expected: Differential comparison with reference implementation
+[can_ft_list_size_T04] Input: Compiled and run with 3-0-ft_list_size_MAIN.c  ==>  Expected: Zero assertion failures (exit code 0)

@@ -1,0 +1,32 @@
+mode: shell_file
+fixed_tests:
+- name: test_01_content
+  expected_content: '42'
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./special_filename_MaRViN | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: special_filename_MaRViN baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./special_filename_MaRViN | cat -e
+  perturbed_input:
+  - special_filename_MaRViN_near_arg_1
+  - special_filename_MaRViN_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: special_filename_MaRViN baseline folder fixture
+  perturbed_input: 'tpecial_filename_MaRViN baseline folder '

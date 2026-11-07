@@ -1,0 +1,62 @@
+mode: shell
+fixed_tests:
+- name: stderr_trap_capture
+  args: []
+  stdout: 'captured
+
+    '
+- name: stderr_trap_exit_code
+  args: []
+  exit_code: 0
+- name: stderr_trap_with_arg
+  args:
+  - arg1
+  stdout: 'captured
+
+    '
+- name: stderr_trap_multi_args
+  args:
+  - a
+  - b
+  stdout: 'captured
+
+    '
+- name: test_05_err1
+  args:
+  - err1
+  stdout: 'captured
+
+    '
+- name: test_06_err2
+  args:
+  - err2
+  stdout: 'captured
+
+    '
+- name: test_07_err3
+  args:
+  - err3
+  stdout: 'captured
+
+    '
+- name: test_08_err4
+  args:
+  - err4
+  stdout: 'captured
+
+    '
+- name: test_09_err5
+  args:
+  - err5
+  stdout: 'captured
+
+    '
+- name: test_10_err6
+  args:
+  - err6
+  stdout: 'captured
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

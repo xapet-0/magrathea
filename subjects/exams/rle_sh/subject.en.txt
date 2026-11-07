@@ -1,0 +1,20 @@
+Assignment name  : rle_sh
+Expected files   : rle_sh.sh
+Allowed commands : printf, awk, sed
+--------------------------------------------------------------------------------
+
+Write a shell script that reads the string in $FT_LINE and compresses
+consecutive identical characters using Run-Length Encoding (<count><char>),
+followed by a newline.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> FT_LINE="aaabbc" sh rle_sh.sh | cat -e
+3a2b1c$
+$> FT_LINE="xxxx" sh rle_sh.sh | cat -e
+4x$
+$> FT_LINE="ab" sh rle_sh.sh | cat -e
+1a1b$

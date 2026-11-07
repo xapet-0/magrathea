@@ -1,0 +1,42 @@
+Assignment name  : display_file
+Expected files   : Makefile
+Allowed functions: close, open, read, write
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 10 (Official PDF)
+Exercise         : display_file
+Turn-in directory: ex00/
+Expected files   : Makefile
+Allowed functions: close, open, read, write
+--------------------------------------------------------------------------------
+
+• Create a program called ft_display_file that displays, on the standard output,
+only the content of the file given as an argument.
+• The submission directory should contain a Makefile with the following rules: all,
+clean, fclean. The binary must be namedft_display_file.
+• The use of themalloc function is forbidden. You must complete this exercise by
+declaring a fixed-size array.
+• All files given as arguments will be valid.
+• Error messages must be displayed on their designated output, followed by a new
+line.
+• If no argument is given, it should display:
+File name missing.
+• If more than one argument is given, it should display:
+Too many arguments.
+• If the file cannot be read, it should display:
+Cannot read file.
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: too_many_args
+    Args       : ['a.txt', 'b.txt']
+    Expected Output   : ''
+    Expected Exit Code: 1
+  [Standard Test 2] Name: display_file
+    Args       : ['a.txt']
+    Expected Output   : 'hello\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: missing_arg [Zero arguments passed (bad argc: argc < 2)]
+    Args       : []
+    Expected Output   : ''
+    Expected Exit Code: 1

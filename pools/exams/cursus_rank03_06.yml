@@ -1,0 +1,45 @@
+name: cursus_rank03_06
+display_name: "42 / 1337 Common Core \u2014 Exam Ranks 03\u201306"
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 25
+  candidates:
+  - filter
+  - broken_gnl
+  - get_next_line
+  - ft_printf
+  - ft_scanf
+- level: 1
+  points: 25
+  candidates:
+  - n_queens
+  - permutations
+  - powerset
+  - rip
+  - tsp
+- level: 2
+  points: 25
+  candidates:
+  - ft_popen
+  - picoshell
+  - sandbox
+  - vbc
+  - argo
+- level: 3
+  points: 25
+  candidates:
+  - cpp_module_00
+  - cpp_module_01
+  - cpp_module_02
+  - bigint
+  - polyset
+  - vect2
+  - bsq
+  - life
+  - mini_serv
+  - mini_db
+rank_order: 30
+prerequisites:
+- classic_42_full
+pool_group: cursus

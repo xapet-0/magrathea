@@ -1,0 +1,13 @@
+id: rectangle_perimeter
+type: c_function
+module: "Piscine Exams 00\u2013Final"
+xp: 280
+expected_files:
+- rectangle_perimeter.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int rectangle_perimeter(int width, int height);

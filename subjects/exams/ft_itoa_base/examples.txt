@@ -1,0 +1,8 @@
+For example, base 4 would be "0123" and base 16 "0123456789ABCDEF".
+
+If base is 10 and value is negative, the resulting string is preceded with a
+minus sign (-). With any other base, value is always considered unsigned.
+
+Your function must be declared as follows:
+
+char	*ft_itoa_base(int value, int base);

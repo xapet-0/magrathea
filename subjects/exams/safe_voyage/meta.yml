@@ -1,0 +1,17 @@
+id: safe_voyage
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 300
+expected_files:
+- safe_voyage.sh
+allowed_functions:
+- cd
+- pwd
+- printf
+- exit
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh safe_voyage.sh [args...]

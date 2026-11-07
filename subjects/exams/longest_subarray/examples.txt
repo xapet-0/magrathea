@@ -1,0 +1,9 @@
+Examples:
+  char *s = longest_subarray("134"); printf("%s\n", s); free(s)
+  Output: 34
+    char *s = longest_subarray("454"); printf("%s
+", s); free(s)
+    Output: 45
+    char *s = longest_subarray("13579"); printf("%s
+", s); free(s)
+    Output:

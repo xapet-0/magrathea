@@ -1,0 +1,81 @@
+subject_id: word_count_sh
+fixed_tests:
+- name: test_01_no_args
+  env:
+    FT_LINE: Hello   world 1337
+  args: []
+  stdout: '3
+
+    '
+- name: test_02_no_args
+  env:
+    FT_LINE: '   '
+  args: []
+  stdout: '0
+
+    '
+- name: test_03_no_args
+  env:
+    FT_LINE: one two three four
+  args: []
+  stdout: '4
+
+    '
+- name: test_04_no_args
+  env:
+    FT_LINE: single
+  args: []
+  stdout: '1
+
+    '
+- name: test_05_empty_line
+  env:
+    FT_LINE: ''
+  args: []
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_06_two_words_many_spaces
+  env:
+    FT_LINE: '   42      1337   '
+  args: []
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_07_five_words
+  env:
+    FT_LINE: a b c d e
+  args: []
+  tier: baseline
+  stdout: '5
+
+    '
+- name: test_08_tabs_between_words
+  env:
+    FT_LINE: "alpha\tbeta\tgamma"
+  args: []
+  tier: edge
+  stdout: '3
+
+    '
+- name: test_09_six_words
+  env:
+    FT_LINE: 1 22 333 4444 55555 666666
+  args: []
+  tier: baseline
+  stdout: '6
+
+    '
+- name: test_10_eight_words
+  env:
+    FT_LINE: one two three four five six seven eight
+  args: []
+  tier: stress
+  stdout: '8
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

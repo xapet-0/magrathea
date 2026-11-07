@@ -1,0 +1,98 @@
+subject_id: ft_strcpy
+fixed_tests:
+- name: test_01_s_n_ft_strcpy_d_abc
+  call: char d[16]; printf("%s\n", ft_strcpy(d, "abc"))
+  stdout: 'abc
+
+    '
+  tier: baseline
+- name: empty_src
+  call: char d[16] = "xxxxxxx"; printf("%s\n", ft_strcpy(d, ""))
+  stdout: '
+
+    '
+  tier: baseline
+- name: longer_src
+  call: char d[32]; printf("%s\n", ft_strcpy(d, "1337_Piscine"))
+  stdout: '1337_Piscine
+
+    '
+  tier: baseline
+- name: can_ft_strcpy_T04_null_term_check
+  description: verify_null_termination
+  call: char d[16] = "zzzz"; char *r = ft_strcpy(d, "X"); printf("%s|%d\n", r, d[1]
+    == 0)
+  stdout: 'X|1
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_single_char
+  call: char d[8] = "xxxxxxx"; printf("%s|%d\n", ft_strcpy(d, "Z"), d[1] == 0)
+  tier: baseline
+  stdout: 'Z|0
+
+    '
+- name: test_06_spaces_and_tabs
+  call: char d[32]; printf("[%s]\n", ft_strcpy(d, "  hello \t world  "))
+  tier: baseline
+  stdout: "[  hello \t world  ]\n"
+- name: test_07_digits_and_symbols
+  call: char d[32]; printf("%s\n", ft_strcpy(d, "0123456789!@#$%"))
+  tier: baseline
+  stdout: '0123456789!@#$%
+
+    '
+- name: test_08_overwrite_longer_with_shorter
+  call: char d[16]; ft_strcpy(d, "long_string"); ft_strcpy(d, "hi"); printf("%s|%d|%c\n",
+    d, d[2] == 0, d[5])
+  tier: edge
+  stdout: 'hi|1|s
+
+    '
+- name: test_09_return_pointer_identity
+  call: char d[16]; char *r = ft_strcpy(d, "42"); printf("%d:%s\n", r == d, r)
+  tier: edge
+  stdout: '1:42
+
+    '
+- name: test_10_alphabet_26
+  call: char d[32]; printf("%s\n", ft_strcpy(d, "abcdefghijklmnopqrstuvwxyz"))
+  tier: stress
+  stdout: 'abcdefghijklmnopqrstuvwxyz
+
+    '
+oracle_tests:
+- name: ft_strcpy_oracle_stress
+  source: "int main(void)\n{\n    const char *cases[] = {\"\", \"abc\", \"hello world\"\
+    , \"symbols !?\", 0};\n    char dest[128];\n    int i;\n    for (i = 0; cases[i];\
+    \ ++i)\n    {\n        memset(dest, 'X', sizeof(dest));\n        if (ft_strcpy(dest,\
+    \ (char *)cases[i]) != dest || strcmp(dest, cases[i]) != 0)\n        {\n     \
+    \       fprintf(stderr, \"ft_strcpy mismatch on case %d\\n\", i);\n          \
+    \  return (1);\n        }\n    }\n    return (0);\n}\n"
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strcpy
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: ft_strcpy baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strcpy
+  perturbed_input:
+  - ft_strcpy_near_arg_1
+  - ft_strcpy_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ft_strcpy baseline folder fixture
+  perturbed_input: gt_strcpy baseline folder fixture

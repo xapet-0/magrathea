@@ -1,0 +1,62 @@
+fixed_tests:
+- call: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%s\n",(char*)ft_list_at(&a,1)->data);
+  name: pool_ft_list_at_T01
+  stdout: 'b
+
+    '
+- call: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%s\n",(char*)ft_list_at(&a,0)->data);
+  name: ft_list_at_index_0
+  stdout: 'a
+
+    '
+- call: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%d\n",ft_list_at(&a,10)==NULL);
+  name: ft_list_at_out_of_bounds
+  stdout: '1
+
+    '
+- call: printf("%d\n",ft_list_at(NULL,0)==NULL);
+  name: ft_list_at_null_list
+  stdout: '1
+
+    '
+- name: test_05_last_element_index
+  call: t_list c={"c",0},b={"b",&c},a={"a",&b}; printf("%s\n",(char*)ft_list_at(&a,2)->data);
+  tier: baseline
+  stdout: 'c
+
+    '
+- name: test_06_exact_size_out_of_bounds
+  call: t_list c={"c",0},b={"b",&c},a={"a",&b}; printf("%d\n",ft_list_at(&a,3)==NULL);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_single_node_index_0_and_1
+  call: t_list a={"only",0}; printf("%s:%d\n",(char*)ft_list_at(&a,0)->data,ft_list_at(&a,1)==NULL);
+  tier: edge
+  stdout: 'only:1
+
+    '
+- name: test_08_five_nodes_middle
+  call: t_list e={"5",0},d={"4",&e},c={"3",&d},b={"2",&c},a={"1",&b}; printf("%s:%s\n",(char*)ft_list_at(&a,2)->data,(char*)ft_list_at(&a,4)->data);
+  tier: baseline
+  stdout: '3:5
+
+    '
+- name: test_09_null_list_nonzero_index
+  call: printf("%d\n",ft_list_at(NULL,5)==NULL);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_10_all_indices_loop
+  call: t_list d={"D",0},c={"C",&d},b={"B",&c},a={"A",&b}; for(unsigned int i=0;i<4;i++)
+    printf("%s",(char*)ft_list_at(&a,i)->data); printf("\n");
+  tier: stress
+  stdout: 'ABCD
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

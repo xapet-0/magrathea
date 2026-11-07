@@ -1,0 +1,6 @@
+# Examples for gold_gain (from official subject specification)
+
+Examples:
+    gold_gain(m, 3) -> 8
+    gold_gain(m, 1) -> 42
+    gold_gain(m, 2) -> 7

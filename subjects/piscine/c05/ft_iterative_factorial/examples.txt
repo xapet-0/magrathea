@@ -1,0 +1,7 @@
+# Examples for ft_iterative_factorial (from official subject specification)
+
+Examples:
+    ft_iterative_factorial(-1) -> 0
+    ft_iterative_factorial(0) -> 1
+    ft_iterative_factorial(5) -> 120
+    ft_iterative_factorial(0) -> 1

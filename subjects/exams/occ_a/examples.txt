@@ -1,0 +1,18 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : occ_a("ABRACADABRA")
+    Expected Output   : '5\n'
+  [Standard Test 2] Name: test
+    Call / Invocation : occ_a("abc")
+    Expected Output   : '0\n'
+  [Standard Test 3] Name: test
+    Call / Invocation : occ_a("A")
+    Expected Output   : '1\n'
+  [Standard Test 4] Name: test
+    Call / Invocation : occ_a("AAAaaaAAA")
+    Expected Output   : '6\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Call / Invocation : occ_a("")
+    Expected Output   : '0\n'

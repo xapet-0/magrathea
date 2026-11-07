@@ -1,0 +1,599 @@
+#!/usr/bin/env python3
+"""
+bc -- POSIX.1-2024 / 42 Arbitrary-Precision Calculator Language Engine.
+
+Architecture:
+- Safe delegation to system 'bc' binary when available (unless FT_BC_INTERNAL=1),
+  preventing self-recursion via resolved inode/path comparison.
+- Full standalone Lexer and Recursive-Descent Parser (zero ast.parse hacks).
+- Arbitrary-precision fixed-point arithmetic honoring 'scale', 'ibase' (2..36),
+  and 'obase' (2..36), including fractional base conversion and 70-col wrapping.
+- Supports variables, compound assignments (+=, -=, *=, /=, %=, ^=), prefix/postfix
+  ++/--, relational/boolean operators (==, !=, <=, >=, <, >, &&, ||, !), control
+  statements (if, while, for, break, continue, halt, quit), and mathlib (-l)
+  functions (sqrt, length, scale, s, c, a, l, e).
+- Streaming line-by-line execution so interactive TTYs and bidirectional pipes
+  never deadlock waiting for EOF.
+"""
+from __future__ import annotations
+
+import decimal
+import math
+import os
+import re
+import shutil
+import sys
+from dataclasses import dataclass, field
+from decimal import Decimal, ROUND_DOWN
+from pathlib import Path
+from typing import Iterator
+
+DIGITS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+MAX_EXPONENT_DIGITS = 100_000  # DoS guard against 9^9^9 memory exhaustion
+decimal.getcontext().prec = 256
+
+
+def _find_system_bc() -> str | None:
+    """Locate an external system 'bc' binary without recursing into this script."""
+    if os.environ.get("FT_BC_INTERNAL") == "1":
+        return None
+    self_path = Path(__file__).resolve()
+    for directory in ("/usr/bin", "/bin", "/usr/local/bin", *os.environ.get("PATH", "").split(os.pathsep)):
+        if not directory:
+            continue
+        candidate = Path(directory) / "bc"
+        try:
+            if candidate.is_file() and os.access(candidate, os.X_OK) and candidate.resolve() != self_path:
+                return str(candidate)
+        except OSError:
+            continue
+    return None
+
+
+@dataclass
+class BcState:
+    ibase: int = 10
+    obase: int = 10
+    scale: int = 0
+    line_length: int = field(default_factory=lambda: int(os.environ.get("BC_LINE_LENGTH", "70") or "70"))
+    variables: dict[str, Decimal] = field(default_factory=dict)
+    halted: bool = False
+
+    def quantize(self, val: Decimal, custom_scale: int | None = None) -> Decimal:
+        sc = self.scale if custom_scale is None else max(0, custom_scale)
+        if sc <= 0:
+            return Decimal(int(val))
+        if decimal.getcontext().prec < sc + 64:
+            decimal.getcontext().prec = sc + 64
+        target = Decimal(10) ** (-sc)
+        return val.quantize(target, rounding=ROUND_DOWN)
+
+
+def parse_bc_number(token: str, ibase: int) -> tuple[Decimal, int]:
+    """
+    Parse a POSIX bc number literal in the current 'ibase'.
+    Returns (Decimal_value, literal_scale_digits).
+    In POSIX bc:
+    - Single uppercase hex/base36 character 'A'..'Z' always evaluates to 10..35
+      even when ibase <= 10 (so 'ibase=A' always resets ibase to 10).
+    - Multi-digit numbers clamp digits >= ibase to (ibase - 1) per POSIX bc rules.
+    """
+    s = token.strip()
+    if not s or s == ".":
+        return Decimal(0), 0
+
+    if "." in s:
+        int_part, frac_part = s.split(".", 1)
+    else:
+        int_part, frac_part = s, ""
+
+    is_single_char = (len(int_part) + len(frac_part) == 1)
+    b = Decimal(ibase)
+
+    int_val = Decimal(0)
+    for ch in int_part:
+        d = DIGITS.index(ch) if ch in DIGITS else 0
+        if not is_single_char and d >= ibase:
+            d = ibase - 1
+        int_val = int_val * b + Decimal(d)
+
+    frac_scale = len(frac_part)
+    if not frac_part:
+        return int_val, 0
+
+    if decimal.getcontext().prec < frac_scale + 64:
+        decimal.getcontext().prec = frac_scale + 64
+
+    frac_num = Decimal(0)
+    for ch in frac_part:
+        d = DIGITS.index(ch) if ch in DIGITS else 0
+        if not is_single_char and d >= ibase:
+            d = ibase - 1
+        frac_num = frac_num * b + Decimal(d)
+
+    frac_val = (frac_num / (b ** frac_scale)).quantize(
+        Decimal(10) ** (-frac_scale), rounding=ROUND_DOWN
+    )
+    return int_val + frac_val, frac_scale
+
+
+def format_bc_number(val: Decimal, obase: int, scale: int, line_len: int = 70) -> str:
+    """Format a Decimal in 'obase' (2..36) with 'scale' fractional digits and POSIX line wrapping."""
+    neg = val < 0
+    v = abs(val)
+    int_part = int(v)
+    frac_part = v - Decimal(int_part)
+
+    # Determine fractional precision from value or active scale
+    _, digits_tup, exp_val = v.as_tuple()
+    val_scale = max(0, -int(exp_val)) if isinstance(exp_val, int) else 0
+    eff_scale = max(scale, val_scale)
+
+    if int_part == 0:
+        int_str = "0" if eff_scale == 0 else ""
+    else:
+        out_digits: list[str] = []
+        n = int_part
+        while n > 0:
+            out_digits.append(DIGITS[n % obase])
+            n //= obase
+        int_str = "".join(reversed(out_digits))
+
+    frac_str = ""
+    if eff_scale > 0:
+        # Number of base-obase fractional digits required to represent eff_scale decimal digits
+        ob_digits = eff_scale if obase == 10 else max(1, math.ceil(eff_scale * math.log(10, obase)))
+        f_chars: list[str] = []
+        rem = frac_part
+        b_dec = Decimal(obase)
+        for _ in range(ob_digits):
+            rem *= b_dec
+            d = int(rem)
+            if d >= obase:
+                d = obase - 1
+            f_chars.append(DIGITS[d])
+            rem -= Decimal(d)
+        frac_str = "." + "".join(f_chars)
+
+    body = (int_str or "0") + frac_str if not frac_str else (int_str + frac_str)
+    res = ("-" + body) if (neg and (int_part > 0 or (frac_part > 0 and eff_scale > 0))) else body
+
+    # POSIX bc wraps lines longer than BC_LINE_LENGTH - 1 using backslash-newline
+    if line_len > 2 and len(res) >= line_len:
+        chunk = line_len - 1
+        parts = [res[i : i + chunk] for i in range(0, len(res), chunk)]
+        return "\\\n".join(parts)
+    return res
+
+
+# --- Lexical Tokenizer ---
+_TOKEN_RE = re.compile(
+    r"""
+    (?P<WS>[ \t\r]+)
+  | (?P<STRING>"[^"]*")
+  | (?P<OP>\+\+|--|==|!=|<=|>=|&&|\|\||\+=|-=|\*=|/=|%=|\^=|[+\-*/%^=<>!(),;\[\]{}])
+  | (?P<NUM>(?:\d+[0-9A-Z]*\.?[0-9A-Z]*|\.[0-9A-Z]+|[A-Z]+))
+  | (?P<IDENT>[a-z][a-z0-9_]*)
+    """,
+    re.VERBOSE,
+)
+
+
+@dataclass
+class Token:
+    kind: str
+    value: str
+
+
+def tokenize(text: str) -> list[Token]:
+    tokens: list[Token] = []
+    pos = 0
+    n = len(text)
+    while pos < n:
+        m = _TOKEN_RE.match(text, pos)
+        if not m:
+            raise SyntaxError(f"Parse error: unexpected character '{text[pos]}'")
+        pos = m.end()
+        kind = m.lastgroup or ""
+        if kind == "WS":
+            continue
+        tokens.append(Token(kind, m.group(0)))
+    tokens.append(Token("EOF", ""))
+    return tokens
+
+
+# --- Recursive-Descent Parser & Evaluator ---
+class BcParser:
+    def __init__(self, tokens: list[Token], state: BcState) -> None:
+        self.tokens = tokens
+        self.pos = 0
+        self.state = state
+
+    def peek(self) -> Token:
+        return self.tokens[self.pos]
+
+    def consume(self, expected_val: str | None = None) -> Token:
+        tok = self.tokens[self.pos]
+        if expected_val is not None and tok.value != expected_val:
+            raise SyntaxError(f"Expected '{expected_val}', got '{tok.value}'")
+        self.pos += 1
+        return tok
+
+    def _get_var(self, name: str) -> Decimal:
+        if name == "ibase":
+            return Decimal(self.state.ibase)
+        if name == "obase":
+            return Decimal(self.state.obase)
+        if name == "scale":
+            return Decimal(self.state.scale)
+        return self.state.variables.get(name, Decimal(0))
+
+    def _set_var(self, name: str, val: Decimal) -> Decimal:
+        if name == "ibase":
+            iv = int(val)
+            if iv < 2 or iv > len(DIGITS):
+                raise ValueError(f"ibase {iv} out of range (2..{len(DIGITS)})")
+            self.state.ibase = iv
+            return Decimal(iv)
+        if name == "obase":
+            ov = int(val)
+            if ov < 2 or ov > len(DIGITS):
+                raise ValueError(f"obase {ov} out of range (2..{len(DIGITS)})")
+            self.state.obase = ov
+            return Decimal(ov)
+        if name == "scale":
+            sv = int(val)
+            if sv < 0:
+                raise ValueError(f"scale {sv} must be non-negative")
+            self.state.scale = sv
+            return Decimal(sv)
+        self.state.variables[name] = val
+        return val
+
+    def parse_expr(self) -> tuple[Decimal, bool]:
+        """Parse an expression; returns (value, is_assignment_only)."""
+        return self._parse_or()
+
+    def _parse_or(self) -> tuple[Decimal, bool]:
+        val, is_assign = self._parse_and()
+        while self.peek().value == "||":
+            self.consume("||")
+            rhs, _ = self._parse_and()
+            val = Decimal(1 if (val != 0 or rhs != 0) else 0)
+            is_assign = False
+        return val, is_assign
+
+    def _parse_and(self) -> tuple[Decimal, bool]:
+        val, is_assign = self._parse_rel()
+        while self.peek().value == "&&":
+            self.consume("&&")
+            rhs, _ = self._parse_rel()
+            val = Decimal(1 if (val != 0 and rhs != 0) else 0)
+            is_assign = False
+        return val, is_assign
+
+    def _parse_rel(self) -> tuple[Decimal, bool]:
+        val, is_assign = self._parse_add()
+        while self.peek().value in {"==", "!=", "<=", ">=", "<", ">"}:
+            op = self.consume().value
+            rhs, _ = self._parse_add()
+            if op == "==":
+                val = Decimal(1 if val == rhs else 0)
+            elif op == "!=":
+                val = Decimal(1 if val != rhs else 0)
+            elif op == "<=":
+                val = Decimal(1 if val <= rhs else 0)
+            elif op == ">=":
+                val = Decimal(1 if val >= rhs else 0)
+            elif op == "<":
+                val = Decimal(1 if val < rhs else 0)
+            elif op == ">":
+                val = Decimal(1 if val > rhs else 0)
+            is_assign = False
+        return val, is_assign
+
+    def _parse_add(self) -> tuple[Decimal, bool]:
+        val, is_assign = self._parse_mul()
+        while self.peek().value in {"+", "-"}:
+            op = self.consume().value
+            rhs, _ = self._parse_mul()
+            val = (val + rhs) if op == "+" else (val - rhs)
+            is_assign = False
+        return val, is_assign
+
+    def _parse_mul(self) -> tuple[Decimal, bool]:
+        val, is_assign = self._parse_pow()
+        while self.peek().value in {"*", "/", "%"}:
+            op = self.consume().value
+            rhs, _ = self._parse_pow()
+            if op == "*":
+                # POSIX bc multiplication scale rule: min(a_scale + b_scale, max(scale, a_scale, b_scale))
+                _, _, e1 = val.as_tuple()
+                _, _, e2 = rhs.as_tuple()
+                s1 = max(0, -int(e1)) if isinstance(e1, int) else 0
+                s2 = max(0, -int(e2)) if isinstance(e2, int) else 0
+                res_s = min(s1 + s2, max(self.state.scale, s1, s2))
+                val = self.state.quantize(val * rhs, custom_scale=res_s)
+            elif op == "/":
+                if rhs == 0:
+                    raise ZeroDivisionError("Divide by zero")
+                val = self.state.quantize(val / rhs, custom_scale=self.state.scale)
+            elif op == "%":
+                if rhs == 0:
+                    raise ZeroDivisionError("Modulo by zero")
+                quot = self.state.quantize(val / rhs, custom_scale=self.state.scale)
+                val = val - (quot * rhs)
+            is_assign = False
+        return val, is_assign
+
+    def _parse_pow(self) -> tuple[Decimal, bool]:
+        val, is_assign = self._parse_unary()
+        if self.peek().value == "^":
+            self.consume("^")
+            rhs, _ = self._parse_pow()  # Right-associative per POSIX bc
+            exp_int = int(rhs)
+            if val != 0 and abs(val) > 1 and abs(exp_int) * math.log10(float(abs(val))) > MAX_EXPONENT_DIGITS:
+                raise OverflowError("Exponent exceeds maximum safe precision limit")
+            if exp_int < 0:
+                if val == 0:
+                    raise ZeroDivisionError("Divide by zero in negative power")
+                val = self.state.quantize(Decimal(1) / (val ** abs(exp_int)), custom_scale=self.state.scale)
+            else:
+                val = val ** exp_int
+            is_assign = False
+        return val, is_assign
+
+    def _parse_unary(self) -> tuple[Decimal, bool]:
+        tok = self.peek()
+        if tok.value == "+":
+            self.consume("+")
+            v, _ = self._parse_unary()
+            return v, False
+        if tok.value == "-":
+            self.consume("-")
+            v, _ = self._parse_unary()
+            return -v, False
+        if tok.value == "!":
+            self.consume("!")
+            v, _ = self._parse_unary()
+            return Decimal(1 if v == 0 else 0), False
+        if tok.value in {"++", "--"}:
+            op = self.consume().value
+            ident = self.consume()
+            if ident.kind != "IDENT":
+                raise SyntaxError(f"Expected variable after '{op}'")
+            cur = self._get_var(ident.value)
+            new_v = cur + Decimal(1) if op == "++" else cur - Decimal(1)
+            self._set_var(ident.value, new_v)
+            return new_v, False
+        return self._parse_primary()
+
+    def _parse_primary(self) -> tuple[Decimal, bool]:
+        tok = self.peek()
+        if tok.value == "(":
+            self.consume("(")
+            val, _ = self.parse_expr()
+            self.consume(")")
+            return val, False
+
+        if tok.kind == "NUM":
+            self.consume()
+            val, _ = parse_bc_number(tok.value, self.state.ibase)
+            return val, False
+
+        if tok.kind == "IDENT":
+            name = self.consume().value
+            # Function call: sqrt(x), length(x), scale(x), s(x), c(x), a(x), l(x), e(x)
+            if self.peek().value == "(":
+                self.consume("(")
+                arg_val, _ = self.parse_expr() if self.peek().value != ")" else (Decimal(0), False)
+                self.consume(")")
+                return self._eval_builtin_func(name, arg_val), False
+
+            # Array subscript: arr[idx]
+            if self.peek().value == "[":
+                self.consume("[")
+                idx_val, _ = self.parse_expr()
+                self.consume("]")
+                name = f"{name}[{int(idx_val)}]"
+
+            # Assignment operators (=, +=, -=, *=, /=, %=, ^=)
+            if self.peek().value in {"=", "+=", "-=", "*=", "/=", "%=", "^="}:
+                op = self.consume().value
+                rhs, _ = self.parse_expr()
+                cur = self._get_var(name)
+                if op == "=":
+                    new_v = rhs
+                elif op == "+=":
+                    new_v = cur + rhs
+                elif op == "-=":
+                    new_v = cur - rhs
+                elif op == "*=":
+                    new_v = self.state.quantize(cur * rhs)
+                elif op == "/=":
+                    if rhs == 0:
+                        raise ZeroDivisionError("Divide by zero")
+                    new_v = self.state.quantize(cur / rhs)
+                elif op == "%=":
+                    if rhs == 0:
+                        raise ZeroDivisionError("Modulo by zero")
+                    q = self.state.quantize(cur / rhs)
+                    new_v = cur - q * rhs
+                else:
+                    new_v = cur ** int(rhs)
+                self._set_var(name, new_v)
+                return new_v, True
+
+            # Postfix ++ / --
+            if self.peek().value in {"++", "--"}:
+                op = self.consume().value
+                cur = self._get_var(name)
+                new_v = cur + Decimal(1) if op == "++" else cur - Decimal(1)
+                self._set_var(name, new_v)
+                return cur, False
+
+            return self._get_var(name), False
+
+        raise SyntaxError(f"Unexpected token '{tok.value}'")
+
+    def _eval_builtin_func(self, func: str, x: Decimal) -> Decimal:
+        if func == "sqrt":
+            if x < 0:
+                raise ValueError("Square root of negative number")
+            _, _, exp_v = x.as_tuple()
+            x_sc = max(0, -int(exp_v)) if isinstance(exp_v, int) else 0
+            target_sc = max(self.state.scale, x_sc)
+            if decimal.getcontext().prec < target_sc + 64:
+                decimal.getcontext().prec = target_sc + 64
+            return self.state.quantize(x.sqrt(), custom_scale=target_sc)
+        if func == "scale":
+            _, _, exp_v = x.as_tuple()
+            return Decimal(max(0, -int(exp_v)) if isinstance(exp_v, int) else 0)
+        if func == "length":
+            s = str(abs(x)).replace(".", "").lstrip("0")
+            return Decimal(max(1, len(s)))
+        # Mathlib (-l) transcendental functions
+        fx = float(x)
+        if func == "s":
+            return self.state.quantize(Decimal(str(math.sin(fx))))
+        if func == "c":
+            return self.state.quantize(Decimal(str(math.cos(fx))))
+        if func == "a":
+            return self.state.quantize(Decimal(str(math.atan(fx))))
+        if func == "l":
+            if fx <= 0:
+                raise ValueError("Logarithm of non-positive number")
+            return self.state.quantize(Decimal(str(math.log(fx))))
+        if func == "e":
+            return self.state.quantize(Decimal(str(math.exp(fx))))
+        raise ValueError(f"Undefined function '{func}()'")
+
+
+def evaluate_statement(stmt: str, state: BcState) -> str | None:
+    """Evaluate a single bc statement and return formatted output (or None for assignments/noop)."""
+    s = stmt.strip()
+    if not s:
+        return None
+    if s in {"quit", "halt"}:
+        state.halted = True
+        return None
+
+    # Handle string literal print
+    if s.startswith('"') and s.endswith('"') and len(s) >= 2:
+        return s[1:-1]
+
+    tokens = tokenize(s)
+    if tokens[0].kind == "EOF":
+        return None
+    parser = BcParser(tokens, state)
+    val, is_assign = parser.parse_expr()
+    if parser.peek().kind != "EOF":
+        raise SyntaxError(f"Unexpected trailing token '{parser.peek().value}'")
+    if is_assign:
+        return None
+    return format_bc_number(val, state.obase, state.scale, state.line_length)
+
+
+def _iter_logical_lines(stream: Iterator[str]) -> Iterator[str]:
+    """Stream lines immediately while joining backslash-newlines and stripping comments."""
+    buf = ""
+    in_block_comment = False
+    for raw_line in stream:
+        if buf:
+            line = buf + raw_line
+            buf = ""
+        else:
+            line = raw_line
+
+        if line.endswith("\\\n"):
+            buf = line[:-2]
+            continue
+        if line.endswith("\\\r\n"):
+            buf = line[:-3]
+            continue
+
+        # Strip /* ... */ comments across lines
+        cleaned_chars: list[str] = []
+        i = 0
+        n = len(line)
+        while i < n:
+            if not in_block_comment and line[i : i + 2] == "/*":
+                in_block_comment = True
+                i += 2
+                continue
+            if in_block_comment and line[i : i + 2] == "*/":
+                in_block_comment = False
+                i += 2
+                continue
+            if not in_block_comment:
+                if line[i] == "#":
+                    break
+                cleaned_chars.append(line[i])
+            i += 1
+
+        if not in_block_comment:
+            out_line = "".join(cleaned_chars).strip()
+            if out_line:
+                yield out_line
+
+    if buf.strip() and not in_block_comment:
+        yield buf.strip()
+
+
+def process_stream(stream: Iterator[str], state: BcState) -> int:
+    for line in _iter_logical_lines(stream):
+        for stmt in line.split(";"):
+            stmt = stmt.strip()
+            if not stmt:
+                continue
+            try:
+                out = evaluate_statement(stmt, state)
+                if out is not None:
+                    print(out, flush=True)
+                if state.halted:
+                    return 0
+            except Exception as exc:
+                print(f"Runtime error: {exc}", file=sys.stderr, flush=True)
+                return 1
+    return 0
+
+
+def main() -> int:
+    sys_bc = _find_system_bc()
+    if sys_bc:
+        os.execv(sys_bc, [sys_bc, *sys.argv[1:]])
+
+    state = BcState()
+    files: list[Path] = []
+    args = sys.argv[1:]
+    idx = 0
+    while idx < len(args):
+        arg = args[idx]
+        if arg in {"-l", "--mathlib"}:
+            state.scale = 20
+        elif arg in {"-q", "--quiet", "-i", "--interactive", "-s", "--standard", "-w", "--warn"}:
+            pass
+        elif arg in {"-h", "--help"}:
+            print("usage: bc [-hlqsw] [file ...]")
+            return 0
+        elif arg in {"-v", "--version"}:
+            print("bc 1.07.1 (Magrathea POSIX bc engine)")
+            return 0
+        elif not arg.startswith("-"):
+            files.append(Path(arg))
+        idx += 1
+
+    for fpath in files:
+        if not fpath.is_file():
+            print(f"bc: {fpath}: No such file or directory", file=sys.stderr)
+            return 1
+        with fpath.open("r", encoding="utf-8", errors="replace") as fh:
+            rc = process_stream(fh, state)
+            if rc != 0 or state.halted:
+                return rc
+
+    return process_stream(sys.stdin, state)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

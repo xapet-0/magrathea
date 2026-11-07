@@ -1,0 +1,9 @@
+Examples:
+  struct s_queue *q = init(); enqueue(q, "1337"); char *v1 = (char *)dequeue(q); int e1 = isEmpty(q); printf("%s,%d\n", v1, e1)
+  Output: 1337,1
+    struct s_queue *q = init(); printf("%d,%d,%d
+", isEmpty(q), peek(q) == NULL, dequeue(q) == NULL)
+    Output: 1,1,1
+    struct s_queue *q = init(); enqueue(q, "a"); enqueue(q, "b"); char *p1 = (char *)peek(q); char *d1 = (char *)dequeue(q); char *d2 = (char *)dequeue(q); int e2 = isEmpty(q); printf("%s,%s,%s,%d
+", p1, d1, d2, e2)
+    Output: a,a,b,1

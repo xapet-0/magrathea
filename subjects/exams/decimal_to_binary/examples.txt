@@ -1,0 +1,20 @@
+# Examples for decimal_to_binary (from official subject specification)
+
+Example conversion for 5:
+5 ÷ 2 = 2 remainder 1
+2 ÷ 2 = 1 remainder 0
+1 ÷ 2 = 0 remainder 1
+
+Reading remainders in reverse: 101
+
+
+
+Examples:
+$>./decimal_to_binary "2" | cat -e
+10$
+$>./decimal_to_binary "5" | cat -e
+101$
+$>./decimal_to_binary "545" | cat -e
+1000100001$
+$>./decimal_to_binary "" | cat -e
+$

@@ -1,0 +1,68 @@
+fixed_tests:
+- call: char **v=ft_split("one,two;three",",;"); for(int i=0;v[i];i++) { printf("[%s]",v[i]);
+    free(v[i]); } free(v); printf("\n");
+  name: ft_split_multiple_delimiters
+  stdout: '[one][two][three]
+
+    '
+- call: char **v=ft_split("",","); printf("%d\n", v[0]==NULL); free(v);
+  name: ft_split_empty_string
+  stdout: '1
+
+    '
+- call: char **v=ft_split(";;one;;;two;;",";"); for(int i=0;v[i];i++) { printf("[%s]",v[i]);
+    free(v[i]); } free(v); printf("\n");
+  name: ft_split_consecutive_delims
+  stdout: '[one][two]
+
+    '
+- call: char **v=ft_split(";;;;;",";"); printf("%d\n", v[0]==NULL); free(v);
+  name: ft_split_all_delimiters
+  stdout: '1
+
+    '
+- name: test_05_empty_charset_single_token
+  call: char **v=ft_split("hello world",""); for(int i=0;v[i];i++) { printf("[%s]",v[i]);
+    free(v[i]); } free(v); printf("\n");
+  tier: edge
+  stdout: '[hello world]
+
+    '
+- name: test_06_single_word_no_delims
+  call: char **v=ft_split("magrathea",",;"); printf("[%s]:%d\n",v[0],v[1]==NULL);
+    free(v[0]); free(v);
+  tier: baseline
+  stdout: '[magrathea]:1
+
+    '
+- name: test_07_whitespace_charset
+  call: char **v=ft_split("  42\t1337\npiscine  "," \t\n"); for(int i=0;v[i];i++)
+    { printf("[%s]",v[i]); free(v[i]); } free(v); printf("\n");
+  tier: baseline
+  stdout: '[42][1337][piscine]
+
+    '
+- name: test_08_single_char_tokens
+  call: char **v=ft_split("a:b:c:d",":"); for(int i=0;v[i];i++) { printf("[%s]",v[i]);
+    free(v[i]); } free(v); printf("\n");
+  tier: baseline
+  stdout: '[a][b][c][d]
+
+    '
+- name: test_09_empty_str_empty_charset
+  call: char **v=ft_split("",""); printf("%d\n", v[0]==NULL); free(v);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_10_multi_char_delimiters
+  call: char **v=ft_split("+-+alpha===beta---gamma+*+","+-=*"); for(int i=0;v[i];i++)
+    { printf("[%s]",v[i]); free(v[i]); } free(v); printf("\n");
+  tier: stress
+  stdout: '[alpha][beta][gamma]
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

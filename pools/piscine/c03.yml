@@ -1,0 +1,21 @@
+id: c03
+display_name: 1337 / 42 Piscine — C 03
+exercises:
+- ex: ex00
+  subject_id: piscine/c03/ft_strcmp
+  xp: 155
+- ex: ex01
+  subject_id: piscine/c03/ft_strncmp
+  xp: 165
+- ex: ex02
+  subject_id: piscine/c03/ft_strcat
+  xp: 165
+- ex: ex03
+  subject_id: piscine/c03/ft_strncat
+  xp: 165
+- ex: ex04
+  subject_id: piscine/c03/ft_strstr
+  xp: 165
+- ex: ex05
+  subject_id: piscine/c03/ft_strlcat
+  xp: 165

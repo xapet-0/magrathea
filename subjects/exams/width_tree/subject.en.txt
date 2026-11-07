@@ -1,0 +1,29 @@
+Assignment name  : width_tree
+Expected files   : width_tree.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that returns the diameter (width = number of nodes on the
+longest path between any two leaves) of a binary tree.
+
+Prototype:
+int	width_tree(struct s_node *n);
+
+Required structure / declarations:
+#ifndef S_NODE_H
+# define S_NODE_H
+struct s_node
+{
+    int           value;
+    struct s_node *left;
+    struct s_node *right;
+};
+#endif
+
+Your function must be declared as follows:
+    int width_tree(struct s_node *n);
+
+Examples:
+    width_tree(NULL) -> 0
+    width_tree(&a) -> 1
+    width_tree(&r) -> 3

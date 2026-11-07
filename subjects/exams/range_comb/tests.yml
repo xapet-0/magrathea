@@ -1,0 +1,129 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `range_comb`
+  input: range_comb(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `range_comb`
+  input: Input with no valid solution or containing duplicate values in range_comb
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `range_comb`
+  input: Run range_comb with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `range_comb`
+  input: Inspect sequence of traversed or printed nodes in range_comb
+  expected: Exact match with standard traversal order required in subject
+fixed_tests:
+- name: test_01_0
+  expr: range_comb(0) == NULL
+  stdout: '1
+
+    '
+- name: test_02_3
+  expr: range_comb(-3) == NULL
+  stdout: '1
+
+    '
+- name: test_03_expr
+  expr: r != NULL && r[0][0] == 0 && r[1] == NULL
+  setup:
+  - int **r = range_comb(1)
+  stdout: '1
+
+    '
+- name: test_04_expr
+  expr: r != NULL && r[0][0] == 0 && r[0][1] == 1 && r[1][0] == 1 && r[1][1] == 0
+    && r[2] == NULL
+  setup:
+  - int **r = range_comb(2)
+  stdout: '1
+
+    '
+- name: test_05_neg_one
+  expr: range_comb(-1) == NULL
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_neg_42
+  expr: range_comb(-42) == NULL
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_n3_first_and_last_perm
+  setup:
+  - int **r = range_comb(3);
+  expr: r[0][0]==0 && r[0][1]==1 && r[0][2]==2 && r[5][0]==2 && r[5][1]==1 && r[5][2]==0
+    && r[6]==NULL
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_08_n3_middle_perms
+  setup:
+  - int **r = range_comb(3);
+  call: for(int i=0;i<6;i++) printf("%d%d%d,", r[i][0], r[i][1], r[i][2]); printf("\n")
+  tier: baseline
+  stdout: '012,021,102,120,201,210,
+
+    '
+- name: test_09_n4_count_is_24
+  setup:
+  - int **r = range_comb(4); int c = 0; while (r[c]) c++;
+  expr: c == 24 && r[0][0] == 0 && r[23][0] == 3
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_10_n4_lexicographic_order
+  setup:
+  - int **r = range_comb(4);
+  call: printf("%d%d%d%d|%d%d%d%d\n", r[1][0],r[1][1],r[1][2],r[1][3], r[22][0],r[22][1],r[22][2],r[22][3])
+  tier: stress
+  stdout: '0132|3201
+
+    '
+folder_examples:
+- expected: Zero assertion failures (exit code 0)
+  id: can_range_comb_T05
+  input: Compiled and run with range_comb_MAIN.c
+  origin: subject_folder/range_comb_MAIN.c
+- expected: "#include <stdlib.h>\n\nint *create(int n)\n{\n\tint *ret = malloc(n *\
+    \ sizeof(int));\n\tint i = 0;\n\twhile (i < n)\n\t{\n\t\tret[i] = i;\n\t\ti++;\n\
+    \t}\n\treturn ret;\n}\n\nint factori"
+  id: folder_fixture_02
+  input: range_comb_MAIN.c
+  origin: subject_folder/range_comb_MAIN.c
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval range_comb
+  perturbed_input:
+  - range_comb_near_arg_1
+  - range_comb_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_range_comb_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: Compiled and run with range_comb_MAIN.c
+  perturbed_input: Dompiled and run with range_comb_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/range_comb_MAIN.c)
+- derived_from: folder_fixture_02
+  id: near_folder_02_boundary_neighbor
+  original_input: range_comb_MAIN.c
+  perturbed_input: sange_comb_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/range_comb_MAIN.c)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval range_comb
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

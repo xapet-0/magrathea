@@ -1,0 +1,280 @@
+mode: c_program
+fixed_tests:
+- name: pool_ft_sort_params_T01
+  description: three_args
+  args:
+  - bbb
+  - aaa
+  - ccc
+  expected: 'aaa
+
+    bbb
+
+    ccc
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_sort_params_T02
+  description: ascii_order
+  args:
+  - z
+  - A
+  - a
+  - '0'
+  expected: '0
+
+    A
+
+    a
+
+    z
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_sort_params_T03
+  description: no_args
+  args: []
+  expected: ''
+  category: Functional
+  tier: baseline
+- name: pool_ft_sort_params_T04
+  description: duplicates
+  args:
+  - b
+  - a
+  - b
+  expected: 'a
+
+    b
+
+    b
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_single_arg
+  args:
+  - only_one
+  tier: baseline
+  stdout: 'only_one
+
+    '
+- name: test_06_already_sorted
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: '1
+
+    2
+
+    3
+
+    4
+
+    '
+- name: test_07_reverse_sorted
+  args:
+  - d
+  - c
+  - b
+  - a
+  tier: baseline
+  stdout: 'a
+
+    b
+
+    c
+
+    d
+
+    '
+- name: test_08_with_empty_string
+  args:
+  - b
+  - ''
+  - a
+  tier: edge
+  stdout: '
+
+    a
+
+    b
+
+    '
+- name: test_09_ascii_symbols_digits_cases
+  args:
+  - '~'
+  - a
+  - A
+  - '0'
+  - '!'
+  - ' '
+  tier: edge
+  stdout: " \n!\n0\nA\na\n~\n"
+- name: test_10_shared_prefixes
+  args:
+  - abc
+  - ab
+  - abcd
+  - a
+  - abd
+  tier: stress
+  stdout: 'a
+
+    ab
+
+    abc
+
+    abcd
+
+    abd
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./ft_sort_params "bbb" "aaa" "ccc" | cat -e
+  args: &id001
+  - bbb
+  - aaa
+  - ccc
+  expected: 'aaa
+
+    bbb
+
+    ccc
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./ft_sort_params "z" "A" "a" "0" | cat -e
+  args: &id002
+  - z
+  - A
+  - a
+  - '0'
+  expected: '0
+
+    A
+
+    a
+
+    z
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./ft_sort_params | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./ft_sort_params "b" "a" "b" | cat -e
+  args: &id003
+  - b
+  - a
+  - b
+  expected: 'a
+
+    b
+
+    b
+
+    '
+  cat_e: true
+folder_examples:
+- id: pool_ft_sort_params_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''bbb'', ''aaa'', ''ccc'']'
+  expected: aaa\nbbb\nccc\n
+- id: pool_ft_sort_params_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''z'', ''A'', ''a'', ''0'']'
+  expected: 0\nA\na\nz\n
+- id: pool_ft_sort_params_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`./ft_sort_params` (no CLI arguments passed, `argc == 1`)'
+  expected: '`\n` (Single newline emitted on argument count mismatch)'
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - cbb
+  - baa
+  - dcc
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  bbb  '
+  - aaa
+  - ccc
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - z!
+  - B
+  - b
+  - '1'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  z  '
+  - A
+  - a
+  - '0'
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./ft_sort_params | cat -e
+  perturbed_input:
+  - ft_sort_params_near_arg_1
+  - ft_sort_params_near_arg_2
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - c
+  - b
+  - c
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  b  '
+  - a
+  - b
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_sort_params_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''bbb'', ''aaa'', ''ccc'']'
+  perturbed_input: '[''cbb'', ''aaa'', ''ccc'']'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_sort_params_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''z'', ''A'', ''a'', ''0'']'
+  perturbed_input: '[''z'', ''B'', ''a'', ''0'']'

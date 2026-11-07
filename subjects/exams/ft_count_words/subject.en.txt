@@ -1,0 +1,21 @@
+Assignment name  : ft_count_words
+Expected files   : ft_count_words.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that counts and returns the number of words in the given string.
+
+A word is a section of string delimited by spaces/tabs or by the start/end of
+the string.
+
+Your function should be declared as follows:
+
+int	ft_count_words(char *str);
+
+Your function must be declared as follows:
+    int ft_count_words(char *str);
+
+Examples:
+    ft_count_words("one two   three") -> 3
+    ft_count_words("") -> 0
+    ft_count_words("   ") -> 0

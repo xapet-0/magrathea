@@ -1,0 +1,18 @@
+# Examples for permutations (from official subject specification)
+
+example this should work:
+
+$> ./permutations a | cat -e
+a$
+
+$> ./permutations ab | cat -e
+ab$
+ba$
+
+$> ./permutations abc | cat -e
+abc$
+acb$
+bac$
+bca$
+cab$
+cba$

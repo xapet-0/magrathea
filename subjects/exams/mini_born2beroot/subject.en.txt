@@ -1,0 +1,15 @@
+Assignment name  : mini_born2beroot
+Expected files   : mini_born2beroot.sh
+Allowed commands : uname, free, df, ps, awk, printf
+--------------------------------------------------------------------------------
+
+Write a shell script inspired by the 42 Born2beRoot monitoring.sh project
+that prints the system kernel architecture name (uname -s).
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh mini_born2beroot.sh | cat -e
+#Architecture:$

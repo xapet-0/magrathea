@@ -1,0 +1,19 @@
+Assignment name  : add_binary
+Expected files   : add_binary.c
+Allowed functions: malloc, free
+--------------------------------------------------------------------------------
+
+Write a function that takes two binary strings a and b and returns their
+sum as a newly allocated binary string.
+
+If either input is NULL or empty, return a newly allocated copy of the other
+non-empty string (or "" if both are empty).
+
+Your function must be declared as follows:
+
+char	*add_binary(const char *a, const char *b);
+
+Examples:
+  add_binary("11", "1")      -> "100"
+  add_binary("1010", "1011") -> "10101"
+  add_binary("0", "0")       -> "0"

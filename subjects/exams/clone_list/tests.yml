@@ -1,0 +1,149 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty list (NULL) and single-node list in `clone_list`
+  input: clone_list(NULL, ...)
+  expected: Safely return NULL or 0 without dereferencing NULL pointer
+- name: edge_02_M
+  code: '[M]'
+  title: Zero node leaks and use-after-free prevention in `clone_list`
+  input: Execute clone_list under leak detection (DT_CHECK_LEAKS=1)
+  expected: 0 bytes leaked and valid node pointers
+- name: edge_03_B
+  code: '[B]'
+  title: All elements matching condition or identical in `clone_list`
+  input: Pass list where every element matches filter or deletion predicate
+  expected: Properly update list head pointer without dangling references
+- name: edge_04_B
+  code: '[B]'
+  title: Cycle detection and self-referencing nodes in `clone_list`
+  input: Pass cyclical linked list to clone_list
+  expected: Terminate correctly or detect loop without infinite iteration
+fixed_tests:
+- name: test_01_NULL
+  expr: clone_list(NULL) == NULL
+  stdout: '1
+
+    '
+- name: test_02_expr
+  expr: c != &a && c->data == 42 && c->other == c
+  setup:
+  - struct s_node a={42,0,0}; a.other=&a
+  - struct s_node *c = clone_list(&a)
+  stdout: '1
+
+    '
+- name: test_03_expr
+  expr: c != &a && c->next != &b && c->data == 1 && c->next->data == 2 && c->other
+    == c->next && c->next->other == c
+  setup:
+  - struct s_node b={2,0,0}, a={1,&b,0}; a.other=&b; b.other=&a;
+  - struct s_node *c = clone_list(&a)
+  stdout: '1
+
+    '
+- name: test_04_expr
+  expr: c != &a && c->data == 1337 && c->next == NULL && c->other == NULL
+  setup:
+  - struct s_node a={1337,0,0};
+  - struct s_node *c = clone_list(&a)
+  stdout: '1
+
+    '
+- name: test_05_three_nodes_null_other
+  setup:
+  - struct s_node c={3,0,0}, b={2,&c,0}, a={1,&b,0};
+  - struct s_node *r = clone_list(&a);
+  expr: r != &a && r->data == 1 && r->next->data == 2 && r->next->next->data == 3
+    && r->other == NULL
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_06_three_nodes_cycle_other
+  setup:
+  - struct s_node c={30,0,0}, b={20,&c,0}, a={10,&b,0}; a.other=&c; b.other=&a; c.other=&b;
+  - struct s_node *r = clone_list(&a);
+  expr: r->other == r->next->next && r->next->other == r && r->next->next->other ==
+    r->next
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_all_other_point_to_head
+  setup:
+  - struct s_node c={3,0,0}, b={2,&c,0}, a={1,&b,0}; a.other=&a; b.other=&a; c.other=&a;
+  - struct s_node *r = clone_list(&a);
+  expr: r->other == r && r->next->other == r && r->next->next->other == r
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_all_other_point_to_tail
+  setup:
+  - struct s_node c={3,0,0}, b={2,&c,0}, a={1,&b,0}; a.other=&c; b.other=&c; c.other=&c;
+  - struct s_node *r = clone_list(&a);
+  expr: r->other == r->next->next && r->next->other == r->next->next && r->next->next->other
+    == r->next->next
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_negative_values
+  setup:
+  - struct s_node b={-42,0,0}, a={-1337,&b,0}; a.other=0; b.other=&a;
+  - struct s_node *r = clone_list(&a);
+  expr: r->data == -1337 && r->next->data == -42 && r->other == 0 && r->next->other
+    == r
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_10_four_nodes_mixed
+  setup:
+  - struct s_node d={4,0,0}, c={3,&d,0}, b={2,&c,0}, a={1,&b,0}; a.other=&d; b.other=0;
+    c.other=&c; d.other=&b;
+  - struct s_node *r = clone_list(&a);
+  expr: r->other == r->next->next->next && r->next->other == 0 && r->next->next->other
+    == r->next->next && r->next->next->next->other == r->next
+  tier: stress
+  stdout: '1
+
+    '
+folder_examples:
+- expected: Zero assertion failures (exit code 0)
+  id: can_clone_list_T05
+  input: Compiled and run with clone_list_MAIN.c
+  origin: subject_folder/clone_list_MAIN.c
+- expected: "#include <stdlib.h>\nstruct s_node {\n\tint           data;\n\tstruct\
+    \ s_node *next;\n\tstruct s_node *other;\n};\n\nvoid free_all(struct s_node *node)\n\
+    {\n\tstruct s_node *n"
+  id: folder_fixture_02
+  input: clone_list_MAIN.c
+  origin: subject_folder/clone_list_MAIN.c
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval clone_list
+  perturbed_input:
+  - clone_list_near_arg_1
+  - clone_list_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_clone_list_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: Compiled and run with clone_list_MAIN.c
+  perturbed_input: Dompiled and run with clone_list_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/clone_list_MAIN.c)
+- derived_from: folder_fixture_02
+  id: near_folder_02_boundary_neighbor
+  original_input: clone_list_MAIN.c
+  perturbed_input: dlone_list_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/clone_list_MAIN.c)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval clone_list
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

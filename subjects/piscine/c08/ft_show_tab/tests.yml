@@ -1,0 +1,194 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_show_tab_T01
+  description: 'Functional verification of input: `struct s_stock_str t[2]; t[0].size=2;
+    t[0].st`'
+  call: struct s_stock_str t[2]; t[0].size=2; t[0].str="ab"; t[0].copy="ab"; t[1].str=0;
+    ft_show_tab(t)
+  stdout: 'ab
+
+    2
+
+    ab
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_show_tab_T02
+  description: case_ft_show_tab_two_entries
+  call: struct s_stock_str t[3]; t[0].size=3; t[0].str="abc"; t[0].copy="abc"; t[1].size=1;
+    t[1].str="Z"; t[1].copy="Z"; t[2].str=0; ft_show_tab(t)
+  stdout: 'abc
+
+    3
+
+    abc
+
+    Z
+
+    1
+
+    Z
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_show_tab_T03
+  description: edge_ft_show_tab_edges_duplicate_edges
+  call: struct s_stock_str t[4]; t[0].size=1; t[0].str=" "; t[0].copy=" "; t[1].size=0;
+    t[1].str=""; t[1].copy=""; t[2].size=1; t[2].str=" "; t[2].copy=" "; t[3].str=0;
+    ft_show_tab(t)
+  stdout: " \n1\n \n\n0\n\n \n1\n \n"
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_show_tab_T04_empty_sentinel
+  description: empty_table_with_null_sentinel_only
+  call: struct s_stock_str t[1]; t[0].str=0; ft_show_tab(t); printf("done\n")
+  stdout: 'done
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_single_empty_string
+  call: struct s_stock_str t[2]; t[0].size=0; t[0].str=""; t[0].copy=""; t[1].str=0;
+    ft_show_tab(t)
+  tier: edge
+  stdout: '
+
+    0
+
+
+    '
+- name: test_06_Copy_differs_from_str
+  call: struct s_stock_str t[2]; t[0].size=4; t[0].str="orig"; t[0].copy="COPY"; t[1].str=0;
+    ft_show_tab(t)
+  tier: edge
+  stdout: 'orig
+
+    4
+
+    COPY
+
+    '
+- name: test_07_larger_size_number
+  call: struct s_stock_str t[2]; t[0].size=1337; t[0].str="long"; t[0].copy="long";
+    t[1].str=0; ft_show_tab(t)
+  tier: baseline
+  stdout: 'long
+
+    1337
+
+    long
+
+    '
+- name: test_08_three_words
+  call: struct s_stock_str t[4]; t[0].size=2; t[0].str="42"; t[0].copy="42"; t[1].size=4;
+    t[1].str="1337"; t[1].copy="1337"; t[2].size=7; t[2].str="piscine"; t[2].copy="piscine";
+    t[3].str=0; ft_show_tab(t)
+  tier: baseline
+  stdout: '42
+
+    2
+
+    42
+
+    1337
+
+    4
+
+    1337
+
+    piscine
+
+    7
+
+    piscine
+
+    '
+- name: test_09_special_symbols
+  call: struct s_stock_str t[2]; t[0].size=5; t[0].str="!@#$%"; t[0].copy="!@#$%";
+    t[1].str=0; ft_show_tab(t)
+  tier: baseline
+  stdout: '!@#$%
+
+    5
+
+    !@#$%
+
+    '
+- name: test_10_four_entries_mixed
+  call: struct s_stock_str t[5]; t[0].size=1; t[0].str="a"; t[0].copy="A"; t[1].size=2;
+    t[1].str="bb"; t[1].copy="BB"; t[2].size=3; t[2].str="ccc"; t[2].copy="CCC"; t[3].size=4;
+    t[3].str="dddd"; t[3].copy="DDDD"; t[4].str=0; ft_show_tab(t)
+  tier: stress
+  stdout: 'a
+
+    1
+
+    A
+
+    bb
+
+    2
+
+    BB
+
+    ccc
+
+    3
+
+    CCC
+
+    dddd
+
+    4
+
+    DDDD
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_show_tab
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_show_tab_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: struct s_stock_str t[2]; t[0].size=2; t[0].str="ab"; t[0].copy="ab"; t[1].str=0;
+    ft_show_tab(t)
+  expected: ab\n2\nab\n
+- id: pool_ft_show_tab_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: struct s_stock_str t[3]; t[0].size=3; t[0].str="abc"; t[0].copy="abc"; t[1].size=1;
+    t[1].str="Z"; t[1].copy="Z"; t[2].str=0; ft_show_tab(t)
+  expected: abc\n3\nabc\nZ\n1\nZ\n
+- id: pool_ft_show_tab_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: struct s_stock_str t[4]; t[0].size=1; t[0].str=" "; t[0].copy=" "; t[1].size=0;
+    t[1].str=""; t[1].copy=""; t[2].size=1; t[2].str=" "; t[2].copy=" "; t[3].str=0;
+    ft_show_tab(t)
+  expected: \n1\n \n\n0\n\n \n1\n \n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_show_tab
+  perturbed_input:
+  - ft_show_tab_near_arg_1
+  - ft_show_tab_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_show_tab_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: struct s_stock_str t[2]; t[0].size=2; t[0].str="ab"; t[0].copy="ab";
+    t[1].str=0; ft_show_tab(t)
+  perturbed_input: ttruct s_stock_str t[2]; t[0].size=2; t[
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_show_tab_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: struct s_stock_str t[3]; t[0].size=3; t[0].str="abc"; t[0].copy="abc";
+    t[1].size=1; t[1].str="Z"; t[1].copy="Z"; t[2].str=0; ft_show_tab(t)
+  perturbed_input: ttruct s_stock_str t[3]; t[0].size=3; t[

@@ -1,0 +1,134 @@
+mode: c_function
+fixed_tests:
+- name: cur_occ_z_T01
+  description: 'Functional verification of input: `occ_z("ZAZ_zaz_ZZ")`'
+  expr: occ_z("ZAZ_zaz_ZZ")
+  stdout: '4
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_occ_z_T02
+  description: 'Functional verification of input: `occ_z("zzz")`'
+  expr: occ_z("zzz")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_occ_z_T03
+  description: 'Functional verification of input: `occ_z("Z")`'
+  expr: occ_z("Z")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_occ_z_T04
+  description: 'Functional verification of input: `occ_z("")`'
+  expr: occ_z("")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_occ_z_T05
+  description: 'Functional verification of input: `occ_z("ZZZZ")`'
+  expr: occ_z("ZZZZ")
+  stdout: '4
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_no_uppercase_Z
+  expr: occ_z("hello world 1337")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_single_lowercase_z
+  expr: occ_z("z")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_Z_at_boundaries
+  expr: occ_z("Z12345Z")
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_09_alternating_Zz
+  expr: occ_z("ZzZzZzZz")
+  tier: baseline
+  stdout: '4
+
+    '
+- name: test_10_eight_uppercase_Z
+  expr: occ_z("ZZZZZZZZ")
+  tier: stress
+  stdout: '8
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval occ_z
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_occ_z_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: occ_z("ZAZ_zaz_ZZ")
+  expected: 4\n
+- id: cur_occ_z_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: occ_z("zzz")
+  expected: 0\n
+- id: cur_occ_z_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: occ_z("Z")
+  expected: 1\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval occ_z
+  perturbed_input:
+  - occ_z_near_arg_1
+  - occ_z_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_occ_z_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: occ_z("ZAZ_zaz_ZZ")
+  perturbed_input: pcc_z("ZAZ_zaz_ZZ")
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_occ_z_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: occ_z("zzz")
+  perturbed_input: pcc_z("zzz")
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: "Test `occ_z` with high ASCII characters (unsigned char > 127 like '\x80\
+    ' and 'ÿ')"
+  input: "occ_z(\"\x80\", \"\x7F\", ...)"
+  expected: Compare and inspect characters as unsigned char conforming to POSIX libc
+- name: edge_02_B
+  code: '[B]'
+  title: Test `occ_z` at zero length (n = 0 / size = 0) and empty string ""
+  input: occ_z("", "", 0)
+  expected: Do not read or write any byte out of bounds and return canonical value
+- name: edge_03_D
+  code: '[D]'
+  title: Differential property check for `occ_z` against libc oracle
+  input: Compare occ_z against standard library function across random permutations
+  expected: 100% exact match in return value and destination buffer state
+- name: edge_04_M
+  code: '[M]'
+  title: Canary Redzone check on string buffer boundaries in `occ_z`
+  input: Pass heap buffer allocated to exact strlen(s) + 1 size to occ_z
+  expected: No read or write beyond terminating null byte

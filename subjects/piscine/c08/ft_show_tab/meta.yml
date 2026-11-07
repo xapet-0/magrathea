@@ -1,0 +1,14 @@
+id: ft_show_tab
+type: c_function
+module: C 08
+xp: 210
+expected_files:
+- ft_show_tab.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void ft_show_tab(struct s_stock_str *par);

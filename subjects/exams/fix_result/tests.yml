@@ -1,0 +1,194 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `fix_result`
+  input: fix_result(INT_MIN), fix_result(0), fix_result(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `fix_result`
+  input: Run fix_result with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `fix_result`
+  input: fix_result(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `fix_result`
+  input: Call fix_result on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out
+fixed_tests:
+- args:
+  - '4'
+  category: Functional
+  description: 'Functional verification of input: `[''4'']`'
+  expected: '4 is even
+
+    Sum from 1 to 4 is: 10
+
+    '
+  name: cur_fix_result_T01
+  stdout: '4 is even
+
+    Sum from 1 to 4 is: 10
+
+    '
+  tier: baseline
+- args:
+  - '5'
+  category: Functional
+  description: 'Functional verification of input: `[''5'']`'
+  expected: '5 is odd
+
+    Sum from 1 to 5 is: 15
+
+    '
+  name: cur_fix_result_T02
+  stdout: '5 is odd
+
+    Sum from 1 to 5 is: 15
+
+    '
+  tier: baseline
+- args:
+  - '0'
+  category: Edge Case
+  description: 'Functional verification of input: `[''0'']`'
+  expected: '0 is even
+
+    Sum from 1 to 0 is: 0
+
+    '
+  name: cur_fix_result_T03
+  stdout: '0 is even
+
+    Sum from 1 to 0 is: 0
+
+    '
+  tier: baseline
+- args:
+  - ''
+  category: Edge Case
+  description: edge_empty_str
+  expected: '0 is even
+
+    Sum from 1 to 0 is: 0
+
+    '
+  name: cur_fix_result_T04
+  stdout: '0 is even
+
+    Sum from 1 to 0 is: 0
+
+    '
+  tier: baseline
+- args:
+  - "   \t  "
+  category: Edge Case
+  description: edge_whitespace
+  expected: '0 is even
+
+    Sum from 1 to 0 is: 0
+
+    '
+  name: cur_fix_result_T05
+  stdout: '0 is even
+
+    Sum from 1 to 0 is: 0
+
+    '
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '0 is even
+
+    Sum from 1 to 0 is: 0
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: '0 is even
+
+    Sum from 1 to 0 is: 0
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '1337 is odd
+
+    Sum from 1 to 1337 is: 894453
+
+    '
+- name: test_09_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '42 is even
+
+    Sum from 1 to 42 is: 903
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: '0 is even
+
+    Sum from 1 to 0 is: 0
+
+    '
+folder_examples:
+- expected: Deterministic output validated by Deepthought oracle
+  id: cur_fix_result_T06
+  input: Dynamic generation rule via basic_test()
+  origin: subject_folder/deepthought/corrections/exams/fix_result/generator.py
+- expected: Deterministic output validated by Deepthought oracle
+  id: cur_fix_result_T07
+  input: Dynamic generation rule via decimal_test()
+  origin: subject_folder/deepthought/corrections/exams/fix_result/generator.py
+- expected: Deterministic output validated by Deepthought oracle
+  id: cur_fix_result_T08
+  input: Dynamic generation rule via zero_test()
+  origin: subject_folder/deepthought/corrections/exams/fix_result/generator.py
+- expected: Deterministic output validated by Deepthought oracle
+  id: cur_fix_result_T09
+  input: Dynamic generation rule via large_radius_test()
+  origin: subject_folder/deepthought/corrections/exams/fix_result/generator.py
+- expected: Deterministic output validated by Deepthought oracle
+  id: cur_fix_result_T10
+  input: Dynamic generation rule via negative_radius_test()
+  origin: subject_folder/deepthought/corrections/exams/fix_result/generator.py
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval fix_result
+  perturbed_input:
+  - fix_result_near_arg_1
+  - fix_result_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: cur_fix_result_T06
+  id: near_folder_01_boundary_neighbor
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/fix_result/generator.py)
+- derived_from: cur_fix_result_T07
+  id: near_folder_02_boundary_neighbor
+  original_input: Dynamic generation rule via decimal_test()
+  perturbed_input: Eynamic generation rule via decimal_test
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/fix_result/generator.py)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval fix_result
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

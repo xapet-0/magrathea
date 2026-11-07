@@ -1,0 +1,11 @@
+Assignment name  : only_digits_sh
+Expected files   : only_digits.sh
+Allowed commands : printf, tr
+--------------------------------------------------------------------------------
+Write a shell script that displays only the numeric digits (0-9) contained in
+the environment variable FT_LINE, without any trailing newline.
+
+Examples:
+$> export FT_LINE="42 is the answer to 1337!"
+$> ./only_digits.sh | cat -e
+421337$>

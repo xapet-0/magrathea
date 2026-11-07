@@ -1,0 +1,5 @@
+Examples:
+  unmatch(a, 7) -> 3
+  unmatch(a, 1) -> 42
+    unmatch(a, 5) -> 5
+    unmatch(a, 3) -> -42

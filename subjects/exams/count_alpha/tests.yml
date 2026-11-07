@@ -1,0 +1,202 @@
+mode: c_program
+fixed_tests:
+- name: can_count_alpha_T01
+  description: abbcc
+  args:
+  - abbcc
+  expected: '1a, 2b, 2c
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_count_alpha_T02
+  description: case_insensitive
+  args:
+  - AaBbCc
+  expected: '2a, 2b, 2c
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_count_alpha_T03
+  description: with_non_alpha
+  args:
+  - 42! a 1337 A
+  expected: '2a
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_count_alpha_T04
+  description: empty
+  args:
+  - ''
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_count_alpha_T05
+  description: no_args
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - abbcc
+  - dddeef
+  expected: '
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args:
+  - My Hyze 47y 7.
+  expected: '1m, 3y, 1h, 1z, 1e
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./count_alpha abbcc
+  args: &id001
+  - abbcc
+  expected: '1a, 2b, 2c
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./count_alpha "abbcc"
+  args: &id002
+  - abbcc
+  expected: '1a, 2b, 2c
+
+    '
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./count_alpha "abbcc" "dddeef" | cat -e
+  args: &id003
+  - abbcc
+  - dddeef
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./count_alpha "My Hyze 47y 7." | cat -e
+  args: &id004
+  - My Hyze 47y 7.
+  expected: '1m, 3y, 1h, 1z, 1e
+
+    '
+  cat_e: true
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./count_alpha "" | cat -e
+  args:
+  - ''
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_count_alpha_T06
+  origin: subject_folder/examples.txt
+  input: ./count_alpha abbcc
+  expected: 1a, 2b, 2c
+- id: can_count_alpha_T07
+  origin: subject_folder/examples.txt
+  input: ./count_alpha "abbcc"
+  expected: 1a, 2b, 2c
+- id: can_count_alpha_T08
+  origin: subject_folder/examples.txt
+  input: ./count_alpha "abbcc" "dddeef" \| cat -e
+  expected: $
+- id: can_count_alpha_T09
+  origin: subject_folder/examples.txt
+  input: ./count_alpha "My Hyze 47y 7." \| cat -e
+  expected: 1m, 3y, 1h, 1z, 1e$
+- id: can_count_alpha_T10
+  origin: subject_folder/examples.txt
+  input: ./count_alpha "" \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - bbbcc
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  abbcc  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - bbbcc
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  abbcc  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - bbbcc
+  - eddeef
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  abbcc  '
+  - dddeef
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - Ny Hyze 47y 7.
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  My Hyze 47y 7.  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_count_alpha_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./count_alpha abbcc
+  perturbed_input: ./dount_alpha abbcc
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_count_alpha_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./count_alpha "abbcc"
+  perturbed_input: ./dount_alpha "abbcc"

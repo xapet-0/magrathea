@@ -1,0 +1,81 @@
+subject_id: occ_a_sh
+fixed_tests:
+- name: test_01_no_args
+  env:
+    FT_LINE: abracadabra
+  args: []
+  stdout: '5
+
+    '
+- name: test_02_no_args
+  env:
+    FT_LINE: xyz
+  args: []
+  stdout: '0
+
+    '
+- name: test_03_no_args
+  env:
+    FT_LINE: aaa
+  args: []
+  stdout: '3
+
+    '
+- name: test_04_no_args
+  env:
+    FT_LINE: ''
+  args: []
+  stdout: '0
+
+    '
+- name: test_05_single_a
+  env:
+    FT_LINE: a
+  args: []
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_uppercase_A_not_counted
+  env:
+    FT_LINE: AAAaAAA
+  args: []
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_spaces_and_a
+  env:
+    FT_LINE: a b a c a d
+  args: []
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_08_digits_only
+  env:
+    FT_LINE: '133742'
+  args: []
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_six_a
+  env:
+    FT_LINE: banana_mama
+  args: []
+  tier: baseline
+  stdout: '5
+
+    '
+- name: test_10_ten_a
+  env:
+    FT_LINE: aaaaaaaaaa
+  args: []
+  tier: stress
+  stdout: '10
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,1 @@
+[pool_ft_point-h_T01] Input: Harness driver specified in subject.en.txt  ==>  Expected: Compilation succeeds cleanly; exits with code 0

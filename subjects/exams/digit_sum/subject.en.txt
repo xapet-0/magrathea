@@ -1,0 +1,22 @@
+Assignment name  : digit_sum
+Expected files   : digit_sum.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a string of digits and computes its digital root
+(repeatedly summing digits until a single digit 0-9 is obtained), followed by a
+newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./digit_sum "1337" | cat -e
+5$
+$> ./digit_sum "42" | cat -e
+6$
+$> ./digit_sum "999" | cat -e
+9$
+$> ./digit_sum "0" | cat -e
+0$

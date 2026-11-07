@@ -1,0 +1,21 @@
+Assignment name  : nth_remove
+Expected files   : nth_remove.c
+Allowed functions: write, atoi
+--------------------------------------------------------------------------------
+
+Write a program that takes a string and an integer N, and prints the string
+removing every Nth character, followed by a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./nth_remove "abcdef" "2" | cat -e
+ace$
+$> ./nth_remove | cat -e
+$
+$> ./nth_remove "ABCDEFG" "3" | cat -e
+ABDEG$
+$> ./nth_remove "ABC" | cat -e
+$

@@ -1,0 +1,17 @@
+Assignment name  : ft_atoi_base
+Turn-in directory: ex05/
+Expected files   : ft_atoi_base.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Write a function that converts the initial portion of the string pointed to bystr
+into an integer representation.
+• str is in a specific base, given as a second parameter.
+• Except for the base rule, the function should behave exactly likeft_atoi.
+• If an invalid argument is provided, the function should return 0.
+Examples of invalid arguments:
+◦ The base is empty or has only one character.
+◦ The base contains duplicate characters.
+◦ The base contains‘+’, ‘-’, or whitespace characters.
+• The function should be prototyped as follows:
+int ft_atoi_base(char *str, char *base);

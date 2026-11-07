@@ -1,0 +1,24 @@
+Assignment name  : ft_list_reverse
+Expected files   : ft_list_reverse.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_list_reverse
+Turn-in directory: ex08/
+Expected files   : ft_list_reverse.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create the function ft_list_reverse, which reverses the order of a list’s elements.
+The value of each element must remain the same.
+• Beware that in this function, we will use our ownft_list.h.
+• Here is how it should be prototyped:
+void ft_list_reverse(t_list **begin_list);
+
+Your function must be declared as follows:
+    void ft_list_reverse(t_list **begin_list);
+
+Examples:
+    t_list c={"c",0}; t_list b={"b",&c}; t_list a={"a",&b}; t_list *l=&a; ft_list_reverse(&l); while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n")
+    Output: cba

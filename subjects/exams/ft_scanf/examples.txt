@@ -1,0 +1,6 @@
+[cur_ft_scanf_T01] Input: printf("%d:%d:%s\n", r, d, s)  ==>  Expected: 2:42:hello\n
+[cur_ft_scanf_T02] Input: printf("%d:%d:%c\n", r, d, c)  ==>  Expected: 2:-1337:X\n
+[cur_ft_scanf_T03] Input: printf("%d:%s\n", r, s)  ==>  Expected: 1:piscine\n
+[cur_ft_scanf_T04] Input: printf("%d\n", r <= 0)  ==>  Expected: 1\n
+[cur_ft_scanf_T05] Input: ./ft_scanf "$id"  ==>  Expected: Matches 42 reference standard output and exit code
+[cur_ft_scanf_T06] Input: ./ft_scanf 0; then  ==>  Expected: Matches 42 reference standard output and exit code

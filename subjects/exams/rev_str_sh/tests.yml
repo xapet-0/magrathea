@@ -1,0 +1,81 @@
+subject_id: rev_str_sh
+fixed_tests:
+- name: test_01_no_args
+  env:
+    FT_LINE: Hello
+  args: []
+  stdout: 'olleH
+
+    '
+- name: test_02_no_args
+  env:
+    FT_LINE: '1337'
+  args: []
+  stdout: '7331
+
+    '
+- name: test_03_no_args
+  env:
+    FT_LINE: a
+  args: []
+  stdout: 'a
+
+    '
+- name: test_04_with_space
+  env:
+    FT_LINE: ab cd
+  args: []
+  stdout: 'dc ba
+
+    '
+- name: test_05_empty_string
+  env:
+    FT_LINE: ''
+  args: []
+  tier: edge
+  stdout: '
+
+    '
+- name: test_06_palindrome
+  env:
+    FT_LINE: radar
+  args: []
+  tier: edge
+  stdout: 'radar
+
+    '
+- name: test_07_two_chars
+  env:
+    FT_LINE: '42'
+  args: []
+  tier: baseline
+  stdout: '24
+
+    '
+- name: test_08_symbols_and_digits
+  env:
+    FT_LINE: '!@#123'
+  args: []
+  tier: baseline
+  stdout: '321#@!
+
+    '
+- name: test_09_multiple_words
+  env:
+    FT_LINE: one two three
+  args: []
+  tier: baseline
+  stdout: 'eerht owt eno
+
+    '
+- name: test_10_alphabet
+  env:
+    FT_LINE: abcdefghij
+  args: []
+  tier: stress
+  stdout: 'jihgfedcba
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

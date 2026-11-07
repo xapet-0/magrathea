@@ -1,0 +1,9 @@
+Examples:
+$> ./rot_42 "abc" | cat -e
+qrs$
+$> ./rot_42 "XYZ" | cat -e
+NOP$
+$> ./rot_42 "" | cat -e
+$
+$> ./rot_42 | cat -e
+$

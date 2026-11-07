@@ -1,0 +1,9 @@
+Examples:
+$> ./spy "hello" "pReSiDeNt" | cat -e
+Alert!!!$
+$> ./spy "  attack  " | cat -e
+Alert!!!$
+$> ./spy "POWERS" | cat -e
+Alert!!!$
+$> ./spy "hello" "world" | cat -e
+$

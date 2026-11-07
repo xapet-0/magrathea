@@ -1,0 +1,102 @@
+subject_id: takes_place
+fixed_tests:
+- name: test_01_11
+  call: takes_place(11)
+  stdout: 'THE FOLLOWING TAKES PLACE BETWEEN 11.00 A.M. AND 12.00 P.M.
+
+    '
+  tier: baseline
+- name: test_02_0
+  call: takes_place(0)
+  stdout: 'THE FOLLOWING TAKES PLACE BETWEEN 12.00 A.M. AND 1.00 A.M.
+
+    '
+  tier: baseline
+- name: test_03_12
+  call: takes_place(12)
+  stdout: 'THE FOLLOWING TAKES PLACE BETWEEN 12.00 P.M. AND 1.00 P.M.
+
+    '
+  tier: baseline
+- name: test_04_23
+  call: takes_place(23)
+  stdout: 'THE FOLLOWING TAKES PLACE BETWEEN 11.00 P.M. AND 12.00 A.M.
+
+    '
+  tier: baseline
+- name: test_05_hour_1_am
+  call: takes_place(1)
+  tier: baseline
+  stdout: 'THE FOLLOWING TAKES PLACE BETWEEN 1.00 A.M. AND 2.00 A.M.
+
+    '
+- name: test_06_hour_6_am
+  call: takes_place(6)
+  tier: baseline
+  stdout: 'THE FOLLOWING TAKES PLACE BETWEEN 6.00 A.M. AND 7.00 A.M.
+
+    '
+- name: test_07_hour_13_1pm
+  call: takes_place(13)
+  tier: baseline
+  stdout: 'THE FOLLOWING TAKES PLACE BETWEEN 1.00 P.M. AND 2.00 P.M.
+
+    '
+- name: test_08_hour_18_6pm
+  call: takes_place(18)
+  tier: baseline
+  stdout: 'THE FOLLOWING TAKES PLACE BETWEEN 6.00 P.M. AND 7.00 P.M.
+
+    '
+- name: test_09_hour_22_10pm
+  call: takes_place(22)
+  tier: edge
+  stdout: 'THE FOLLOWING TAKES PLACE BETWEEN 10.00 P.M. AND 11.00 P.M.
+
+    '
+- name: test_10_hour_24_midnight
+  call: takes_place(24)
+  tier: stress
+  stdout: 'THE FOLLOWING TAKES PLACE BETWEEN 12.00 A.M. AND 1.00 A.M.
+
+    '
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval takes_place
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: e1337_takes_place_T05
+  origin: subject_folder/examples.txt
+  input: takes_place(11) -> THE FOLLOWING TAKES PLACE BETWEEN 11.00 A.M. AND 12.00
+    P.M.
+  expected: takes_place(23) -> THE FOLLOWING TAKES PLACE BETWEEN 11.00 P.M. AND 12.00
+    A.M.
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "subject_id: takes_place\nfixed_tests:\n- call: takes_place(11)\n  stdout:\
+    \ 'THE FOLLOWING TAKES PLACE BETWEEN 11.00 A.M. AND 12.00 P.M.\n\n    '\n- call:\
+    \ takes_place(0"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval takes_place
+  perturbed_input:
+  - takes_place_near_arg_1
+  - takes_place_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_takes_place_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: takes_place(11) -> THE FOLLOWING TAKES PLACE BETWEEN 11.00 A.M.
+    AND 12.00 P.M.
+  perturbed_input: uakes_place(11) -> THE FOLLOWING TAKES P
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

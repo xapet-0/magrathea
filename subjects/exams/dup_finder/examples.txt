@@ -1,0 +1,3 @@
+Examples:
+$> sh dup_finder.sh | cat -e
+42$

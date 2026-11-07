@@ -1,0 +1,33 @@
+Assignment name  : count_words
+Expected files   : count_words.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that count words from the given string
+
+A word is a section of string delimited by spaces/tabs or by the start/end of
+the string.
+
+Your function should be declared as follows
+
+int count_words(char *str);
+============================================================================
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : count_words("  hello   world	1337 ")
+    Expected Output   : '3\n'
+  [Standard Test 2] Name: test
+    Call / Invocation : count_words("   ")
+    Expected Output   : '0\n'
+  [Standard Test 3] Name: test
+    Call / Invocation : count_words("single")
+    Expected Output   : '1\n'
+  [Standard Test 4] Name: test
+    Call / Invocation : count_words("a b c d e")
+    Expected Output   : '5\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Call / Invocation : count_words("")
+    Expected Output   : '0\n'

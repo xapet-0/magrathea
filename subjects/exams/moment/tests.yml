@@ -1,0 +1,139 @@
+edge_cases:
+- name: edge_01_P
+  code: '[P]'
+  title: File descriptor leak audit in `moment`
+  input: Run moment and check open file descriptors in /proc/self/fd
+  expected: Only stdin, stdout, stderr remain open
+- name: edge_02_P
+  code: '[P]'
+  title: Child process reaping and zombie prevention in `moment`
+  input: Spawn multiple processes in moment and verify with waitpid
+  expected: No zombie processes remain in process table
+- name: edge_03_B
+  code: '[B]'
+  title: Command-line arguments contract enforcement in `moment`
+  input: Invoke moment with invalid argument counts
+  expected: Emit exact error string to stderr and exit with non-zero status
+- name: edge_04_M
+  code: '[M]'
+  title: Stream buffer cleanup on EOF in `moment`
+  input: Stream large input to moment until EOF
+  expected: 0 bytes leaked
+fixed_tests:
+- name: test_01_s_n_s_free_s
+  call: printf("%s\n", s); free(s)
+  setup:
+  - char *s = moment(0)
+  stdout: '0 seconds ago.
+
+    '
+- name: test_02_s_n_s_free_s
+  call: printf("%s\n", s); free(s)
+  setup:
+  - char *s = moment(1)
+  stdout: '1 second ago.
+
+    '
+- name: test_03_s_n_s_free_s
+  call: printf("%s\n", s); free(s)
+  setup:
+  - char *s = moment(120)
+  stdout: '2 minutes ago.
+
+    '
+- name: test_04_s_n_s_free_s
+  call: printf("%s\n", s); free(s)
+  setup:
+  - char *s = moment(3600)
+  stdout: '1 hour ago.
+
+    '
+- name: test_05_59_seconds
+  setup:
+  - char *s = moment(59)
+  call: printf("%s\n", s); free(s)
+  tier: edge
+  stdout: '59 seconds ago.
+
+    '
+- name: test_06_60_seconds_1_minute
+  setup:
+  - char *s = moment(60)
+  call: printf("%s\n", s); free(s)
+  tier: edge
+  stdout: '1 minute ago.
+
+    '
+- name: test_07_7200_seconds_2_hours
+  setup:
+  - char *s = moment(7200)
+  call: printf("%s\n", s); free(s)
+  tier: baseline
+  stdout: '2 hours ago.
+
+    '
+- name: test_08_86400_seconds_1_day
+  setup:
+  - char *s = moment(86400)
+  call: printf("%s\n", s); free(s)
+  tier: edge
+  stdout: '1 day ago.
+
+    '
+- name: test_09_172800_seconds_2_days
+  setup:
+  - char *s = moment(172800)
+  call: printf("%s\n", s); free(s)
+  tier: baseline
+  stdout: '2 days ago.
+
+    '
+- name: test_10_months_1_and_2
+  setup:
+  - char *s1 = moment(2592000); char *s2 = moment(5184000);
+  call: printf("%s|%s\n", s1, s2); free(s1); free(s2)
+  tier: stress
+  stdout: '1 month ago.|2 months ago.
+
+    '
+folder_examples:
+- expected: 0 seconds ago.\n
+  id: cur_moment_T01
+  input: printf("%s\n", s); free(s)
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: 1 second ago.\n
+  id: cur_moment_T02
+  input: printf("%s\n", s); free(s)
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: 2 minutes ago.\n
+  id: cur_moment_T03
+  input: printf("%s\n", s); free(s)
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval moment
+  perturbed_input:
+  - moment_near_arg_1
+  - moment_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: cur_moment_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: printf("%s\n", s); free(s)
+  perturbed_input: qrintf("%s\n", s); free(s)
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+- derived_from: cur_moment_T02
+  id: near_folder_02_boundary_neighbor
+  original_input: printf("%s\n", s); free(s)
+  perturbed_input: qrintf("%s\n", s); free(s)
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval moment
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

@@ -1,0 +1,107 @@
+subject_id: c09_ft_split
+fixed_tests:
+- name: basic_charset
+  call: char **v = ft_split("one,two;three", ",;"); for (int i = 0; v[i]; ++i) printf("[%s]",
+    v[i]); printf("\n")
+  stdout: '[one][two][three]
+
+    '
+  tier: baseline
+- name: trim_repeated_separators
+  call: char **v = ft_split("---alpha--beta-", "-"); for (int i = 0; v[i]; ++i) printf("%s|",
+    v[i]); printf("\n")
+  stdout: 'alpha|beta|
+
+    '
+  tier: baseline
+- name: empty_result
+  call: 'char **v = ft_split(";;;;", ";"); printf("%s\n", (v && v[0] == 0) ? "empty"
+    : "bad")'
+  stdout: 'empty
+
+    '
+  tier: baseline
+- name: empty_charset_single_word
+  call: char **v = ft_split("hello", ""); printf("%s|%d\n", v[0], v[1] == 0)
+  stdout: 'hello|1
+
+    '
+  tier: edge_case
+- name: test_05_empty_string
+  call: char **v = ft_split("", ",;"); printf("%d\n", v && v[0] == 0)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_empty_str_empty_charset
+  call: char **v = ft_split("", ""); printf("%d\n", v && v[0] == 0)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_whitespace_charset
+  call: char **v = ft_split("  42 \t 1337 \n school ", " \t\n"); for (int i = 0; v[i];
+    ++i) printf("[%s]", v[i]); printf("\n")
+  tier: baseline
+  stdout: '[42][1337][school]
+
+    '
+- name: test_08_single_char_words
+  call: char **v = ft_split("a:b:c:d:e", ":"); for (int i = 0; v[i]; ++i) printf("%s,",
+    v[i]); printf("\n")
+  tier: baseline
+  stdout: 'a,b,c,d,e,
+
+    '
+- name: test_09_no_separators_found
+  call: char **v = ft_split("magrathea", "xyz"); printf("%s|%d\n", v[0], v[1] == 0)
+  tier: baseline
+  stdout: 'magrathea|1
+
+    '
+- name: test_10_multi_char_sep_cluster
+  call: char **v = ft_split("+-*foo===bar---baz+*+", "+-*="); for (int i = 0; v[i];
+    ++i) printf("[%s]", v[i]); printf("\n")
+  tier: stress
+  stdout: '[foo][bar][baz]
+
+    '
+oracle_tests:
+- name: c09_ft_split_oracle_stress
+  source: "static int check(char **got, char **exp)\n{\n    int i = 0;\n    while\
+    \ (exp[i])\n    {\n        if (!got || !got[i] || strcmp(got[i], exp[i]) != 0)\n\
+    \            return (0);\n        ++i;\n    }\n    return (got && got[i] == 0);\n\
+    }\nstatic void free_split(char **s)\n{\n    int i = 0;\n    if (!s) return;\n\
+    \    while (s[i]) free(s[i++]);\n    free(s);\n}\nint main(void)\n{\n    char\
+    \ *exp1[] = {\"a\", \"bb\", \"ccc\", 0};\n    char **got = ft_split(\"--a--bb-ccc--\"\
+    , \"-\");\n    if (!check(got, exp1)) { fprintf(stderr, \"c09 split mismatch\\\
+    n\"); free_split(got); return (1); }\n    free_split(got);\n    return (0);\n\
+    }\n"
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./c09_ft_split | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: c09_ft_split baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./c09_ft_split | cat -e
+  perturbed_input:
+  - c09_ft_split_near_arg_1
+  - c09_ft_split_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: c09_ft_split baseline folder fixture
+  perturbed_input: d09_ft_split baseline folder fixture

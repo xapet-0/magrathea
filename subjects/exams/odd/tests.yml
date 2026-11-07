@@ -1,0 +1,179 @@
+mode: c_program
+fixed_tests:
+- name: cur_odd_T01
+  description: no_args
+  args: []
+  expected: '13579
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_odd_T02
+  description: one_arg
+  args:
+  - ignored
+  expected: '13579
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_odd_T03
+  description: empty_arg
+  args:
+  - ''
+  expected: '13579
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_odd_T04
+  description: two_args
+  args:
+  - '1337'
+  - '42'
+  expected: '13579
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_odd_T05
+  description: many_args
+  args:
+  - a
+  - b
+  - c
+  - d
+  expected: '13579
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: '13579
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: '13579
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: '13579
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: '13579
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: '13579
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./odd
+  args: []
+  expected: '13579
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./odd | cat -e
+  args: []
+  expected: '13579
+
+    ==========================================================================================
+
+    '
+  cat_e: true
+folder_examples:
+- id: cur_odd_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`./odd` (no CLI arguments passed, `argc == 1`)'
+  expected: 13579\n
+- id: cur_odd_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''ignored'']'
+  expected: 13579\n
+- id: cur_odd_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '['''']'
+  expected: 13579\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./odd
+  perturbed_input:
+  - odd_near_arg_1
+  - odd_near_arg_2
+- id: near_subj_02_arity_perturbation
+  derived_from: subj_ex_02
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./odd | cat -e
+  perturbed_input:
+  - odd_near_arg_1
+  - odd_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_odd_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '`./odd` (no CLI arguments passed, `argc == 1`)'
+  perturbed_input: '`./pdd` (no CLI arguments passed, `argc '
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_odd_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''ignored'']'
+  perturbed_input: '[''jgnored'']'
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `odd`
+  input: "odd(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `odd`
+  input: odd("   word   ") and odd("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `odd`
+  input: odd("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `odd`
+  input: Execute odd with no arguments and with 3 arguments
+  expected: Print newline only
