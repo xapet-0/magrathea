@@ -46,7 +46,8 @@ def find_subject_and_corr(subject_id: str) -> tuple[Path, dict, Path | None]:
 def audit_single_subject(subject_id: str, ui: ThemeEngine, run_infinite: bool = True) -> tuple[int, int, list[str]]:
     subj_dir, meta, corr_dir = find_subject_and_corr(subject_id)
     stype = str(meta.get("type", "c_program")).lower()
-    exp_file = (meta.get("expected_files") or [f"{subject_id}.c"])[0]
+    raw_exp_list = meta.get("expected_files") or [f"{subject_id}.c"]
+    exp_file = "main.c" if (raw_exp_list[0] in ("*.c", "Makefile") or "*" in raw_exp_list[0]) else raw_exp_list[0]
     is_exam = "subjects/exams" in subj_dir.as_posix()
 
     passed = 0
@@ -72,11 +73,11 @@ def audit_single_subject(subject_id: str, ui: ThemeEngine, run_infinite: bool = 
             total += 1
             d_ce = root_tmp / "compile_err"
             d_ce.mkdir()
-            for ef in meta.get("expected_files") or [exp_file]:
-                if "*" not in ef:
-                    (d_ce / ef).write_text("int broken_syntax( { return ??? ; }\n", encoding="utf-8")
+            if "Makefile" in raw_exp_list and corr_dir and (corr_dir / "Makefile").exists():
+                shutil.copy2(corr_dir / "Makefile", d_ce / "Makefile")
+            (d_ce / exp_file).write_text("int broken_syntax( { return ??? ; }\n", encoding="utf-8")
             rep_ce = grade_subject(KIT_ROOT, subject_id, d_ce, is_exam=is_exam)
-            if not rep_ce.ok and "Does not compile" in rep_ce.status:
+            if not rep_ce.ok and any(k in rep_ce.status for k in ("Does not compile", "Norme error", "failed to build")):
                 passed += 1
                 logs.append(f"  {ui.ok('[PASS]')} Mode [3] compile_error -> Rejected ({rep_ce.status})")
             else:
@@ -86,9 +87,14 @@ def audit_single_subject(subject_id: str, ui: ThemeEngine, run_infinite: bool = 
             total += 1
             d_wrong = root_tmp / "wrong"
             d_wrong.mkdir()
-            for ef in meta.get("expected_files") or [exp_file]:
-                if ef.endswith(".h") and corr_dir and (corr_dir / ef).exists():
-                    shutil.copy2(corr_dir / ef, d_wrong / ef)
+            if corr_dir:
+                for hf in corr_dir.glob("*.h"):
+                    shutil.copy2(hf, d_wrong / hf.name)
+                if "Makefile" in raw_exp_list and (corr_dir / "Makefile").exists():
+                    shutil.copy2(corr_dir / "Makefile", d_wrong / "Makefile")
+                for cf in corr_dir.glob("*.c"):
+                    if cf.name != exp_file:
+                        shutil.copy2(cf, d_wrong / cf.name)
             if stype == "c_program":
                 (d_wrong / exp_file).write_text('#include <unistd.h>\nint main(void){write(1,"WRONG_42_OUTPUT\\n",16);return 0;}\n', encoding="utf-8")
             else:
@@ -118,9 +124,11 @@ def audit_single_subject(subject_id: str, ui: ThemeEngine, run_infinite: bool = 
             total += 1
             d_sem = root_tmp / "semantic"
             d_sem.mkdir()
-            for ef in meta.get("expected_files") or [exp_file]:
-                if ef.endswith(".h") and corr_dir and (corr_dir / ef).exists():
-                    shutil.copy2(corr_dir / ef, d_sem / ef)
+            if corr_dir:
+                for hf in corr_dir.glob("*.h"):
+                    shutil.copy2(hf, d_sem / hf.name)
+                if "Makefile" in raw_exp_list and (corr_dir / "Makefile").exists():
+                    shutil.copy2(corr_dir / "Makefile", d_sem / "Makefile")
             if stype == "c_function":
                 proto = str(meta.get("prototype") or f"int {subject_id}(void)").rstrip(";")
                 (d_sem / exp_file).write_text(f'{proto} {{ return 0; }}\nint main(void) {{ return 0; }}\n', encoding="utf-8")
@@ -213,8 +221,12 @@ def audit_single_subject(subject_id: str, ui: ThemeEngine, run_infinite: bool = 
             total += 1
             d_ok = root_tmp / "correct"
             shutil.copytree(corr_dir, d_ok)
+            exp_list = meta.get("expected_files") or []
+            keep_main = "main.c" in exp_list or any("*" in ef for ef in exp_list) or "Makefile" in exp_list
             for meta_f in ["generator.py", "profile.yml", "main.c", "expected.out"]:
-                if (d_ok / meta_f).exists() and meta_f not in (meta.get("expected_files") or []):
+                if meta_f == "main.c" and keep_main:
+                    continue
+                if (d_ok / meta_f).exists() and meta_f not in exp_list:
                     (d_ok / meta_f).unlink()
             rep_ok = grade_subject(KIT_ROOT, subject_id, d_ok, is_exam=is_exam)
             if rep_ok.ok:

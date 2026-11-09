@@ -172,7 +172,7 @@ _TOKEN_RE = re.compile(
     (?P<WS>[ \t\r]+)
   | (?P<STRING>"[^"]*")
   | (?P<OP>\+\+|--|==|!=|<=|>=|&&|\|\||\+=|-=|\*=|/=|%=|\^=|[+\-*/%^=<>!(),;\[\]{}])
-  | (?P<NUM>(?:\d+[0-9A-Z]*\.?[0-9A-Z]*|\.[0-9A-Z]+|[A-Z]+))
+  | (?P<NUM>(?:[0-9A-Z]+\.?[0-9A-Z]*|\.[0-9A-Z]+))
   | (?P<IDENT>[a-z][a-z0-9_]*)
     """,
     re.VERBOSE,
@@ -306,6 +306,9 @@ class BcParser:
         while self.peek().value in {"*", "/", "%"}:
             op = self.consume().value
             rhs, _ = self._parse_pow()
+            needed_prec = max(256, len(val.as_tuple().digits) + len(rhs.as_tuple().digits) + self.state.scale + 64)
+            if decimal.getcontext().prec < needed_prec:
+                decimal.getcontext().prec = needed_prec
             if op == "*":
                 # POSIX bc multiplication scale rule: min(a_scale + b_scale, max(scale, a_scale, b_scale))
                 _, _, e1 = val.as_tuple()
@@ -332,8 +335,15 @@ class BcParser:
             self.consume("^")
             rhs, _ = self._parse_pow()  # Right-associative per POSIX bc
             exp_int = int(rhs)
-            if val != 0 and abs(val) > 1 and abs(exp_int) * math.log10(float(abs(val))) > MAX_EXPONENT_DIGITS:
+            if exp_int == 0:
+                return Decimal(1), False
+            if exp_int == 1:
+                return val, False
+            est_digits = abs(exp_int) * max(1, val.adjusted() + 1)
+            if val != 0 and abs(val) > 1 and est_digits > MAX_EXPONENT_DIGITS:
                 raise OverflowError("Exponent exceeds maximum safe precision limit")
+            if decimal.getcontext().prec < est_digits + self.state.scale + 64:
+                decimal.getcontext().prec = est_digits + self.state.scale + 64
             if exp_int < 0:
                 if val == 0:
                     raise ZeroDivisionError("Divide by zero in negative power")
@@ -486,6 +496,17 @@ def evaluate_statement(stmt: str, state: BcState) -> str | None:
     if tokens[0].kind == "EOF":
         return None
     parser = BcParser(tokens, state)
+    if parser.peek().kind == "IDENT" and parser.peek().value == "if":
+        parser.consume("if")
+        parser.consume("(")
+        cond_val, _ = parser.parse_expr()
+        parser.consume(")")
+        if cond_val != 0:
+            val, is_assign = parser.parse_expr()
+            if parser.peek().kind != "EOF":
+                raise SyntaxError(f"Unexpected trailing token '{parser.peek().value}'")
+            return None if is_assign else format_bc_number(val, state.obase, state.scale, state.line_length)
+        return None
     val, is_assign = parser.parse_expr()
     if parser.peek().kind != "EOF":
         raise SyntaxError(f"Unexpected trailing token '{parser.peek().value}'")

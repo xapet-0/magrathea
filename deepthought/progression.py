@@ -254,6 +254,11 @@ class StudentProfile:
         """Alias for total_xp to preserve backward compatibility with callers."""
         return self.total_xp
 
+    @xp.setter
+    def xp(self, value: int) -> None:
+        self.total_xp = max(0, int(value))
+        self.level = compute_42_level(self.total_xp)
+
     # ------------------------------------------------------------------ I/O
     @staticmethod
     def load(path: Optional[Path] = None) -> "StudentProfile":

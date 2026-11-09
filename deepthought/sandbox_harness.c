@@ -94,6 +94,7 @@ static int          g_chunk_read = -1;
 static int          g_check_leaks = -1;
 static int          g_in_hook = 0;
 static int          g_audit_done = 0;
+static int          g_exit_status = 0;
 
 #ifdef DT_UNIT_TEST_MODE
 static void *__real_malloc(size_t size)                  { return (malloc(size)); }
@@ -216,6 +217,7 @@ void dt_harness_reset_state(void)
     g_check_leaks = -1;
     g_in_hook = 0;
     g_audit_done = 0;
+    g_exit_status = 0;
 }
 
 void dt_harness_get_counters(
@@ -294,10 +296,22 @@ static void dt_init_env(void)
     }
 }
 
+static void dt_audit_memory_leaks(void);
+
+static void dt_on_exit_hook(int status, void *arg)
+{
+    (void)arg;
+    g_exit_status = status;
+    dt_audit_memory_leaks();
+}
+
 __attribute__((constructor))
 static void dt_constructor_init(void)
 {
+    int saved_errno = errno;
     dt_ensure_harness_arena();
+    on_exit(dt_on_exit_hook, NULL);
+    errno = saved_errno;
 }
 
 static void dt_emit_arena_telemetry(int leaked_blocks, size_t leaked_bytes)
@@ -465,6 +479,17 @@ static void *dt_tracked_alloc(size_t size, int zero_fill)
     t_alloc_node *existing = dt_find_node(user);
     if (existing)
     {
+        if (!existing->active)
+        {
+            if (g_total_tracked >= g_max_allocs)
+            {
+                __real_free(raw);
+                fprintf(stderr, "[TRACKING EXHAUSTED KO]: Allocation count exceeded limit (%zu)!\n", g_max_allocs);
+                dt_emit_arena_telemetry(0, 0);
+                dt_terminate_with_code(45);
+            }
+            g_total_tracked++;
+        }
         existing->raw_ptr = raw;
         existing->size = size;
         existing->active = 1;
@@ -545,6 +570,8 @@ void __wrap_free(void *ptr)
     }
     dt_verify_redzone(node);
     node->active = 0;
+    if (g_total_tracked > 0)
+        g_total_tracked--;
     g_free_calls++;
     void *raw_to_free = node->raw_ptr;
     node->raw_ptr = NULL;
@@ -593,6 +620,8 @@ void *__wrap_realloc(void *ptr, size_t size)
     if (copy_len > 0)
         memcpy(new_user, ptr, copy_len);
     old_node->active = 0;
+    if (g_total_tracked > 0)
+        g_total_tracked--;
     g_free_calls++;
     void *old_raw = old_node->raw_ptr;
     old_node->raw_ptr = NULL;
@@ -631,6 +660,16 @@ size_t dt_get_alloc_size(void *ptr)
     return (0);
 }
 
+/**
+ * dt_audit_memory_leaks() - Perform final redzone & leak audit at process exit.
+ *
+ * Verifies front/rear 16-byte redzone canaries across all active allocations
+ * regardless of exit status, emits Arena-01 JSONL telemetry, and enforces
+ * zero-leak termination (exit 42) when g_exit_status == 0 and DT_CHECK_LEAKS=1.
+ *
+ * Context: Process termination hook (__wrap_exit, __wrap__exit, destructor).
+ * Return: None (terminates with 43 on redzone corruption or 42 on leak).
+ */
 static void dt_audit_memory_leaks(void)
 {
     if (g_audit_done)
@@ -662,7 +701,7 @@ static void dt_audit_memory_leaks(void)
         dt_arena_destroy(&g_harness_arena);
         g_harness_arena_ready = 0;
     }
-    if (g_check_leaks && leaked_blocks > 0)
+    if (g_exit_status == 0 && g_check_leaks && leaked_blocks > 0)
     {
         fprintf(
             stderr,
@@ -681,22 +720,22 @@ void dt_harness_audit_leaks_now(void)
 
 void __wrap_exit(int status)
 {
-    if (status == 0)
-        dt_audit_memory_leaks();
+    g_exit_status = status;
+    dt_audit_memory_leaks();
     __real_exit(status);
 }
 
 void __wrap__exit(int status)
 {
-    if (status == 0)
-        dt_audit_memory_leaks();
+    g_exit_status = status;
+    dt_audit_memory_leaks();
     __real__exit(status);
 }
 
 void __wrap__Exit(int status)
 {
-    if (status == 0)
-        dt_audit_memory_leaks();
+    g_exit_status = status;
+    dt_audit_memory_leaks();
     __real__Exit(status);
 }
 

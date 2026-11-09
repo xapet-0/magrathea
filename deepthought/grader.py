@@ -1931,14 +1931,16 @@ def _grade_subject_inner(
                             main_lines.append(f"  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN(\"tc_{ft_idx}\"); {setup_code} {expr_c}; fflush(stdout); DT_TC_END(); }}")
                         else:
                             fmt = ft.get("fmt", "%ld")
-                            cast_t = "const char *" if fmt == "%s" else "long"
-                            main_lines.append(f"  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN(\"tc_{ft_idx}\"); {setup_code} printf(\"{fmt}\\n\", ({cast_t})({expr_c})); fflush(stdout); DT_TC_END(); }}")
+                            if fmt == "%s":
+                                main_lines.append(f"  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN(\"tc_{ft_idx}\"); {setup_code} char *__dt_res = (char *)({expr_c}); printf(\"%s\\n\", __dt_res ? __dt_res : \"(null)\"); if (__dt_res) free(__dt_res); fflush(stdout); DT_TC_END(); }}")
+                            else:
+                                main_lines.append(f"  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN(\"tc_{ft_idx}\"); {setup_code} printf(\"{fmt}\\n\", (long)({expr_c})); fflush(stdout); DT_TC_END(); }}")
                         exp_piece = str(ft.get("stdout") if ft.get("stdout") is not None else f"{ft.get('expected', ft.get('return', ''))}\n")
                         desc = ft.get("name") or expr_c[:48]
                         case_specs.append((ft_idx, desc, exp_piece))
                 main_lines.append("  return 0;\n}")
                 (work / "__dt_main.c").write_text("\n".join(main_lines) + "\n", encoding="utf-8")
-                strict_flags = _get_strict_sandbox_flags(kit_root, work) if strict else []
+                strict_flags = _get_strict_sandbox_flags(kit_root, work)
                 # For ft_atoi, compile user C source directly with -ftrapv so signed integer
                 # overflow on -2147483648 traps with SIGABRT (Signal -6), killing MUT-E01!
                 if subject_id in {"ft_atoi", "ft_atoi_base"}:
@@ -1954,7 +1956,7 @@ def _grade_subject_inner(
                     return GradeReport(subject_id, False, "Does not compile", "Linker error", "\n".join(trace), "", oracle_info)
 
                 fixed_env = {**os.environ}
-                if strict and (subject_id in {"ft_list_clear", "ft_list_remove_if", "ft_strdel", "get_next_line", "broken_gnl", "gold_gain", "moment", "orderWeight", "queue", "stack"} or any(ft.get("check_leaks") for ft in fixed_tests)):
+                if strict and ("free(" in combined_tests_text or subject_id in {"ft_list_clear", "ft_list_remove_if", "ft_strdel", "get_next_line", "broken_gnl", "gold_gain", "moment", "orderWeight", "queue", "stack"} or any(ft.get("check_leaks") for ft in fixed_tests)):
                     fixed_env["DT_CHECK_LEAKS"] = "1"
                 for ft_idx, desc, exp_piece in case_specs:
                     tests_executed += 1
@@ -2011,7 +2013,7 @@ def _grade_subject_inner(
                 c_name = f"__dt_oracle_{idx}.c"
                 b_name = f"user_oracle_{idx}"
                 (work / c_name).write_text(src_code, encoding="utf-8")
-                oracle_strict_flags = _get_strict_sandbox_flags(kit_root, work) if strict else []
+                oracle_strict_flags = _get_strict_sandbox_flags(kit_root, work)
                 if subject_id in {"ft_atoi", "ft_atoi_base"}:
                     oracle_inputs = ["-ftrapv", *[str(p.relative_to(work)) for p in c_sources]]
                 else:
@@ -2042,11 +2044,11 @@ def _grade_subject_inner(
                     err_detail = (rproc.stderr or "").strip()
                     sig_name, sig_reason, is_fatal_mem_sig = classify_process_exit_status(rproc.returncode, err_detail, False)
                     if is_fatal_mem_sig:
-                        cmd_str = f"./{exe_path.name} {quoted_args}".rstrip()
+                        cmd_str = f"./{b_name}"
                         if err_detail and any(k in err_detail for k in ("[REDZONE KO]", "[LEAK KO]", "[DOUBLE FREE KO]", "[INVALID FREE KO]", "[ARENA OWNERSHIP KO]", "[TRACKING EXHAUSTED KO]")):
                             trace.append(err_detail)
                         trace.append(f"Command '{cmd_str}' got killed by a {sig_name}\nGrade: 0")
-                        return GradeReport(subject_id, False, sig_name, sig_reason, "\n".join(trace), "", oracle_info, last_cmd=cmd_display)
+                        return GradeReport(subject_id, False, sig_name, sig_reason, "\n".join(trace), "", oracle_info, last_cmd=f"eval {tname}")
                     if oracle_info.get("why_moulinette_fails"):
                         trace.append(f"\n[Moulinette Trap Diagnostic]: {oracle_info['why_moulinette_fails']}")
                     return GradeReport(subject_id, False, "Diff KO :(", err_detail or "Failed edge case", "\n".join(trace), oracle_info.get("why_moulinette_fails", ""), oracle_info)
@@ -2090,7 +2092,7 @@ def _grade_subject_inner(
                 exe_path = work / run_bin_cfg
             else:
                 exe_path = work / "user_exe"
-                strict_flags = _get_strict_sandbox_flags(kit_root, work) if strict else []
+                strict_flags = _get_strict_sandbox_flags(kit_root, work)
                 cprog_objs = [f"{p.stem}.o" for p in c_sources if (work / f"{p.stem}.o").exists()]
                 cprog_inputs = cprog_objs if len(cprog_objs) == len(c_sources) else [str(p.relative_to(work)) for p in c_sources]
                 cmd = ["cc", *FLAGS_COMPILE_SAFE, *inc_flags, *cprog_inputs, *strict_flags, "-o", "user_exe", "-lm"]
@@ -2162,9 +2164,11 @@ def _grade_subject_inner(
                 trace.append(f"\n= Test {idx} ===================================================================")
                 trace.append(f"$> {invoke_bin} {quoted_args}".rstrip())
                 try:
+                    cprog_env = {**os.environ, **({"DT_CHECK_LEAKS": "1"} if strict else {})}
                     rproc = _run_isolated(
                         [invoke_bin, *args],
                         cwd=work,
+                        env=cprog_env,
                         input_data=ft.get("stdin"),
                         timeout=2.0,
                     )

@@ -79,6 +79,112 @@ int dt_strip_c_comments_and_strings(const char *src, char *dst, size_t dst_cap)
     return (0);
 }
 
+/**
+ * dt_prepare_source_for_include_scan() - Normalize C source before #include scanning.
+ * @src: Null-terminated raw C source string.
+ *
+ * Joins Phase-2 backslash-newline (\\\n) line continuations and strips C line
+ * and block comments while preserving string literals on preprocessor directive
+ * lines so inline comments cannot mask forbidden #include directives.
+ *
+ * Context: Safe to call from any thread; allocates a caller-freed heap buffer.
+ * Return: Newly allocated normalized string on success, or NULL on OOM.
+ */
+static char *dt_prepare_source_for_include_scan(const char *src)
+{
+    size_t len = strlen(src);
+    char *spliced = (char *)malloc(len + 1);
+    char *cleaned = (char *)malloc(len + 1);
+    if (!spliced || !cleaned)
+    {
+        free(spliced);
+        free(cleaned);
+        return (NULL);
+    }
+    /* 1. Join backslash-newline line continuations */
+    size_t si = 0, sj = 0;
+    while (src[si] != '\0')
+    {
+        if (src[si] == '\\' && src[si + 1] == '\n')
+        {
+            si += 2;
+            continue;
+        }
+        if (src[si] == '\\' && src[si + 1] == '\r' && src[si + 2] == '\n')
+        {
+            si += 3;
+            continue;
+        }
+        spliced[sj++] = src[si++];
+    }
+    spliced[sj] = '\0';
+    /* 2. Strip line and block comments while preserving string literals on #include lines */
+    size_t i = 0, j = 0;
+    bool at_line_head = true;
+    bool in_directive = false;
+    while (spliced[i] != '\0')
+    {
+        if (spliced[i] == '\n')
+        {
+            cleaned[j++] = spliced[i++];
+            at_line_head = true;
+            in_directive = false;
+            continue;
+        }
+        if (spliced[i] == '/' && spliced[i + 1] == '/')
+        {
+            i += 2;
+            while (spliced[i] != '\0' && spliced[i] != '\n')
+                i++;
+            cleaned[j++] = ' ';
+            continue;
+        }
+        if (spliced[i] == '/' && spliced[i + 1] == '*')
+        {
+            i += 2;
+            while (spliced[i] != '\0' && !(spliced[i] == '*' && spliced[i + 1] == '/'))
+            {
+                if (spliced[i] == '\n')
+                {
+                    cleaned[j++] = '\n';
+                    at_line_head = true;
+                    in_directive = false;
+                }
+                i++;
+            }
+            if (spliced[i] != '\0')
+                i += 2;
+            cleaned[j++] = ' ';
+            continue;
+        }
+        if (!in_directive && (spliced[i] == '"' || spliced[i] == '\''))
+        {
+            char q = spliced[i++];
+            while (spliced[i] != '\0' && spliced[i] != q)
+            {
+                if (spliced[i] == '\\' && spliced[i + 1] != '\0')
+                    i += 2;
+                else
+                    i++;
+            }
+            if (spliced[i] == q)
+                i++;
+            cleaned[j++] = ' ';
+            continue;
+        }
+        if (at_line_head && spliced[i] != ' ' && spliced[i] != '\t')
+        {
+            if (spliced[i] == '#')
+                in_directive = true;
+            at_line_head = false;
+        }
+        cleaned[j++] = spliced[i++];
+    }
+    cleaned[j] = '\0';
+    free(spliced);
+    return (cleaned);
+}
+
 int dt_scan_include_restrictions(const char *src, dt_include_scan_t *out_scan)
 {
     if (!src || !out_scan)
@@ -87,8 +193,8 @@ int dt_scan_include_restrictions(const char *src, dt_include_scan_t *out_scan)
         return (-1);
     }
     memset(out_scan, 0, sizeof(*out_scan));
-
-    const char *p = src;
+    char *prepped = dt_prepare_source_for_include_scan(src);
+    const char *p = prepped ? prepped : src;
     while (*p != '\0')
     {
         const char *line_start = p;
@@ -153,6 +259,7 @@ int dt_scan_include_restrictions(const char *src, dt_include_scan_t *out_scan)
         }
         p = line_end ? (line_end + 1) : (line_start + line_len);
     }
+    free(prepped);
     return (0);
 }
 

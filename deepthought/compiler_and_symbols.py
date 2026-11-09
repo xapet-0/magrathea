@@ -16,6 +16,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 # NOTE: memcpy, memmove, memset, and *scanf are intentionally EXCLUDED from
 # INTRINSIC_SYMBOLS so that calling them without permission is caught (GRD-007).
@@ -132,15 +133,20 @@ class CompileResult:
 
 
 def _strip_c_comments_only(text: str) -> str:
-    """Strip // and /* */ comments while preserving #include string literals."""
-    return re.sub(r'//.*?$|/\*.*?\*/', ' ', text, flags=re.DOTALL | re.MULTILINE)
+    """Join C backslash-newline splices and strip comments without wiping #include directives or string literals."""
+    joined = re.sub(r"\\\r?\n", "", text)
+    pattern = re.compile(
+        r'("(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')|(//.*?$|/\*.*?\*/)',
+        re.DOTALL | re.MULTILINE,
+    )
+    return pattern.sub(lambda m: m.group(1) if m.group(1) else " ", joined)
 
 
 def check_forbidden_c_includes(files: list[Path], submit_root: Optional[Path] = None, allowed_root: Optional[Path] = None) -> list[str]:
     """Reject any #include of a source file (.c/.cpp/.cc/.cxx/.inc), any absolute or parent-traversal #include escaping submit_root, or computed macro #include."""
     violations: list[str] = []
-    inc_any_re = re.compile(r'^\s*#\s*include\s*[<"]([^>"]+)[>"]', re.MULTILINE)
-    inc_macro_re = re.compile(r'^\s*#\s*include\s+([A-Za-z_]\w*)', re.MULTILINE)
+    inc_any_re = re.compile(r'^\s*#\s*include(?:_next)?\s*[<"]([^>"]+)[>"]', re.MULTILINE)
+    inc_macro_re = re.compile(r'^\s*#\s*include(?:_next)?\s+([A-Za-z_]\w*)', re.MULTILINE)
     valid_suffixes = {".c", ".h", ".cpp", ".hpp", ".cc", ".cxx", ".inc"}
     forbidden_src_exts = (".c", ".cpp", ".cc", ".cxx", ".inc")
     root_val = submit_root if submit_root is not None else allowed_root

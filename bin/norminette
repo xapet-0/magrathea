@@ -93,6 +93,7 @@ def check_file(path: Path, flags: list[str]) -> list[str]:
     seen_stmt = False
     func_lines = 0
     func_count = 0
+    brace_depth = 0
     sig_buf = ""
     sig_start_line = 1
     for idx, line in enumerate(lines, start=1):
@@ -127,7 +128,7 @@ def check_file(path: Path, flags: list[str]) -> list[str]:
                     sig_start_line = idx
                 sig_buf += " " + code_line.strip()
                 if ")" in sig_buf:
-                    m_args = re.search(r"\((.*)\)\s*;?\s*$", sig_buf)
+                    m_args = re.search(r"\((.*)\)\s*(?:;|\{)?\s*$", sig_buf)
                     if m_args:
                         depth = 0
                         top_commas = 0
@@ -143,20 +144,38 @@ def check_file(path: Path, flags: list[str]) -> list[str]:
                     sig_buf = ""
             else:
                 sig_buf = ""
-        if line.startswith("{"):
+        is_func_open = not in_func and (
+            line.startswith("{")
+            or (
+                not line.startswith(("\t", " ", "#", "/", "*"))
+                and not code_line.lstrip().startswith(("typedef", "struct", "enum", "union"))
+                and code_line.rstrip().endswith("{")
+                and "(" in code_line
+            )
+        )
+        if is_func_open:
+            if not line.startswith("{"):
+                errors.append(f"Error: BRACE_NEWLINE        (line: {idx:3d}, col: {len(line):3d}):\tExpected newline before brace")
             in_func = True
             seen_stmt = False
             func_lines = 0
             func_count += 1
             sig_buf = ""
+            brace_depth = code_line.count("{") - code_line.count("}")
             if func_count > 5 and path.suffix == ".c":
                 errors.append(f"Error: TOO_MANY_FUNCS       (line: {idx:3d}, col:   1):\tToo many functions in file")
-        elif line.startswith("}") and in_func:
-            in_func = False
-            if func_lines > 25:
-                errors.append(f"Error: TOO_MANY_LINES       (line: {idx:3d}, col:   1):\tFunction has more than 25 lines ({func_lines})")
+            if brace_depth <= 0:
+                in_func = False
         elif in_func:
-            func_lines += 1
+            delta = code_line.count("{") - code_line.count("}")
+            if brace_depth + delta <= 0:
+                in_func = False
+                brace_depth = 0
+                if func_lines > 25:
+                    errors.append(f"Error: TOO_MANY_LINES       (line: {idx:3d}, col:   1):\tFunction has more than 25 lines ({func_lines})")
+            else:
+                brace_depth += delta
+                func_lines += 1
             is_decl = bool(
                 re.match(
                     r"^\t(?:static\s+|const\s+|unsigned\s+|signed\s+)*(?:int|char|long|short|size_t|void|float|double|t_\w+|struct\s+\w+)\s+",

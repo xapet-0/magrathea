@@ -453,6 +453,17 @@ dt_arena_mark_t dt_arena_mark(const dt_arena_t *a)
     return (m);
 }
 
+/**
+ * dt_arena_rewind() - Rewind arena state to a previously captured mark.
+ * @a: Target Magrathea arena instance.
+ * @m: Snapshot mark obtained via dt_arena_mark().
+ *
+ * Validates arena magic, epoch, and monotonic backward position so stale marks
+ * located ahead of the current allocation cursor are strictly rejected.
+ *
+ * Context: Process context; mutates arena region counters.
+ * Return: 0 on success, or -1 with errno=EINVAL on invalid/future mark.
+ */
 int dt_arena_rewind(dt_arena_t *a, dt_arena_mark_t m)
 {
     if (!dt_arena_valid(a) || m.arena != a || m.epoch != a->epoch)
@@ -462,16 +473,24 @@ int dt_arena_rewind(dt_arena_t *a, dt_arena_mark_t m)
     }
     if (m.raw.region != NULL)
     {
-        bool found = false;
+        if (a->raw.end == NULL)
+        {
+            errno = EINVAL;
+            return (-1);
+        }
+        bool found_up_to_end = false;
         for (Region *r = a->raw.begin; r != NULL; r = r->next)
         {
             if (r == m.raw.region)
             {
-                found = true;
+                found_up_to_end = true;
                 break;
             }
+            if (r == a->raw.end)
+                break;
         }
-        if (!found || m.raw.count > m.raw.region->capacity)
+        if (!found_up_to_end || m.raw.count > m.raw.region->capacity ||
+            (m.raw.region == a->raw.end && m.raw.count > a->raw.end->count))
         {
             errno = EINVAL;
             return (-1);
@@ -500,8 +519,11 @@ int dt_arena_trim(dt_arena_t *a)
         errno = EINVAL;
         return (-1);
     }
-    if (a->raw.end != NULL)
+    if (a->raw.end != NULL && a->raw.end->next != NULL)
+    {
         arena_trim(&a->raw);
+        a->epoch++;
+    }
     a->stats.trim_count++;
     dt_arena_refresh_stats(a, a->stats.active_regions, a->raw.end);
     return (0);
