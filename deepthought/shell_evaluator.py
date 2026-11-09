@@ -497,7 +497,7 @@ def evaluate_shell_exercise(
             stdout_contains = ft.get("stdout_contains")
 
             # If exp_stdout is None or empty and we have a golden_oracle script, compute expected output dynamically!
-            if (exp_stdout is None or exp_stdout == "") and not stdout_contains and oracle_script_code.strip() and not ft.get("expect_empty", False):
+            if (exp_stdout is None or exp_stdout == "") and not stdout_contains and oracle_script_code.strip() and (not ft.get("expect_empty", False) or subject_id in {"print_groups.sh", "print_groups"}):
                 ref_work = work / f"ref_{idx}"
                 ref_work.mkdir(parents=True, exist_ok=True)
                 for rel_f, content_f in (ft.get("files") or {}).items():
