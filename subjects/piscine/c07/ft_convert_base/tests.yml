@@ -1,0 +1,68 @@
+fixed_tests:
+- call: char *s=ft_convert_base("42","0123456789","01"); printf("%s\n",s); free(s);
+  name: pool_ft_convert_base_T01
+  stdout: '101010
+
+    '
+- call: char *s=ft_convert_base("-42","0123456789","0123456789abcdef"); printf("%s\n",s);
+    free(s);
+  name: ft_convert_base_negative_value
+  stdout: '-2a
+
+    '
+- call: char *s=ft_convert_base("0","0123456789","01"); printf("%s\n",s); free(s);
+  name: ft_convert_base_zero
+  stdout: '0
+
+    '
+- call: char *s=ft_convert_base("42","0","01"); printf("%d\n", s==NULL);
+  name: ft_convert_base_invalid_base_from
+  stdout: '1
+
+    '
+- name: test_05_hex_to_decimal
+  call: char *s=ft_convert_base("2a","0123456789abcdef","0123456789"); printf("%s\n",s);
+    free(s);
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_06_binary_to_hex
+  call: char *s=ft_convert_base("11111111","01","0123456789ABCDEF"); printf("%s\n",s);
+    free(s);
+  tier: baseline
+  stdout: 'FF
+
+    '
+- name: test_07_spaces_and_multi_signs
+  call: char *s=ft_convert_base("  \t---+--+42xyz","0123456789","0123456789"); printf("%s\n",s);
+    free(s);
+  tier: edge
+  stdout: '-42
+
+    '
+- name: test_08_invalid_base_to_returns_null
+  call: char *s1=ft_convert_base("42","0123456789","0"); char *s2=ft_convert_base("42","0123456789","011");
+    printf("%d:%d\n", s1==NULL, s2==NULL);
+  tier: edge
+  stdout: '1:1
+
+    '
+- name: test_09_signs_in_base_returns_null
+  call: char *s1=ft_convert_base("42","01+2","01"); char *s2=ft_convert_base("42","01","01-2");
+    printf("%d:%d\n", s1==NULL, s2==NULL);
+  tier: edge
+  stdout: '1:1
+
+    '
+- name: test_10_int_min_and_max
+  call: char *s1=ft_convert_base("-2147483648","0123456789","0123456789"); char *s2=ft_convert_base("2147483647","0123456789","0123456789");
+    printf("%s:%s\n",s1,s2); free(s1); free(s2);
+  tier: stress
+  stdout: '-:2147483647
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

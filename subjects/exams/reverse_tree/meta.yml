@@ -1,0 +1,13 @@
+id: reverse_tree
+type: c_function
+module: "Piscine Exams 00\u2013Final"
+xp: 300
+expected_files:
+- reverse_tree.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void reverse_tree(struct s_node *root);

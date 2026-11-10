@@ -1,0 +1,74 @@
+mode: c_function
+fixed_tests:
+- name: can_flood_fill_T01
+  call: char r0[]="1112"; char r1[]="1002"; char r2[]="1112"; char *tab[]={r0,r1,r2};
+    t_point size={4,3}; t_point begin={0,0}; flood_fill(tab,size,begin); printf("%s\|%s\|%s\n",
+    tab[0], tab[1], tab[2])
+  stdout: 'FFF2|F002|FFF2
+
+    '
+- name: can_flood_fill_T02
+  call: char r0[]="abc"; char r1[]="def"; char *tab[]={r0,r1}; t_point size={3,2};
+    t_point begin={1,1}; flood_fill(tab,size,begin); printf("%s\|%s\n", tab[0], tab[1])
+  stdout: 'abc|dFf
+
+    '
+- name: flood_fill_out_of_bounds_unchanged
+  call: char r0[]="12"; char r1[]="34"; char *tab[]={r0,r1}; t_point size={2,2}; t_point
+    b1={-1,0}; t_point b2={0,1000000}; flood_fill(tab,size,b1); flood_fill(tab,size,b2);
+    printf("%s\|%s\n", tab[0], tab[1])
+  stdout: '12|34
+
+    '
+- name: flood_fill_diagonal_isolation
+  call: char r0[]="10"; char r1[]="01"; char *tab[]={r0,r1}; t_point size={2,2}; t_point
+    begin={0,0}; flood_fill(tab,size,begin); printf("%s\|%s\n", tab[0], tab[1])
+  stdout: 'F0|01
+
+    '
+- name: flood_fill_1x1_grid
+  call: char r0[]="A"; char *tab[]={r0}; t_point size={1,1}; t_point begin={0,0};
+    flood_fill(tab,size,begin); printf("%s\n", tab[0])
+  stdout: 'F
+
+    '
+- name: test_06_full_grid_same_char
+  call: char r0[]="000"; char r1[]="000"; char *tab[]={r0,r1}; t_point size={3,2};
+    t_point begin={1,0}; flood_fill(tab,size,begin); printf("%s|%s\n", tab[0], tab[1])
+  tier: baseline
+  stdout: 'FFF|FFF
+
+    '
+- name: test_07_l_shaped_corridor
+  call: char r0[]="100"; char r1[]="100"; char r2[]="111"; char *tab[]={r0,r1,r2};
+    t_point size={3,3}; t_point begin={2,2}; flood_fill(tab,size,begin); printf("%s|%s|%s\n",
+    tab[0], tab[1], tab[2])
+  tier: baseline
+  stdout: 'F00|F00|FFF
+
+    '
+- name: test_08_already_F_char
+  call: char r0[]="FF"; char r1[]="F0"; char *tab[]={r0,r1}; t_point size={2,2}; t_point
+    begin={0,0}; flood_fill(tab,size,begin); printf("%s|%s\n", tab[0], tab[1])
+  tier: edge
+  stdout: 'FF|F0
+
+    '
+- name: test_09_negative_y_out_of_bounds
+  call: char r0[]="AB"; char *tab[]={r0}; t_point size={2,1}; t_point begin={0,-5};
+    flood_fill(tab,size,begin); printf("%s\n", tab[0])
+  tier: edge
+  stdout: 'AB
+
+    '
+- name: test_10_ring_around_island
+  call: char r0[]="111"; char r1[]="101"; char r2[]="111"; char *tab[]={r0,r1,r2};
+    t_point size={3,3}; t_point begin={0,0}; flood_fill(tab,size,begin); printf("%s|%s|%s\n",
+    tab[0], tab[1], tab[2])
+  tier: stress
+  stdout: 'FFF|F0F|FFF
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

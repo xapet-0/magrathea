@@ -1,0 +1,19 @@
+Assignment name  : find_clean
+Expected files   : find_clean.sh
+Allowed commands : find, rm
+--------------------------------------------------------------------------------
+
+Write a shell script that searches the current directory and all its
+subdirectories for backup/temporary files ending with ~ or starting and
+ending with #, and prints their relative paths.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh find_clean.sh | cat -e
+./junk~$
+./#tmp#$
+$> sh find_clean.sh | cat -e
+./a~$

@@ -1,0 +1,134 @@
+mode: c_function
+fixed_tests:
+- name: cur_count_words_T01
+  description: "Functional verification of input: `count_words(\"  hello   world\t\
+    1337 \")`"
+  expr: "count_words(\"  hello   world\t1337 \")"
+  stdout: '3
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_count_words_T02
+  description: 'Functional verification of input: `count_words("   ")`'
+  expr: count_words("   ")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_count_words_T03
+  description: 'Functional verification of input: `count_words("")`'
+  expr: count_words("")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_count_words_T04
+  description: 'Functional verification of input: `count_words("single")`'
+  expr: count_words("single")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_count_words_T05
+  description: 'Functional verification of input: `count_words("a b c d e")`'
+  expr: count_words("a b c d e")
+  stdout: '5
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_tabs_and_newlines
+  expr: count_words("\t\n word1 \t\n word2 \n")
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_07_leading_spaces_only
+  expr: count_words("     leading")
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_trailing_spaces_only
+  expr: count_words("trailing     ")
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_punctuation_words
+  expr: count_words("foo-bar baz_qux 42!")
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_10_ten_words
+  expr: count_words("1 2 3 4 5 6 7 8 9 10")
+  tier: stress
+  stdout: '10
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval count_words
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_count_words_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: "count_words(\"  hello   world\t1337 \")"
+  expected: 3\n
+- id: cur_count_words_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: count_words("   ")
+  expected: 0\n
+- id: cur_count_words_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: count_words("")
+  expected: 0\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval count_words
+  perturbed_input:
+  - count_words_near_arg_1
+  - count_words_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_count_words_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: "count_words(\"  hello   world\t1337 \")"
+  perturbed_input: "dount_words(\"  hello   world\t1337 \")"
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_count_words_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: count_words("   ")
+  perturbed_input: dount_words("   ")
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `count_words`
+  input: "count_words(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `count_words`
+  input: count_words("   word   ") and count_words("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `count_words`
+  input: count_words("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `count_words`
+  input: Execute count_words with no arguments and with 3 arguments
+  expected: Print newline only

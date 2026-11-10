@@ -1,0 +1,115 @@
+subject_id: ft_atoi
+fixed_tests:
+- name: test_01_42
+  expr: ft_atoi("42")
+  stdout: '42
+
+    '
+- name: test_02_42
+  expr: ft_atoi("   -42")
+  stdout: '-42
+
+    '
+- name: test_03_0
+  expr: ft_atoi("0")
+  stdout: '0
+
+    '
+- name: test_04_2147483648
+  expr: ft_atoi("-2147483648")
+  stdout: '-2147483648
+
+    '
+- name: test_05_2147483647
+  expr: ft_atoi("+2147483647")
+  stdout: '2147483647
+
+    '
+- name: edge_embedded_nul_terminator
+  tier: edge_case
+  setup:
+  - char buf_nul[] = {' ', '\0', '1', '2', '3', '\0'};
+  expr: ft_atoi(buf_nul)
+  stdout: '0
+
+    '
+- name: edge_multi_sign_c04
+  tier: edge_case
+  expr: ft_atoi(" ---+--+1234ab567")
+  stdout: '-1234
+
+    '
+- name: test_08_all_isspace_chars
+  expr: ft_atoi(" \t\n\v\f\r --42")
+  tier: edge
+  stdout: '42
+
+    '
+- name: test_09_no_digits_returns_zero
+  expr: ft_atoi("   +-+--abc123")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_trailing_non_digits
+  expr: ft_atoi("  +1337piscine42")
+  tier: baseline
+  stdout: '1337
+
+    '
+oracle_tests:
+- name: case_ft_atoi_diagnostics
+  source: "static int ref_atoi(char *str)\n{\n    int i = 0;\n    int sign = 1;\n\
+    \    long value = 0;\n    while ((str[i] >= 9 && str[i] <= 13) || str[i] == 32)\n\
+    \        ++i;\n    while (str[i] == '+' || str[i] == '-')\n    {\n        if (str[i]\
+    \ == '-')\n            sign = -sign;\n        ++i;\n    }\n    while (str[i] >=\
+    \ '0' && str[i] <= '9')\n        value = value * 10 + (str[i++] - '0');\n    return\
+    \ ((int)(value * sign));\n}\nint main(void)\n{\n    char *cases[] = {\"0\", \"\
+    42\", \"   ---+--+1234ab567\", \"\\t\\n\\v\\f\\r -42\", \"+2147483647\", \"-2147483648\"\
+    , \"abc\", \"   +--+-0012\", \"  -+--+0\", \"  +00123xyz\", 0};\n    int i;\n\
+    \    for (i = 0; cases[i]; ++i)\n    {\n        int got = ft_atoi(cases[i]);\n\
+    \        int exp = ref_atoi(cases[i]);\n        if (got != exp)\n        {\n \
+    \           fprintf(stderr, \"DT_FUNCTION=ft_atoi\\nDT_CASE=schoollike whitespace/sign/digit\
+    \ parser\\n\");\n            fprintf(stderr, \"DT_INPUT=%s\\nDT_EXPECTED=%d\\\
+    nDT_GOT=%d\\n\", cases[i], exp, got);\n            fprintf(stderr, \"DT_HINT=Skip\
+    \ ASCII whitespace 9-13/space, fold all signs, then stop at first non-digit.\\\
+    n\");\n            return (1);\n        }\n    }\n    return (0);\n}\n"
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./a.out " ---+--+1234ab567"
+  args: &id001
+  - ' ---+--+1234ab567'
+  expected: '-1234
+
+    • The function should be prototyped as follows:
+
+    int ft_atoi(char *str);
+
+    '
+  cat_e: false
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: ft_atoi baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - ' ---+--+1234bb567'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '   ---+--+1234ab567  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ft_atoi baseline folder fixture
+  perturbed_input: gt_atoi baseline folder fixture

@@ -1,0 +1,105 @@
+fixed_tests:
+- name: test_01_stdin
+  stdin: 'a
+
+    b
+
+    c
+
+    '
+  stdout: a, b, c.
+- name: test_02_stdin
+  stdin: 'alpha
+
+    beta
+
+    gamma
+
+    '
+  stdout: alpha, beta, gamma.
+- name: test_03_stdin
+  stdin: '42
+
+    1337
+
+    '
+  stdout: 42, 1337.
+- name: test_04_single_line
+  stdin: 'single
+
+    '
+  stdout: single.
+- name: test_05_four_lines
+  stdin: '1
+
+    2
+
+    3
+
+    4
+
+    '
+  tier: baseline
+  stdout: 1, 2, 3, 4.
+- name: test_06_five_words
+  stdin: 'one
+
+    two
+
+    three
+
+    four
+
+    five
+
+    '
+  tier: baseline
+  stdout: one, two, three, four, five.
+- name: test_07_single_char_lines
+  stdin: 'x
+
+    y
+
+    '
+  tier: edge
+  stdout: x, y.
+- name: test_08_numbers_and_words
+  stdin: '1337
+
+    42
+
+    piscine
+
+    '
+  tier: baseline
+  stdout: 1337, 42, piscine.
+- name: test_09_six_lines
+  stdin: 'a
+
+    b
+
+    c
+
+    d
+
+    e
+
+    f
+
+    '
+  tier: stress
+  stdout: a, b, c, d, e, f.
+- name: test_10_long_tokens
+  stdin: 'magrathea
+
+    deepthought
+
+    vogsphere
+
+    '
+  tier: stress
+  stdout: magrathea, deepthought, vogsphere.
+subject_id: comma_dot
+subject_examples: []
+folder_examples: []
+near_examples: []

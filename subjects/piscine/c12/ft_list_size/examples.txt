@@ -1,0 +1,5 @@
+# Examples for ft_list_size (from official subject specification)
+
+Examples:
+    t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%d\n",ft_list_size(&a))
+    Output: 2

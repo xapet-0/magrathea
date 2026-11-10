@@ -1,0 +1,15 @@
+id: ft_strs_to_tab
+type: c_function
+module: C 08
+xp: 200
+expected_files:
+- ft_strs_to_tab.c
+allowed_functions:
+- malloc
+- free
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: struct s_stock_str *ft_strs_to_tab(int ac, char **av);

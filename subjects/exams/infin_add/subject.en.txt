@@ -1,0 +1,22 @@
+Assignment name  : infin_add
+Expected files   : infin_add.c
+Allowed functions: write, malloc, free
+--------------------------------------------------------------------------------
+
+Write a program that takes two arbitrary-precision integers as strings and
+displays their sum followed by a newline. Both positive and negative numbers
+must be handled.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./infin_add "879879087" "67548976597" | cat -e
+68428855684$
+$> ./infin_add "-21" "-21" | cat -e
+-42$
+$> ./infin_add "-42" "42" | cat -e
+0$
+$> ./infin_add "0" "0" | cat -e
+0$

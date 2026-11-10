@@ -1,0 +1,1 @@
+[pool_ft_magic_T01] Input: `sh ft_magic.sh` (standard shell environment)  ==>  Expected: *(none)*

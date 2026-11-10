@@ -1,0 +1,21 @@
+# Examples for ft_putstr_non_printable (from official subject specification)
+
+example:
+Hello\nHow are you?
+• The function should display:
+Hello\0aHow are you?
+• Here is how it should be prototyped:
+void ft_putstr_non_printable(char *str);
+
+Your function must be declared as follows:
+    void ft_putstr_non_printable(char *str);
+
+Examples:
+    ft_putstr_non_printable("Coucou\ntu vas bien ?")
+    Output: Coucou\0atu vas bien ?
+    ft_putstr_non_printable("A\tB\nC\177D")
+    Output: A\09B\0aC\7fD
+    ft_putstr_non_printable("Printable 42!")
+    Output: Printable 42!
+    ft_putstr_non_printable(""); write(1, "|", 1); ft_putstr_non_printable("a\nb"); write(1, "|", 1); ft_putstr_non_printable(" \t "); write(1, "\n", 1)
+    Output: |a\0ab| \09

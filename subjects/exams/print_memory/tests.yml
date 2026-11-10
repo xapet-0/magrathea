@@ -1,0 +1,70 @@
+fixed_tests:
+- call: int tab[10] = {0, 23, 150, 255, 12, 16, 21, 42}; print_memory(tab, sizeof(tab));
+  name: subj_ex_print_memory_T01
+  stdout: '0000 0000 1700 0000 9600 0000 ff00 0000 ................
+
+    0c00 0000 1000 0000 1500 0000 2a00 0000 ............*...
+
+    0000 0000 0000 0000                     ........
+
+    '
+- call: unsigned char s[6] = {52, 50, 33, 10, 0, 127}; print_memory(s, 6);
+  name: subj_ex_print_memory_T02
+  stdout: '3432 210a 007f                          42!...
+
+    '
+- call: unsigned char s[4] = {1, 2, 3, 4}; print_memory(s, 0); printf("ZERO_SIZE\n");
+  name: print_memory_zero_size
+  stdout: 'ZERO_SIZE
+
+    '
+- call: unsigned char s[4] = {65, 66, 67, 68}; print_memory(s, 4);
+  name: print_memory_four_bytes
+  stdout: '4142 4344                               ABCD
+
+    '
+- name: test_05_single_byte
+  call: unsigned char s[1] = {65}; print_memory(s, 1);
+  tier: edge
+  stdout: '41                                      A
+
+    '
+- name: test_06_exact_16_bytes
+  call: unsigned char s[16] = "0123456789abcdef"; print_memory(s, 16);
+  tier: edge
+  stdout: '3031 3233 3435 3637 3839 6162 6364 6566 0123456789abcdef
+
+    '
+- name: test_07_17_bytes_two_lines
+  call: unsigned char s[17] = "0123456789abcdefX"; print_memory(s, 17);
+  tier: edge
+  stdout: '3031 3233 3435 3637 3839 6162 6364 6566 0123456789abcdef
+
+    58                                      X
+
+    '
+- name: test_08_all_non_printable
+  call: unsigned char s[5] = {0, 1, 31, 127, 255}; print_memory(s, 5);
+  tier: edge
+  stdout: '0001 1f7f ff                            .....
+
+    '
+- name: test_09_odd_byte_count_3
+  call: unsigned char s[3] = {49, 51, 55}; print_memory(s, 3);
+  tier: baseline
+  stdout: '3133 37                                 137
+
+    '
+- name: test_10_32_bytes_two_full_rows
+  call: unsigned char s[32] = "0123456789abcdefABCDEF0123456789"; print_memory(s,
+    32);
+  tier: stress
+  stdout: '3031 3233 3435 3637 3839 6162 6364 6566 0123456789abcdef
+
+    4142 4344 4546 3031 3233 3435 3637 3839 ABCDEF0123456789
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

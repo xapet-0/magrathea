@@ -1,0 +1,198 @@
+fixed_tests:
+- name: test_01_stdin
+  stdin: 'root:x:0:0::/root:/bin/sh
+
+    '
+  stdout: 'root
+
+    '
+  tier: baseline
+- name: folder_ex_01
+  tier: folder_example
+  args: []
+  stdout: 'root
+
+    '
+  stdin: 'root:x:0:0::/root:/bin/sh
+
+    '
+- name: folder_ex_02
+  tier: folder_example
+  args: []
+  stdout: 'marvin
+
+    bocal
+
+    '
+  stdin: 'marvin:x:42:42::/home/marvin:/bin/sh
+
+    bocal:x:1337:1337::/home/bocal:/bin/sh
+
+    '
+- name: test_04_three_entries
+  tier: edge_case
+  args: []
+  stdin: 'u1:x:1:1::/:/bin/sh
+
+    u2:x:2:2::/:/bin/sh
+
+    u3:x:3:3::/:/bin/sh
+
+    '
+  stdout: 'u1
+
+    u2
+
+    u3
+
+    '
+- name: test_05_stdin_auto
+  stdin: '42
+
+    1337
+
+    '
+  tier: baseline
+  stdout: '42
+
+    1337
+
+    '
+- name: test_06_stdin_auto
+  stdin: 'hello world
+
+    '
+  tier: baseline
+  stdout: 'hello world
+
+    '
+- name: test_07_stdin_auto
+  stdin: 'a
+
+    b
+
+    c
+
+    '
+  tier: baseline
+  stdout: 'a
+
+    b
+
+    c
+
+    '
+- name: test_08_stdin_auto
+  stdin: '10 20 30 40 50
+
+    '
+  tier: baseline
+  stdout: '10 20 30 40 50
+
+    '
+- name: test_09_stdin_auto
+  stdin: 'single_line
+
+    '
+  tier: baseline
+  stdout: 'single_line
+
+    '
+- name: test_10_stdin_auto
+  stdin: 'foo
+
+    bar
+
+    baz
+
+    qux
+
+    '
+  tier: baseline
+  stdout: 'foo
+
+    bar
+
+    baz
+
+    qux
+
+    '
+subject_id: zig_passwd
+mode: shell
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: printf "root:x:0:0::/root:/bin/sh\n" | sh zig_passwd.sh | cat -e
+  args: &id001
+  - root:x:0:0::/root:/bin/sh\n
+  expected: 'root
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: printf "marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n"
+    | sh zig_passwd.sh | cat -e
+  args: &id002
+  - marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n
+  expected: 'marvin
+
+    bocal
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_zig_passwd_T03
+  origin: subject_folder/examples.txt
+  input: printf "root:x:0:0::/root:/bin/sh\n" \| sh zig_passwd.sh \| cat -e
+  expected: root$
+- id: e1337_zig_passwd_T04
+  origin: subject_folder/examples.txt
+  input: printf "marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n"
+    \| sh zig_passwd.sh \| cat -e
+  expected: marvin$\nbocal$
+- id: folder_fixture_03
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- stdin: 'root:x:0:0::/root:/bin/sh\n\n    '\n  stdout:\
+    \ 'root\n\n    '\n- stdin: 'marvin:x:42:42::/home/marvin:/bin/sh\n\n    bocal:x:1337:1337::/home/boca"
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - soot:x:0:0::/root:/bin/sh\n
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  root:x:0:0::/root:/bin/sh\n  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - narvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_zig_passwd_T03
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: printf "root:x:0:0::/root:/bin/sh\n" \| sh zig_passwd.sh \| cat
+    -e
+  perturbed_input: 'qrintf "root:x:0:0::/root:/bin/sh\n" \| '
+- id: near_folder_02_boundary_neighbor
+  derived_from: e1337_zig_passwd_T04
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: printf "marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n"
+    \| sh zig_passwd.sh \| cat -e
+  perturbed_input: qrintf "marvin:x:42:42::/home/marvin:/bi

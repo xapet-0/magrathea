@@ -1,0 +1,13 @@
+id: ft_recursive_factorial
+type: c_function
+module: C 05
+xp: 205
+expected_files:
+- ft_recursive_factorial.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int ft_recursive_factorial(int nb);

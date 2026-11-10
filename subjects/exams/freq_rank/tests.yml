@@ -1,0 +1,231 @@
+fixed_tests:
+- name: test_01_stdin
+  stdin: 'b
+
+    a
+
+    b
+
+    '
+  stdout: '2 b
+
+    1 a
+
+    '
+  tier: baseline
+- name: folder_ex_01
+  tier: folder_example
+  args: []
+  stdout: '2 b
+
+    1 a
+
+    '
+  stdin: 'b
+
+    a
+
+    b
+
+    '
+- name: folder_ex_02
+  tier: folder_example
+  args: []
+  stdout: '3 x
+
+    1 y
+
+    '
+  stdin: 'x
+
+    x
+
+    x
+
+    y
+
+    '
+- name: folder_ex_03
+  tier: folder_example
+  args: []
+  stdout: '1 42
+
+    '
+  stdin: '42
+
+    '
+- name: test_05_stdin_auto
+  stdin: '42
+
+    1337
+
+    '
+  tier: baseline
+  stdout: '1 1337
+
+    1 42
+
+    '
+- name: test_06_stdin_auto
+  stdin: 'hello world
+
+    '
+  tier: baseline
+  stdout: '1 hello
+
+    '
+- name: test_07_stdin_auto
+  stdin: 'a
+
+    b
+
+    c
+
+    '
+  tier: baseline
+  stdout: '1 a
+
+    1 b
+
+    1 c
+
+    '
+- name: test_08_stdin_auto
+  stdin: '10 20 30 40 50
+
+    '
+  tier: baseline
+  stdout: '1 10
+
+    '
+- name: test_09_stdin_auto
+  stdin: 'single_line
+
+    '
+  tier: baseline
+  stdout: '1 single_line
+
+    '
+- name: test_10_stdin_auto
+  stdin: 'foo
+
+    bar
+
+    baz
+
+    qux
+
+    '
+  tier: baseline
+  stdout: '1 bar
+
+    1 baz
+
+    1 foo
+
+    1 qux
+
+    '
+subject_id: freq_rank
+mode: shell
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: printf "b\na\nb\n" | sh freq_rank.sh | cat -e
+  args: &id001
+  - b\na\nb\n
+  expected: '2 b
+
+    1 a
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: printf "x\nx\nx\ny\n" | sh freq_rank.sh | cat -e
+  args: &id002
+  - x\nx\nx\ny\n
+  expected: '3 x
+
+    1 y
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: printf "42\n" | sh freq_rank.sh | cat -e
+  args: &id003
+  - 42\n
+  expected: '1 42
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_freq_rank_T04
+  origin: subject_folder/examples.txt
+  input: printf "b\na\nb\n" \| sh freq_rank.sh \| cat -e
+  expected: 2 b$\n1 a$
+- id: e1337_freq_rank_T05
+  origin: subject_folder/examples.txt
+  input: printf "x\nx\nx\ny\n" \| sh freq_rank.sh \| cat -e
+  expected: 3 x$\n1 y$
+- id: e1337_freq_rank_T06
+  origin: subject_folder/examples.txt
+  input: printf "42\n" \| sh freq_rank.sh \| cat -e
+  expected: 1 42$
+- id: folder_fixture_04
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- stdin: 'b\n\n    a\n\n    b\n\n    '\n  stdout: '2 b\n\
+    \n    1 a\n\n    '\n- stdin: 'x\n\n    x\n\n    x\n\n    y\n\n    '\n  stdout:\
+    \ '3 x\n\n    1 y\n\n    '\n- stdin: '42"
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - c\na\nb\n
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  b\na\nb\n  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - y\nx\nx\ny\n
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  x\nx\nx\ny\n  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - 42\o
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  42\n  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_freq_rank_T04
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: printf "b\na\nb\n" \| sh freq_rank.sh \| cat -e
+  perturbed_input: qrintf "b\na\nb\n" \| sh freq_rank.sh \|
+- id: near_folder_02_boundary_neighbor
+  derived_from: e1337_freq_rank_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: printf "x\nx\nx\ny\n" \| sh freq_rank.sh \| cat -e
+  perturbed_input: qrintf "x\nx\nx\ny\n" \| sh freq_rank.sh

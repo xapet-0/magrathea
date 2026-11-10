@@ -1,0 +1,5 @@
+# Examples for ft_strupcase (from official subject specification)
+
+Examples:
+    char s[] = "hello"; ft_strupcase(s); printf("%s\n", s)
+    Output: HELLO

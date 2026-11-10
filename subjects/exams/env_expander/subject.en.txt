@@ -1,0 +1,19 @@
+Assignment name  : env_expander
+Expected files   : env_expander.sh
+Allowed commands : env, sed, awk, envsubst, sh
+--------------------------------------------------------------------------------
+
+Write a shell script that reads lines from standard input and expands $FT_VAR
+with the value of the environment variable FT_VAR.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> printf "Hello $FT_VAR\n" | FT_VAR="1337" sh env_expander.sh | cat -e
+Hello 1337$
+$> printf "Welcome to $FT_VAR!\n" | FT_VAR="42_School" sh env_expander.sh | cat -e
+Welcome to 42_School!$
+$> printf "$FT_VAR\n" | FT_VAR="OK" sh env_expander.sh | cat -e
+OK$

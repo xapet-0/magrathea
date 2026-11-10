@@ -1,0 +1,5 @@
+Examples:
+  is_separator(' ') -> 1
+  is_separator('\t') -> 1
+    is_separator('
+') -> 1

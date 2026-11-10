@@ -1,0 +1,62 @@
+mode: shell
+fixed_tests:
+- name: mini_born2beroot_banner_and_architecture
+  args: []
+  stdout: '#Architecture:
+
+    '
+- name: mini_born2beroot_exit_code
+  args: []
+  exit_code: 0
+- name: mini_born2beroot_with_arg
+  args:
+  - status
+  stdout: '#Architecture:
+
+    '
+- name: mini_born2beroot_multi_args
+  args:
+  - a
+  - b
+  stdout: '#Architecture:
+
+    '
+- name: test_05___check
+  args:
+  - --check
+  stdout: '#Architecture:
+
+    '
+- name: test_06___status
+  args:
+  - --status
+  stdout: '#Architecture:
+
+    '
+- name: test_07___arch
+  args:
+  - --arch
+  stdout: '#Architecture:
+
+    '
+- name: test_08___cpu
+  args:
+  - --cpu
+  stdout: '#Architecture:
+
+    '
+- name: test_09___mem
+  args:
+  - --mem
+  stdout: '#Architecture:
+
+    '
+- name: test_10___disk
+  args:
+  - --disk
+  stdout: '#Architecture:
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

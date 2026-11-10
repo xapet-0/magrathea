@@ -1,0 +1,63 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_strndup_T01
+  call: char *s=ft_strndup("Piscine",3); printf("%s\n",s); free(s)
+  stdout: 'Pis
+
+    '
+- name: cur_ft_strndup_T02
+  call: char *s=ft_strndup("Hi",5); printf("%s\n",s); free(s)
+  stdout: 'Hi
+
+    '
+- name: ft_strndup_zero_n
+  call: char *s=ft_strndup("Hello",0); printf("%s|%d\n",s,s[0]==0); free(s)
+  stdout: '|1
+
+    '
+- name: ft_strndup_empty_string
+  call: char *s=ft_strndup("",4); printf("%s|%d\n",s,s[0]==0); free(s)
+  stdout: '|1
+
+    '
+- name: test_05_exact_length
+  call: char *s=ft_strndup("1337",4); printf("%s|%d\n",s,s[4]==0); free(s)
+  tier: edge
+  stdout: '1337|1
+
+    '
+- name: test_06_single_char_n1
+  call: char *s=ft_strndup("abcdef",1); printf("%s\n",s); free(s)
+  tier: edge
+  stdout: 'a
+
+    '
+- name: test_07_empty_with_zero_n
+  call: char *s=ft_strndup("",0); printf("[%s]\n",s); free(s)
+  tier: edge
+  stdout: '[]
+
+    '
+- name: test_08_distinct_pointer_check
+  call: const char *src="magrathea"; char *s=ft_strndup(src,9); printf("%d:%s\n",s!=src,s);
+    free(s)
+  tier: baseline
+  stdout: '1:magrathea
+
+    '
+- name: test_09_n_much_larger_than_len
+  call: char *s=ft_strndup("42",100); printf("%s|%zu\n",s,strlen(s)); free(s)
+  tier: edge
+  stdout: '42|2
+
+    '
+- name: test_10_prefix_series
+  call: for(size_t i=0;i<=4;i++){char *s=ft_strndup("test",i); printf("[%s]",s); free(s);}
+    printf("\n")
+  tier: stress
+  stdout: '[][t][te][tes][test]
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

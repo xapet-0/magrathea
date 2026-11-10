@@ -1,0 +1,212 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `title`
+  input: "title(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `title`
+  input: title("   word   ") and title("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `title`
+  input: title("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `title`
+  input: Execute title with no arguments and with 3 arguments
+  expected: Print newline only
+fixed_tests:
+- args:
+  - no NO no!
+  category: Functional
+  description: no_NO_no
+  expected: 'No NO No!
+
+    '
+  name: cur_title_T01
+  stdout: 'No NO No!
+
+    '
+  tier: baseline
+- args:
+  - hello world
+  category: Functional
+  description: hello_world
+  expected: 'Hello World
+
+    '
+  name: cur_title_T02
+  stdout: 'Hello World
+
+    '
+  tier: baseline
+- args:
+  - ''
+  category: Edge Case
+  description: empty
+  expected: '
+
+    '
+  name: cur_title_T03
+  stdout: '
+
+    '
+  tier: baseline
+- args: []
+  category: Functional
+  description: no_args
+  expected: '
+
+    '
+  name: cur_title_T04
+  stdout: '
+
+    '
+  tier: baseline
+- args:
+  - pjldfjslogjlsj
+  expected: 'Pjldfjslogjlsj
+
+    '
+  name: subj_ex_03
+  stdout: 'Pjldfjslogjlsj
+
+    '
+  tier: subject_example
+- name: test_06_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: "   \n"
+- name: test_08_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '1337
+
+    '
+- name: test_09_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '42_Network
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: '!@#$%^&*()
+
+    '
+folder_examples:
+- expected: No NO No!\n
+  id: cur_title_T01
+  input: '[''no NO no!'']'
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: Hello World\n
+  id: cur_title_T02
+  input: '[''hello world'']'
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: '`\n` (Empty argument outputs single newline)'
+  id: cur_title_T03
+  input: '['''']'
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: ./title | cat -e
+  perturbed_input:
+  - title_near_arg_1
+  - title_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: subj_ex_02
+  id: near_subj_02_lexical_shift
+  original_input: &id001
+  - no NO no no no!
+  perturbed_input:
+  - oo NO no no no!
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_02
+  id: near_subj_02_whitespace_envelope
+  original_input: *id001
+  perturbed_input:
+  - '  no NO no no no!  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_03
+  id: near_subj_03_lexical_shift
+  original_input: &id002
+  - pjldfjslogjlsj
+  perturbed_input:
+  - qjldfjslogjlsj
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_03
+  id: near_subj_03_whitespace_envelope
+  original_input: *id002
+  perturbed_input:
+  - '  pjldfjslogjlsj  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_04
+  id: near_subj_04_arity_perturbation
+  original_input: Pjldfjslogjlsj
+  perturbed_input:
+  - title_near_arg_1
+  - title_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: cur_title_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: '[''no NO no!'']'
+  perturbed_input: '[''oo NO no!'']'
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+- derived_from: cur_title_T02
+  id: near_folder_02_boundary_neighbor
+  original_input: '[''hello world'']'
+  perturbed_input: '[''iello world'']'
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: []
+  cat_e: true
+  command: ./title | cat -e
+  expected: '
+
+    '
+  id: subj_ex_01
+  origin: subject.en.txt
+- args: *id001
+  cat_e: true
+  command: ./rstr_capitalizer "no NO no no no!" | cat -e
+  expected: 'No NO No No No!
+
+    '
+  id: subj_ex_02
+  origin: subject.en.txt
+- args: *id002
+  cat_e: true
+  command: ./title pjldfjslogjlsj | cat -e
+  expected: ''
+  id: subj_ex_03
+  origin: subject.en.txt
+- args: []
+  cat_e: false
+  command: Pjldfjslogjlsj
+  expected: '==========================================================================================
+
+    '
+  id: subj_ex_04
+  origin: subject.en.txt

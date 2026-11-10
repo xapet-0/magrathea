@@ -1,0 +1,3 @@
+Examples:
+$> ./only_a | cat -e
+a$

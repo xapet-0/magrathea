@@ -1,0 +1,9 @@
+# Examples for strlen_sh (from official subject specification)
+
+Example:
+
+$> echo $FT_LINE
+Les stagiaires du staff ne sentent pas toujours tres bon.
+$> zsh strlen.sh
+57
+$>

@@ -1,0 +1,9 @@
+Examples:
+  int x = 50; ft_subtract(8, &x); printf("%d\n", x)
+  Output: 42
+    int x = 10; ft_subtract(15, &x); printf("%d
+", x)
+    Output: -5
+    int x = 0; ft_subtract(0, &x); printf("%d
+", x)
+    Output: 0

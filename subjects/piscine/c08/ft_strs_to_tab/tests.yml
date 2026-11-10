@@ -1,0 +1,70 @@
+fixed_tests:
+- call: char *v[]={"ab","cde"}; struct s_stock_str *t=ft_strs_to_tab(2,v); printf("%d:%s:%s|%d:%s:%s\n",t[0].size,t[0].str,t[0].copy,t[1].size,t[1].str,t[1].copy);
+  name: strs_to_tab_basic
+  stdout: '2:ab:ab|3:cde:cde
+
+    '
+- call: char *v[]={"","hello","42"}; struct s_stock_str *t=ft_strs_to_tab(3,v); printf("%d:%s:%s|%d:%s:%s|%d:%s:%s|%d:%d:%d\n",t[0].size,t[0].str,t[0].copy,t[1].size,t[1].str,t[1].copy,t[2].size,t[2].str,t[2].copy,t[3].size,t[3].str==0,t[3].copy==0);
+  name: case_strs_to_tab_terminator
+  stdout: '0::|5:hello:hello|2:42:42|0:1:1
+
+    '
+- call: char *v[]={"test"}; struct s_stock_str *t=ft_strs_to_tab(0,v); printf("%d:%d\n",
+    t[0].str==0, t[0].copy==0);
+  name: strs_to_tab_zero_size
+  stdout: '1:1
+
+    '
+- call: char *v[]={"42"}; struct s_stock_str *t=ft_strs_to_tab(1,v); printf("%d:%s:%s\n",
+    t[0].size, t[0].str, t[0].copy);
+  name: strs_to_tab_single_string
+  stdout: '2:42:42
+
+    '
+- name: test_05_copy_is_distinct_pointer
+  call: char s0[]="mutable"; char *v[]={s0}; struct s_stock_str *t=ft_strs_to_tab(1,v);
+    s0[0]='X'; printf("%d:%s:%s:%d\n", t[0].size, t[0].str, t[0].copy, t[0].str !=
+    t[0].copy);
+  tier: edge
+  stdout: '7:Xutable:mutable:1
+
+    '
+- name: test_06_empty_strings_array
+  call: char *v[]={"",""}; struct s_stock_str *t=ft_strs_to_tab(2,v); printf("%d:%s|%d:%s|%d\n",
+    t[0].size, t[0].copy, t[1].size, t[1].copy, t[2].str==0);
+  tier: edge
+  stdout: '0:|0:|1
+
+    '
+- name: test_07_three_numeric_strings
+  call: char *v[]={"0","42","1337"}; struct s_stock_str *t=ft_strs_to_tab(3,v); printf("%d:%s|%d:%s|%d:%s|%d\n",
+    t[0].size, t[0].copy, t[1].size, t[1].copy, t[2].size, t[2].copy, t[3].str==0);
+  tier: baseline
+  stdout: '1:0|2:42|4:1337|1
+
+    '
+- name: test_08_four_strings
+  call: char *v[]={"one","two","three","four"}; struct s_stock_str *t=ft_strs_to_tab(4,v);
+    for(int i=0;i<4;i++) printf("%d:%s,", t[i].size, t[i].copy); printf("%d\n", t[4].str==0);
+  tier: baseline
+  stdout: '3:one,3:two,5:three,4:four,1
+
+    '
+- name: test_09_spaces_and_symbols
+  call: char *v[]={"hello world","!@#$%"}; struct s_stock_str *t=ft_strs_to_tab(2,v);
+    printf("%d:%s|%d:%s\n", t[0].size, t[0].copy, t[1].size, t[1].copy);
+  tier: baseline
+  stdout: '11:hello world|5:!@#$%
+
+    '
+- name: test_10_five_elements_check
+  call: char *v[]={"1","22","333","4444","55555"}; struct s_stock_str *t=ft_strs_to_tab(5,v);
+    for(int i=0;i<5;i++) printf("%d-", t[i].size); printf("%d\n", t[5].str==0);
+  tier: stress
+  stdout: '1-2-3-4-5-1
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

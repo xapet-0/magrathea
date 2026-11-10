@@ -1,0 +1,22 @@
+Assignment name  : digit_root
+Expected files   : digit_root.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a non-negative integer string and repeatedly sums its
+digits until a single digit remains, then prints that digit followed by a
+newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./digit_root "1337" | cat -e
+5$
+$> ./digit_root "42" | cat -e
+6$
+$> ./digit_root "999" | cat -e
+9$
+$> ./digit_root "0" | cat -e
+0$

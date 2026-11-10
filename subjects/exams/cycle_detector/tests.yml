@@ -1,0 +1,110 @@
+mode: c_function
+fixed_tests:
+- name: can_cycle_detector_T01
+  description: has_cycle
+  call: t_list a = {1, 0}; t_list b = {2, 0}; t_list c = {3, 0}; a.next = &b; b.next
+    = &c; c.next = &b; printf("%d\n", cycle_detector(&a))
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_cycle_detector_T02
+  description: linear_list
+  call: t_list a = {1, 0}; t_list b = {2, 0}; t_list c = {3, 0}; a.next = &b; b.next
+    = &c; printf("%d\n", cycle_detector(&a))
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_cycle_detector_T03
+  description: null_list
+  call: printf("%d\n", cycle_detector(0))
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_cycle_detector_T04_self_cycle
+  description: single_node_self_cycle
+  call: t_list a = {42, 0}; a.next = &a; printf("%d\n", cycle_detector(&a))
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_single_node_no_cycle
+  call: t_list a = {1, 0}; printf("%d\n", cycle_detector(&a))
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_06_two_node_cycle
+  call: t_list a = {1, 0}, b = {2, 0}; a.next = &b; b.next = &a; printf("%d\n", cycle_detector(&a))
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_two_node_no_cycle
+  call: t_list a = {1, 0}, b = {2, 0}; a.next = &b; printf("%d\n", cycle_detector(&a))
+  tier: baseline
+  stdout: '0
+
+    '
+- name: test_08_four_node_cycle_to_head
+  call: t_list d={4,0},c={3,&d},b={2,&c},a={1,&b}; d.next=&a; printf("%d\n", cycle_detector(&a))
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_09_five_node_tail_self_loop
+  call: t_list e={5,0},d={4,&e},c={3,&d},b={2,&c},a={1,&b}; e.next=&e; printf("%d\n",
+    cycle_detector(&a))
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_10_six_node_linear
+  call: t_list f={6,0},e={5,&f},d={4,&e},c={3,&d},b={2,&c},a={1,&b}; printf("%d\n",
+    cycle_detector(&a))
+  tier: stress
+  stdout: '0
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval cycle_detector
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_cycle_detector_T05
+  origin: subject_folder/cycle_detector_MAIN.c
+  input: Compiled and run with cycle_detector_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_02
+  origin: subject_folder/cycle_detector_MAIN.c
+  input: cycle_detector_MAIN.c
+  expected: "#include <stdio.h>\n#include <stdlib.h>\n#include \"list.h\"\n\nint cycle_detector(const\
+    \ t_list *list);\n\nint main(void)\n{\n    t_list a, b, c;\n    a.next = &b;\n\
+    \    b.n"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval cycle_detector
+  perturbed_input:
+  - cycle_detector_near_arg_1
+  - cycle_detector_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_cycle_detector_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/cycle_detector_MAIN.c)
+  original_input: Compiled and run with cycle_detector_MAIN.c
+  perturbed_input: Dompiled and run with cycle_detector_MAI
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/cycle_detector_MAIN.c)
+  original_input: cycle_detector_MAIN.c
+  perturbed_input: dycle_detector_MAIN.c

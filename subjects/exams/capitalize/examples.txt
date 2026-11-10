@@ -1,0 +1,9 @@
+Examples:
+$> ./capitalize "hello WORLD 42school" | cat -e
+Hello World 42school$
+$> ./capitalize "" | cat -e
+$
+$> ./capitalize "pISCINE" | cat -e
+Piscine$
+$> ./capitalize "  aBC	dEF  " | cat -e
+Abc	Def  $

@@ -1,0 +1,74 @@
+fixed_tests:
+- call: t_list d={"d",0}; t_list b={"b",&d}; t_list c={"c",0}; t_list a={"a",&c};
+    t_list *l=&a; ft_sorted_list_merge(&l,&b,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  name: pool_ft_sorted_list_merge_T01
+  stdout: 'abcd
+
+    '
+- call: t_list b={"b",0}; t_list *l=NULL; ft_sorted_list_merge(&l,&b,dt_cmp); printf("%s\n",(char*)l->data);
+  name: ft_sorted_list_merge_first_empty
+  stdout: 'b
+
+    '
+- call: t_list a={"a",0}; t_list *l=&a; ft_sorted_list_merge(&l,NULL,dt_cmp); printf("%s:%d\n",(char*)l->data,l->next==NULL);
+  name: ft_sorted_list_merge_second_empty
+  stdout: 'a:1
+
+    '
+- call: t_list b2={"3",0}; t_list b1={"2",&b2}; t_list a2={"3",0}; t_list a1={"1",&a2};
+    t_list *l=&a1; ft_sorted_list_merge(&l,&b1,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  name: ft_sorted_list_merge_with_duplicates
+  stdout: '1233
+
+    '
+- name: test_05_both_empty
+  call: t_list *l=NULL; ft_sorted_list_merge(&l,NULL,dt_cmp); printf("%d\n",l==NULL);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_all_list2_smaller_than_list1
+  call: t_list a2={"d",0},a1={"c",&a2}; t_list b2={"b",0},b1={"a",&b2}; t_list *l=&a1;
+    ft_sorted_list_merge(&l,&b1,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: edge
+  stdout: 'abcd
+
+    '
+- name: test_07_all_list1_smaller_than_list2
+  call: t_list a2={"b",0},a1={"a",&a2}; t_list b2={"d",0},b1={"c",&b2}; t_list *l=&a1;
+    ft_sorted_list_merge(&l,&b1,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: edge
+  stdout: 'abcd
+
+    '
+- name: test_08_single_nodes_merge
+  call: t_list a={"z",0},b={"a",0}; t_list *l=&a; ft_sorted_list_merge(&l,&b,dt_cmp);
+    while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  tier: baseline
+  stdout: 'az
+
+    '
+- name: test_09_unequal_lengths_1_and_4
+  call: t_list a={"3",0}; t_list b4={"5",0},b3={"4",&b4},b2={"2",&b3},b1={"1",&b2};
+    t_list *l=&a; ft_sorted_list_merge(&l,&b1,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: baseline
+  stdout: '12345
+
+    '
+- name: test_10_six_elements_interleaved
+  call: t_list a3={"5",0},a2={"3",&a3},a1={"1",&a2}; t_list b3={"6",0},b2={"4",&b3},b1={"2",&b2};
+    t_list *l=&a1; ft_sorted_list_merge(&l,&b1,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: stress
+  stdout: '123456
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

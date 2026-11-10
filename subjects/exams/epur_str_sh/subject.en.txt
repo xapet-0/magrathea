@@ -1,0 +1,20 @@
+Assignment name  : epur_str_sh
+Expected files   : epur_str_sh.sh
+Allowed commands : echo, printf, awk, sed, tr
+--------------------------------------------------------------------------------
+
+Write a shell script that takes the string in FT_LINE, removes leading and
+trailing whitespace, collapses multiple spaces into a single space, and prints
+the result followed by a newline.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> FT_LINE="   hello    world   " sh epur_str_sh.sh | cat -e
+hello world$
+$> FT_LINE="1337   42   piscine" sh epur_str_sh.sh | cat -e
+1337 42 piscine$
+$> FT_LINE="single" sh epur_str_sh.sh | cat -e
+single$

@@ -1,0 +1,11 @@
+# Examples for occ_a_sh (from official subject specification)
+
+Examples:
+$> FT_LINE="abracadabra" sh occ_a_sh.sh | cat -e
+5$
+$> FT_LINE="xyz" sh occ_a_sh.sh | cat -e
+0$
+$> FT_LINE="aaa" sh occ_a_sh.sh | cat -e
+3$
+$> FT_LINE="" sh occ_a_sh.sh | cat -e
+0$

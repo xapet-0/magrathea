@@ -1,0 +1,16 @@
+id: count_digits_sh
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 290
+expected_files:
+- count_digits_sh.sh
+allowed_functions:
+- printf
+- tr
+- wc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh count_digits_sh.sh [args...]

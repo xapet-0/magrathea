@@ -1,0 +1,21 @@
+id: c04
+display_name: 1337 / 42 Piscine — C 04
+exercises:
+- ex: ex00
+  subject_id: piscine/c04/ft_strlen
+  xp: 170
+- ex: ex01
+  subject_id: piscine/c04/ft_putstr
+  xp: 170
+- ex: ex02
+  subject_id: piscine/c04/ft_putnbr
+  xp: 170
+- ex: ex03
+  subject_id: piscine/c04/ft_atoi
+  xp: 170
+- ex: ex04
+  subject_id: piscine/c04/ft_putnbr_base
+  xp: 190
+- ex: ex05
+  subject_id: piscine/c04/ft_atoi_base
+  xp: 170

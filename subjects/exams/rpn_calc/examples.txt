@@ -1,0 +1,7 @@
+Examples:
+$> ./rpn_calc "1 2 * 3 * 4 +" | cat -e
+10$
+$> ./rpn_calc "1 2 3 4 +" | cat -e
+Error$
+$> ./rpn_calc |cat -e
+Error$

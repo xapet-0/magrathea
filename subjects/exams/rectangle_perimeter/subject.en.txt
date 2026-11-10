@@ -1,0 +1,18 @@
+Assignment name  : rectangle_perimeter
+Expected files   : rectangle_perimeter.c
+Allowed functions:
+Version          : 
+--------------------------------------------------------------------------------
+
+Write a function to calculate the perimeter of a rectangle: 
+    - mathematical formula for rectangle perimeter ((2 * length) + (2 * width)).
+
+Your function must be declared as follows:
+    int rectangle_perimeter(int length, int width):
+
+[cur_rectangle_perimeter_T01] Input: rectangle_perimeter(5, 10)  ==>  Expected: 30\n
+[cur_rectangle_perimeter_T02] Input: rectangle_perimeter(3, 4)  ==>  Expected: 14\n
+[cur_rectangle_perimeter_T03] Input: Dynamic generation rule via basic_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_rectangle_perimeter_T04] Input: Dynamic generation rule via decimal_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_rectangle_perimeter_T05] Input: Dynamic generation rule via zero_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_rectangle_perimeter_T06] Input: Dynamic generation rule via large_radius_test()  ==>  Expected: Deterministic output validated by Deepthought oracle

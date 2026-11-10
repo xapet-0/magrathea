@@ -1,0 +1,61 @@
+mode: c_function
+fixed_tests:
+- name: cur_rectangle_perimeter_T01
+  call: printf("%d\n", rectangle_perimeter(5, 10))
+  stdout: '30
+
+    '
+- name: cur_rectangle_perimeter_T02
+  call: printf("%d\n", rectangle_perimeter(3, 4))
+  stdout: '14
+
+    '
+- name: rectangle_perimeter_zero
+  call: printf("%d\n", rectangle_perimeter(0, 10))
+  stdout: '0
+
+    '
+- name: rectangle_perimeter_negative
+  call: printf("%d\n", rectangle_perimeter(-5, 10))
+  stdout: '0
+
+    '
+- name: test_05_unit_square
+  call: printf("%d\n", rectangle_perimeter(1, 1))
+  tier: edge
+  stdout: '4
+
+    '
+- name: test_06_second_zero
+  call: printf("%d\n", rectangle_perimeter(10, 0))
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_second_negative
+  call: printf("%d\n", rectangle_perimeter(10, -5))
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_both_negative
+  call: printf("%d\n", rectangle_perimeter(-3, -4))
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_square_seven
+  call: printf("%d\n", rectangle_perimeter(7, 7))
+  tier: baseline
+  stdout: '28
+
+    '
+- name: test_10_large_rectangle
+  call: printf("%d\n", rectangle_perimeter(100, 250))
+  tier: stress
+  stdout: '700
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

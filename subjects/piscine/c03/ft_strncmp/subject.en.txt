@@ -1,0 +1,22 @@
+Assignment name  : ft_strncmp
+Expected files   : ft_strncmp.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 03 (Official PDF)
+Exercise         : ft_strncmp
+Turn-in directory: ex01/
+Expected files   : ft_strncmp.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Reproduce the behavior of the function strncmp (man strncmp).
+• The function should be prototyped as follows:
+int ft_strncmp(char *s1, char *s2, unsigned int n);
+
+Your function must be declared as follows:
+    int ft_strncmp(char *s1, char *s2, unsigned int n);
+
+Examples:
+    ft_strncmp("abc", "abd", 2) == 0 ? 1 : 0 -> 1
+    ft_strncmp("abc", "abd", 3) < 0 ? 1 : 0 -> 1

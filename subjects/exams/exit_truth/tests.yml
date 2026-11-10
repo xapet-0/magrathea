@@ -1,0 +1,65 @@
+fixed_tests:
+- name: test_01_42
+  args:
+  - '42'
+  stdout: ''
+  expect_empty: true
+  exit_code: 0
+- name: test_02_0
+  args:
+  - '0'
+  stdout: ''
+  expect_empty: true
+  exit_code: 1
+- name: test_03_1337
+  args:
+  - '1337'
+  stdout: ''
+  expect_empty: true
+  exit_code: 1
+- name: test_04_negative_arg
+  args:
+  - '-42'
+  stdout: ''
+  expect_empty: true
+  exit_code: 1
+- name: test_05_one
+  args:
+  - '1'
+  stdout: ''
+  exit_code: 1
+  tier: baseline
+- name: test_06_forty_one
+  args:
+  - '41'
+  stdout: ''
+  exit_code: 1
+  tier: edge
+- name: test_07_forty_three
+  args:
+  - '43'
+  stdout: ''
+  exit_code: 1
+  tier: edge
+- name: test_08_word_arg
+  args:
+  - abc
+  stdout: ''
+  exit_code: 1
+  tier: edge
+- name: test_09_420
+  args:
+  - '420'
+  stdout: ''
+  exit_code: 1
+  tier: edge
+- name: test_10_9999
+  args:
+  - '9999'
+  stdout: ''
+  exit_code: 1
+  tier: stress
+subject_id: exit_truth
+subject_examples: []
+folder_examples: []
+near_examples: []

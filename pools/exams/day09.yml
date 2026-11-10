@@ -1,0 +1,34 @@
+name: day09
+display_name: 42 C Piscine Day 09 Marathon
+pool_group: piscine
+rank_order: 11
+prerequisites: []
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 25
+  candidates:
+  - aff_a
+  - aff_first_param
+  - aff_last_param
+  - aff_z
+- level: 1
+  points: 25
+  candidates:
+  - ulstr
+  - rot_13
+  - rotone
+  - first_word
+- level: 2
+  points: 25
+  candidates:
+  - inter
+  - union
+  - wdmatch
+  - last_word
+- level: 3
+  points: 25
+  candidates:
+  - ft_split
+  - rostring
+  - rev_wstr

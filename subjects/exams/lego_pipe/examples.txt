@@ -1,0 +1,10 @@
+Examples:
+$> printf "B\na\nB\n\n" | sh lego_pipe.sh | cat -e
+a$
+b$
+$> printf "Z\nA\nz\nA\n" | sh lego_pipe.sh | cat -e
+a$
+z$
+$> printf "hello\nHELLO\nworld\n" | sh lego_pipe.sh | cat -e
+hello$
+world$

@@ -1,0 +1,263 @@
+mode: c_program
+fixed_tests:
+- name: can_biggest_pal_T01
+  description: abcba
+  args:
+  - abcba
+  expected: 'abcba
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_biggest_pal_T02
+  description: a
+  args:
+  - a
+  expected: 'a
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_biggest_pal_T03
+  description: tie_last
+  args:
+  - abacaba_xyzzyx
+  expected: 'abacaba
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_biggest_pal_T04
+  description: even_pal
+  args:
+  - xxabba
+  expected: 'abba
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_biggest_pal_T05
+  description: no_args
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: "   \n"
+- name: test_08_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '33
+
+    '
+- name: test_09_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: 'k
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: ')
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: biggest_pal "abcba"
+  args: &id001
+  - abcba
+  expected: 'abcba
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: biggest_pal "aaaaaaaaaabbcbbaaaa"
+  args: &id002
+  - aaaaaaaaaabbcbbaaaa
+  expected: 'aaaabbcbbaaaa
+
+    '
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: biggest_pal "aooibdaoiwhoihwdoinzeldaisaboyobasiadlezfdsfnslk"
+  args: &id003
+  - aooibdaoiwhoihwdoinzeldaisaboyobasiadlezfdsfnslk
+  expected: 'zeldaisaboyobasiadlez
+
+    '
+  cat_e: false
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: biggest_pal "aeibaabaammaabaalek"
+  args: &id004
+  - aeibaabaammaabaalek
+  expected: 'aabaammaabaa
+
+    '
+  cat_e: false
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: biggest_pal abeb qpinqwjobo qkmnwoiq
+  args:
+  - abeb
+  - qpinqwjobo
+  - qkmnwoiq
+  expected: '
+
+    '
+  cat_e: false
+- id: subj_ex_06
+  origin: subject.en.txt
+  command: biggest_pal
+  args: []
+  expected: '
+
+    '
+  cat_e: false
+- id: subj_ex_07
+  origin: subject.en.txt
+  command: ./biggest_pal "abcba" | cat -e
+  args:
+  - abcba
+  expected: 'abcba
+
+    '
+  cat_e: true
+- id: subj_ex_08
+  origin: subject.en.txt
+  command: ./biggest_pal "a" | cat -e
+  args:
+  - a
+  expected: 'a
+
+    '
+  cat_e: true
+- id: subj_ex_09
+  origin: subject.en.txt
+  command: ./biggest_pal "abacaba_xyzzyx" | cat -e
+  args:
+  - abacaba_xyzzyx
+  expected: 'abacaba
+
+    '
+  cat_e: true
+- id: subj_ex_10
+  origin: subject.en.txt
+  command: ./biggest_pal "xxabba" | cat -e
+  args:
+  - xxabba
+  expected: 'abba
+
+    '
+  cat_e: true
+- id: subj_ex_11
+  origin: subject.en.txt
+  command: ./biggest_pal | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_biggest_pal_T06
+  origin: subject_folder/examples.txt
+  input: ./biggest_pal "abcba" \| cat -e
+  expected: abcba$
+- id: can_biggest_pal_T07
+  origin: subject_folder/examples.txt
+  input: ./biggest_pal "a" \| cat -e
+  expected: a$
+- id: can_biggest_pal_T08
+  origin: subject_folder/examples.txt
+  input: ./biggest_pal "abacaba_xyzzyx" \| cat -e
+  expected: abacaba$
+- id: can_biggest_pal_T09
+  origin: subject_folder/examples.txt
+  input: ./biggest_pal "xxabba" \| cat -e
+  expected: abba$
+- id: can_biggest_pal_T10
+  origin: subject_folder/examples.txt
+  input: ./biggest_pal \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - bbcba
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  abcba  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - baaaaaaaaabbcbbaaaa
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  aaaaaaaaaabbcbbaaaa  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - booibdaoiwhoihwdoinzeldaisaboyobasiadlezfdsfnslk
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  aooibdaoiwhoihwdoinzeldaisaboyobasiadlezfdsfnslk  '
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - beibaabaammaabaalek
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  aeibaabaammaabaalek  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_biggest_pal_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./biggest_pal "abcba" \| cat -e
+  perturbed_input: ./ciggest_pal "abcba" \| cat -e
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_biggest_pal_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./biggest_pal "a" \| cat -e
+  perturbed_input: ./ciggest_pal "a" \| cat -e

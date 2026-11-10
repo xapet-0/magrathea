@@ -1,0 +1,6 @@
+# Examples for range_comb (from official subject specification)
+
+Examples:
+    range_comb(0) == NULL -> 1
+    range_comb(-3) == NULL -> 1
+    r != NULL && r[0][0] == 0 && r[1] == NULL -> 1

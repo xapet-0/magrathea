@@ -1,0 +1,5 @@
+# Examples for clean (from official subject specification)
+
+Examples:
+$> sh clean | cat -e
+$

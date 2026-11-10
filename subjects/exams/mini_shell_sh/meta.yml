@@ -1,0 +1,18 @@
+id: mini_shell_sh
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 300
+expected_files:
+- mini_shell_sh.sh
+allowed_functions:
+- sh
+- read
+- eval
+- printf
+- echo
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh mini_shell_sh.sh [args...]

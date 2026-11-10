@@ -1,0 +1,16 @@
+id: zombie_hunter
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- zombie_hunter.sh
+allowed_functions:
+- ps
+- awk
+- printf
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh zombie_hunter.sh [args...]

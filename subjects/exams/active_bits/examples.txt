@@ -1,0 +1,4 @@
+Examples:
+  active_bits(42) -> 3   (42 in binary is 101010)
+  active_bits(0)  -> 0
+  active_bits(7)  -> 3   (7 in binary is 111)

@@ -1,0 +1,34 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Call / Invocation : char *a[]={"abc","","def",0}; printf("%d\n",ft_any(a,dt_is_empty))
+    Expected Output   : '1\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: ft_any_oracle_stress
+    C Source Driver:
+    static int starts_with_h(char *s) { return (s && s[0] == 'h'); }
+    static int never(char *s) { (void)s; return (0); }
+    int main(void)
+    {
+        char *a[] = {"abc", "hello", "world", 0};
+        char *b[] = {"abc", "def", 0};
+        if (ft_any(a, starts_with_h) != 1) { fprintf(stderr, "ft_any should find match\n"); return (1); }
+        if (ft_any(b, starts_with_h) != 0) { fprintf(stderr, "ft_any false positive\n"); return (1); }
+        if (ft_any(a, never) != 0) { fprintf(stderr, "ft_any never false positive\n"); return (1); }
+        return (0);
+    }
+  [Oracle Test 2] Name: edge_ft_any_edges_edges_null
+    C Source Driver:
+    int starts_with_space(char *s)
+    {
+        return (s && (s[0] == ' ' || s[0] == '\t'));
+    }
+    int main(void)
+    {
+        // empty, whitespace, duplicates, order, null/memory
+        char *tab[] = { "", "hello", " \t ", "hello", NULL };
+        if (ft_any(tab, starts_with_space) != 1) return (1);
+        return (0);
+    }

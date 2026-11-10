@@ -1,0 +1,19 @@
+Assignment name  : eval_expr
+Expected files   : Makefile, *.c, *.h
+Allowed functions: write, malloc, free
+--------------------------------------------------------------------------------
+
+Write a function eval_expr that takes a string representing an arithmetic
+expression and returns the result of this expression as an int.
+
+The expression may contain the operators +, -, *, /, % and parentheses ( and ).
+Operator precedence and parentheses must be respected.
+
+Your function must be declared as follows:
+    int eval_expr(char *str);
+
+Examples:
+    printf("%d\n", eval_expr("3 + 42 * (1 - 2 / (3 + 4) - 1 % 21) + 1"))
+    Output: 4
+    printf("%d\n", eval_expr(" ( 10 + 20 ) * 3 - 48 "))
+    Output: 42

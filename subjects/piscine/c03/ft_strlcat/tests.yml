@@ -1,0 +1,61 @@
+fixed_tests:
+- call: char d[16]="abc"; printf("%u:%s\n", ft_strlcat(d,"def",10), d);
+  name: pool_ft_strlcat_T01
+  stdout: '6:abcdef
+
+    '
+- call: char d[16]="abc"; printf("%u:%s\n", ft_strlcat(d,"def",0), d);
+  name: ft_strlcat_zero_size
+  stdout: '3:abc
+
+    '
+- call: char d[16]="hello"; printf("%u:%s\n", ft_strlcat(d,"world",2), d);
+  name: ft_strlcat_size_smaller_than_dst
+  stdout: '7:hello
+
+    '
+- call: char d[8]="abc"; printf("%u:%s\n", ft_strlcat(d,"def",7), d);
+  name: ft_strlcat_exact_fit
+  stdout: '6:abcdef
+
+    '
+- name: test_05_size_equals_dst_len
+  call: char d[16]="hello"; printf("%u:%s\n", ft_strlcat(d,"world",5), d);
+  tier: edge
+  stdout: '10:hello
+
+    '
+- name: test_06_size_equals_dst_len_plus_1
+  call: char d[16]="hello"; printf("%u:%s\n", ft_strlcat(d,"world",6), d);
+  tier: edge
+  stdout: '10:hello
+
+    '
+- name: test_07_truncation_1_char
+  call: char d[16]="hello"; printf("%u:%s\n", ft_strlcat(d,"world",7), d);
+  tier: edge
+  stdout: '10:hellow
+
+    '
+- name: test_08_empty_dst
+  call: char d[16]=""; printf("%u:%s\n", ft_strlcat(d,"1337",10), d);
+  tier: baseline
+  stdout: '4:1337
+
+    '
+- name: test_09_empty_src
+  call: char d[16]="42"; printf("%u:%s\n", ft_strlcat(d,"",10), d);
+  tier: baseline
+  stdout: '2:42
+
+    '
+- name: test_10_both_empty_zero_size
+  call: char d[16]=""; printf("%u:%s\n", ft_strlcat(d,"",0), d);
+  tier: edge
+  stdout: '0:
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,194 @@
+mode: c_program
+fixed_tests:
+- name: can_print_hex_T01
+  description: 'Functional verification of input: `[''255'']`'
+  args:
+  - '255'
+  expected: 'ff
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_print_hex_T02
+  description: case_zero
+  args:
+  - '0'
+  expected: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_print_hex_T03
+  description: case_42
+  args:
+  - '42'
+  expected: '2a
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_print_hex_T04
+  description: case_4095
+  args:
+  - '4095'
+  expected: 'fff
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_print_hex_T05
+  description: case_bad_argc
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - '10'
+  expected: 'a
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - '5156454'
+  expected: '4eae66
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./print_hex "10" | cat -e
+  args: &id001
+  - '10'
+  expected: 'a
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./print_hex "255" | cat -e
+  args: &id002
+  - '255'
+  expected: 'ff
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./print_hex "5156454" | cat -e
+  args: &id003
+  - '5156454'
+  expected: '4eae66
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./print_hex | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_print_hex_T06
+  origin: subject_folder/42ExamPractice/print_hex/tester.sh
+  input: ./print_hex "4324324"
+  expected: Matches 42 reference standard output and exit code
+- id: can_print_hex_T07
+  origin: subject_folder/42ExamPractice/print_hex/tester.sh
+  input: ./print_hex "98"
+  expected: Matches 42 reference standard output and exit code
+- id: can_print_hex_T08
+  origin: subject_folder/42ExamPractice/print_hex/tester.sh
+  input: ./print_hex "10"
+  expected: Matches 42 reference standard output and exit code
+- id: can_print_hex_T09
+  origin: subject_folder/42ExamPractice/print_hex/tester.sh
+  input: ./print_hex "42"
+  expected: Matches 42 reference standard output and exit code
+- id: can_print_hex_T10
+  origin: subject_folder/examples.txt
+  input: ./print_hex "10" \| cat -e
+  expected: a$
+- id: can_print_hex_T11
+  origin: subject_folder/examples.txt
+  input: ./print_hex "255" \| cat -e
+  expected: ff$
+- id: can_print_hex_T12
+  origin: subject_folder/examples.txt
+  input: ./print_hex "5156454" \| cat -e
+  expected: 4eae66$
+- id: can_print_hex_T13
+  origin: subject_folder/examples.txt
+  input: ./print_hex \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '11'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  10  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - '256'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  255  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - '5156455'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  5156454  '
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./print_hex | cat -e
+  perturbed_input:
+  - print_hex_near_arg_1
+  - print_hex_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_print_hex_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/print_hex/tester.sh)
+  original_input: ./print_hex "4324324"
+  perturbed_input: ./qrint_hex "4324324"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_print_hex_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/print_hex/tester.sh)
+  original_input: ./print_hex "98"
+  perturbed_input: ./qrint_hex "98"

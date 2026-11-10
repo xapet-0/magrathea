@@ -1,0 +1,22 @@
+Assignment name  : ft_strncpy
+Expected files   : ft_strncpy.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 02 (Official PDF)
+Exercise         : ft_strncpy
+Turn-in directory: ex01/
+Expected files   : ft_strncpy.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Reproduce the behavior of the function strncpy (man strncpy).
+• Here is how it should be prototyped:
+char *ft_strncpy(char *dest, char *src, unsigned int n);
+
+Your function must be declared as follows:
+    char *ft_strncpy(char *dest, char *src, unsigned int n);
+
+Examples:
+    char d[8]="xxxxxxx"; ft_strncpy(d,"abc",5); printf("%c%c%c:%d:%d\n",d[0],d[1],d[2],d[3],d[4])
+    Output: abc:0:0

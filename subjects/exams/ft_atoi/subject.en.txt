@@ -1,0 +1,80 @@
+Assignment name  : ft_atoi
+Expected files   : ft_atoi.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that converts the string argument str to an integer (type int)
+and returns it.
+
+It works much like the standard atoi(const char *str) function, see the man.
+
+Your function must be declared as follows:
+
+int	ft_atoi(const char *str);
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: positive_basic
+    Call / Invocation : ft_atoi("42")
+  [Standard Test 2] Name: all_isspace_chars
+    Call / Invocation : ft_atoi(" \t\n\v\f\r+1337")
+  [Standard Test 3] Name: double_plus_rejected
+    Call / Invocation : ft_atoi("++42")
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: zero [Test description: "zero"]
+    Call / Invocation : ft_atoi("0")
+  [Edge Case 2] Name: empty [Test description: "empty"]
+    Call / Invocation : ft_atoi("")
+  [Edge Case 3] Name: only_spaces [Test description: "only_spaces"]
+    Call / Invocation : ft_atoi("   \t\n\v\f\r  ")
+  [Edge Case 4] Name: negative_basic [Test description: "negative_basic"]
+    Call / Invocation : ft_atoi("-42")
+  [Edge Case 5] Name: leading_plus [Test description: "leading_plus"]
+    Call / Invocation : ft_atoi("+42")
+  [Edge Case 6] Name: all_isspace_negative [Test description: "all_isspace_negative"]
+    Call / Invocation : ft_atoi(" \t\n\v\f\r-1337")
+  [Edge Case 7] Name: double_minus_rejected [Test description: "double_minus_rejected"]
+    Call / Invocation : ft_atoi("--42")
+  [Edge Case 8] Name: plus_minus_rejected [Test description: "plus_minus_rejected"]
+    Call / Invocation : ft_atoi("+-42")
+  [Edge Case 9] Name: minus_plus_rejected [Test description: "minus_plus_rejected"]
+    Call / Invocation : ft_atoi("-+42")
+  [Edge Case 10] Name: trailing_alpha [Test description: "trailing_alpha"]
+    Call / Invocation : ft_atoi("  -1234ab567")
+  [Edge Case 11] Name: leading_alpha [Test description: "leading_alpha"]
+    Call / Invocation : ft_atoi("abc123")
+  [Edge Case 12] Name: int_max [Test description: "int_max"]
+    Call / Invocation : ft_atoi("2147483647")
+  [Edge Case 13] Name: int_min [Test description: "int_min"]
+    Call / Invocation : ft_atoi("-2147483648")
+  [Edge Case 14] Name: single_digit_nine [Test description: "single_digit_nine"]
+    Call / Invocation : ft_atoi("9")
+
+>>> DEDICATED _MAIN.c TEST DRIVERS (Nigal / Samuel Karani / Official):
+  File: 2-0-ft_atoi_MAIN.c
+    #include <stdio.h>
+    #include <stdlib.h>
+    
+    int             ft_atoi(char *str);
+    
+    int main()
+    {
+    	printf("ft_atoi: %d\n", ft_atoi("123456"));
+    	printf("atoi: %d\n", atoi("123456"));
+    	printf("ft_atoi: %d\n", ft_atoi("12Three45678"));
+    	printf("atoi: %d\n", atoi("12Three45678"));
+    	printf("ft_atoi: %d\n", ft_atoi("Hello World!"));
+    	printf("atoi: %d\n", atoi("Hello World!"));
+    	printf("ft_atoi: %d\n", ft_atoi("+42 BLAH!"));
+    	printf("atoi: %d\n", atoi("+42 BLAH!"));
+    	printf("ft_atoi: %d\n", ft_atoi("-42"));
+    	printf("atoi: %d\n", atoi("-42"));
+    	printf("ft_atoi: %d\n", ft_atoi("     +42"));
+    	printf("atoi: %d\n", atoi("     +42"));
+    	printf("ft_atoi: %d\n", ft_atoi("\t\n\v\f\r 42"));
+    	printf("atoi: %d\n", atoi("\t\n\v\f\r 42"));
+    	printf("ft_atoi: %d\n", ft_atoi("5"));
+    	printf("atoi: %d\n", atoi("5"));
+    
+    	return 0;
+    }

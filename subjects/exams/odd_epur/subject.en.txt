@@ -1,0 +1,22 @@
+Assignment name  : odd_epur
+Expected files   : odd_epur.sh
+Allowed commands : awk, sed, tr
+--------------------------------------------------------------------------------
+
+Write a shell script that reads from standard input, keeps only odd-numbered
+lines (1, 3, 5...), trims leading and trailing spaces, and collapses multiple
+spaces between words into a single space.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> printf "  hello   world  \nignore\n  foo   bar  \n" | sh odd_epur.sh | cat -e
+hello world$
+foo bar$
+$> printf "   42   1337   \n" | sh odd_epur.sh | cat -e
+42 1337$
+$> printf "a   b\nc   d\ne   f\n" | sh odd_epur.sh | cat -e
+a b$
+e f$

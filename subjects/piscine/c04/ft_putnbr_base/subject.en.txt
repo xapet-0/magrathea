@@ -1,0 +1,29 @@
+Assignment name  : ft_putnbr_base
+Expected files   : ft_putnbr_base.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 04 (Official PDF)
+Exercise         : ft_putnbr_base
+Turn-in directory: ex04/
+Expected files   : ft_putnbr_base.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+• Create a function that displays a number in a given base system in the terminal.
+• The number is provided as an int, and the base is represented as a string of
+characters.
+• The base system consists of all the symbols used to represent the number.
+◦ 0123456789 is the commonly used base system for representing decimal num-
+bers.
+◦ 01 is a binary base system.
+◦ 0123456789ABCDEF is a hexadecimal base system.
+◦ poneyvif is an octal base system.
+• The function must handle negative numbers.
+• If an invalid argument is provided, nothing should be displayed.
+Examples of invalid arguments:
+◦ The base is empty or has only one character.
+◦ The base contains duplicate characters.
+◦ The base contains‘+’ or ‘-’.
+• The function should be prototyped as follows:
+void ft_putnbr_base(int nbr, char *base);

@@ -1,0 +1,12 @@
+# Examples for remove_vowels (from official subject specification)
+
+Example:
+
+$> ./remove_vowels "Hi there, how are you?" | cat -e
+H thr, hw r y?$
+$> ./remove_vowels "Hello world!" | cat -e
+Hll wrld!$
+$>./remove_vowels | cat -e
+$
+$>./remove_vowels "" | cat -e
+$

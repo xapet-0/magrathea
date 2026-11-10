@@ -1,0 +1,18 @@
+Assignment name  : circle_perimeter
+Expected files   : circle_perimeter.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that takes the radius of a circle and returns its perimeter
+(2 * 3.14 * radius).
+
+Your function must be declared as follows:
+
+float	circle_perimeter(float radius);
+
+Your function must be declared as follows:
+    float circle_perimeter(float radius);
+
+Examples:
+    (int)(circle_perimeter(10.0f) * 100) -> 6280
+    (int)(circle_perimeter(0.0f)) -> 0

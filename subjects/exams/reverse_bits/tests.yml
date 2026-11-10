@@ -1,0 +1,118 @@
+mode: c_function
+fixed_tests:
+- name: can_reverse_bits_T01
+  description: 'Functional verification of input: `reverse_bits(2)`'
+  expr: reverse_bits(2)
+  stdout: '64
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_reverse_bits_T02
+  description: zero_byte
+  expr: reverse_bits(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_reverse_bits_T03
+  description: all_ones
+  expr: reverse_bits(255)
+  stdout: '255
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_reverse_bits_T04
+  description: one_lsb
+  expr: reverse_bits(1)
+  stdout: '128
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_128_msb_to_lsb
+  expr: reverse_bits(128)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_38_example
+  expr: reverse_bits(38)
+  tier: baseline
+  stdout: '100
+
+    '
+- name: test_07_85_alternating
+  expr: reverse_bits(85)
+  tier: edge
+  stdout: '170
+
+    '
+- name: test_08_170_alternating
+  expr: reverse_bits(170)
+  tier: edge
+  stdout: '85
+
+    '
+- name: test_09_15_low_nibble
+  expr: reverse_bits(15)
+  tier: baseline
+  stdout: '240
+
+    '
+- name: test_10_involution_property
+  expr: reverse_bits(reverse_bits(42))
+  tier: stress
+  stdout: '42
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval reverse_bits
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_reverse_bits_T06
+  origin: subject_folder/42ExamPractice/reverse_bits/tester.sh
+  input: ./reverse_bits "0"
+  expected: Matches 42 reference standard output and exit code
+- id: can_reverse_bits_T07
+  origin: subject_folder/42ExamPractice/reverse_bits/tester.sh
+  input: ./reverse_bits "P"
+  expected: Matches 42 reference standard output and exit code
+- id: can_reverse_bits_T08
+  origin: subject_folder/42ExamPractice/reverse_bits/tester.sh
+  input: ./reverse_bits "a"
+  expected: Matches 42 reference standard output and exit code
+- id: can_reverse_bits_T09
+  origin: subject_folder/2-0-reverse_bits_MAIN.c
+  input: Compiled and run with 2-0-reverse_bits_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_05
+  origin: subject_folder/2-0-reverse_bits_MAIN.c
+  input: 2-0-reverse_bits_MAIN.c
+  expected: "#include <stdio.h>\n\nunsigned char   reverse_bits(unsigned char octet);\n\
+    \nint     main()\n{\n\tprintf(\"%d\", reverse_bits(38));\n\treturn (0);\n}\n\n\
+    /* *******************"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval reverse_bits
+  perturbed_input:
+  - reverse_bits_near_arg_1
+  - reverse_bits_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_reverse_bits_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/reverse_bits/tester.sh)
+  original_input: ./reverse_bits "0"
+  perturbed_input: ./severse_bits "0"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_reverse_bits_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/reverse_bits/tester.sh)
+  original_input: ./reverse_bits "P"
+  perturbed_input: ./severse_bits "P"

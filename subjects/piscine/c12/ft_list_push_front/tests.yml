@@ -1,0 +1,67 @@
+fixed_tests:
+- call: t_list *l=NULL; ft_list_push_front(&l,"b"); ft_list_push_front(&l,"a"); printf("%s%s\n",(char*)l->data,(char*)l->next->data);
+  name: pool_ft_list_push_front_T01
+  stdout: 'ab
+
+    '
+- call: t_list *l=NULL; ft_list_push_front(&l,"only"); printf("%s:%d\n",(char*)l->data,
+    l->next==NULL);
+  name: ft_list_push_front_to_empty
+  stdout: 'only:1
+
+    '
+- call: t_list *l=NULL; ft_list_push_front(&l,"3"); ft_list_push_front(&l,"2"); ft_list_push_front(&l,"1");
+    printf("%s%s%s\n",(char*)l->data,(char*)l->next->data,(char*)l->next->next->data);
+  name: ft_list_push_front_three_nodes
+  stdout: '123
+
+    '
+- call: t_list c={"end",0}; t_list *l=&c; ft_list_push_front(&l,"start"); printf("%s->%s\n",(char*)l->data,(char*)l->next->data);
+  name: ft_list_push_front_preserves_next
+  stdout: 'start->end
+
+    '
+- name: test_05_null_data_element
+  call: t_list *l=NULL; ft_list_push_front(&l,NULL); printf("%d:%d\n",l->data==NULL,l->next==NULL);
+  tier: edge
+  stdout: '1:1
+
+    '
+- name: test_06_four_nodes_order
+  call: t_list *l=NULL; ft_list_push_front(&l,"d"); ft_list_push_front(&l,"c"); ft_list_push_front(&l,"b");
+    ft_list_push_front(&l,"a"); while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  tier: baseline
+  stdout: 'abcd
+
+    '
+- name: test_07_int_pointers
+  call: int x=10,y=20; t_list *l=NULL; ft_list_push_front(&l,&x); ft_list_push_front(&l,&y);
+    printf("%d,%d\n",*(int*)l->data,*(int*)l->next->data);
+  tier: baseline
+  stdout: '20,10
+
+    '
+- name: test_08_empty_strings
+  call: t_list *l=NULL; ft_list_push_front(&l,""); ft_list_push_front(&l,"42"); printf("%s|[%s]\n",(char*)l->data,(char*)l->next->data);
+  tier: edge
+  stdout: '42|[]
+
+    '
+- name: test_09_five_pushes
+  call: t_list *l=NULL; for(int i=1;i<=5;i++) ft_list_push_front(&l,(void*)(long)i);
+    while(l){printf("%ld,",(long)l->data);l=l->next;} printf("\n");
+  tier: stress
+  stdout: '5,4,3,2,1,
+
+    '
+- name: test_10_head_updated_each_time
+  call: t_list *l=NULL; ft_list_push_front(&l,"first"); t_list *old=l; ft_list_push_front(&l,"second");
+    printf("%d:%d\n",l!=old,l->next==old);
+  tier: edge
+  stdout: '1:1
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

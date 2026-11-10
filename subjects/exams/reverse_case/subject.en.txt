@@ -1,0 +1,21 @@
+Assignment name  : reverse_case
+Expected files   : reverse_case.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a string and reverses the case of all its letters,
+followed by a newline. If the number of arguments is not 1, display a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./reverse_case "Hello 42!" | cat -e
+hELLO 42!$
+$> ./reverse_case "abcXYZ" | cat -e
+ABCxyz$
+$> ./reverse_case "" | cat -e
+$
+$> ./reverse_case | cat -e
+$

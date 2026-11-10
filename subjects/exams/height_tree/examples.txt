@@ -1,0 +1,6 @@
+# Examples for height_tree (from official subject specification)
+
+Examples:
+    height_tree(NULL) -> -1
+    height_tree(&r) -> 0
+    height_tree(&r) -> 1

@@ -1,0 +1,9 @@
+Examples:
+$> ./infin_mult "879879087" "67548976597" | cat -e
+59434931855952726939$
+$> ./infin_mult "9999999999" "0" | cat -e
+0$
+$> ./infin_mult "-6" "7" | cat -e
+-42$
+$> ./infin_mult "-6" "-7" | cat -e
+42$

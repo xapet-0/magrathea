@@ -1,0 +1,12 @@
+Assignment name  : line_window
+Expected files   : line_window.sh
+Allowed commands : awk
+--------------------------------------------------------------------------------
+Write a shell script that reads from standard input and displays only the lines
+inclusively between the line numbers stored in FT_LINE1 and FT_LINE2.
+
+Examples:
+$> seq 1 10 | FT_LINE1=3 FT_LINE2=5 ./line_window.sh | cat -e
+3$
+4$
+5$

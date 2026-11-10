@@ -1,0 +1,178 @@
+edge_cases:
+- name: edge_01_P
+  code: '[P]'
+  title: File descriptor leak audit in `broken_gnl`
+  input: Run broken_gnl and check open file descriptors in /proc/self/fd
+  expected: Only stdin, stdout, stderr remain open
+- name: edge_02_P
+  code: '[P]'
+  title: Child process reaping and zombie prevention in `broken_gnl`
+  input: Spawn multiple processes in broken_gnl and verify with waitpid
+  expected: No zombie processes remain in process table
+- name: edge_03_B
+  code: '[B]'
+  title: Command-line arguments contract enforcement in `broken_gnl`
+  input: Invoke broken_gnl with invalid argument counts
+  expected: Emit exact error string to stderr and exit with non-zero status
+- name: edge_04_M
+  code: '[M]'
+  title: Stream buffer cleanup on EOF in `broken_gnl`
+  input: Stream large input to broken_gnl until EOF
+  expected: 0 bytes leaked
+fixed_tests:
+- name: test_01_s_s_n_l1_l2_free_l1
+  call: printf("%s|%s\n", l1, l2); free(l1); free(l2)
+  setup:
+  - FILE *fp = fopen("t.txt", "w"); fputs("hello\n1337", fp); fclose(fp); int fd =
+    open("t.txt", 0); char *l1 = get_next_line(fd); char *l2 = get_next_line(fd);
+    close(fd);
+  stdout: 'hello
+
+    |1337
+
+    '
+- name: test_02_d_n_l1_NULL
+  call: printf("%d\n", l1 == NULL)
+  setup:
+  - FILE *fp = fopen("t2.txt", "w"); fclose(fp); int fd = open("t2.txt", 0); char
+    *l1 = get_next_line(fd); close(fd);
+  stdout: '1
+
+    '
+- name: test_03_s_s_s_d_n_l1_l2_l3_l
+  call: printf("%s%s%s|%d\n", l1, l2, l3, l4 == NULL); free(l1); free(l2); free(l3)
+  setup:
+  - FILE *fp = fopen("t3.txt", "w"); fputs("a\nb\nc\n", fp); fclose(fp); int fd =
+    open("t3.txt", 0); char *l1 = get_next_line(fd); char *l2 = get_next_line(fd);
+    char *l3 = get_next_line(fd); char *l4 = get_next_line(fd); close(fd);
+  stdout: 'a
+
+    b
+
+    c
+
+    |1
+
+    '
+- name: test_04_d_n_l_NULL
+  call: printf("%d\n", l == NULL)
+  setup:
+  - char *l = get_next_line(-1);
+  stdout: '1
+
+    '
+- name: test_05_single_line_with_nl
+  setup:
+  - FILE *fp = fopen("t5.txt", "w"); fputs("only_one\n", fp); fclose(fp); int fd =
+    open("t5.txt", 0); char *l1 = get_next_line(fd); char *l2 = get_next_line(fd);
+    close(fd);
+  call: printf("%s|%d\n", l1, l2 == NULL); free(l1)
+  tier: baseline
+  stdout: 'only_one
+
+    |1
+
+    '
+- name: test_06_single_line_no_nl
+  setup:
+  - FILE *fp = fopen("t6.txt", "w"); fputs("no_newline", fp); fclose(fp); int fd =
+    open("t6.txt", 0); char *l1 = get_next_line(fd); char *l2 = get_next_line(fd);
+    close(fd);
+  call: printf("%s|%d\n", l1, l2 == NULL); free(l1)
+  tier: edge
+  stdout: 'no_newline|1
+
+    '
+- name: test_07_empty_lines_sequence
+  setup:
+  - FILE *fp = fopen("t7.txt", "w"); fputs("\n\n", fp); fclose(fp); int fd = open("t7.txt",
+    0); char *l1 = get_next_line(fd); char *l2 = get_next_line(fd); char *l3 = get_next_line(fd);
+    close(fd);
+  call: printf("%s%s|%d\n", l1, l2, l3 == NULL); free(l1); free(l2)
+  tier: edge
+  stdout: '
+
+
+    |1
+
+    '
+- name: test_08_single_char_file
+  setup:
+  - FILE *fp = fopen("t8.txt", "w"); fputs("X", fp); fclose(fp); int fd = open("t8.txt",
+    0); char *l1 = get_next_line(fd); char *l2 = get_next_line(fd); close(fd);
+  call: printf("%s|%d\n", l1, l2 == NULL); free(l1)
+  tier: edge
+  stdout: 'X|1
+
+    '
+- name: test_09_four_lines
+  setup:
+  - FILE *fp = fopen("t9.txt", "w"); fputs("1\n22\n333\n4444\n", fp); fclose(fp);
+    int fd = open("t9.txt", 0); char *l1 = get_next_line(fd); char *l2 = get_next_line(fd);
+    char *l3 = get_next_line(fd); char *l4 = get_next_line(fd); char *l5 = get_next_line(fd);
+    close(fd);
+  call: printf("%s%s%s%s|%d\n", l1, l2, l3, l4, l5 == NULL); free(l1); free(l2); free(l3);
+    free(l4)
+  tier: baseline
+  stdout: '1
+
+    22
+
+    333
+
+    4444
+
+    |1
+
+    '
+- name: test_10_long_line_128
+  setup:
+  - FILE *fp = fopen("t10.txt", "w"); for(int i=0;i<32;i++) fputs("1337", fp); fputs("\n",
+    fp); fclose(fp); int fd = open("t10.txt", 0); char *l1 = get_next_line(fd); char
+    *l2 = get_next_line(fd); close(fd);
+  call: printf("%zu|%d\n", strlen(l1), l2 == NULL); free(l1)
+  tier: stress
+  stdout: '129|1
+
+    '
+folder_examples:
+- expected: hello\n\|1337\n
+  id: cur_broken_gnl_T01
+  input: printf("%s\|%s\n", l1, l2); free(l1); free(l2)
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: 1\n
+  id: cur_broken_gnl_T02
+  input: printf("%d\n", l1 == NULL)
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: a\nb\nc\n\|1\n
+  id: cur_broken_gnl_T03
+  input: printf("%s%s%s\|%d\n", l1, l2, l3, l4 == NULL); free(l1); free(l2); free(l3)
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval broken_gnl
+  perturbed_input:
+  - broken_gnl_near_arg_1
+  - broken_gnl_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: cur_broken_gnl_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: printf("%s\|%s\n", l1, l2); free(l1); free(l2)
+  perturbed_input: qrintf("%s\|%s\n", l1, l2); free(l1); fr
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+- derived_from: cur_broken_gnl_T02
+  id: near_folder_02_boundary_neighbor
+  original_input: printf("%d\n", l1 == NULL)
+  perturbed_input: qrintf("%d\n", l1 == NULL)
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval broken_gnl
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

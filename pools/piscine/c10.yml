@@ -1,0 +1,15 @@
+id: c10
+display_name: 1337 / 42 Piscine — C 10
+exercises:
+- ex: ex00
+  subject_id: piscine/c10/display_file
+  xp: 335
+- ex: ex01
+  subject_id: piscine/c10/cat
+  xp: 335
+- ex: ex02
+  subject_id: piscine/c10/tail
+  xp: 335
+- ex: ex03
+  subject_id: piscine/c10/hexdump
+  xp: 335

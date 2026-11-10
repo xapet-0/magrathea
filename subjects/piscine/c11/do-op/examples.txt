@@ -1,0 +1,31 @@
+# Examples for do-op (from official subject specification)
+
+Example:
+$>./do-op 42 "+" 21
+$>
+• You should use an array of pointers to functions to handle theoperator.
+• In case of an invalid operator, your program should print0.
+• If the number of arguments is invalid,do-op should not display anything.
+• Your program should accept and print the result for the following operators: ’+’ ’-’
+’/’ ’*’ and ’%’.
+• Your program should treat the values as integers.
+• In case of division by 0, it should print:
+Stop : division by zero
+• In case of modulo by 0, it should print:
+Stop : modulo by zero
+• Here is an example of tests the Moulinette will run:
+$> make clean
+$> make
+$> ./do-op
+$> ./do-op 1 + 1
+$> ./do-op 42amis - --+-20toto12
+$> ./do-op 1 p 1
+$> ./do-op 1 + toto3
+$>
+$> ./do-op toto3 + 4
+$> ./do-op foo plus bar
+$> ./do-op 25 / 0
+Stop : division by zero
+$> ./do-op 25 % 0
+Stop : modulo by zero
+$>

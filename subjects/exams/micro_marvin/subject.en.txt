@@ -1,0 +1,16 @@
+Assignment name  : micro_marvin
+Expected files   : micro_marvin.sh
+Allowed commands : printf, wc, tr, exit
+--------------------------------------------------------------------------------
+
+Write a mini command dispatcher script that takes an action name in `$1` and a
+target string in `$2`:
+- If `$1` is `"len"`, display the character length of `$2`.
+- If `$1` is `"rev"`, display `$2` reversed.
+- Otherwise exit with status 42.
+
+Examples:
+$> ./micro_marvin.sh len "hello"
+5
+$> ./micro_marvin.sh rev "abc"
+cba

@@ -1,0 +1,14 @@
+id: print_memory
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- print_memory.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void print_memory(const void *addr, size_t size);

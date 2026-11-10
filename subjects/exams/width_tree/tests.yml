@@ -1,0 +1,134 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `width_tree`
+  input: width_tree(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `width_tree`
+  input: Input with no valid solution or containing duplicate values in width_tree
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `width_tree`
+  input: Run width_tree with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `width_tree`
+  input: Inspect sequence of traversed or printed nodes in width_tree
+  expected: Exact match with standard traversal order required in subject
+fixed_tests:
+- name: test_01_NULL
+  expr: width_tree(NULL)
+  stdout: '0
+
+    '
+- name: test_02_a
+  expr: width_tree(&a)
+  setup:
+  - struct s_node a={1,0,0}
+  stdout: '1
+
+    '
+- name: test_03_r
+  expr: width_tree(&r)
+  setup:
+  - struct s_node a={1,0,0}, b={2,0,0}, r={3,&a,&b}
+  stdout: '3
+
+    '
+- name: test_04_root
+  expr: width_tree(&root)
+  setup:
+  - struct s_node ll={1,0,0}, l={2,&ll,0}, r={3,0,0}, root={4,&l,&r}
+  stdout: '4
+
+    '
+- name: test_05_left_chain_3
+  setup:
+  - struct s_node c={1,0,0}, b={2,&c,0}, a={3,&b,0};
+  expr: width_tree(&a)
+  tier: edge
+  stdout: '3
+
+    '
+- name: test_06_right_chain_3
+  setup:
+  - struct s_node c={1,0,0}, b={2,0,&c}, a={3,0,&b};
+  expr: width_tree(&a)
+  tier: edge
+  stdout: '3
+
+    '
+- name: test_07_full_seven_nodes
+  setup:
+  - struct s_node n4={4,0,0},n5={5,0,0},n6={6,0,0},n7={7,0,0},n2={2,&n4,&n5},n3={3,&n6,&n7},n1={1,&n2,&n3};
+  expr: width_tree(&n1)
+  tier: baseline
+  stdout: '5
+
+    '
+- name: test_08_widest_path_not_through_root
+  setup:
+  - struct s_node ll2={1,0,0}, ll1={2,&ll2,0}, lr2={3,0,0}, lr1={4,0,&lr2}, l={5,&ll1,&lr1},
+    root={6,&l,0};
+  expr: width_tree(&root)
+  tier: edge
+  stdout: '5
+
+    '
+- name: test_09_two_nodes
+  setup:
+  - struct s_node l={1,0,0}, root={2,&l,0};
+  expr: width_tree(&root)
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_10_deep_v_tree
+  setup:
+  - struct s_node l3={1,0,0},l2={2,&l3,0},l1={3,&l2,0},r3={4,0,0},r2={5,0,&r3},r1={6,0,&r2},root={7,&l1,&r1};
+  expr: width_tree(&root)
+  tier: stress
+  stdout: '7
+
+    '
+folder_examples:
+- expected: Zero assertion failures (exit code 0)
+  id: can_width_tree_T05
+  input: Compiled and run with width_tree_MAIN.c
+  origin: subject_folder/width_tree_MAIN.c
+- expected: "struct s_node \n{\n\tint value;\n\tstruct s_node *left;\n\tstruct s_node\
+    \ *right;\n};\n\nint s;\nint check(struct s_node *node, int n)\n{\n\tif (!node)\n\
+    \t\treturn n - 1;\n\tint a,"
+  id: folder_fixture_02
+  input: width_tree_MAIN.c
+  origin: subject_folder/width_tree_MAIN.c
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval width_tree
+  perturbed_input:
+  - width_tree_near_arg_1
+  - width_tree_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_width_tree_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: Compiled and run with width_tree_MAIN.c
+  perturbed_input: Dompiled and run with width_tree_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/width_tree_MAIN.c)
+- derived_from: folder_fixture_02
+  id: near_folder_02_boundary_neighbor
+  original_input: width_tree_MAIN.c
+  perturbed_input: xidth_tree_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/width_tree_MAIN.c)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval width_tree
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

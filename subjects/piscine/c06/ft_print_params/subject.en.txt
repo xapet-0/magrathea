@@ -1,0 +1,23 @@
+Assignment name  : ft_print_params
+Expected files   : ft_print_params.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 06 (Official PDF)
+Exercise         : ft_print_params
+Turn-in directory: ex01/
+Expected files   : ft_print_params.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+• Since this is a program, your .c file must contain amain function.
+• Write a program that displays its given arguments.
+• Eachargumentshouldbeprintedonanewline, int hesameorderasinthecommand
+line.
+• The program should display all arguments exceptargv[0].
+• Example:
+$>./a.out test1 test2 test3 | cat -e
+test1$
+test2$
+test3$
+$>

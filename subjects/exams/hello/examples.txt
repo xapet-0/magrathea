@@ -1,0 +1,5 @@
+Examples:
+$> ./hello
+Hello World!
+$> ./hello | cat -e
+Hello World!$

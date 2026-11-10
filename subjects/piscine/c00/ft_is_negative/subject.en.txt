@@ -1,0 +1,59 @@
+Assignment name  : ft_is_negative
+Expected files   : ft_is_negative.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 00 (Official PDF)
+Exercise         : ft_is_negative
+Turn-in directory: ex04/
+Expected files   : ft_is_negative.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+• Create a function that displays ’N’ or ’P’ depending on the sign of the integer passed
+as a parameter.
+◦ Ifnis negative, display ’N’.
+◦ Ifnis positive or zero, display ’P’.
+• The function should be prototyped as follows:
+void ft_is_negative(int n);
+Failure is part of your learning journey.
+Milestone Achieved, Keep Going!
+You have reached the end of the mandatory exercises required to validate this project.
+Now, it’s up to you to decide whether to continue with the following optional exercises
+or move on to your next project. Both paths will expose you to valuable concepts sooner
+or later.
+To make your decision, consider the following points:
+• The very first exam focuses on C programming. If you’ve already worked on the
+first C project, this experience will be useful. The same applies to the "rush" at the
+end of the week (you’ll soon learn more about it).
+• Your excellence in this Piscine is evaluated based on multiple factors. Completing
+each project is important, but your overall progress across all Piscine projects also
+plays a key role. Choose wisely to optimize your results.
+• You can always revisit and retry the same project in a few days or weeks, up until
+the end of the Piscine.
+• Staying synchronized with your peers fosters better collaboration.
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : ft_is_negative(-1)
+    Expected Output   : 'N'
+  [Standard Test 2] Name: test
+    Call / Invocation : ft_is_negative(42)
+    Expected Output   : 'P'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Call / Invocation : ft_is_negative(0)
+    Expected Output   : 'P'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: oracle_stress
+    C Source Driver:
+    void ft_is_negative(int n);
+    int main(void) {
+        ft_is_negative(-2147483648);
+        ft_is_negative(2147483647);
+        ft_is_negative(0);
+        ft_is_negative(-1);
+        return 0;
+    }

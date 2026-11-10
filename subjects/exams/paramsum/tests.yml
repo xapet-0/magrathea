@@ -1,0 +1,228 @@
+mode: c_program
+fixed_tests:
+- name: can_paramsum_T01
+  description: 'Functional verification of input: `[''a'', ''b'']`'
+  args:
+  - a
+  - b
+  expected: '2
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_paramsum_T02
+  description: case_none
+  args: []
+  expected: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_paramsum_T03
+  description: case_one
+  args:
+  - a
+  expected: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_paramsum_T04
+  description: case_many
+  args:
+  - a
+  - b
+  - c
+  - d
+  - e
+  expected: '5
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '5'
+  - '7'
+  - '24'
+  expected: '6
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - '6'
+  - '12'
+  - '24'
+  expected: '3
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: '4
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: '4
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: '4
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: '4
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./paramsum 1 2 3 5 7 24
+  args: &id001
+  - '1'
+  - '2'
+  - '3'
+  - '5'
+  - '7'
+  - '24'
+  expected: '6
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./paramsum 6 12 24 | cat -e
+  args: &id002
+  - '6'
+  - '12'
+  - '24'
+  expected: '3
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./paramsum | cat -e
+  args: []
+  expected: '0
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_paramsum_T05
+  origin: subject_folder/42ExamPractice/paramsum/tester.sh
+  input: ./paramsum "fgex.;" "1" "2 " "3" "4" "5" "6" " 7" "8" "9" "10"
+  expected: Matches 42 reference standard output and exit code
+- id: can_paramsum_T06
+  origin: subject_folder/42ExamPractice/paramsum/tester.sh
+  input: ./paramsum "abc" "btarc"
+  expected: Matches 42 reference standard output and exit code
+- id: can_paramsum_T07
+  origin: subject_folder/42ExamPractice/paramsum/tester.sh
+  input: ./paramsum "mais non!" "mais non!"
+  expected: Matches 42 reference standard output and exit code
+- id: can_paramsum_T08
+  origin: subject_folder/42ExamPractice/paramsum/tester.sh
+  input: ./paramsum "abc" "2altrb53c.sse"
+  expected: Matches 42 reference standard output and exit code
+- id: can_paramsum_T09
+  origin: subject_folder/42ExamPractice/paramsum/tester.sh
+  input: ./paramsum "fgex.;"
+  expected: Matches 42 reference standard output and exit code
+- id: can_paramsum_T10
+  origin: subject_folder/examples.txt
+  input: ./paramsum 1 2 3 5 7 24
+  expected: '6'
+- id: can_paramsum_T11
+  origin: subject_folder/examples.txt
+  input: ./paramsum 6 12 24 \| cat -e
+  expected: 3$
+- id: can_paramsum_T12
+  origin: subject_folder/examples.txt
+  input: ./paramsum \| cat -e
+  expected: 0$
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '2'
+  - '3'
+  - '4'
+  - '6'
+  - '8'
+  - '25'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  1  '
+  - '2'
+  - '3'
+  - '5'
+  - '7'
+  - '24'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - '7'
+  - '13'
+  - '25'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  6  '
+  - '12'
+  - '24'
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./paramsum | cat -e
+  perturbed_input:
+  - paramsum_near_arg_1
+  - paramsum_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_paramsum_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/paramsum/tester.sh)
+  original_input: ./paramsum "fgex.;" "1" "2 " "3" "4" "5" "6" " 7" "8" "9" "10"
+  perturbed_input: ./qaramsum "fgex.;" "1" "2 " "3" "4" "5"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_paramsum_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/paramsum/tester.sh)
+  original_input: ./paramsum "abc" "btarc"
+  perturbed_input: ./qaramsum "abc" "btarc"

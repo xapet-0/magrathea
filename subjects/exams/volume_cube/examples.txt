@@ -1,0 +1,15 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : volume_cube(3)
+    Expected Output   : '27\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Call / Invocation : volume_cube(0)
+    Expected Output   : '0\n'
+  [Edge Case 2] Name: edge_volume_cube_zero [Test description: "edge_volume_cube_zero"]
+    Call / Invocation : volume_cube(0)
+    Expected Output   : '0\n'
+  [Edge Case 3] Name: edge_volume_cube_negative [Test description: "edge_volume_cube_negative"]
+    Call / Invocation : volume_cube(-3)
+    Expected Output   : '0\n'

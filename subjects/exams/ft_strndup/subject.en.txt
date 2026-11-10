@@ -1,0 +1,18 @@
+Assignment name  : ft_strndup
+Expected files   : ft_strndup.c
+Allowed functions: malloc, free
+Version          : 1
+--------------------------------------------------------------------------------
+
+Write a function that duplicates the first n characters of a string.
+
+Your function must be declared as follows:
+
+char *ft_strndup(const char *src, size_t n);
+
+[cur_ft_strndup_T01] Input: char *s=ft_strndup("Piscine",3); printf("%s\n",s); free(s)  ==>  Expected: Pis\n
+[cur_ft_strndup_T02] Input: char *s=ft_strndup("Hi",5); printf("%s\n",s); free(s)  ==>  Expected: Hi\n
+[cur_ft_strndup_T03] Input: Invocations: ft_strndup("abcdef", 0); ft_strndup("abcdef", 3); ft_strndup("abc", 10)  ==>  Expected: Differential comparison with reference implementation
+[cur_ft_strndup_T04] Input: Dynamic generation rule via random_string()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_ft_strndup_T05] Input: Dynamic generation rule via basic_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_ft_strndup_T06] Input: Dynamic generation rule via full_string_test()  ==>  Expected: Deterministic output validated by Deepthought oracle

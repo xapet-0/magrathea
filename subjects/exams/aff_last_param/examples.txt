@@ -1,0 +1,7 @@
+Examples:
+$> ./aff_last_param "zaz" "mange" "des" "chats" | cat -e
+chats$
+$> ./aff_last_param "j'aime le savon" | cat -e
+j'aime le savon$
+$> ./aff_last_param
+$

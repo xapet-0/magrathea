@@ -1,0 +1,27 @@
+id: c11
+display_name: 1337 / 42 Piscine — C 11
+exercises:
+- ex: ex00
+  subject_id: piscine/c11/ft_foreach
+  xp: 270
+- ex: ex01
+  subject_id: piscine/c11/ft_map
+  xp: 270
+- ex: ex02
+  subject_id: piscine/c11/ft_any
+  xp: 270
+- ex: ex03
+  subject_id: piscine/c11/ft_count_if
+  xp: 270
+- ex: ex04
+  subject_id: piscine/c11/ft_is_sort
+  xp: 270
+- ex: ex05
+  subject_id: piscine/c11/do-op
+  xp: 285
+- ex: ex06
+  subject_id: piscine/c11/ft_sort_string_tab
+  xp: 260
+- ex: ex07
+  subject_id: piscine/c11/ft_advanced_sort_string_tab
+  xp: 260

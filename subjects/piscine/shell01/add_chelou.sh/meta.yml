@@ -1,0 +1,12 @@
+id: add_chelou.sh
+type: shell
+module: Shell 01
+xp: 150
+expected_files:
+- add_chelou.sh
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true

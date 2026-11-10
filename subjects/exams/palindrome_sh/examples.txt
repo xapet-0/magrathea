@@ -1,0 +1,11 @@
+# Examples for palindrome_sh (from official subject specification)
+
+Examples:
+$> FT_LINE="kayak" sh palindrome_sh.sh | cat -e
+1$
+$> FT_LINE="hello" sh palindrome_sh.sh | cat -e
+0$
+$> FT_LINE="radar" sh palindrome_sh.sh | cat -e
+1$
+$> FT_LINE="1331" sh palindrome_sh.sh | cat -e
+1$

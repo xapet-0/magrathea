@@ -1,0 +1,13 @@
+id: ft_fibonacci
+type: c_function
+module: C 05
+xp: 205
+expected_files:
+- ft_fibonacci.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int ft_fibonacci(int index);

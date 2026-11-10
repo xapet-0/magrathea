@@ -1,0 +1,16 @@
+# Examples for size_variables (from official subject specification)
+
+Example:
+
+$> ./size_variable 'int' | cat -e
+4 bytes$
+$> ./size_variable 'char' | cat -e
+1 bytes$
+$> ./size_variable 'float' | cat -e
+4 bytes$
+$>./size_variable 'double'| cat -e
+8 bytes$
+$>./size_variable 'tryu'| cat -e
+$
+$>./size_variable "" | cat -e
+$

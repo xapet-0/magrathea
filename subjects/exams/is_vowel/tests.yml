@@ -1,0 +1,259 @@
+mode: c_function
+fixed_tests:
+- name: cur_is_vowel_T01
+  description: 'Functional verification of input: `is_vowel(''A'')`'
+  expr: is_vowel('A')
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_vowel_T02
+  description: 'Functional verification of input: `is_vowel(''z'')`'
+  expr: is_vowel('z')
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_vowel_T03
+  description: lower_vowel
+  expr: is_vowel('e')
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_vowel_T04
+  description: upper_vowel
+  expr: is_vowel('I')
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_vowel_T05
+  description: number
+  expr: is_vowel('5')
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_vowel_T06
+  description: non_alpha
+  expr: is_vowel('!')
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_vowel_T07
+  description: whitespace
+  expr: is_vowel(' ')
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_is_vowel_T08
+  description: empty_input
+  expr: is_vowel(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_is_vowel_T09
+  description: edge_is_vowel_lower
+  expr: is_vowel('a')
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_is_vowel_T10
+  description: edge_is_vowel_upper
+  expr: is_vowel('E')
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_is_vowel_T11
+  description: edge_is_vowel_non_letter
+  expr: is_vowel('1')
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: is_vowel('a') = 1
+  args: &id001
+  - '='
+  - '1'
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: is_vowel('U') = 1
+  args: &id002
+  - '='
+  - '1'
+  expected: ''
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: is_vowel('P') = 0
+  args: &id003
+  - '='
+  - '0'
+  expected: ''
+  cat_e: false
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: is_vowel ('z') = 0
+  args: &id004
+  - (z)
+  - '='
+  - '0'
+  expected: ''
+  cat_e: false
+folder_examples:
+- id: cur_is_vowel_T13
+  origin: subject_folder/deepthought/corrections/exams/is_vowel/generator.py
+  input: Dynamic generation rule via random_vowel()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_vowel_T14
+  origin: subject_folder/deepthought/corrections/exams/is_vowel/generator.py
+  input: Dynamic generation rule via random_non_vowel()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_vowel_T15
+  origin: subject_folder/deepthought/corrections/exams/is_vowel/generator.py
+  input: Dynamic generation rule via test_vowel_lowercase()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_vowel_T16
+  origin: subject_folder/deepthought/corrections/exams/is_vowel/generator.py
+  input: Dynamic generation rule via test_vowel_uppercase()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_vowel_T17
+  origin: subject_folder/deepthought/corrections/exams/is_vowel/generator.py
+  input: Dynamic generation rule via test_non_vowel_lowercase()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_vowel_T18
+  origin: subject_folder/deepthought/corrections/exams/is_vowel/generator.py
+  input: Dynamic generation rule via test_non_vowel_uppercase()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_vowel_T19
+  origin: subject_folder/deepthought/corrections/exams/is_vowel/generator.py
+  input: Dynamic generation rule via test_non_alphabetic()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_vowel_T20
+  origin: subject_folder/deepthought/corrections/exams/is_vowel/generator.py
+  input: Dynamic generation rule via test_empty_arg()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_vowel_T21
+  origin: subject_folder/deepthought/corrections/exams/is_vowel/generator.py
+  input: Dynamic generation rule via test_no_arg()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_is_vowel_T22
+  origin: subject_folder/deepthought/corrections/exams/is_vowel/generator.py
+  input: Dynamic generation rule via test_multiple_args()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - =!
+  - '2'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  =  '
+  - '1'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - =!
+  - '2'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  =  '
+  - '1'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - =!
+  - '1'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  =  '
+  - '0'
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - (z)!
+  - =!
+  - '1'
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  (z)  '
+  - '='
+  - '0'
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_is_vowel_T13
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/is_vowel/generator.py)
+  original_input: Dynamic generation rule via random_vowel()
+  perturbed_input: Eynamic generation rule via random_vowel
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_is_vowel_T14
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/is_vowel/generator.py)
+  original_input: Dynamic generation rule via random_non_vowel()
+  perturbed_input: Eynamic generation rule via random_non_v
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and non-printable characters in `is_vowel`
+  input: "is_vowel(\"\") and is_vowel(\"\t\n\x01\x1F\")"
+  expected: Preserve non-alphabetic characters unmodified
+- name: edge_02_B
+  code: '[B]'
+  title: Argument count verification (argc != 2) in `is_vowel`
+  input: Execute is_vowel with 0 arguments and with > 1 argument
+  expected: Print newline only
+- name: edge_03_D
+  code: '[D]'
+  title: Idempotence and involution property check for `is_vowel`
+  input: 'Apply transformation twice: is_vowel(is_vowel(s))'
+  expected: Valid transformation output matching mathematical cipher cycle
+- name: edge_04_B
+  code: '[B]'
+  title: Boundary alphabetic letters ('a', 'z', 'A', 'Z') in `is_vowel`
+  input: is_vowel("a z A Z")
+  expected: Accurate wraparound without overflowing outside alphabet bounds

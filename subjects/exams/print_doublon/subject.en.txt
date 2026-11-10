@@ -1,0 +1,22 @@
+Assignment name  : print_doublon
+Expected files   : print_doublon.c
+Allowed functions: printf
+--------------------------------------------------------------------------------
+
+Write a function that takes two sorted integer arrays a (size na) and b (size nb)
+and prints all elements common to both arrays separated by single spaces,
+followed by a newline, in O(na + nb) time.
+
+Prototype:
+void	print_doublon(int *a, int na, int *b, int nb);
+
+Your function must be declared as follows:
+    void print_doublon(int *a, int na, int *b, int nb);
+
+Examples:
+    int a[] = {1, 2, 10, 15}; int b[] = {2, 15, 20}; print_doublon(a, 4, b, 3)
+    Output: 2 15
+    int a[] = {1, 3, 5}; int b[] = {2, 4, 6}; print_doublon(a, 3, b, 3)
+    Output: 
+    int a[] = {-5, 0, 42}; int b[] = {-5, 42}; print_doublon(a, 3, b, 2)
+    Output: -5 42

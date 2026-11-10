@@ -1,0 +1,28 @@
+Assignment name  : hexdump
+Expected files   : Makefile
+Allowed functions: close, open, read, write, malloc, free, strerror, basename
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 10 (Official PDF)
+Exercise         : hexdump
+Turn-in directory: ex03/
+Expected files   : Makefile
+Allowed functions: close, open, read, write, malloc, free, strerror, basename
+--------------------------------------------------------------------------------
+
+• Create a program called ft_hexdump, which performs the same function as the
+system’s hexdump command-line tool, without redirection.
+• The only option you need to handle is -C.
+• The submission directory should contain a Makefile with the following rules: all,
+clean, fclean.
+• You may use the variable errno.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./hexdump "-C" "a.txt" | cat -e
+$
+$> ./hexdump "-C" "no_such_file.txt" | cat -e
+$

@@ -1,0 +1,22 @@
+Assignment name  : slice
+Expected files   : slice.c
+Allowed functions: write, atoi
+--------------------------------------------------------------------------------
+
+Write a program that takes a string in argv[1] and an integer N in argv[2], and
+prints the characters from index 1 up to index N - 1 (1 <= i < N), followed by a
+newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./slice "Hello" "3" | cat -e
+el$
+$> ./slice "abcdef" "4" | cat -e
+bcd$
+$> ./slice "Hello" "1" | cat -e
+$
+$> ./slice | cat -e
+$

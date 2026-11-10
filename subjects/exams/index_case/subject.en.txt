@@ -1,0 +1,22 @@
+Assignment name  : index_case
+Expected files   : index_case.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a string and prints characters at even indices (0, 2,
+4...) in uppercase and odd indices (1, 3, 5...) in lowercase, followed by a
+newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./index_case "hellow" | cat -e
+HeLlOw$
+$> ./index_case | cat -e
+$
+$> ./index_case "a1b2c3" | cat -e
+A1B2C3$
+$> ./index_case | cat -e
+$

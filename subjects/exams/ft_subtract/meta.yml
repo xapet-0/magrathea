@@ -1,0 +1,13 @@
+id: ft_subtract
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- ft_subtract.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void ft_subtract(int a, int *ptr);

@@ -1,0 +1,263 @@
+fixed_tests:
+- args:
+  - 9...7....
+  - 2...9..53
+  - .6..124..
+  - 84...1.9.
+  - 5.....8..
+  - .31..4...
+  - ..37..68.
+  - .9..5.741
+  - 47.......
+  expected: '9 1 4 3 7 5 2 6 8
+
+    2 8 7 4 9 6 1 5 3
+
+    3 6 5 8 1 2 4 7 9
+
+    8 4 6 5 2 1 3 9 7
+
+    5 2 9 6 3 7 8 1 4
+
+    7 3 1 9 8 4 5 2 6
+
+    1 5 3 7 4 9 6 8 2
+
+    6 9 8 2 5 3 7 4 1
+
+    4 7 2 1 6 8 9 3 5
+
+    '
+  name: pool_sudoku_T01
+- args:
+  - 9...7....
+  expected: 'Error
+
+    '
+  name: pool_sudoku_T02_invalid_args
+- args: []
+  expected: 'Error
+
+    '
+  name: sudoku_no_arguments
+- args:
+  - a...7....
+  - 2...9..53
+  - .6..124..
+  - 84...1.9.
+  - 5.....8..
+  - .31..4...
+  - ..37..68.
+  - .9..5.741
+  - 47.......
+  expected: 'Error
+
+    '
+  name: sudoku_invalid_characters
+- name: test_05_short_row_error
+  args:
+  - 9...7...
+  - 2...9..53
+  - .6..124..
+  - 84...1.9.
+  - 5.....8..
+  - .31..4...
+  - ..37..68.
+  - .9..5.741
+  - 47.......
+  tier: edge
+  stdout: 'Error
+
+    '
+- name: test_06_long_row_error
+  args:
+  - 9...7.....
+  - 2...9..53
+  - .6..124..
+  - 84...1.9.
+  - 5.....8..
+  - .31..4...
+  - ..37..68.
+  - .9..5.741
+  - 47.......
+  tier: edge
+  stdout: 'Error
+
+    '
+- name: test_07_zero_char_error
+  args:
+  - 0...7....
+  - 2...9..53
+  - .6..124..
+  - 84...1.9.
+  - 5.....8..
+  - .31..4...
+  - ..37..68.
+  - .9..5.741
+  - 47.......
+  tier: edge
+  stdout: 'Error
+
+    '
+- name: test_08_ten_args_error
+  args:
+  - 9...7....
+  - 2...9..53
+  - .6..124..
+  - 84...1.9.
+  - 5.....8..
+  - .31..4...
+  - ..37..68.
+  - .9..5.741
+  - 47.......
+  - '.........'
+  tier: edge
+  stdout: 'Error
+
+    '
+- name: test_09_duplicate_in_first_row_error
+  args:
+  - 99..7....
+  - 2...9..53
+  - .6..124..
+  - 84...1.9.
+  - 5.....8..
+  - .31..4...
+  - ..37..68.
+  - .9..5.741
+  - 47.......
+  tier: edge
+  stdout: '9 9 4 3 7 5 2 6 8
+
+    2 8 7 4 9 6 1 5 3
+
+    3 6 5 8 1 2 4 7 9
+
+    8 4 6 5 2 1 3 9 7
+
+    5 2 9 6 3 7 8 1 4
+
+    7 3 1 9 8 4 5 2 6
+
+    1 5 3 7 4 9 6 8 2
+
+    6 9 8 2 5 3 7 4 1
+
+    4 7 2 1 6 8 9 3 5
+
+    '
+- name: test_10_valid_puzzle_2
+  args:
+  - 53..7....
+  - 6..195...
+  - .98....6.
+  - 8...6...3
+  - 4..8.3..1
+  - 7...2...6
+  - .6....28.
+  - '...419..5'
+  - '....8..79'
+  tier: stress
+  stdout: '5 3 4 6 7 8 9 1 2
+
+    6 7 2 1 9 5 3 4 8
+
+    1 9 8 3 4 2 5 6 7
+
+    8 5 9 7 6 1 4 2 3
+
+    4 2 6 8 5 3 7 9 1
+
+    7 1 3 9 2 4 8 5 6
+
+    9 6 1 5 3 7 2 8 4
+
+    2 8 7 4 1 9 6 3 5
+
+    3 4 5 2 8 6 1 7 9
+
+    '
+folder_examples:
+- expected: 'One solution:
+
+    "9...7...." "2...9..53" ".6..124.." "84...1.9." "5.....8.." ".31..4..." "..37..68."
+    ".9..5.741" "47......." | cat -e
+
+
+    Multiple Solutions:
+
+    "9.6.7.4'
+  id: folder_fixture_01
+  input: sudoku_tests.txt
+  origin: subject_folder/sudoku_tests.txt
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_lexical_shift
+  original_input: &id001
+  - 9...7....
+  - 2...9..53
+  - .6..124..
+  - 84...1.9.
+  - 5.....8..
+  - .31..4...
+  - ..37..68.
+  - .9..5.741
+  - 47.......
+  perturbed_input:
+  - 9...7....!
+  - 2...9..53!
+  - .6..124..!
+  - 84...1.9.!
+  - 5.....8..!
+  - .31..4...!
+  - ..37..68.!
+  - .9..5.741!
+  - 47.......!
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_01
+  id: near_subj_01_whitespace_envelope
+  original_input: *id001
+  perturbed_input:
+  - '  9...7....  '
+  - 2...9..53
+  - .6..124..
+  - 84...1.9.
+  - 5.....8..
+  - .31..4...
+  - ..37..68.
+  - .9..5.741
+  - 47.......
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: folder_fixture_01
+  id: near_folder_01_boundary_neighbor
+  original_input: sudoku_tests.txt
+  perturbed_input: tudoku_tests.txt
+  strategy: Neighbouring perturbation of folder example (subject_folder/sudoku_tests.txt)
+subject_examples:
+- args: *id001
+  cat_e: true
+  command: ./sudoku "9...7...." "2...9..53" ".6..124.." "84...1.9." "5.....8.." ".31..4..."
+    "..37..68." ".9..5.741" "47......." | cat -e
+  expected: '9 1 4 3 7 5 2 6 8
+
+    2 8 7 4 9 6 1 5 3
+
+    3 6 5 8 1 2 4 7 9
+
+    8 4 6 5 2 1 3 9 7
+
+    5 2 9 6 3 7 8 1 4
+
+    7 3 1 9 8 4 5 2 6
+
+    1 5 3 7 4 9 6 8 2
+
+    6 9 8 2 5 3 7 4 1
+
+    4 7 2 1 6 8 9 3 5
+
+    '
+  id: subj_ex_01
+  origin: subject.en.txt

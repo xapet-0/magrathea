@@ -1,0 +1,9 @@
+Examples:
+  char buf[6] = "abcde"; bzero(buf + 1, 3); printf("%d,%d,%d,%d,%d\n", buf[0], buf[1], buf[2], buf[3], buf[4])
+  Output: 97,0,0,0,101
+    char buf[4] = "xyz"; bzero(buf, 0); printf("%s
+", buf)
+    Output: xyz
+    char buf[4] = "xyz"; bzero(buf, 4); printf("%d,%d,%d,%d
+", buf[0], buf[1], buf[2], buf[3])
+    Output: 0,0,0,0

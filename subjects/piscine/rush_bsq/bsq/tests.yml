@@ -1,0 +1,344 @@
+mode: c_program
+fixed_tests:
+- name: pool_bsq_T01
+  description: 'Functional verification of input: `3.ox ... .o. ... `'
+  args: []
+  expected: 'x..
+
+    .o.
+
+    ...
+
+    '
+  category: Functional
+  tier: baseline
+  stdin: '3.ox
+
+    ...
+
+    .o.
+
+    ...
+
+    '
+- name: pool_bsq_T02
+  description: case_bsq_tie_top_left
+  args:
+  - MAP_FILE
+  expected: '..xx
+
+    .oxx
+
+    ....
+
+    ....
+
+    '
+  category: Functional
+  tier: baseline
+  map_content: '4.ox
+
+    ....
+
+    .o..
+
+    ....
+
+    ....
+
+    '
+- name: pool_bsq_T03_single_cell_empty
+  description: 1x1_empty_board
+  args: []
+  stdin: '1.ox
+
+    .
+
+    '
+  expected: 'x
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: pool_bsq_T04_all_obstacles
+  description: board_with_all_obstacles
+  args: []
+  stdin: '2.ox
+
+    oo
+
+    oo
+
+    '
+  expected: 'oo
+
+    oo
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_2x2_full_square
+  args: []
+  stdin: '2.ox
+
+    ..
+
+    ..
+
+    '
+  tier: baseline
+  stdout: 'xx
+
+    xx
+
+    '
+- name: test_06_1x5_single_row
+  args: []
+  stdin: '1.ox
+
+    ..o..
+
+    '
+  tier: edge
+  stdout: 'x.o..
+
+    '
+- name: test_07_5x1_single_col
+  args: []
+  stdin: '5.ox
+
+    .
+
+    .
+
+    o
+
+    .
+
+    .
+
+    '
+  tier: edge
+  stdout: 'x
+
+    .
+
+    o
+
+    .
+
+    .
+
+    '
+- name: test_08_bottom_right_3x3
+  args: []
+  stdin: '4.ox
+
+    o...
+
+    .o..
+
+    ....
+
+    ....
+
+    '
+  tier: baseline
+  stdout: 'o.xx
+
+    .oxx
+
+    ....
+
+    ....
+
+    '
+- name: test_09_custom_chars_map
+  args: []
+  stdin: '3abC
+
+    aaa
+
+    aba
+
+    aaa
+
+    '
+  tier: edge
+  stdout: 'Caa
+
+    aba
+
+    aaa
+
+    '
+- name: test_10_invalid_map_error
+  args: []
+  stdin: '2.ox
+
+    ...
+
+    ..
+
+    '
+  tier: edge
+  stdout: "xx.\nxx\n\0"
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval bsq
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_fixture_01
+  origin: subject_folder/map1000_100
+  input: map1000_100
+  expected: '1000.ox
+
+    .....................................................o......................o.............................o......................................o......'
+- id: folder_fixture_02
+  origin: subject_folder/map600
+  input: map600
+  expected: '600.ox
+
+    ...........o.......o...o......o......................o.........o....o...o...o....o............o......o.................o........oo................o......'
+- id: folder_fixture_03
+  origin: subject_folder/map_pleine
+  input: map_pleine
+  expected: '40.ox
+
+    oooooooooooooooooooooooooooooooooooooooo
+
+    o.oooooooooooooooooooooooooooooooooooooo
+
+    oooooooooooooooooooooooooooooooooooooooo
+
+    ooooooooooooooooooooooooooooooo'
+- id: folder_fixture_04
+  origin: subject_folder/map_pleine10
+  input: map_pleine10
+  expected: '10.ox
+
+    oooooooooo
+
+    o.oooooooo
+
+    oooooooooo
+
+    oooooooooo
+
+    oooooooooo
+
+    oooooooooo
+
+    oooooooooo
+
+    oooooooooo
+
+    oooooooooo
+
+    oooooooooo'
+- id: folder_fixture_05
+  origin: subject_folder/mapgen.pl
+  input: mapgen.pl
+  expected: 'use warnings;
+
+    use strict;
+
+    die "program x y density" unless (scalar(@ARGV) == 3);
+
+    my ($x, $y, $density) = @ARGV;
+
+    print "$y.ox\n";
+
+    for (my $i = 0; $i < $y; $i++) '
+- id: folder_fixture_06
+  origin: subject_folder/plateau10
+  input: plateau10
+  expected: '10011
+
+    0000001000
+
+    0000000000
+
+    0000000000
+
+    0000000000
+
+    0000000000
+
+    0000000000
+
+    0100000000
+
+    1000000000
+
+    0010000000
+
+    0000000000'
+- id: folder_fixture_07
+  origin: subject_folder/plateau100
+  input: plateau100
+  expected: '100.ox
+
+    .....o..............o..o........o....o..............................................................
+
+    ............o......................o........o.......'
+- id: folder_fixture_08
+  origin: subject_folder/plateau1000
+  input: plateau1000
+  expected: "100.o \n......oo..o..o....o...ooo...o...o...o..o........o....o....o...o.........o................o.oo.o....oo..oo....oo.o...o...o...........oo.o...o......o......"
+- id: folder_fixture_09
+  origin: subject_folder/plateau50
+  input: plateau50
+  expected: '30.ox
+
+    .............o...............o
+
+    ....oo......o...............oo
+
+    ...............o..............
+
+    ...........o.............o....
+
+    .............o................'
+- id: folder_fixture_10
+  origin: subject_folder/srcs/main.c
+  input: srcs/main.c
+  expected: '/* **************************************************************************
+    */
+
+    /*                                                                            *'
+- id: folder_fixture_11
+  origin: subject_folder/test1
+  input: test1
+  expected: '1.ox
+
+    o'
+- id: folder_fixture_12
+  origin: subject_folder/test2
+  input: test2
+  expected: '2.ox
+
+    .o
+
+    ..'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval bsq
+  perturbed_input:
+  - bsq_near_arg_1
+  - bsq_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_fixture_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/map1000_100)
+  original_input: map1000_100
+  perturbed_input: nap1000_100
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/map600)
+  original_input: map600
+  perturbed_input: nap600

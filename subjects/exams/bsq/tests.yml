@@ -1,0 +1,188 @@
+fixed_tests:
+- name: test_01_no_args
+  args: []
+  stdin: '3.ox
+
+    ...
+
+    .o.
+
+    ...
+
+    '
+  stdout: 'x..
+
+    .o.
+
+    ...
+
+    '
+- name: case_bsq_tie_top_left
+  args:
+  - MAP_FILE
+  map_content: '4.ox
+
+    ....
+
+    .o..
+
+    ....
+
+    ....
+
+    '
+  stdout: '..xx
+
+    .oxx
+
+    ....
+
+    ....
+
+    '
+- name: case_bsq_all_obstacles
+  args:
+  - MAP_FILE
+  map_content: '3.ox
+
+    ooo
+
+    ooo
+
+    ooo
+
+    '
+  stdout: 'ooo
+
+    ooo
+
+    ooo
+
+    '
+- name: case_bsq_invalid_duplicate_symbols
+  args:
+  - MAP_FILE
+  map_content: '2.o.
+
+    ..
+
+    ..
+
+    '
+  expect_error: true
+  exit_code: 1
+  expected_stderr: 'map error
+
+    '
+- name: test_05_1x1_empty
+  args:
+  - MAP_FILE
+  map_content: '1.ox
+
+    .
+
+    '
+  tier: edge
+  stdout: 'x
+
+    '
+- name: test_06_1x1_obstacle
+  args:
+  - MAP_FILE
+  map_content: '1.ox
+
+    o
+
+    '
+  tier: edge
+  stdout: 'o
+
+    '
+- name: test_07_single_row
+  args:
+  - MAP_FILE
+  map_content: '1.ox
+
+    ..o...
+
+    '
+  tier: edge
+  stdout: 'x.o...
+
+    '
+- name: test_08_single_col
+  args:
+  - MAP_FILE
+  map_content: '4.ox
+
+    .
+
+    o
+
+    .
+
+    .
+
+    '
+  tier: edge
+  stdout: 'x
+
+    o
+
+    .
+
+    .
+
+    '
+- name: test_09_custom_chars
+  args:
+  - MAP_FILE
+  map_content: '3abC
+
+    aaa
+
+    aba
+
+    aaa
+
+    '
+  tier: baseline
+  stdout: 'Caa
+
+    aba
+
+    aaa
+
+    '
+- name: test_10_5x5_open_board
+  args:
+  - MAP_FILE
+  map_content: '5.ox
+
+    .....
+
+    .....
+
+    ..o..
+
+    .....
+
+    .....
+
+    '
+  tier: stress
+  stdout: 'xx...
+
+    xx...
+
+    ..o..
+
+    .....
+
+    .....
+
+    '
+subject_id: bsq
+subject_examples: []
+folder_examples: []
+near_examples: []

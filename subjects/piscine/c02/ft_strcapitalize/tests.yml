@@ -1,0 +1,59 @@
+fixed_tests:
+- call: char s[]="salut, comment tu vas ? 42mots quarante-deux; cinquante+et+un";
+    printf("%s\n", ft_strcapitalize(s));
+  name: pool_ft_strcapitalize_T01
+  stdout: 'Salut, Comment Tu Vas ? 42mots Quarante-Deux; Cinquante+Et+Un
+
+    '
+- call: char s[]="  hELLO-wORLD 1337cODE_tEST! "; printf("%s\n", ft_strcapitalize(s));
+  name: pool_ft_strcapitalize_T02
+  stdout: "  Hello-World 1337code_Test! \n"
+- call: char s[]=""; printf("%s|empty\n", ft_strcapitalize(s));
+  name: ft_strcapitalize_empty_string
+  stdout: '|empty
+
+    '
+- call: char s[]="ALL CAPS +foo_bar*BAZ"; printf("%s\n", ft_strcapitalize(s));
+  name: ft_strcapitalize_all_caps_and_symbols
+  stdout: 'All Caps +Foo_Bar*Baz
+
+    '
+- name: test_05_single_letter
+  call: char s[]="a"; printf("%s\n", ft_strcapitalize(s));
+  tier: baseline
+  stdout: 'A
+
+    '
+- name: test_06_digits_before_letters
+  call: char s[]="42AbC 1337dEf 0xFF"; printf("%s\n", ft_strcapitalize(s));
+  tier: edge
+  stdout: '42abc 1337def 0xff
+
+    '
+- name: test_07_symbol_separators
+  call: char s[]="a-b+c*d/e=f?g!h"; printf("%s\n", ft_strcapitalize(s));
+  tier: baseline
+  stdout: 'A-B+C*D/E=F?G!H
+
+    '
+- name: test_08_tabs_and_newlines
+  call: char s[]="first\tsecond\nthird"; printf("%s\n", ft_strcapitalize(s));
+  tier: edge
+  stdout: "First\tSecond\nThird\n"
+- name: test_09_return_pointer_identity
+  call: char s[]="hello"; char *r = ft_strcapitalize(s); printf("%d:%s\n", r == s,
+    r);
+  tier: edge
+  stdout: '1:Hello
+
+    '
+- name: test_10_only_digits_and_symbols
+  call: char s[]="12345 !@#$%"; printf("%s\n", ft_strcapitalize(s));
+  tier: edge
+  stdout: '12345 !@#$%
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

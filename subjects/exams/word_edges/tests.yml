@@ -1,0 +1,169 @@
+subject_id: word_edges
+fixed_tests:
+- name: test_01_hello_test_a
+  args:
+  - hello
+  - test
+  - a
+  stdout: 'ho
+
+    tt
+
+    aa
+
+    '
+  tier: baseline
+- name: case_word_edges_no_args
+  args: []
+  stdout: '
+
+    '
+  tier: baseline
+- name: case_word_edges_mixed
+  args:
+  - x
+  - ab
+  - 42school
+  stdout: 'xx
+
+    ab
+
+    4l
+
+    '
+  tier: baseline
+- name: edge_word_edges_empty
+  args:
+  - ''
+  stdout: '
+
+    '
+  tier: baseline
+- name: edge_word_edges_whitespace
+  args:
+  - " \t "
+  stdout: "  \n"
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: '11
+
+    22
+
+    33
+
+    '
+- name: test_07_arg_auto
+  args:
+  - a
+  - b
+  - c
+  tier: baseline
+  stdout: 'aa
+
+    bb
+
+    cc
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '10'
+  - '20'
+  - '30'
+  tier: baseline
+  stdout: '10
+
+    20
+
+    30
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - school
+  tier: baseline
+  stdout: '42
+
+    17
+
+    sl
+
+    '
+- name: test_10_arg_auto
+  args:
+  - one
+  - two
+  - ''
+  tier: baseline
+  stdout: 'oe
+
+    to
+
+
+    '
+mode: c_program
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./word_edges hello test a | cat -e
+  args: &id001
+  - hello
+  - test
+  - a
+  expected: 'ho
+
+    tt
+
+    aa
+
+
+    Allowed functions: write.
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_word_edges_T06
+  origin: subject_folder/examples.txt
+  input: ./word_edges hello test a \| cat -e
+  expected: 'ho$\ntt$\naa$\n\nAllowed functions: write.'
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "subject_id: word_edges\nfixed_tests:\n- args:\n  - hello\n  - test\n\
+    \  - a\n  stdout: 'ho\n\n    tt\n\n    aa\n\n    '\n- name: case_word_edges_no_args\n\
+    \  args: []\n  stdout: '"
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - iello
+  - uest
+  - b
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  hello  '
+  - test
+  - a
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_word_edges_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./word_edges hello test a \| cat -e
+  perturbed_input: ./xord_edges hello test a \| cat -e
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

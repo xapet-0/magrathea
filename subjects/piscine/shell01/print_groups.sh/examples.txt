@@ -1,0 +1,3 @@
+Examples:
+$> ./print_groups.sh | cat -e
+$

@@ -1,0 +1,144 @@
+mode: c_program
+fixed_tests:
+- name: cur_naahio_T01
+  description: 'Functional verification of input: `[''Hello_Open_AI_is_cool'']`'
+  args:
+  - Hello_Open_AI_is_cool
+  expected: 'Reversed: cool is AI Open Hello
+
+    Vowel count: 9
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_naahio_T02
+  description: 'Functional verification of input: `[''1337_is_awesome'']`'
+  args:
+  - 1337_is_awesome
+  expected: 'Reversed: awesome is 1337
+
+    Vowel count: 5
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_naahio_T03
+  description: Standard baseline execution and behavior check for `naahio`
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_naahio_T04
+  description: edge_empty_str
+  args:
+  - ''
+  expected: "Reversed: \nVowel count: 0\n"
+  category: Edge Case
+  tier: baseline
+- name: cur_naahio_T05
+  description: edge_whitespace
+  args:
+  - "   \t  "
+  expected: "Reversed: \t\nVowel count: 0\n"
+  category: Edge Case
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: "Reversed: \nVowel count: 0\n"
+- name: test_07_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: "Reversed: \nVowel count: 0\n"
+- name: test_08_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: 'Reversed: 1337
+
+    Vowel count: 0
+
+    '
+- name: test_09_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: 'Reversed: Network 42
+
+    Vowel count: 2
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: 'Reversed: !@#$%^&*()
+
+    Vowel count: 0
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval naahio
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_naahio_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''Hello_Open_AI_is_cool'']'
+  expected: 'Reversed: cool is AI Open Hello\nVowel count: 9\n'
+- id: cur_naahio_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''1337_is_awesome'']'
+  expected: 'Reversed: awesome is 1337\nVowel count: 5\n'
+- id: cur_naahio_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`./naahio` (no CLI arguments passed, `argc == 1`)'
+  expected: '`\n` (Clean newline termination)'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval naahio
+  perturbed_input:
+  - naahio_near_arg_1
+  - naahio_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_naahio_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''Hello_Open_AI_is_cool'']'
+  perturbed_input: '[''Iello_Open_AI_is_cool'']'
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_naahio_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''1337_is_awesome'']'
+  perturbed_input: '[''1337_js_awesome'']'
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `naahio`
+  input: "naahio(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `naahio`
+  input: naahio("   word   ") and naahio("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `naahio`
+  input: naahio("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `naahio`
+  input: Execute naahio with no arguments and with 3 arguments
+  expected: Print newline only

@@ -1,0 +1,26 @@
+Assignment name  : c09_libft
+Turn-in directory: ex00/
+Expected files   : libft_creator.sh, ft_putchar.c, ft_swap.c, ft_putstr.c, ft_strlen.c, ft_strcmp.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+libft
+Turn-in directory: ex00/
+Files to turn in:libft_creator.sh, ft_putchar.c, ft_swap.c, ft_putstr.c,
+ft_strlen.c, ft_strcmp.c
+Allowed functions: write
+• Create your ft library. It will be calledlibft.a.
+• A shell script calledlibft_creator.sh will compile the source files appropriately
+and will create your library.
+• This library should contain allof the following functions :
+void ft_putchar(char c);
+void ft_swap(int *a, int *b);
+void ft_putstr(char *str);
+int ft_strlen(char *str);
+int ft_strcmp(char *s1, char *s2);
+• We’ll launch the following command-line :
+sh libft_creator.sh
+
+Examples:
+$> ./c09_libft | cat -e
+$

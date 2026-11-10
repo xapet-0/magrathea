@@ -1,0 +1,13 @@
+id: max
+type: c_function
+module: Exam Rank 02
+xp: 430
+expected_files:
+- max.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int max(int* tab, unsigned int len);

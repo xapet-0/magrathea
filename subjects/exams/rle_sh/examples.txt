@@ -1,0 +1,9 @@
+# Examples for rle_sh (from official subject specification)
+
+Examples:
+$> FT_LINE="aaabbc" sh rle_sh.sh | cat -e
+3a2b1c$
+$> FT_LINE="xxxx" sh rle_sh.sh | cat -e
+4x$
+$> FT_LINE="ab" sh rle_sh.sh | cat -e
+1a1b$

@@ -1,0 +1,99 @@
+subject_id: antidote
+fixed_tests:
+- name: test_01_1_5_3
+  expr: antidote(1, 5, 3)
+  stdout: '3
+
+    '
+  tier: baseline
+- name: test_02_10_2_8
+  expr: antidote(10, 2, 8)
+  stdout: '8
+
+    '
+  tier: baseline
+- name: test_03_5_0_5
+  expr: antidote(-5, 0, 5)
+  stdout: '0
+
+    '
+  tier: baseline
+- name: test_04_42_42_7
+  expr: antidote(42, 42, 7)
+  stdout: '42
+
+    '
+  tier: baseline
+- name: test_05_100_50_10
+  expr: antidote(-100, -50, -10)
+  stdout: '-50
+
+    '
+  tier: baseline
+- name: test_06_middle_first
+  expr: antidote(5, 1, 10)
+  tier: baseline
+  stdout: '5
+
+    '
+- name: test_07_middle_second
+  expr: antidote(1, 5, 10)
+  tier: baseline
+  stdout: '5
+
+    '
+- name: test_08_all_equal
+  expr: antidote(7, 7, 7)
+  tier: edge
+  stdout: '7
+
+    '
+- name: test_09_two_equal_low
+  expr: antidote(3, 10, 3)
+  tier: edge
+  stdout: '3
+
+    '
+- name: test_10_negative_and_positive
+  expr: antidote(-42, 1337, 0)
+  tier: stress
+  stdout: '0
+
+    '
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval antidote
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: e1337_antidote_T06
+  origin: subject_folder/examples.txt
+  input: antidote(1, 5, 3)   -> 3
+  expected: antidote(10, 2, 8)  -> 8\n  antidote(42, 42, 7) -> 42
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "subject_id: antidote\nfixed_tests:\n- expr: antidote(1, 5, 3)\n  stdout:\
+    \ '3\n\n    '\n- expr: antidote(10, 2, 8)\n  stdout: '8\n\n    '\n- expr: antidote(-5,\
+    \ 0, 5)\n  stdo"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval antidote
+  perturbed_input:
+  - antidote_near_arg_1
+  - antidote_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_antidote_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: antidote(1, 5, 3)   -> 3
+  perturbed_input: bntidote(1, 5, 3)   -> 3
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

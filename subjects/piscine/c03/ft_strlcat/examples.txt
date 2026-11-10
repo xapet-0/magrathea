@@ -1,0 +1,5 @@
+# Examples for ft_strlcat (from official subject specification)
+
+Examples:
+    char d[16]="abc"; printf("%u:%s\n", ft_strlcat(d,"def",10), d)
+    Output: 6:abcdef

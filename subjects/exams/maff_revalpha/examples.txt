@@ -1,0 +1,3 @@
+Examples:
+$> ./maff_revalpha | cat -e
+zYxWvUtSrQpOnMlKjIhGfEdCbA$

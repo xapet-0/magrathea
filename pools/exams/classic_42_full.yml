@@ -1,0 +1,76 @@
+name: classic_42_full
+display_name: "42 / 1337 Common Core \u2014 Exam Rank 02"
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 25
+  candidates:
+  - rev_print
+  - rot_13
+  - rotone
+  - ulstr
+  - first_word
+  - ft_strlen
+  - ft_swap
+  - ft_strcpy
+  - ft_putstr
+  - repeat_alpha
+  - search_and_replace
+  - fizzbuzz
+- level: 1
+  points: 25
+  candidates:
+  - inter
+  - union
+  - wdmatch
+  - last_word
+  - alpha_mirror
+  - do_op
+  - ft_atoi
+  - ft_strdup
+  - max
+  - is_power_of_2
+  - print_bits
+  - reverse_bits
+  - swap_bits
+  - camel_to_snake
+  - snake_to_camel
+  - ft_strcmp
+  - ft_strcspn
+  - ft_strpbrk
+  - ft_strrev
+- level: 2
+  points: 25
+  candidates:
+  - add_prime_sum
+  - epur_str
+  - expand_str
+  - ft_list_size
+  - ft_range
+  - ft_rrange
+  - hidenp
+  - lcm
+  - paramsum
+  - pgcd
+  - print_hex
+  - rstr_capitalizer
+  - str_capitalizer
+  - tab_mult
+  - ft_atoi_base
+- level: 3
+  points: 25
+  candidates:
+  - fprime
+  - ft_itoa
+  - ft_split
+  - rev_wstr
+  - rostring
+  - sort_int_tab
+  - sort_list
+  - ft_list_remove_if
+  - ft_list_foreach
+  - brainfuck
+  - print_memory
+pool_group: cursus
+rank_order: 20
+prerequisites: []

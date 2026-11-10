@@ -1,0 +1,6 @@
+Examples:
+  itoa_base(255, 16)         -> "FF"
+  itoa_base(-42, 10)         -> "-42"
+itoa_base(5, 2)            -> "101"
+itoa_base(0, 10)           -> "0"
+itoa_base(-2147483648, 10) -> "-2147483648"

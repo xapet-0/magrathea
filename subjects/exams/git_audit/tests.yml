@@ -1,0 +1,51 @@
+mode: shell
+fixed_tests:
+- name: git_audit_repo_log
+  args: []
+  exit_code: 0
+- name: git_audit_extra_args_ignored
+  args:
+  - ignored
+  exit_code: 0
+- name: git_audit_two_args_ignored
+  args:
+  - a
+  - b
+  exit_code: 0
+- name: git_audit_dash_arg_ignored
+  args:
+  - --noop
+  exit_code: 0
+- name: test_05_status
+  args:
+  - status
+  exit_code: 0
+  stdout: __CAPTURE__
+- name: test_06_branch
+  args:
+  - branch
+  exit_code: 0
+  stdout: __CAPTURE__
+- name: test_07_remote
+  args:
+  - remote
+  exit_code: 0
+  stdout: __CAPTURE__
+- name: test_08_diff
+  args:
+  - diff
+  exit_code: 0
+  stdout: __CAPTURE__
+- name: test_09_tag
+  args:
+  - tag
+  exit_code: 0
+  stdout: __CAPTURE__
+- name: test_10_show
+  args:
+  - show
+  exit_code: 0
+  stdout: __CAPTURE__
+subject_examples: []
+folder_examples: []
+near_examples: []

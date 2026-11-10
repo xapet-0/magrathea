@@ -1,0 +1,18 @@
+id: perm_setup
+type: shell
+module: Piscine Exams 00–Final
+xp: 290
+expected_files:
+- perm_setup.sh
+allowed_functions:
+- mkdir
+- chmod
+- dd
+- truncate
+- ln
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh perm_setup.sh [args...]

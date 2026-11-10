@@ -1,0 +1,16 @@
+Assignment name  : lengthOfLongestSubstring
+Expected files   : lengthOfLongestSubstring.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that takes a string s and returns the length of the longest
+substring without repeating characters.
+
+Your function must be declared as follows:
+
+int	lengthOfLongestSubstring(char *s);
+
+Examples:
+  lengthOfLongestSubstring("abcabcbb") -> 3 ("abc")
+  lengthOfLongestSubstring("bbbbb")    -> 1 ("b")
+  lengthOfLongestSubstring("pwwkew")   -> 3 ("wke")

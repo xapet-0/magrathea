@@ -1,0 +1,13 @@
+id: midls
+type: shell
+module: Shell 00
+xp: 140
+expected_files:
+- midLS
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: sh midls.sh [args...]

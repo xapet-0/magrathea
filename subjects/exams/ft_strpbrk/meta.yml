@@ -1,0 +1,13 @@
+id: ft_strpbrk
+type: c_function
+module: Exam Rank 02
+xp: 430
+expected_files:
+- ft_strpbrk.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: char *ft_strpbrk(const char *s1, const char *s2);

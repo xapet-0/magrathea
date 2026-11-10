@@ -1,0 +1,7 @@
+# Examples for ft_abs (from official subject specification)
+
+Examples:
+
+$>./ft_abs(-42)  → 42  
+$>./ft_abs(0)    → 0
+$>./ft_abs(99)   → 99

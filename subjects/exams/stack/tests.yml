@@ -1,0 +1,152 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty list (NULL) and single-node list in `stack`
+  input: stack(NULL, ...)
+  expected: Safely return NULL or 0 without dereferencing NULL pointer
+- name: edge_02_M
+  code: '[M]'
+  title: Zero node leaks and use-after-free prevention in `stack`
+  input: Execute stack under leak detection (DT_CHECK_LEAKS=1)
+  expected: 0 bytes leaked and valid node pointers
+- name: edge_03_B
+  code: '[B]'
+  title: All elements matching condition or identical in `stack`
+  input: Pass list where every element matches filter or deletion predicate
+  expected: Properly update list head pointer without dangling references
+- name: edge_04_B
+  code: '[B]'
+  title: Cycle detection and self-referencing nodes in `stack`
+  input: Pass cyclical linked list to stack
+  expected: Terminate correctly or detect loop without infinite iteration
+fixed_tests:
+- name: test_01_s_d_n_v1_e1_free_s
+  setup:
+  - struct s_stack *s = init()
+  - push(s, "42")
+  - char *v1 = (char *)pop(s)
+  - int e1 = isEmpty(s)
+  call: printf("%s,%d\n", v1, e1); free(s)
+  stdout: '42,1
+
+    '
+- name: test_02_d_d_d_n_isEmpty_s_pe
+  setup:
+  - struct s_stack *s = init()
+  call: printf("%d,%d,%d\n", isEmpty(s), peek(s) == NULL, pop(s) == NULL); free(s)
+  stdout: '1,1,1
+
+    '
+- name: test_03_s_s_s_d_n_p1_d1_d2_e
+  setup:
+  - struct s_stack *s = init()
+  - push(s, "a")
+  - push(s, "b")
+  - char *p1 = (char *)peek(s)
+  - char *d1 = (char *)pop(s)
+  - char *d2 = (char *)pop(s)
+  - int e2 = isEmpty(s)
+  call: printf("%s,%s,%s,%d\n", p1, d1, d2, e2); free(s)
+  stdout: 'b,b,a,1
+
+    '
+- name: test_04_NULL
+  expr: isEmpty(NULL)
+  stdout: '1
+
+    '
+- name: test_05_null_guards
+  call: push(NULL, "x"); printf("%d,%d,%d\n", isEmpty(NULL), peek(NULL) == NULL, pop(NULL)
+    == NULL)
+  tier: edge
+  stdout: '1,1,1
+
+    '
+- name: test_06_push_after_empty_reuse
+  setup:
+  - struct s_stack *s = init()
+  - push(s, "first")
+  - char *d1 = (char *)pop(s)
+  - push(s, "second")
+  - char *d2 = (char *)pop(s)
+  call: printf("%s,%s,%d\n", d1, d2, isEmpty(s)); free(s)
+  tier: edge
+  stdout: 'first,second,1
+
+    '
+- name: test_07_peek_does_not_remove
+  setup:
+  - struct s_stack *s = init()
+  - push(s, "top")
+  - char *p1 = (char *)peek(s)
+  - char *p2 = (char *)peek(s)
+  - char *d1 = (char *)pop(s)
+  call: printf("%s,%s,%s,%d\n", p1, p2, d1, isEmpty(s)); free(s)
+  tier: edge
+  stdout: 'top,top,top,1
+
+    '
+- name: test_08_four_elements_lifo
+  setup:
+  - struct s_stack *s = init()
+  - push(s, "1"); push(s, "2"); push(s, "3"); push(s, "4");
+  call: while(!isEmpty(s)) printf("%s,", (char *)pop(s)); printf("\n"); free(s)
+  tier: baseline
+  stdout: '4,3,2,1,
+
+    '
+- name: test_09_interleaved_push_pop
+  setup:
+  - struct s_stack *s = init()
+  - push(s, "a"); push(s, "b");
+  - char *x = (char *)pop(s);
+  - push(s, "c");
+  - char *y = (char *)pop(s);
+  - char *z = (char *)pop(s);
+  call: printf("%s,%s,%s,%d\n", x, y, z, isEmpty(s)); free(s)
+  tier: baseline
+  stdout: 'b,c,a,1
+
+    '
+- name: test_10_six_elements_lifo
+  setup:
+  - struct s_stack *s = init()
+  - char *v[] = {"A","B","C","D","E","F"}; for(int i=0;i<6;i++) push(s, v[i]);
+  call: while(!isEmpty(s)) printf("%s", (char *)pop(s)); printf("|%d\n", pop(s)==NULL);
+    free(s)
+  tier: stress
+  stdout: 'FEDCBA|1
+
+    '
+folder_examples:
+- expected: 'Output: 42,1\n    struct s_stack *s = init(); printf("%d,%d,%d\n", isEmpty(s),
+    peek(s) == NULL, pop(s) == NULL)\n    Output: 1,1,1\n    struct s_stack *s = init();
+    push(s, "a"); push(s, "b"); char *p1 = (char *)peek(s); char *d1 = (char *)pop(s);
+    char *d2 = (char *)pop(s); int e2 = isEmpty(s); printf("%s,%s,%s,%d\n", p1, d1,
+    d2, e2)\n    Output: b,b,a,1'
+  id: can_stack_T05
+  input: struct s_stack *s = init(); push(s, "42"); char *v1 = (char *)pop(s); int
+    e1 = isEmpty(s); printf("%s,%d\n", v1, e1)
+  origin: subject_folder/examples.txt
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval stack
+  perturbed_input:
+  - stack_near_arg_1
+  - stack_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_stack_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: struct s_stack *s = init(); push(s, "42"); char *v1 = (char *)pop(s);
+    int e1 = isEmpty(s); printf("%s,%d\n", v1, e1)
+  perturbed_input: ttruct s_stack *s = init(); push(s, "42"
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval stack
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

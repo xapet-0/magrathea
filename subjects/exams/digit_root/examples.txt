@@ -1,0 +1,9 @@
+Examples:
+$> ./digit_root "1337" | cat -e
+5$
+$> ./digit_root "42" | cat -e
+6$
+$> ./digit_root "999" | cat -e
+9$
+$> ./digit_root "0" | cat -e
+0$

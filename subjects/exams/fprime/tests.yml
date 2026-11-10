@@ -1,0 +1,268 @@
+mode: c_program
+fixed_tests:
+- name: can_fprime_T01
+  description: 'Functional verification of input: `[''42'']`'
+  args:
+  - '42'
+  expected: '2*3*7
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_fprime_T02
+  description: case_prime
+  args:
+  - '97'
+  expected: '97
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_fprime_T03
+  description: case_one
+  args:
+  - '1'
+  expected: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_fprime_T04
+  description: case_large_factorization
+  args:
+  - '225225'
+  expected: '3*3*5*5*7*11*13
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_fprime_T05
+  description: case_bad_argc
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - '8333325'
+  expected: '3*3*5*5*7*11*13*37
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - '9539'
+  expected: '9539
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args:
+  - '804577'
+  expected: '804577
+
+    '
+- name: subj_ex_08
+  tier: subject_example
+  args:
+  - '42'
+  - '21'
+  expected: '
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./fprime 225225 | cat -e
+  args: &id001
+  - '225225'
+  expected: '3*3*5*5*7*11*13
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./fprime 8333325 | cat -e
+  args: &id002
+  - '8333325'
+  expected: '3*3*5*5*7*11*13*37
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./fprime 9539 | cat -e
+  args: &id003
+  - '9539'
+  expected: '9539
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./fprime 804577 | cat -e
+  args: &id004
+  - '804577'
+  expected: '804577
+
+    '
+  cat_e: true
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./fprime 42 | cat -e
+  args:
+  - '42'
+  expected: '2*3*7
+
+    '
+  cat_e: true
+- id: subj_ex_06
+  origin: subject.en.txt
+  command: ./fprime 1 | cat -e
+  args:
+  - '1'
+  expected: '1
+
+    '
+  cat_e: true
+- id: subj_ex_07
+  origin: subject.en.txt
+  command: ./fprime | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_08
+  origin: subject.en.txt
+  command: ./fprime 42 21 | cat -e
+  args:
+  - '42'
+  - '21'
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_fprime_T06
+  origin: subject_folder/42ExamPractice/fprime/tester.sh
+  input: ./fprime "9539" "btarc"
+  expected: Matches 42 reference standard output and exit code
+- id: can_fprime_T07
+  origin: subject_folder/42ExamPractice/fprime/tester.sh
+  input: ./fprime "8333325"
+  expected: Matches 42 reference standard output and exit code
+- id: can_fprime_T08
+  origin: subject_folder/42ExamPractice/fprime/tester.sh
+  input: ./fprime "42"
+  expected: Matches 42 reference standard output and exit code
+- id: can_fprime_T09
+  origin: subject_folder/42ExamPractice/fprime/tester.sh
+  input: ./fprime "-52"
+  expected: Matches 42 reference standard output and exit code
+- id: can_fprime_T10
+  origin: subject_folder/42ExamPractice/fprime/tester.sh
+  input: ./fprime "225225"
+  expected: Matches 42 reference standard output and exit code
+- id: can_fprime_T11
+  origin: subject_folder/42ExamPractice/fprime/tester.sh
+  input: ./fprime "mais non!" "mais non!"
+  expected: Matches 42 reference standard output and exit code
+- id: can_fprime_T12
+  origin: subject_folder/42ExamPractice/fprime/tester.sh
+  input: ./fprime "0"
+  expected: Matches 42 reference standard output and exit code
+- id: can_fprime_T13
+  origin: subject_folder/examples.txt
+  input: ./fprime 225225 \| cat -e
+  expected: 3*3*5*5*7*11*13$
+- id: can_fprime_T14
+  origin: subject_folder/examples.txt
+  input: ./fprime 8333325 \| cat -e
+  expected: 3*3*5*5*7*11*13*37$
+- id: can_fprime_T15
+  origin: subject_folder/examples.txt
+  input: ./fprime 9539 \| cat -e
+  expected: 9539$
+- id: can_fprime_T16
+  origin: subject_folder/examples.txt
+  input: ./fprime 804577 \| cat -e
+  expected: 804577$
+- id: can_fprime_T17
+  origin: subject_folder/examples.txt
+  input: ./fprime 42 \| cat -e
+  expected: 2*3*7$
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '225226'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  225225  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - '8333326'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  8333325  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - '9540'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  9539  '
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - '804578'
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  804577  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_fprime_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/fprime/tester.sh)
+  original_input: ./fprime "9539" "btarc"
+  perturbed_input: ./gprime "9539" "btarc"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_fprime_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/fprime/tester.sh)
+  original_input: ./fprime "8333325"
+  perturbed_input: ./gprime "8333325"

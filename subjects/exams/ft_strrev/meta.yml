@@ -1,0 +1,13 @@
+id: ft_strrev
+type: c_function
+module: Exam Rank 02
+xp: 420
+expected_files:
+- ft_strrev.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: char *ft_strrev(char *str);

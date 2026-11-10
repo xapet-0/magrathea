@@ -1,0 +1,7 @@
+# Examples for frequency_character (from official subject specification)
+
+Example
+
+$> frequency_character('l', "Hello world!") = 3
+$> frequency_character('x', "Hello world!") = 0
+$> frequency_character('h', "Hello world!") = 0

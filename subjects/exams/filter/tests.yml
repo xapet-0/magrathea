@@ -1,0 +1,101 @@
+fixed_tests:
+- name: abc_filter
+  args:
+  - abc
+  stdin: 'abcdefaaaabcdeabcabcdabc
+
+    '
+  stdout: '***defaaa***de******d***
+
+    '
+- name: 42_filter
+  args:
+  - '42'
+  stdin: 'hello 42 school 42!
+
+    '
+  stdout: 'hello ** school **!
+
+    '
+- name: no_match
+  args:
+  - xyz
+  stdin: 'hello 1337
+
+    '
+  stdout: 'hello 1337
+
+    '
+- name: single_char
+  args:
+  - a
+  stdin: 'banana
+
+    '
+  stdout: 'b*n*n*
+
+    '
+- name: test_05_empty_stdin
+  args:
+  - abc
+  stdin: ''
+  tier: edge
+  stdout: ''
+- name: test_06_entire_line_matches
+  args:
+  - '1337'
+  stdin: '1337
+
+    '
+  tier: edge
+  stdout: '****
+
+    '
+- name: test_07_consecutive_repeats
+  args:
+  - ab
+  stdin: 'ababab
+
+    '
+  tier: edge
+  stdout: '******
+
+    '
+- name: test_08_overlapping_candidates
+  args:
+  - aba
+  stdin: 'ababa
+
+    '
+  tier: edge
+  stdout: '***ba
+
+    '
+- name: test_09_multiline_input
+  args:
+  - foo
+  stdin: 'foo bar
+
+    baz foo
+
+    foofoo
+
+    '
+  tier: baseline
+  stdout: '*** bar
+
+    baz ***
+
+    ******
+
+    '
+- name: test_10_no_trailing_newline
+  args:
+  - xy
+  stdin: 12xy34xy56
+  tier: stress
+  stdout: 12**34**56
+subject_id: filter
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,60 @@
+fixed_tests:
+- call: char s[] = "HELLO"; ft_strlowcase(s); printf("%s\n", s);
+  name: pool_ft_strlowcase_T01
+  stdout: 'hello
+
+    '
+- call: char s[] = ""; ft_strlowcase(s); printf("%s|empty\n", s);
+  name: ft_strlowcase_empty
+  stdout: '|empty
+
+    '
+- call: char s[] = "HeLLo, 42 WoRLD!"; ft_strlowcase(s); printf("%s\n", s);
+  name: ft_strlowcase_mixed_and_digits
+  stdout: 'hello, 42 world!
+
+    '
+- call: char s[] = "already low"; ft_strlowcase(s); printf("%s\n", s);
+  name: ft_strlowcase_already_lowercase
+  stdout: 'already low
+
+    '
+- name: test_05_single_A_and_Z
+  call: char s1[] = "A"; char s2[] = "Z"; printf("%s:%s\n", ft_strlowcase(s1), ft_strlowcase(s2));
+  tier: baseline
+  stdout: 'a:z
+
+    '
+- name: test_06_ascii_boundaries
+  call: char s[] = "@AZ[`az{"; printf("%s\n", ft_strlowcase(s));
+  tier: edge
+  stdout: '@az[`az{
+
+    '
+- name: test_07_digits_only
+  call: char s[] = "0123456789"; printf("%s\n", ft_strlowcase(s));
+  tier: baseline
+  stdout: '0123456789
+
+    '
+- name: test_08_return_pointer_identity
+  call: char s[] = "PISCINE"; char *r = ft_strlowcase(s); printf("%d:%s\n", r == s,
+    r);
+  tier: edge
+  stdout: '1:piscine
+
+    '
+- name: test_09_full_uppercase_alphabet
+  call: char s[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; printf("%s\n", ft_strlowcase(s));
+  tier: stress
+  stdout: 'abcdefghijklmnopqrstuvwxyz
+
+    '
+- name: test_10_whitespace_and_symbols
+  call: char s[] = " \t\n!AB#CD$EF% "; printf("%s", ft_strlowcase(s));
+  tier: edge
+  stdout: " \t\n!ab#cd$ef% "
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

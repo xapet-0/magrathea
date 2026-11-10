@@ -1,0 +1,26 @@
+Assignment name  : ft_sorted_list_merge
+Expected files   : ft_sorted_list_merge.c ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_sorted_list_merge
+Turn-in directory: ex17/
+Expected files   : ft_sorted_list_merge.c, ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create the function ft_sorted_list_merge which integrates the elements of a
+sorted list begin2 in another sorted listbegin1, so thatbegin1 remains sorted by
+ascending order.
+• Here’s how it should be prototyped:
+void ft_sorted_list_merge(t_list **begin_list1, t_list *begin_list2, int (*cmp)());
+• Function pointed bycmp will be used as follows:
+(*cmp)(list_ptr->data, list_other_ptr->data);
+
+Your function must be declared as follows:
+    void ft_sorted_list_merge(t_list **begin_list1, t_list *begin_list2, int (*cmp)());
+
+Examples:
+    t_list d={"d",0}; t_list b={"b",&d}; t_list c={"c",0}; t_list a={"a",&c}; t_list *l=&a; ft_sorted_list_merge(&l,&b,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n")
+    Output: abcd

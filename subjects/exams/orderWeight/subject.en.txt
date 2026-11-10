@@ -1,0 +1,17 @@
+Assignment name  : orderWeight
+Expected files   : orderWeight.c
+Allowed functions: malloc, free
+--------------------------------------------------------------------------------
+
+Given a string of space-separated positive integers, return a newly allocated
+string with the numbers sorted by the sum of their digits ("weight") in
+ascending order. When two numbers have the same digit sum, sort them
+lexicographically as strings.
+
+Your function must be declared as follows:
+
+char	*orderWeight(const char *strng);
+
+Example:
+  orderWeight("56 65 74 100 99 68 86 180 90")
+  -> "100 180 90 56 65 74 68 86 99"

@@ -1,0 +1,3616 @@
+#!/usr/bin/env python3
+"""1337 / 42 Authentic ExamShell v0.1.1 — Pro Edition with Live 5-Gate Scorecard, Auto-Scaffolder, Pre-Flight Check & Vogsphere Engine."""
+from __future__ import annotations
+
+import argparse
+import cmd
+import contextlib
+import datetime as dt
+import getpass
+import io
+import json
+import os
+import random
+import re
+import select
+import selectors
+import shlex
+import shutil
+import signal
+import subprocess
+import sys
+import termios
+import threading
+import time
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Sequence
+
+_SELF_DIR = Path(__file__).resolve().parent
+KIT_ROOT = _SELF_DIR if (_SELF_DIR / "pools").exists() else _SELF_DIR.parent
+if str(KIT_ROOT) not in sys.path:
+    sys.path.insert(0, str(KIT_ROOT))
+
+import yaml
+from deepthought.catalog import validate_duration_seconds
+from deepthought.grader import GradeReport, _build_sandbox_preexec, grade_subject
+from deepthought.progression import load_student_profile
+from deepthought.ui_theme import (
+    ANSI_ESCAPE_RE,
+    PALETTES,
+    ThemeEngine,
+    clip_visible,
+    pad_visible,
+    render_viewport_frame,
+    visible_len,
+)
+from deepthought.vogsphere import collect_pushed_files, init_vogsphere_repo
+
+
+NORMAL_MODE_ALLOWLIST = frozenset({
+    "status",
+    "subject",
+    "sub",
+    "grademe",
+    "trace",
+    "logs",
+    "diagnostics",
+    "more",
+    "pager",
+    "finish",
+    "exit",
+    "quit",
+    "EOF",
+    "help",
+    "tools",
+    "tool",
+    "guidelines",
+    "rules",
+    "?",
+    "klist",
+    "kinit",
+    "ssh_key",
+    "clear",
+    "cls",
+    "clean",
+    "history",
+    "time",
+})
+
+SPECIAL_PRACTICE_COMMANDS = frozenset({
+    "hint",
+    "solve",
+    "solution",
+    "check",
+    "test",
+    "run",
+    "init",
+    "scaffold",
+    "edit",
+    "vim",
+    "nano",
+    "code",
+    "push",
+    "list",
+    "level",
+    "reroll",
+    "next",
+    "assign",
+    "cooldown",
+    "remove_grade_time",
+    "force_success",
+    "norm",
+    "enable",
+    "disable",
+    "theme",
+    "sessions",
+    "menu",
+    "diff",
+})
+
+SESSION_STATES = frozenset({
+    "not_started",
+    "running",
+    "expired",
+    "passed",
+    "failed",
+    "abandoned",
+})
+
+
+# System trees that must never be wiped, even via a subdirectory such as
+# /usr/local (an exact-match check alone would let those through).
+_SYSTEM_DIRS = (
+    Path("/bin"), Path("/sbin"), Path("/usr"), Path("/etc"), Path("/var"),
+    Path("/lib"), Path("/lib64"), Path("/opt"), Path("/dev"), Path("/proc"),
+    Path("/sys"), Path("/root"), Path("/boot"), Path("/run"),
+)
+# User data folders inside $HOME: wiping these would destroy the student's
+# own files, so they are refused even though they are "inside $HOME".
+_HOME_DATA_DIRS = (
+    "Documents", "Desktop", "Downloads", "Pictures", "Music", "Videos",
+    "Public", "Templates", ".ssh", ".gnupg", ".config", ".local", ".cache",
+    ".mozilla", ".vscode", ".docker",
+)
+_ASSIGNMENT_SLUG_RE = re.compile(r"^[a-z0-9_]+$")
+
+
+def validate_safe_basedir(basedir: Path | str) -> Path:
+    """Validate that an exam-basedir path is safe to initialize or clean.
+
+    Rejects empty paths, '.', '..', filesystem root '/', $HOME, KIT_ROOT,
+    ancestors of $HOME or KIT_ROOT, system directories *and anything inside
+    them* (e.g. /usr/local), user data folders inside $HOME (e.g.
+    ~/Documents), and symlinks pointing to forbidden paths.
+    """
+    raw_str = str(basedir).strip() if basedir is not None else ""
+    if not raw_str or raw_str in {".", ".."}:
+        raise ValueError(f"Unsafe exam-basedir {raw_str!r}: path cannot be empty or relative '.'/'..'.")
+    expanded = Path(raw_str).expanduser()
+    if expanded.is_symlink():
+        raise ValueError(f"Unsafe exam-basedir '{expanded}': refusing to use or wipe a symlinked basedir.")
+    resolved = expanded.resolve(strict=False)
+    home_resolved = Path.home().resolve(strict=False)
+    kit_resolved = KIT_ROOT.resolve(strict=False)
+
+    forbidden_exact = {
+        Path("/"),
+        home_resolved,
+        kit_resolved,
+        Path("/tmp"),
+        *_SYSTEM_DIRS,
+    }
+    if resolved in forbidden_exact:
+        raise ValueError(f"Unsafe exam-basedir '{resolved}': refusing to use protected directory.")
+    for sys_dir in _SYSTEM_DIRS:
+        if sys_dir in resolved.parents:
+            raise ValueError(f"Unsafe exam-basedir '{resolved}': refusing to use a path inside system directory '{sys_dir}'.")
+    for data_name in _HOME_DATA_DIRS:
+        data_dir = home_resolved / data_name
+        if resolved == data_dir or data_dir in resolved.parents:
+            raise ValueError(f"Unsafe exam-basedir '{resolved}': refusing to use or wipe your '{data_name}' folder. Pick a dedicated folder such as ~/exam-basedir.")
+    if resolved in home_resolved.parents or resolved in kit_resolved.parents:
+        raise ValueError(f"Unsafe exam-basedir '{resolved}': path is an ancestor of $HOME or repository root.")
+    allowed_kit_tmp_roots = (
+        (kit_resolved / "build" / "test-homes").resolve(strict=False),
+        (kit_resolved / "workspace" / ".tmp_exec").resolve(strict=False),
+    )
+    if kit_resolved in resolved.parents and not any(r in resolved.parents for r in allowed_kit_tmp_roots):
+        raise ValueError(f"Unsafe exam-basedir '{resolved}': basedir cannot be inside the repository tree '{kit_resolved}'.")
+    return resolved
+
+
+def default_clock() -> dt.datetime:
+    """Return timezone-aware local datetime, honoring EXAMSHELL_FAKE_NOW for deterministic tests."""
+    fake = os.environ.get("EXAMSHELL_FAKE_NOW", "").strip()
+    if fake:
+        try:
+            if fake.replace(".", "", 1).lstrip("-").isdigit():
+                return dt.datetime.fromtimestamp(float(fake), tz=dt.timezone.utc).astimezone()
+            parsed = dt.datetime.fromisoformat(fake)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=dt.datetime.now().astimezone().tzinfo)
+            return parsed
+        except Exception:
+            pass
+    return dt.datetime.now().astimezone()
+
+
+_TTY_RX_BUF = bytearray()
+_WINCH_PENDING = False
+_ACTIVE_PROMPT_ROW = 1
+_REAL_STDOUT = sys.__stdout__ if sys.__stdout__ is not None else sys.stdout
+
+
+def _on_sigwinch(signum: int, frame: Any) -> None:
+    global _WINCH_PENDING
+    _WINCH_PENDING = True
+
+
+def is_interactive_tty() -> bool:
+    return bool(sys.stdin.isatty() and _REAL_STDOUT.isatty())
+
+
+def _write_viewport_frame(lines: Sequence[str], prompt: str, cols: int, rows: int) -> int:
+    """Render lines + prompt without blank-line padding and record the active prompt row."""
+    global _ACTIVE_PROMPT_ROW
+    safe_rows = max(10, rows)
+    body_budget = safe_rows - 1
+    fitted_count = min(len(lines), body_budget)
+    _ACTIVE_PROMPT_ROW = min(safe_rows, fitted_count + 1)
+    frame_str = render_viewport_frame(lines, prompt, cols, rows)
+    _REAL_STDOUT.write(frame_str)
+    _REAL_STDOUT.flush()
+    return _ACTIVE_PROMPT_ROW
+
+
+class TerminalSessionGuard:
+    """Context manager managing alternate-screen lifecycle, termios restoration, cursor state, and SIGWINCH."""
+
+    def __init__(self) -> None:
+        self.active = is_interactive_tty()
+        self.fd: int | None = None
+        self.orig_termios: list[Any] | None = None
+        self.prev_winch: Any = None
+
+    def __enter__(self) -> "TerminalSessionGuard":
+        if not self.active:
+            return self
+        try:
+            self.fd = sys.stdin.fileno()
+            self.orig_termios = termios.tcgetattr(self.fd)
+        except Exception:
+            self.fd = None
+            self.orig_termios = None
+        try:
+            self.prev_winch = signal.getsignal(signal.SIGWINCH)
+            signal.signal(signal.SIGWINCH, _on_sigwinch)
+        except Exception:
+            self.prev_winch = None
+        # Enter alternate screen buffer (\033[?1049h) so pre-existing terminal scrollback is never touched
+        _REAL_STDOUT.write("\033[?1049h\033[?25h\033[H\033[2J")
+        _REAL_STDOUT.flush()
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool:
+        if not self.active:
+            return False
+        if self.fd is not None and self.orig_termios is not None:
+            try:
+                termios.tcsetattr(self.fd, termios.TCSADRAIN, self.orig_termios)
+            except Exception:
+                pass
+        if self.prev_winch is not None:
+            try:
+                signal.signal(signal.SIGWINCH, self.prev_winch)
+            except Exception:
+                pass
+        try:
+            _REAL_STDOUT.write("\033[r\033[0m\033[?25h\033[?1049l\033]0;\007")
+            _REAL_STDOUT.flush()
+        except Exception:
+            pass
+        return False
+
+
+def _read_next_tty_byte(fd: int, timeout_s: float = 0.15) -> int | None:
+    """Return the next byte from _TTY_RX_BUF or fd within timeout_s."""
+    if _TTY_RX_BUF:
+        return _TTY_RX_BUF.pop(0)
+    try:
+        rlist, _, _ = select.select([fd], [], [], timeout_s)
+    except InterruptedError:
+        return None
+    if not rlist:
+        return None
+    try:
+        chunk = os.read(fd, 1024)
+    except (OSError, InterruptedError):
+        return None
+    if not chunk:
+        return -1
+    _TTY_RX_BUF.extend(chunk)
+    return _TTY_RX_BUF.pop(0)
+
+
+def _draw_bottom_prompt_line(prompt: str, buf_str: str, cursor_pos: int, cols: int, rows: int) -> None:
+    safe_cols = max(40, cols)
+    safe_rows = max(10, rows)
+    prompt_row = min(safe_rows, max(1, _ACTIVE_PROMPT_ROW))
+    p_clip = clip_visible(prompt, max(1, safe_cols - 2))
+    p_vlen = visible_len(p_clip)
+    avail = max(1, safe_cols - p_vlen - 1)
+    if len(buf_str) <= avail:
+        vis_buf = buf_str
+        cur_offset = cursor_pos
+    else:
+        start = max(0, cursor_pos - avail + 1)
+        vis_buf = buf_str[start : start + avail]
+        cur_offset = cursor_pos - start
+    target_col = min(safe_cols, p_vlen + cur_offset + 1)
+    _REAL_STDOUT.write(f"\033[{prompt_row};1H\033[K{p_clip}{vis_buf}\033[{prompt_row};{target_col}H")
+    _REAL_STDOUT.flush()
+
+
+def _read_tty_line(
+    prompt: str,
+    theme: ThemeEngine,
+    redraw_fn: Callable[[str, int], None] | None = None,
+    tick_fn: Callable[[], None] | None = None,
+    clear_fn: Callable[[str, int], None] | None = None,
+    ctrl_c_fn: Callable[[], None] | None = None,
+    completer_fn: Callable[[str, int], tuple[str, int]] | None = None,
+    history: list[str] | None = None,
+    allow_ctrl_c_clear: bool = False,
+) -> str:
+    """Read a line in interactive TTY mode with line editing, history, Tab completion, SIGWINCH redraw, and live clock tick."""
+    global _WINCH_PENDING
+    if not is_interactive_tty():
+        sys.stdout.write(prompt)
+        sys.stdout.flush()
+        line = sys.stdin.readline()
+        if not line:
+            raise EOFError
+        return line.rstrip("\r\n")
+
+    fd = sys.stdin.fileno()
+    old_attrs = termios.tcgetattr(fd)
+    new_attrs = list(old_attrs)
+    new_attrs[3] = new_attrs[3] & ~(termios.ICANON | termios.ECHO | termios.ISIG)
+    new_attrs[6] = list(old_attrs[6])
+    new_attrs[6][termios.VMIN] = 1
+    new_attrs[6][termios.VTIME] = 0
+
+    buf: list[str] = []
+    cursor_pos = 0
+    hist_list = list(history) if history else []
+    hist_idx = len(hist_list)
+    saved_draft = ""
+    last_tick = time.monotonic()
+
+    cols, rows = theme.term_size()
+    _draw_bottom_prompt_line(prompt, "", 0, cols, rows)
+
+    try:
+        termios.tcsetattr(fd, termios.TCSADRAIN, new_attrs)
+        while True:
+            if _WINCH_PENDING:
+                _WINCH_PENDING = False
+                cols, rows = theme.term_size()
+                if redraw_fn is not None:
+                    redraw_fn("".join(buf), cursor_pos)
+                _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+
+            now_m = time.monotonic()
+            if tick_fn is not None and (now_m - last_tick) >= 0.85:
+                last_tick = now_m
+                tick_fn()
+
+            b = _read_next_tty_byte(fd, timeout_s=0.12)
+            if b is None:
+                continue
+            if b == -1:
+                if not buf:
+                    if allow_ctrl_c_clear:
+                        return "EOF"
+                    raise EOFError
+                return "".join(buf)
+
+            if b in (10, 13):  # \n or \r
+                if b == 13 and _TTY_RX_BUF and _TTY_RX_BUF[0] == 10:
+                    _TTY_RX_BUF.pop(0)
+                return "".join(buf)
+
+            if b == 3:  # Ctrl+C
+                if allow_ctrl_c_clear:
+                    buf.clear()
+                    cursor_pos = 0
+                    if ctrl_c_fn is not None:
+                        ctrl_c_fn()
+                    cols, rows = theme.term_size()
+                    _draw_bottom_prompt_line(prompt, "", 0, cols, rows)
+                    continue
+                raise KeyboardInterrupt
+
+            if b == 4:  # Ctrl+D
+                if not buf:
+                    if allow_ctrl_c_clear:
+                        return "EOF"
+                    raise EOFError
+                if cursor_pos < len(buf):
+                    buf.pop(cursor_pos)
+                    cols, rows = theme.term_size()
+                    _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                continue
+
+            if b == 12:  # Ctrl+L
+                cols, rows = theme.term_size()
+                if clear_fn is not None:
+                    clear_fn("".join(buf), cursor_pos)
+                elif redraw_fn is not None:
+                    redraw_fn("".join(buf), cursor_pos)
+                _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                continue
+
+            if b in (127, 8):  # Backspace
+                if cursor_pos > 0:
+                    buf.pop(cursor_pos - 1)
+                    cursor_pos -= 1
+                    cols, rows = theme.term_size()
+                    _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                continue
+
+            if b == 9:  # Tab
+                if completer_fn is not None:
+                    new_s, new_pos = completer_fn("".join(buf), cursor_pos)
+                    buf = list(new_s)
+                    cursor_pos = new_pos
+                    cols, rows = theme.term_size()
+                    _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                continue
+
+            if b == 27:  # ESC sequence
+                b1 = _read_next_tty_byte(fd, timeout_s=0.03)
+                if b1 in (ord("["), ord("O")):
+                    b2 = _read_next_tty_byte(fd, timeout_s=0.03)
+                    if b2 == ord("A"):  # Up arrow
+                        if hist_list and hist_idx > 0:
+                            if hist_idx == len(hist_list):
+                                saved_draft = "".join(buf)
+                            hist_idx -= 1
+                            buf = list(hist_list[hist_idx])
+                            cursor_pos = len(buf)
+                            cols, rows = theme.term_size()
+                            _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                    elif b2 == ord("B"):  # Down arrow
+                        if hist_idx < len(hist_list):
+                            hist_idx += 1
+                            new_val = saved_draft if hist_idx == len(hist_list) else hist_list[hist_idx]
+                            buf = list(new_val)
+                            cursor_pos = len(buf)
+                            cols, rows = theme.term_size()
+                            _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                    elif b2 == ord("C"):  # Right arrow
+                        if cursor_pos < len(buf):
+                            cursor_pos += 1
+                            cols, rows = theme.term_size()
+                            _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                    elif b2 == ord("D"):  # Left arrow
+                        if cursor_pos > 0:
+                            cursor_pos -= 1
+                            cols, rows = theme.term_size()
+                            _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                    elif b2 == ord("H"):  # Home
+                        cursor_pos = 0
+                        cols, rows = theme.term_size()
+                        _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                    elif b2 == ord("F"):  # End
+                        cursor_pos = len(buf)
+                        cols, rows = theme.term_size()
+                        _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                    elif b2 == ord("3"):  # Delete (\x1b[3~)
+                        _ = _read_next_tty_byte(fd, timeout_s=0.02)
+                        if cursor_pos < len(buf):
+                            buf.pop(cursor_pos)
+                            cols, rows = theme.term_size()
+                            _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                continue
+
+            if b >= 32:
+                raw_bytes = bytearray([b])
+                if b >= 0xC0:
+                    needed = 1 if b < 0xE0 else (2 if b < 0xF0 else 3)
+                    for _ in range(needed):
+                        nb = _read_next_tty_byte(fd, timeout_s=0.02)
+                        if nb is not None and nb >= 0:
+                            raw_bytes.append(nb)
+                ch = raw_bytes.decode("utf-8", errors="replace")
+                buf.insert(cursor_pos, ch)
+                cursor_pos += len(ch)
+                cols, rows = theme.term_size()
+                _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+    finally:
+        try:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_attrs)
+        except Exception:
+            pass
+
+
+def _read_masked_password(prompt: str, theme: ThemeEngine | None = None) -> str:
+    """Read a password from sys.stdin with terminal echo disabled, always restoring termios state."""
+    if not is_interactive_tty():
+        sys.stdout.write(prompt)
+        sys.stdout.flush()
+        line = sys.stdin.readline()
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        return line.rstrip("\r\n")
+    t = theme or ThemeEngine("plain")
+    cols, rows = t.term_size()
+    _draw_bottom_prompt_line(prompt, "", 0, cols, rows)
+    fd = sys.stdin.fileno()
+    old_attrs = termios.tcgetattr(fd)
+    new_attrs = list(old_attrs)
+    new_attrs[3] = new_attrs[3] & ~(termios.ICANON | termios.ECHO | termios.ISIG)
+    new_attrs[6] = list(old_attrs[6])
+    new_attrs[6][termios.VMIN] = 1
+    new_attrs[6][termios.VTIME] = 0
+    chars: list[str] = []
+    try:
+        termios.tcsetattr(fd, termios.TCSADRAIN, new_attrs)
+        while True:
+            b = _read_next_tty_byte(fd, timeout_s=0.15)
+            if b is None:
+                continue
+            if b == -1:
+                raise EOFError
+            if b == 3:
+                raise KeyboardInterrupt
+            if b in (10, 13):
+                if b == 13 and _TTY_RX_BUF and _TTY_RX_BUF[0] == 10:
+                    _TTY_RX_BUF.pop(0)
+                return "".join(chars)
+            if b in (127, 8):
+                if chars:
+                    chars.pop()
+                continue
+            if b >= 32:
+                chars.append(chr(b))
+    finally:
+        try:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_attrs)
+        except Exception:
+            pass
+
+
+SHORTHAND_POOL_ALIASES = {
+    "exam00": "c_piscine_exam_00",
+    "exam_00": "c_piscine_exam_00",
+    "00": "c_piscine_exam_00",
+    "1337-c-exam-00": "1337_classic_exam00",
+    "exam01": "c_piscine_exam_01",
+    "exam_01": "c_piscine_exam_01",
+    "01": "c_piscine_exam_01",
+    "1337-c-exam-01": "1337_classic_exam01",
+    "exam02": "c_piscine_exam_02",
+    "exam_02": "c_piscine_exam_02",
+    "02": "c_piscine_exam_02",
+    "1337-c-exam-02": "1337_classic_exam02",
+    "examfinal": "c_piscine_final_exam",
+    "exam_final": "c_piscine_final_exam",
+    "final": "c_piscine_final_exam",
+    "1337-c-exam-final": "1337_classic_examfinal",
+    "full": "classic_42_full",
+    "rank02": "rank02",
+    "rank03": "rank03",
+    "rank04": "rank04",
+    "rank05": "rank05",
+    "rank06": "rank06",
+    "exam_rank_02": "rank02",
+    "exam_rank_03": "rank03",
+    "exam_rank_04": "rank04",
+    "exam_rank_05": "rank05",
+    "exam_rank_06": "rank06",
+    "rank2": "rank02",
+    "rank3": "rank03",
+    "rank4": "rank04",
+    "rank5": "rank05",
+    "rank6": "rank06",
+}
+
+
+def resolve_pool_slug(raw_pool: str) -> str:
+    key = raw_pool.strip().lower()
+    if key in SHORTHAND_POOL_ALIASES:
+        return SHORTHAND_POOL_ALIASES[key]
+    slug_map_file = KIT_ROOT / "pools" / "official_42_slugs.yml"
+    if slug_map_file.exists():
+        data = yaml.safe_load(slug_map_file.read_text(encoding="utf-8")) or {}
+        aliases = data.get("exams") or data.get("official_exam_slugs") or {}
+        if raw_pool in aliases:
+            return aliases[raw_pool]
+    return raw_pool
+
+
+
+DEFAULT_LOGIN = os.environ.get("USER") or os.environ.get("LOGNAME") or "student"
+
+
+def build_42_header(filename: str, login: str = DEFAULT_LOGIN) -> str:
+    now_s = dt.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+    fn_pad = f"{filename[:41]:<41}"
+    lg_pad = f"{login[:8]:<8}"
+    by_pad = f"By: {login} <{login}@student.1337.ma>"
+    by_line = f"/*   {by_pad:<47}+#+  +:+       +#+        */"
+    cr_line = f"/*   Created: {now_s} by {lg_pad}          #+#    #+#             */"
+    up_line = f"/*   Updated: {now_s} by {lg_pad}         ###   ########.fr       */"
+    return "\n".join(
+        [
+            "/* ************************************************************************** */",
+            "/*                                                                            */",
+            "/*                                                        :::      ::::::::   */",
+            f"/*   {fn_pad}          :+:      :+:    :+:   */",
+            "/*                                                    +:+ +:+         +:+     */",
+            by_line,
+            "/*                                                +#+#+#+#+#+   +#+           */",
+            cr_line,
+            up_line,
+            "/*                                                                            */",
+            "/* ************************************************************************** */",
+            "",
+        ]
+    )
+
+
+def parse_subject_disk_metadata(subject_file: Path) -> Dict[str, str]:
+    info = {
+        "assignment_name": "Unknown",
+        "expected_files": "Unknown",
+        "allowed_functions": "None",
+        "prototype": "None (Program / Script)",
+    }
+    if not subject_file.exists():
+        return info
+    text = subject_file.read_text(encoding="utf-8", errors="replace")
+    m_name = re.search(r"^Assignment name[ \t]*:[ \t]*([^\n]*)", text, re.MULTILINE | re.IGNORECASE)
+    if m_name and m_name.group(1).strip():
+        info["assignment_name"] = m_name.group(1).strip()
+    m_files = re.search(r"^(?:Expected files|Files to turn in)[ \t]*:[ \t]*([^\n]*)", text, re.MULTILINE | re.IGNORECASE)
+    if m_files and m_files.group(1).strip():
+        info["expected_files"] = m_files.group(1).strip()
+    m_allow = re.search(r"^Allowed (?:functions|commands)[ \t]*:[ \t]*([^\n]*)", text, re.MULTILINE | re.IGNORECASE)
+    if m_allow:
+        val = m_allow.group(1).strip()
+        info["allowed_functions"] = val if (val and not val.startswith("---")) else "None"
+    for line_s in text.splitlines():
+        s = line_s.strip()
+        if s.endswith(");") and "(" in s and not s.startswith(("$>", "//", "/*", "*")):
+            if any(
+                s.startswith(t)
+                for t in (
+                    "int",
+                    "void",
+                    "char",
+                    "unsigned",
+                    "size_t",
+                    "float",
+                    "double",
+                    "long",
+                    "t_list",
+                    "t_btree",
+                    "struct",
+                )
+            ):
+                info["prototype"] = " ".join(s.split())
+                break
+    return info
+
+
+def render_five_gate_scorecard(report: GradeReport, theme: ThemeEngine, norm_enabled: bool = False) -> str:
+    st = report.status
+    g1_fail = "Nothing turned in" in st or "main() in function" in st or "Extraneous file" in st
+    g2_fail = "Cheating" in st or "Norme error" in st
+    g3_fail = st == "Does not compile" or "Makefile" in st
+    g4_fail = any(k in st for k in ("Segmentation fault", "Bus error", "Abort", "Floating point", "Timeout", "Output limit", "Redzone KO", "Leak KO", "Free KO", "Strict KO", "Exit 42", "Exit 43"))
+    g5_fail = not report.passed and not (g1_fail or g2_fail or g3_fail or g4_fail)
+
+    gates = [
+        ("Gate 1", "Turn-in Files & Entry-Point Check (no leftover main)", not g1_fail, g1_fail),
+        (
+            "Gate 2",
+            f"ELF Symbol Whitelist (nm -u){' + 42 Norminette' if norm_enabled else ''}",
+            not (g1_fail or g2_fail),
+            g2_fail,
+        ),
+        ("Gate 3", "Strict Compilation (cc -Wall -Wextra -Werror)", not (g1_fail or g2_fail or g3_fail), g3_fail),
+        ("Gate 4", "Process Sandbox, 2.0s Timeout & Signal Isolation", not (g1_fail or g2_fail or g3_fail or g4_fail), g4_fail),
+        ("Gate 5", "Deepthought Torture Matrix & cat -e Diff Oracle", report.passed, g5_fail),
+    ]
+    lines = [theme.c("  5-GATE MOULINETTE PIPELINE SCORECARD:", "primary", "bold")]
+    stopped = False
+    for g_id, g_desc, is_ok, is_fail in gates:
+        if stopped:
+            badge = theme.c("[SKIP]", "muted")
+            desc_s = theme.c(g_desc, "muted")
+        elif is_fail:
+            badge = theme.c("[FAIL]", "err", "bold")
+            desc_s = theme.c(f"{g_desc}  <-- {st}", "err", "bold")
+            stopped = True
+        elif is_ok:
+            badge = theme.c("[PASS]", "ok", "bold")
+            desc_s = g_desc
+        else:
+            badge = theme.c("[SKIP]", "muted")
+            desc_s = theme.c(g_desc, "muted")
+        lines.append(f"    {badge} {theme.c(g_id, 'accent', 'bold')}: {desc_s}")
+    return "\n".join(lines)
+
+
+MAX_RUN_OUTPUT_BYTES = 256 * 1024
+RUN_PREVIEW_CHARS = 4096
+RUN_COMPILE_TIMEOUT_S = 10.0
+
+
+def _run_bounded_subprocess(
+    cmd: Sequence[str],
+    cwd: Path | str,
+    timeout: float = 2.0,
+    max_bytes: int = MAX_RUN_OUTPUT_BYTES,
+) -> tuple[int, str, str, bool, bool]:
+    """Run student-controlled code (or the compiler on it) with a timeout and a cap on captured output.
+
+    Returns (returncode, stdout, stderr, timed_out, truncated).
+
+    The child starts through the grader's sandbox preexec (deepthought.grader._build_sandbox_preexec):
+    its own session / process group, so everything it forked is killed with it, the same rlimits
+    the grader applies (RLIMIT_AS = 512 MB, ...), and reference material masked where namespaces
+    are available. stdin is /dev/null so it can never consume examshell's own input; stdout and
+    stderr are each capped at max_bytes (the group is killed as soon as one exceeds the cap) and
+    decoded as UTF-8 with replacement, so binary output cannot raise.
+    Raises OSError / ValueError / subprocess.SubprocessError if the process cannot be started.
+    """
+    bufs = {"out": bytearray(), "err": bytearray()}
+    timed_out = truncated = False
+    with subprocess.Popen(
+        list(cmd),
+        cwd=cwd,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        preexec_fn=_build_sandbox_preexec(Path(cwd)),  # calls setsid(): pgid == pid
+    ) as proc:
+        deadline = time.monotonic() + timeout
+        sel = selectors.DefaultSelector()
+        sel.register(proc.stdout, selectors.EVENT_READ, "out")
+        sel.register(proc.stderr, selectors.EVENT_READ, "err")
+        exited = False
+        try:
+            while sel.get_map() and not truncated:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    timed_out = True
+                    break
+                events = sel.select(0 if exited else min(0.1, remaining))
+                if not events:
+                    if exited:
+                        break  # program is gone and the pipes are idle (kept open by a stray child)
+                    exited = proc.poll() is not None
+                    continue
+                for key, _ in events:
+                    chunk = os.read(key.fd, 65536)
+                    if not chunk:
+                        sel.unregister(key.fileobj)
+                        continue
+                    buf = bufs[key.data]
+                    room = max_bytes - len(buf)
+                    buf += chunk[:room]
+                    if len(chunk) > room:
+                        truncated = True
+            if not (timed_out or truncated):
+                # Both pipes may be closed while the program is still running (close(1); close(2); for(;;);).
+                try:
+                    proc.wait(timeout=max(0.0, deadline - time.monotonic()))
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+        finally:
+            sel.close()
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)  # also kills children that outlived a normal exit
+            except (ProcessLookupError, PermissionError):
+                pass
+            proc.wait()
+    return (
+        int(proc.returncode),
+        bytes(bufs["out"]).decode("utf-8", errors="replace"),
+        bytes(bufs["err"]).decode("utf-8", errors="replace"),
+        timed_out,
+        truncated,
+    )
+
+
+class ExamShell(cmd.Cmd):
+    def __init__(
+        self,
+        pool: str,
+        level: int | None = None,
+        seed: int | None = None,
+        practice: bool = False,
+        explicit_mode: str | None = None,
+        theme_name: str = "42-cluster",
+        no_color: bool = False,
+        basedir: Path | None = None,
+        resume_session: bool = False,
+        login: str = DEFAULT_LOGIN,
+        clock_fn: Callable[[], dt.datetime] | None = None,
+        duration_override: int | None = None,
+        defer_init_basedir: bool = False,
+        fresh_confirmed: bool = False,
+    ) -> None:
+        super().__init__()
+        self._custom_clock = clock_fn is not None
+        self.clock_fn: Callable[[], dt.datetime] = clock_fn or default_clock
+        self._mono_anchor: float = time.monotonic()
+        self._wall_anchor: float = self._raw_clock_dt().timestamp()
+        self.raw_pool = pool
+        self.pool = resolve_pool_slug(pool)
+        self.practice = practice
+        self.explicit_mode = explicit_mode
+        self.seed = seed
+        self.login = login
+        self.rng = random.Random(seed)
+        self.use_plain = no_color or bool(os.environ.get("NO_COLOR")) or (not sys.stdout.isatty() and os.environ.get("FORCE_COLOR") != "1")
+        self.theme = ThemeEngine("plain" if self.use_plain else theme_name)
+        self.prompt = self.theme.c("examshell> ", "primary", "bold") if not self.use_plain else "examshell> "
+        self.norm_enabled = False
+        self.resumed = False
+        self.last_exit_code = 0
+        self.lifecycle_state = "not_started"
+        self._basedir_prepared = False
+        self._waiting_for_input = False
+        self._ticker_stop = threading.Event()
+        self._ticker_thread: threading.Thread | None = None
+        self.cmd_history: list[str] = []
+        self._raw_cmd_history: list[str] = []
+        self.setup_logs: list[str] = []
+        self._content_lines: list[str] = []
+        self._full_scroll_lines: list[str] = []
+        self._full_scroll_title: str = "LAST COMMAND OUTPUT"
+        self._footer_notice: str = ""
+        self._viewport_active: bool = False
+        self._real_stdout = sys.stdout
+        # True only when the student explicitly asked for a fresh start
+        # (--fresh). Non-interactive runs without it must never wipe an
+        # existing basedir silently.
+        self.fresh_confirmed = bool(fresh_confirmed or os.environ.get("EXAMSHELL_ALLOW_WIPE") == "1")
+
+        pool_file = Path(self.raw_pool) if Path(self.raw_pool).is_file() else (KIT_ROOT / "pools" / "exams" / f"{self.pool}.yml")
+        if not pool_file.exists():
+            available = sorted(p.stem for p in (KIT_ROOT / "pools" / "exams").glob("*.yml"))
+            raise SystemExit(f"Unknown exam pool '{pool}'. Available: {', '.join(available)}")
+        self.manifest = yaml.safe_load(pool_file.read_text(encoding="utf-8"))
+        self.levels: list[dict] = self.manifest["levels"]
+
+        is_final = "final" in self.pool.lower() or "final" in self.raw_pool.lower()
+        raw_dur = duration_override if duration_override is not None else self.manifest.get("duration_seconds", 28800 if is_final else 14400)
+        self.duration_sec = validate_duration_seconds(raw_dur, context=f"exam pool '{self.pool}'")
+
+        self.custom_basedir = basedir is not None
+        raw_basedir = basedir if basedir is not None else (Path.home() / "exam-basedir")
+        validate_safe_basedir(raw_basedir)
+        self.exam_basedir = Path(raw_basedir).expanduser()
+        self.workspace = KIT_ROOT / "workspace"
+        self.rendu_dir = self.exam_basedir / "rendu"
+        self.traces_dir = self.exam_basedir / "traces"
+        self.subjects_dir = self.exam_basedir / "subjects"
+        self.vogsphere_dir = self.exam_basedir / "vogsphere.git"
+        self.session_file = self.exam_basedir / ".session.json"
+
+        loaded_state: dict | None = None
+        if resume_session and self.session_file.exists():
+            try:
+                raw_state = json.loads(self.session_file.read_text(encoding="utf-8"))
+                if isinstance(raw_state, dict) and "start_ts" in raw_state:
+                    loaded_state = raw_state
+            except Exception as exc:
+                print(f"Warning: Corrupted session file at {self.session_file} ({exc}). Starting fresh session.", file=sys.stderr)
+                loaded_state = None
+
+        if loaded_state is not None:
+            state = loaded_state
+            self.resumed = True
+            self._basedir_prepared = True
+            saved_practice = bool(state.get("practice", False))
+            if self.explicit_mode is None:
+                self.practice = saved_practice
+            elif (self.explicit_mode == "practice") != saved_practice:
+                saved_lbl = "practice" if saved_practice else "real"
+                raise SystemExit(
+                    f"Error: Cannot resume a '{saved_lbl}' mode session in '{self.explicit_mode}' mode. "
+                    f"Use --mode {saved_lbl} or --fresh."
+                )
+            self.current_idx = max(0, min(len(self.levels) - 1, int(state.get("current_idx", 0))))
+            self.grade = int(state.get("grade", 0))
+            self.attempts = int(state.get("attempts", 0))
+            if "start_at" in state:
+                try:
+                    dt_start = dt.datetime.fromisoformat(str(state["start_at"]))
+                    if dt_start.tzinfo is None:
+                        dt_start = dt_start.replace(tzinfo=self._now_dt().tzinfo)
+                    self.start_ts = dt_start.timestamp()
+                except Exception:
+                    self.start_ts = float(state.get("start_ts", self._now_ts()))
+            else:
+                self.start_ts = float(state.get("start_ts", self._now_ts()))
+            self.duration_sec = validate_duration_seconds(state.get("duration_sec", self.duration_sec), context="resumed session")
+            saved_assignment = str(state.get("current_assignment", "") or "")
+            if saved_assignment and self._is_valid_assignment_slug(saved_assignment):
+                self.current_assignment = saved_assignment
+            else:
+                if saved_assignment:
+                    print(f"Warning: Ignoring invalid saved assignment {saved_assignment!r} in session file; picking a new one.", file=sys.stderr)
+                self.current_assignment = self._pick_assignment()
+            self.history: list[str] = list(state.get("history", []))
+            self.cmd_history = list(state.get("cmd_history", []))
+            self.level_records: list[dict] = list(state.get("level_records", []))
+            self.norm_enabled = bool(state.get("norm_enabled", False))
+            self.cooldown_step = int(state.get("cooldown_step", 30))
+            self.cooldown_enabled = bool(state.get("cooldown_enabled", True))
+            self.next_grademe_ts = float(state.get("next_grademe_ts", 0.0))
+            self.last_penalty_sec = int(state.get("last_penalty_sec", 0))
+            saved_lifecycle = str(state.get("lifecycle_state", "running"))
+            if saved_lifecycle == "abandoned" and not self._is_expired() and self.grade < 100:
+                saved_lifecycle = "running"
+            self.lifecycle_state = saved_lifecycle if saved_lifecycle in SESSION_STATES else "running"
+            self._refresh_lifecycle_state()
+        else:
+            if level is not None:
+                self.current_idx = max(0, min(len(self.levels) - 1, level))
+            else:
+                self.current_idx = 0
+            self.grade = 0
+            self.attempts = 0
+            self.start_ts = self._now_ts()
+            self.current_assignment = self._pick_assignment()
+            self.history = []
+            self.cmd_history = []
+            self.level_records = []
+            self.cooldown_step = 30
+            self.cooldown_enabled = True
+            self.next_grademe_ts = 0.0
+            self.last_penalty_sec = 0
+            self.lifecycle_state = "running"
+            if not defer_init_basedir:
+                self._initialize_fresh_workspace()
+        self._raw_cmd_history = [
+            re.sub(r"^\[[0-9:]+\]\s*", "", entry).strip()
+            for entry in self.cmd_history
+            if entry.strip()
+        ]
+        if self.resumed and not self.setup_logs:
+            self._record_setup_logs(resumed=True)
+        self._update_prompt()
+
+    def _record_setup_logs(self, resumed: bool = False) -> None:
+        """Workspace preparation transcript, worded like docs/exqm.txt Step 2 (local simulation values)."""
+        server_now = self._start_dt().strftime("%Y-%m-%d %H:%M:%S")
+        tx_id = f"8ed938b3-fe1e-4eb6-b561-{int(self.start_ts) % 1000000000000:012d}"
+        clone_lines = (
+            ["Your Git repository is already present. Reusing it..."]
+            if resumed
+            else ["The Git repository is not cloned yet. Cloning...", f"Cloning into '{self.rendu_dir}'..."]
+        )
+        self.setup_logs = [
+            "Selecting project...",
+            "Creating required directories...",
+            "Ensuring your Git repository for this exam is present and correct...",
+            *clone_lines,
+            f"vogsphere: (INFO) Transaction ID : {tx_id}",
+            "vogsphere: (INFO) Please mention this ID in any ticket you create concerning this transaction",
+            f"vogsphere: (INFO) This transaction has been started at {server_now}, server time.",
+            "vogsphere: (INFO) Rights will be determined using this time, so do NOT cut the connection.",
+            f"vogsphere: (INFO) It appears you are {self.login}. If that's not true, check your Kerberos tickets (klist)",
+            "vogsphere: (INFO) You have read and write rights on this repository",
+            "",
+            f"Your git repository was successfully cloned to {self.rendu_dir}",
+            f"Subjects: {self.subjects_dir}  |  Traces: {self.traces_dir}",
+        ]
+
+    def _initialize_fresh_workspace(self) -> None:
+        if self._basedir_prepared:
+            return
+        self._prepare_fresh_basedir()
+        self._provision_subject_files(self.current_assignment)
+        if not self.custom_basedir and os.environ.get("DT_SKIP_HOME_SYMLINKS") != "1":
+            rendu_link = Path.home() / "rendu"
+            try:
+                if rendu_link.is_symlink() or rendu_link.exists():
+                    if rendu_link.is_symlink() and rendu_link.resolve() != self.rendu_dir.resolve():
+                        rendu_link.unlink()
+                        rendu_link.symlink_to(self.rendu_dir)
+                else:
+                    rendu_link.symlink_to(self.rendu_dir)
+            except Exception:
+                pass
+        self._basedir_prepared = True
+        self._record_setup_logs(resumed=False)
+        self._save_session()
+
+    def _raw_clock_dt(self) -> dt.datetime:
+        now = self.clock_fn()
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=dt.datetime.now().astimezone().tzinfo)
+        return now
+
+    def _now_dt(self) -> dt.datetime:
+        if self._custom_clock or os.environ.get("EXAMSHELL_FAKE_NOW", "").strip():
+            return self._raw_clock_dt()
+        elapsed_mono = max(0.0, time.monotonic() - self._mono_anchor)
+        tz = dt.datetime.now().astimezone().tzinfo
+        return dt.datetime.fromtimestamp(self._wall_anchor + elapsed_mono, tz=tz)
+
+    def _now_ts(self) -> float:
+        return self._now_dt().timestamp()
+
+    def _elapsed_seconds(self) -> int:
+        return max(0, int(self._now_ts() - self.start_ts))
+
+    def _start_dt(self) -> dt.datetime:
+        tz = self._now_dt().tzinfo
+        return dt.datetime.fromtimestamp(self.start_ts, tz=tz)
+
+    def _expires_dt(self) -> dt.datetime:
+        tz = self._now_dt().tzinfo
+        return dt.datetime.fromtimestamp(self.start_ts + self.duration_sec, tz=tz)
+
+    def _is_expired(self) -> bool:
+        return self._now_ts() >= (self.start_ts + self.duration_sec)
+
+    def _refresh_lifecycle_state(self) -> str:
+        if self.lifecycle_state in {"passed", "failed", "abandoned"}:
+            return self.lifecycle_state
+        if self.grade >= 100:
+            self.lifecycle_state = "passed"
+        elif self._is_expired():
+            self.lifecycle_state = "expired"
+        elif self.lifecycle_state == "not_started":
+            self.lifecycle_state = "running"
+        return self.lifecycle_state
+
+    def _update_prompt(self) -> None:
+        self.prompt = self.theme.c("examshell> ", "primary", "bold") if not self.use_plain else "examshell> "
+
+    def _build_persistent_status_header(self, cols: int) -> list[str]:
+        """Build the 4-row Persistent Status Header fixed at Rows 1..4 of examshell v0.1.1."""
+        t = self.theme
+        self._refresh_lifecycle_state()
+        lvl = self.levels[self.current_idx]
+        lvl_num = lvl.get("level", self.current_idx)
+        pts = lvl.get("points", round(100 / max(1, len(self.levels))))
+        mode_lbl = "PRACTICE / COACHING" if self.practice else "NORMAL EXAM"
+        state_lbl = self.lifecycle_state.upper()
+        local_clock_str = self._now_dt().strftime("%d/%m/%Y %H:%M:%S")
+        rem_hms = self._format_hms()
+        ends = self._expires_dt().strftime("%H:%M")
+
+        if cols < 72:
+            r1 = f"examshell v0.1.1 | {mode_lbl} | {self.pool} [{state_lbl}]"
+            r2 = f"User:{self.login} | Lvl:{lvl_num} | Grade:{self.grade}/100 | {self.current_assignment}"
+            r3 = f"Local Clock: {local_clock_str} | Remaining: {rem_hms}"
+        else:
+            r1 = f"examshell v0.1.1 | Mode: {mode_lbl} | Exam: {self.pool} | State: {state_lbl}"
+            r2 = (
+                f"Student: {self.login}@1337.MA | Level: {lvl_num} | Grade: {self.grade}/100 "
+                f"| Assignment: {self.current_assignment} ({pts} pts)"
+            )
+            r3 = f"Local Clock: {local_clock_str} | Remaining: {rem_hms} | Ends at {ends}"
+        r4 = "=" * max(40, min(80, cols))
+        return [
+            t.c(clip_visible(r1, cols), "primary", "bold") if not self.use_plain else clip_visible(r1, cols),
+            t.c(clip_visible(r2, cols), "secondary", "bold") if not self.use_plain else clip_visible(r2, cols),
+            t.c(clip_visible(r3, cols), "warn" if self.practice else "ok", "bold") if not self.use_plain else clip_visible(r3, cols),
+            t.c(clip_visible(r4, cols), "border") if not self.use_plain else clip_visible(r4, cols),
+        ]
+
+    def _tick_persistent_clock(self) -> None:
+        """Update Row 3 and any visible Current local time / You have ... remaining lines in-place using DECSC/DECRC without moving input cursor."""
+        if not self._viewport_active or not is_interactive_tty():
+            return
+        if os.environ.get("EXAMSHELL_LIVE_TICK", "1") == "0":
+            return
+        try:
+            t = self.theme
+            cols, rows = t.term_size()
+            hdr = self._build_persistent_status_header(cols)
+            row3 = hdr[2]
+            hms = self._format_hms()
+            rem_human = self._format_timer()
+            now_dt = self._now_dt()
+            local_clock_str = now_dt.strftime("%d/%m/%Y %H:%M:%S %Z").strip()
+            el_sec = self._elapsed_seconds()
+            eh, em_r = divmod(el_sec, 3600)
+            em, es = divmod(em_r, 60)
+            elapsed_hms = f"{eh:02d}:{em:02d}:{es:02d}"
+
+            updates = [f"\033]0;examshell | {self.current_assignment} | rem {hms}\007\0337\033[3;1H\033[K{row3}"]
+            content_budget = max(3, rows - 6)
+            vis_limit = content_budget if len(self._content_lines) <= content_budget else max(1, content_budget - 1)
+            for idx, line in enumerate(self._content_lines[:vis_limit]):
+                plain = ANSI_ESCAPE_RE.sub("", str(line)).strip()
+                screen_row = 5 + idx
+                if plain.startswith("Current local time:"):
+                    new_ln = clip_visible(f"Current local time: {local_clock_str}  (Elapsed: {elapsed_hms})", cols)
+                    self._content_lines[idx] = new_ln
+                    updates.append(f"\033[{screen_row};1H\033[K{new_ln}")
+                elif plain.startswith("Current local time   :"):
+                    new_ln = clip_visible(f"Current local time   : {local_clock_str}", cols)
+                    self._content_lines[idx] = new_ln
+                    updates.append(f"\033[{screen_row};1H\033[K{new_ln}")
+                elif plain.startswith("Elapsed session time :"):
+                    new_ln = clip_visible(f"Elapsed session time : {elapsed_hms} ({el_sec}s)", cols)
+                    self._content_lines[idx] = new_ln
+                    updates.append(f"\033[{screen_row};1H\033[K{new_ln}")
+                elif plain.startswith("You have ") and "remaining" in plain:
+                    role = "warn" if self._remaining_seconds() < 1800 else "ok"
+                    new_ln = clip_visible(f"You have {t.c(rem_human, role, 'bold')} remaining ({hms})", cols)
+                    self._content_lines[idx] = new_ln
+                    updates.append(f"\033[{screen_row};1H\033[K{new_ln}")
+                elif plain.startswith("Remaining exam time  :"):
+                    new_ln = clip_visible(f"Remaining exam time  : {rem_human} ({hms})", cols)
+                    self._content_lines[idx] = new_ln
+                    updates.append(f"\033[{screen_row};1H\033[K{new_ln}")
+
+            updates.append("\0338")
+            self._real_stdout.write("".join(updates))
+            self._real_stdout.flush()
+        except Exception:
+            pass
+
+    def _render_shell_viewport(self, current_input: str = "", cursor_pos: int = 0, prompt_override: str | None = None) -> None:
+        """Render the complete examshell v0.1.1 viewport fitted strictly to `cols x rows` with prompt directly below content."""
+        if not self._viewport_active or not is_interactive_tty():
+            return
+        t = self.theme
+        cols, rows = t.term_size()
+        hdr_lines = self._build_persistent_status_header(cols)
+        content_budget = max(3, rows - 6)  # Rows 5 .. rows - 2
+
+        raw_content: list[str] = []
+        for line in self._content_lines:
+            for sub in (str(line).splitlines() or [""]):
+                raw_content.append(clip_visible(sub, cols))
+
+        if len(raw_content) <= content_budget:
+            fitted_content = raw_content
+        else:
+            keep = max(1, content_budget - 1)
+            more_notice = t.c(
+                clip_visible(
+                    f"[Showing {keep}/{len(raw_content)} lines — run 'more' or '<cmd> --pager' to scroll full output]",
+                    cols,
+                ),
+                "warn",
+                "bold",
+            )
+            fitted_content = [*raw_content[:keep], more_notice]
+
+        if self._footer_notice:
+            footer_raw = self._footer_notice
+            self._footer_notice = ""
+        elif self.practice:
+            footer_raw = "Practice: status | subject | init | check | run | push | grademe | trace | logs | clear | clean | finish"
+        else:
+            footer_raw = (
+                f"{t.muted('Commands:')} {t.accent('status')} | {t.accent('grademe')} | {t.accent('finish')}  "
+                f"{t.muted('(type')} {t.accent('tools')} {t.muted('or')} {t.accent('help')} {t.muted('for extra commands)')}"
+                if not self.use_plain
+                else "Commands: status | grademe | finish  (type 'tools' or 'help' for extra commands)"
+            )
+        footer_line = clip_visible(footer_raw, cols) if (not self.use_plain and not self._footer_notice and not self.practice) else (t.c(clip_visible(footer_raw, cols), "muted") if not self.use_plain else clip_visible(footer_raw, cols))
+
+        active_prompt = prompt_override if prompt_override is not None else self.prompt
+        _write_viewport_frame([*hdr_lines, *fitted_content, footer_line], active_prompt, cols, rows)
+        if current_input:
+            _draw_bottom_prompt_line(active_prompt, current_input, cursor_pos, cols, rows)
+
+    def _prompt_confirm_line(self, prompt_text: str, extra_lines: Sequence[str] | None = None) -> str:
+        return self._prompt_in_viewport(prompt_text, extra_lines=extra_lines)
+
+    def _prompt_in_viewport(self, prompt_text: str, extra_lines: Sequence[str] | None = None) -> str:
+        """Prompt for confirmation directly below content while keeping the examshell viewport intact."""
+        if not (self._viewport_active and is_interactive_tty()):
+            return input(prompt_text)
+        if extra_lines is not None:
+            self._content_lines = list(extra_lines)
+        styled_prompt = self.theme.c(prompt_text, "warn", "bold") if not self.use_plain else prompt_text
+        self._render_shell_viewport(prompt_override=styled_prompt)
+        return _read_tty_line(
+            styled_prompt,
+            self.theme,
+            redraw_fn=lambda buf, pos: self._render_shell_viewport(buf, pos, prompt_override=styled_prompt),
+            tick_fn=self._tick_persistent_clock,
+        )
+
+    def _run_pager(self, title: str, lines: Sequence[str]) -> None:
+        """Interactive scrollable pager inside the Defined Content Area with dynamic SIGWINCH resize support."""
+        expanded: list[str] = []
+        for ln in lines:
+            expanded.extend(str(ln).splitlines() or [""])
+        if not expanded:
+            expanded = ["(empty output)"]
+        self._full_scroll_title = title
+        self._full_scroll_lines = expanded
+
+        if not (self._viewport_active and is_interactive_tty()):
+            for ln in expanded:
+                print(ln)
+            return
+
+        offset = 0
+        pager_prompt = (
+            self.theme.c("pager (j/k/Space/q)> ", "primary", "bold")
+            if not self.use_plain
+            else "pager (j/k/Space/q)> "
+        )
+
+        def _render_pager_view(cur_buf: str = "", cur_pos: int = 0) -> tuple[int, int]:
+            nonlocal offset
+            cols, rows = self.theme.term_size()
+            hdr_lines = self._build_persistent_status_header(cols)
+            page_size = max(3, rows - 6)
+            max_offset = max(0, len(expanded) - page_size)
+            offset = max(0, min(offset, max_offset))
+            chunk = [clip_visible(ln, cols) for ln in expanded[offset : offset + page_size]]
+            start_n = offset + 1
+            end_n = min(len(expanded), offset + page_size)
+            footer_str = (
+                f"[PAGER: {title}] Lines {start_n}-{end_n} of {len(expanded)} "
+                "| j/Enter/Space=down, k=up, g=top, G=bottom, q=return to examshell>"
+            )
+            footer_line = (
+                self.theme.c(clip_visible(footer_str, cols), "secondary", "bold")
+                if not self.use_plain
+                else clip_visible(footer_str, cols)
+            )
+            _write_viewport_frame([*hdr_lines, *chunk, footer_line], pager_prompt, cols, rows)
+            if cur_buf:
+                _draw_bottom_prompt_line(pager_prompt, cur_buf, cur_pos, cols, rows)
+            return page_size, max_offset
+
+        while True:
+            page_size, max_offset = _render_pager_view()
+            try:
+                cmd_in = _read_tty_line(
+                    pager_prompt,
+                    self.theme,
+                    redraw_fn=_render_pager_view,
+                    tick_fn=self._tick_persistent_clock,
+                ).strip()
+            except (EOFError, KeyboardInterrupt):
+                break
+            low = cmd_in.lower()
+            if low in {"q", "quit", "exit", "return"}:
+                break
+            if low in {"k", "up", "p", "prev", "b"}:
+                offset = max(0, offset - max(1, page_size // 2))
+            elif low in {"g", "top", "home"}:
+                offset = 0
+            elif cmd_in == "G" or low in {"bottom", "end"}:
+                offset = max_offset
+            else:
+                offset = min(max_offset, offset + max(1, page_size // 2))
+        self._content_lines = expanded
+        self._render_shell_viewport()
+
+    def _complete_tty_input(self, buf_str: str, cursor_pos: int) -> tuple[str, int]:
+        """Mode-aware Tab completion for `_read_tty_line`."""
+        prefix = buf_str[:cursor_pos]
+        suffix = buf_str[cursor_pos:]
+        stripped_lead = prefix.lstrip()
+        if " " not in stripped_lead:
+            word = stripped_lead
+            matches = sorted(set(self.completenames(word)))
+            if len(matches) == 1:
+                completed = matches[0] + " "
+                return completed + suffix, len(completed)
+            if len(matches) > 1:
+                common = os.path.commonprefix(matches)
+                new_word = common if len(common) > len(word) else word
+                self._footer_notice = f"Completions: {', '.join(matches)}"
+                self._render_shell_viewport(new_word + suffix, len(new_word))
+                return new_word + suffix, len(new_word)
+            return buf_str, cursor_pos
+
+        parts = stripped_lead.split(" ", 1)
+        cmd_name = parts[0]
+        arg_prefix = parts[1] if len(parts) > 1 else ""
+        comp_fn = getattr(self, f"complete_{cmd_name}", None)
+        if comp_fn is None:
+            return buf_str, cursor_pos
+        matches = sorted(set(comp_fn(arg_prefix, prefix, len(cmd_name) + 1, cursor_pos)))
+        if len(matches) == 1:
+            new_prefix = f"{cmd_name} {matches[0]}"
+            return new_prefix + suffix, len(new_prefix)
+        if len(matches) > 1:
+            common = os.path.commonprefix(matches)
+            new_arg = common if len(common) > len(arg_prefix) else arg_prefix
+            new_prefix = f"{cmd_name} {new_arg}"
+            self._footer_notice = f"Completions ({cmd_name}): {', '.join(matches[:12])}"
+            self._render_shell_viewport(new_prefix + suffix, len(new_prefix))
+            return new_prefix + suffix, len(new_prefix)
+        return buf_str, cursor_pos
+
+    def _start_live_ticker(self) -> None:
+        return
+
+    def _stop_live_ticker(self) -> None:
+        self._waiting_for_input = False
+
+    def precmd(self, line: str) -> str:
+        self._waiting_for_input = False
+        return line
+
+    def postcmd(self, stop: bool, line: str) -> bool:
+        self._update_prompt()
+        self._waiting_for_input = not stop
+        return stop
+
+    def _prepare_fresh_basedir(self) -> None:
+        validate_safe_basedir(self.exam_basedir)
+        if self.exam_basedir.exists():
+            if self.exam_basedir.is_symlink():
+                raise ValueError(f"Unsafe exam-basedir '{self.exam_basedir}': refusing to remove symlink.")
+            shutil.rmtree(self.exam_basedir)
+        self.exam_basedir.mkdir(parents=True, exist_ok=True)
+        self.traces_dir.mkdir(parents=True, exist_ok=True)
+        self.subjects_dir.mkdir(parents=True, exist_ok=True)
+        init_vogsphere_repo(self.exam_basedir)
+        if not self.custom_basedir:
+            self.workspace.mkdir(parents=True, exist_ok=True)
+            for name, target in [
+                ("rendu", self.rendu_dir),
+                ("traces", self.traces_dir),
+                ("subjects", self.subjects_dir),
+                ("vogsphere.git", self.vogsphere_dir),
+            ]:
+                link = self.workspace / name
+                if link.is_symlink() or link.exists():
+                    if link.is_symlink() or link.is_file():
+                        link.unlink()
+                    else:
+                        shutil.rmtree(link)
+                link.symlink_to(target)
+
+    def _save_session(self, finished: bool = False) -> None:
+        self._refresh_lifecycle_state()
+        if finished and self.lifecycle_state == "running":
+            self.lifecycle_state = "passed" if self.grade >= 100 else "abandoned"
+        state = {
+            "raw_pool": self.raw_pool,
+            "pool": self.pool,
+            "current_idx": self.current_idx,
+            "grade": self.grade,
+            "attempts": self.attempts,
+            "start_ts": self.start_ts,
+            "start_at": self._start_dt().isoformat(),
+            "expires_at": self._expires_dt().isoformat(),
+            "duration_sec": self.duration_sec,
+            "current_assignment": self.current_assignment,
+            "history": self.history,
+            "cmd_history": self.cmd_history[-200:],
+            "level_records": self.level_records,
+            "practice": self.practice,
+            "mode": "practice" if self.practice else "real",
+            "lifecycle_state": self.lifecycle_state,
+            "norm_enabled": self.norm_enabled,
+            "cooldown_step": self.cooldown_step,
+            "cooldown_enabled": self.cooldown_enabled,
+            "next_grademe_ts": self.next_grademe_ts,
+            "last_penalty_sec": self.last_penalty_sec,
+            "finished": finished or self.lifecycle_state in {"passed", "failed", "abandoned", "expired"},
+        }
+        self.exam_basedir.mkdir(parents=True, exist_ok=True)
+        tmp_file = self.session_file.with_suffix(".json.tmp")
+        tmp_file.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        os.replace(tmp_file, self.session_file)
+
+    def _reset_cooldown(self) -> None:
+        self.next_grademe_ts = 0.0
+        self.last_penalty_sec = 0
+
+    def _cooldown_remaining(self) -> int:
+        if not self.cooldown_enabled:
+            return 0
+        rem = self.next_grademe_ts - self._now_ts()
+        return max(0, int(round(rem)))
+
+    @staticmethod
+    def _format_cooldown_short(sec: int) -> str:
+        sec = max(0, int(sec))
+        m, s = divmod(sec, 60)
+        if m == 0:
+            return f"{s}s"
+        if s == 0:
+            return f"{m}min"
+        return f"{m}min {s:02d}s"
+
+    def _format_cooldown_human(self, sec: int) -> str:
+        sec = max(0, int(sec))
+        m, s = divmod(sec, 60)
+        mmss = f"{m:02d}:{s:02d}"
+        if m == 0:
+            return f"{s} seconds ({mmss})"
+        if s == 0:
+            unit = "minute" if m == 1 else "minutes"
+            return f"{m} {unit} ({mmss} / {sec}s)"
+        unit = "minute" if m == 1 else "minutes"
+        return f"{m} {unit} {s} seconds ({mmss} / {sec}s)"
+
+    def _pick_assignment(self) -> str:
+        lvl = self.levels[self.current_idx]
+        raw_list = lvl.get("assignments") or lvl.get("subjects") or lvl.get("exercises") or lvl.get("candidates") or []
+        candidates = [c["id"] if isinstance(c, dict) else str(c) for c in raw_list]
+        if not candidates:
+            return "only_z"
+        return self.rng.choice(candidates)
+
+    def _is_valid_assignment_slug(self, slug: str) -> bool:
+        """A saved assignment name is trusted only when it is a plain slug that
+        names a real exam exercise in this pool. Anything with a path
+        separator, '..', or an unknown name is refused, so a tampered
+        .session.json cannot steer an rmtree outside subjects/."""
+        if not _ASSIGNMENT_SLUG_RE.fullmatch(str(slug or "")):
+            return False
+        if (KIT_ROOT / "subjects" / "exams" / slug).is_dir():
+            return True
+        for lvl in self.levels:
+            raw_list = lvl.get("assignments") or lvl.get("subjects") or lvl.get("exercises") or lvl.get("candidates") or []
+            for cand in raw_list:
+                cand_id = cand["id"] if isinstance(cand, dict) else str(cand)
+                if cand_id == slug:
+                    return True
+        return False
+
+    def _provision_subject_files(self, slug: str) -> Path:
+        if not self._is_valid_assignment_slug(slug):
+            raise ValueError(f"Refusing to provision unknown assignment {slug!r}.")
+        src_dir = KIT_ROOT / "subjects" / "exams" / slug
+        dst_dir = self.subjects_dir / slug
+        # Defence in depth: never rmtree outside the subjects folder, even if
+        # a caller passes a crafted slug.
+        if self.subjects_dir.resolve() not in dst_dir.resolve().parents and dst_dir.resolve() != self.subjects_dir.resolve():
+            raise ValueError(f"Refusing to provision outside the subjects folder: {slug!r}.")
+        if dst_dir.exists():
+            shutil.rmtree(dst_dir)
+        dst_dir.mkdir(parents=True, exist_ok=True)
+        subj_txt = src_dir / "subject.en.txt"
+        if subj_txt.exists():
+            shutil.copy2(subj_txt, dst_dir / "subject.en.txt")
+        for h_item in src_dir.glob("*.h"):
+            shutil.copy2(h_item, dst_dir / h_item.name)
+        return dst_dir / "subject.en.txt"
+
+    def _remaining_seconds(self) -> int:
+        elapsed = int(self._now_ts() - self.start_ts)
+        return max(0, self.duration_sec - elapsed)
+
+    def _format_timer(self) -> str:
+        rem = self._remaining_seconds()
+        h, rem_m = divmod(rem, 3600)
+        m, s = divmod(rem_m, 60)
+        return f"{h} hours, {m} minutes and {s} seconds"
+
+    def _format_hms(self) -> str:
+        rem = self._remaining_seconds()
+        h, rem_m = divmod(rem, 3600)
+        m, s = divmod(rem_m, 60)
+        return f"{h:02d}:{m:02d}:{s:02d}"
+
+    def _rule_line(self, ch: str = "=") -> str:
+        if not sys.stdout.isatty() and not os.environ.get("COLUMNS"):
+            return ch * 80
+        cols, _ = self.theme.term_size()
+        return ch * max(40, min(88, cols))
+
+    def emptyline(self) -> bool:
+        """Do not repeat the previous command on an empty line."""
+        self.last_exit_code = 0
+        self._update_prompt()
+        return False
+
+    def completenames(self, text: str, *ignored) -> List[str]:
+        """Filter Tab-completed command names by active mode."""
+        names = super().completenames(text, *ignored)
+        if not self.practice:
+            return [n for n in names if n in NORMAL_MODE_ALLOWLIST]
+        return names
+
+    def onecmd(self, line: str) -> bool:
+        """Central command dispatcher enforcing quoting, mode boundaries, viewport rendering, and session expiry."""
+        self._update_prompt()
+        stripped = line.strip()
+        if not stripped:
+            res_empty = self.emptyline()
+            if self._viewport_active:
+                self._render_shell_viewport()
+            return res_empty
+
+        ts_tag = self._now_dt().strftime("%H:%M:%S")
+        if stripped != "EOF":
+            self.cmd_history.append(f"[{ts_tag}] {stripped}")
+            if not self._raw_cmd_history or self._raw_cmd_history[-1] != stripped:
+                self._raw_cmd_history.append(stripped)
+
+        if stripped == "\x0c" or stripped.lower() in {"clear", "cls"}:
+            self.do_clear("")
+            self.last_exit_code = 0
+            return False
+
+        if stripped != "EOF":
+            try:
+                tokens = shlex.split(stripped)
+            except ValueError as exc:
+                self.last_exit_code = 2
+                err_msg = self.theme.c(f"Error: Malformed command syntax ({exc}).", "err", "bold")
+                if self._viewport_active:
+                    self._content_lines = [err_msg]
+                    self._render_shell_viewport()
+                else:
+                    print(err_msg)
+                return False
+            cmd_name = tokens[0] if tokens else ""
+            use_pager = "--pager" in tokens
+            clean_tokens = [tok for tok in tokens[1:] if tok != "--pager"]
+            arg_str = " ".join(shlex.quote(tok) if " " in tok else tok for tok in clean_tokens)
+        else:
+            cmd_name = "EOF"
+            arg_str = ""
+            use_pager = False
+
+        if cmd_name == "?":
+            cmd_name = "help"
+
+        # 0. Anti-spoiler & hint blocker (applies in both real and practice modes):
+        if cmd_name.lower() in {"solve", "solution", "--solve", "--solution", "hint", "--hint"}:
+            self.last_exit_code = 2
+            msg = self.theme.c(
+                f"Error: Command '{cmd_name}' is restricted in normal exam mode. "
+                "Reference solutions and hints are strictly locked in ExamShell to preserve the 42 / 1337 peer-learning methodology. "
+                "Use 'subject' and debug from the Deepthought trace.",
+                "err",
+                "bold",
+            )
+            if self._viewport_active:
+                self._content_lines = [msg]
+                self._render_shell_viewport()
+            else:
+                print(msg)
+            return False
+
+        # Central Normal-Mode Allowlist Enforcement (Phase 1)
+        if not self.practice:
+            if cmd_name not in NORMAL_MODE_ALLOWLIST:
+                self.last_exit_code = 2
+                if cmd_name in SPECIAL_PRACTICE_COMMANDS or hasattr(self, f"do_{cmd_name}"):
+                    msg = self.theme.c(
+                        f"Error: Command '{cmd_name}' is restricted in normal exam mode. "
+                        "Allowed commands: status, subject, grademe, trace, logs, time, history, clear, clean, finish, help.",
+                        "err",
+                        "bold",
+                    )
+                else:
+                    msg = self.theme.c(
+                        f"Error: Unknown command '{cmd_name}'. Type 'help' or 'status' for available actions.",
+                        "warn",
+                    )
+                if self._viewport_active:
+                    self._content_lines = [msg]
+                    self._render_shell_viewport()
+                else:
+                    print(msg)
+                return False
+
+        # The grading cooldown only gates `grademe` (enforced inside do_grademe). Every other
+        # command (status, subject, trace, finish, check, run, ...) stays usable while it runs.
+
+        if cmd_name in {"more", "pager"}:
+            self.last_exit_code = 0
+            self.do_more(arg_str)
+            return False
+
+        self.last_exit_code = 0
+        dispatch_line = f"{cmd_name} {arg_str}".strip() if cmd_name != "EOF" else "EOF"
+        if self._viewport_active and is_interactive_tty():
+            cap = io.StringIO()
+            with contextlib.redirect_stdout(cap):
+                res = super().onecmd(dispatch_line)
+            out_text = cap.getvalue().rstrip("\n")
+            if out_text:
+                lines_out = out_text.splitlines()
+                self._content_lines = lines_out
+                self._full_scroll_lines = list(lines_out)
+                self._full_scroll_title = f"{cmd_name.upper()} OUTPUT"
+            if use_pager and self._content_lines:
+                self._run_pager(f"{cmd_name.upper()} VIEW", self._content_lines)
+            elif not res:
+                self._render_shell_viewport()
+            self._update_prompt()
+            return bool(res)
+
+        res = super().onecmd(dispatch_line)
+        self._update_prompt()
+        return bool(res)
+
+    def _build_confirmation_screen_lines(self, cols: int, rows: int, notice: str = "") -> list[str]:
+        t = self.theme
+        w = max(40, min(cols, 80))
+        disp_basedir = "~/exam-basedir" if not self.custom_basedir else str(self.exam_basedir)
+        mode_lbl = "PRACTICE / COACHING MODE" if self.practice else "NORMAL EXAM MODE"
+        dur_h, dur_rem = divmod(self.duration_sec, 3600)
+        dur_m, _ = divmod(dur_rem, 60)
+        lines: list[str] = [
+            t.c("examshell v0.1.1", "primary", "bold"),
+            (
+                f"Principal: {t.c(f'{self.login}@1337.MA', 'info', 'bold')} | "
+                f"Exam: {t.c(self.pool, 'info', 'bold')} ({dur_h:02d}h {dur_m:02d}m, {len(self.levels)} levels) | "
+                f"Mode: {t.c(mode_lbl, 'warn' if self.practice else 'ok', 'bold')}"
+            ),
+            "",
+            t.c("WARNING", "warn", "bold"),
+            f"Your exam files will be stored in {t.c(disp_basedir, 'info', 'bold')}",
+            t.c("THIS DIRECTORY WILL BE ENTIRELY EMPTIED BEFORE YOU START", "warn", "bold"),
+            "So, if you do have important things there, Ctrl-C NOW and back them up",
+            "before running this.",
+        ]
+        if notice:
+            lines.append(t.c(notice, "err", "bold"))
+        budget = max(6, rows - 2)
+        if len(lines) > budget:
+            lines = lines[:budget]
+        return lines
+
+    def print_boot_header(self, show_banner: bool = True) -> None:
+        t = self.theme
+        disp_basedir = "~/exam-basedir" if not self.custom_basedir else str(self.exam_basedir)
+
+        if is_interactive_tty():
+            if not self.resumed:
+                notice = ""
+                invalid_tries = 0
+                prompt_str = t.c("Confirm? [y/n]: ", "warn", "bold") if not self.use_plain else "Confirm? [y/n]: "
+                while True:
+                    cols, rows = t.term_size()
+                    frame_lines = self._build_confirmation_screen_lines(cols, rows, notice=notice)
+                    _write_viewport_frame(frame_lines, prompt_str, cols, rows)
+                    try:
+                        ans = _read_tty_line(
+                            prompt_str,
+                            t,
+                            redraw_fn=lambda b, p: _write_viewport_frame(
+                                self._build_confirmation_screen_lines(*t.term_size(), notice=notice),
+                                prompt_str,
+                                *t.term_size(),
+                            ),
+                        ).strip().lower()
+                    except (EOFError, KeyboardInterrupt):
+                        print(f"\n[examshell] Confirmation cancelled. Existing files in {disp_basedir} were left untouched.")
+                        raise SystemExit(0)
+                    if not ans:
+                        continue
+                    if ans in {"y", "yes"}:
+                        break
+                    if ans in {"n", "no", "q", "quit"}:
+                        print(f"[examshell] Confirmation declined. Existing files in {disp_basedir} were left untouched.")
+                        raise SystemExit(0)
+                    invalid_tries += 1
+                    if invalid_tries >= 3:
+                        print(f"[examshell] Confirmation not granted. Existing files in {disp_basedir} were left untouched.")
+                        raise SystemExit(1)
+                    notice = f"Please answer 'y' (yes) to empty {disp_basedir} and begin, or 'n' (no) to cancel."
+                self._initialize_fresh_workspace()
+
+            # Transition directly into active examshell viewport without intermediate pause or log flood
+            self._viewport_active = True
+            cap = io.StringIO()
+            with contextlib.redirect_stdout(cap):
+                self.do_status("")
+            self._content_lines = cap.getvalue().rstrip("\n").splitlines()
+            self._full_scroll_lines = list(self._content_lines)
+            self._full_scroll_title = "STATUS OVERVIEW"
+            self._render_shell_viewport()
+            return
+
+        # Non-TTY / redirected execution path (zero terminal-control escape sequences)
+        if show_banner:
+            print(t.startup_banner(version="v0.1.1", mode="practice" if self.practice else "real"))
+        print(t.c("examshell v0.1.1", "primary", "bold"))
+        print("")
+        if self.resumed:
+            self.do_status("")
+            return
+
+        print(t.c("WARNING", "warn", "bold"))
+        print(f"Your exam files will be stored in {t.c(disp_basedir, 'info')}")
+        print(t.c("THIS DIRECTORY WILL BE ENTIRELY EMPTIED BEFORE YOU START", "warn"))
+        print("So, if you do have important things there, Ctrl-C NOW and back them up before running this.")
+        # Never wipe silently in a script/pipe: an existing non-empty basedir
+        # needs an explicit --fresh (or EXAMSHELL_ALLOW_WIPE=1). A missing or
+        # empty folder has nothing to lose and is created without fuss.
+        basedir_nonempty = self.exam_basedir.is_dir() and any(self.exam_basedir.iterdir())
+        if basedir_nonempty and not self.fresh_confirmed and os.environ.get("EXAMSHELL_REQUIRE_CONFIRM") != "1":
+            print(f"[examshell] Refusing to empty {disp_basedir}: it already contains files.")
+            print("[examshell] Nothing was deleted. To start over, back up what you need, then re-run with --fresh.")
+            print("[examshell] To keep your current exam, re-run with -r (resume) or -c \"status\".")
+            raise SystemExit(1)
+        need_confirm = os.environ.get("EXAMSHELL_REQUIRE_CONFIRM") == "1"
+        if need_confirm:
+            try:
+                _ = input("(Press Enter to continue...)").strip()
+            except (EOFError, KeyboardInterrupt):
+                print(f"\n[examshell] Cancelled before confirmation. Existing files in {disp_basedir} were left untouched.")
+                raise SystemExit(0)
+            confirmed = False
+            for _attempt in range(3):
+                try:
+                    ans = input("Confirm? [y/n] ").strip().lower()
+                except (EOFError, KeyboardInterrupt):
+                    print(f"\n[examshell] Confirmation cancelled. Existing files in {disp_basedir} were left untouched.")
+                    raise SystemExit(0)
+                if ans in {"y", "yes"}:
+                    confirmed = True
+                    break
+                if ans in {"n", "no", "q", "quit"}:
+                    print(f"[examshell] Confirmation declined. Existing files in {disp_basedir} were left untouched.")
+                    raise SystemExit(0)
+                print(f"Please answer 'y' (yes) to empty {disp_basedir} and begin, or 'n' (no) to cancel.")
+            if not confirmed:
+                print(f"[examshell] Confirmation not granted. Existing files in {disp_basedir} were left untouched.")
+                raise SystemExit(1)
+        elif basedir_nonempty:
+            # Only reachable with --fresh / EXAMSHELL_ALLOW_WIPE=1 (see guard above).
+            print(f"Starting fresh as requested (--fresh): emptying {disp_basedir}.")
+        else:
+            print(f"Creating a fresh exam folder at {disp_basedir}.")
+
+        self._initialize_fresh_workspace()
+        if not self._viewport_active:
+            print("The following commands are available to you:")
+            print(f"  {t.accent('status')}: Displays the status of your session, including information about")
+            print("    your current assignment, and the exam history.")
+            print(f"  {t.accent('grademe')}: Asks the server to grade your current assignment. If you")
+            print("    have done it right, you will gain the points of the current assignment, go")
+            print("    up a level, and try the next one. If you fail, however, you will stay on")
+            print("    the same assignment of the same level to do. So be sure of yourself before")
+            print("    you launch this command !")
+            print(f"  {t.accent('finish')}: Tell the server you are finished with your exam.")
+            print(f"  {t.accent('tools')}:  Display additional helper commands (subject, trace, logs, time, clean...).")
+            print("")
+            print("You can log out at any time. If this program tells you you earned points,")
+            print("then they will be counted as whatever happens.")
+            print("")
+        self.do_status("")
+
+    def do_status(self, arg: str) -> None:
+        """Display the examshell v0.1.1 status block (wording as in docs/exqm.txt, Step 3)."""
+        t = self.theme
+        self._refresh_lifecycle_state()
+        lvl = self.levels[self.current_idx]
+        lvl_num = lvl["level"]
+        pts = lvl.get("points", round(100 / max(1, len(self.levels))))
+        self._provision_subject_files(self.current_assignment)
+        end_dt = self._expires_dt().strftime("%d/%m/%Y %H:%M:%S")
+
+        now_dt = self._now_dt()
+        local_clock_str = now_dt.strftime("%d/%m/%Y %H:%M:%S %Z").strip()
+        end_dt = self._expires_dt().strftime("%d/%m/%Y %H:%M:%S")
+        el_sec = self._elapsed_seconds()
+        eh, em_r = divmod(el_sec, 3600)
+        em, es = divmod(em_r, 60)
+        elapsed_hms = f"{eh:02d}:{em:02d}:{es:02d}"
+
+        cols, rows = t.term_size()
+        rule = t.c("=" * 80, "border") if cols >= 80 else t.c("=" * max(40, cols), "border")
+        # In the full-screen viewport the persistent header already ends with a rule,
+        # and on short terminals blank spacer lines are the first thing to go.
+        compact = self._viewport_active and rows < 28
+        mode_desc = "practice mode (Your grade does not count)" if self.practice else "real mode (Your grade will be counted)"
+
+        if not self._viewport_active:
+            print(rule)
+        print(f"You are currently at level {t.c(str(lvl_num), 'info')}")
+        print(f"You are running in {t.c(mode_desc, 'warn' if self.practice else 'ok')}")
+        print(f"Your current grade is {t.c(str(self.grade), 'info')}/100")
+        print("Assignments:")
+        by_lvl: dict[int, list[dict]] = {}
+        for rec in self.level_records:
+            by_lvl.setdefault(int(rec["level"]), []).append(rec)
+        all_lvls_shown = sorted(set([*by_lvl.keys(), int(lvl_num)]))
+        for l_key in (all_lvls_shown[-2:] if compact else all_lvls_shown):
+            print(f"  Level {l_key}:")
+            for rec in by_lvl.get(l_key, [])[-2:] if compact else by_lvl.get(l_key, []):
+                state_lbl = rec["state"]
+                state_col = t.c(f"({state_lbl})", "ok" if state_lbl == "Success" else "err", "bold")
+                print(f"    {rec['attempt']}: {t.c(rec['slug'], 'info')} for {t.c(str(rec['points']), 'info')} potential points {state_col}")
+            if l_key == int(lvl_num) and self.grade < 100:
+                print(f"    {self.attempts}: {t.c(self.current_assignment, 'info')} for {t.c(str(pts), 'info')} potential points {t.c('(Current)', 'warn')}")
+        if not compact:
+            print("")
+        print(f"Your current assignment is {t.c(self.current_assignment, 'info')} for {t.c(str(pts), 'info')} potential points")
+        print(f"It is assignment {t.c(str(self.attempts), 'info')} for level {t.c(str(lvl_num), 'info')}")
+        print(f"The subject is located at: {t.c(f'~/exam-basedir/subjects/{self.current_assignment}', 'info')}")
+        print("You must turn in your files in a subdirectory of your Git repository with the")
+        print(f"same name as the assignment ({t.c(f'~/exam-basedir/rendu/{self.current_assignment}', 'info')}).")
+        print("Of course, you must still push...")
+        if not compact:
+            print("")
+        print(f"Current local time: {local_clock_str}  (Elapsed: {elapsed_hms})")
+        print(f"The end date for this exam is: {t.c(end_dt, 'info')}")
+        print(f"You have {t.c(self._format_timer(), 'warn' if self._remaining_seconds() < 1800 else 'ok', 'bold')} remaining ({self._format_hms()})")
+        if self.lifecycle_state == "expired":
+            print(t.status("error", "Time is up. grademe is locked; run 'finish' to close the session."))
+            return
+        if not compact:
+            print(rule)
+            print("You can now work on your assignment. When you are sure you're done with it,")
+            print(f'push it to vogsphere, and then use the "{t.c("grademe", "info")}" command to be graded.')
+            if not self.practice and not self._viewport_active:
+                print(
+                    f"{t.muted('Commands:')} {t.accent('status')} | {t.accent('grademe')} | {t.accent('finish')}  "
+                    f"{t.muted('(type')} {t.accent('tools')} {t.muted('or')} {t.accent('help')} {t.muted('for extra commands)')}"
+                )
+
+    def do_logs(self, arg: str) -> None:
+        """Display Vogsphere repository initialization and session infrastructure diagnostics (`logs [--pager]`)."""
+        t = self.theme
+        if not self.setup_logs:
+            self._record_setup_logs(resumed=self.resumed)
+        for ln in self.setup_logs:
+            if ln.startswith("vogsphere: (INFO)"):
+                print(t.c("vogsphere: (INFO)", "info") + ln[len("vogsphere: (INFO)"):])
+            elif ln.startswith("Your git repository"):
+                print(t.c(ln, "ok"))
+            else:
+                print(t.c(ln, "muted") if ln.endswith("...") else ln)
+
+    def do_diagnostics(self, arg: str) -> None:
+        """Alias for `logs`."""
+        self.do_logs(arg)
+
+    def do_more(self, arg: str) -> None:
+        """Open the interactive scrollable pager for the most recent command output (`more` / `pager`)."""
+        if not self._full_scroll_lines:
+            print("No previous command output to page. Run 'subject', 'trace', 'logs', or 'status' first.")
+            return
+        self._run_pager(self._full_scroll_title, self._full_scroll_lines)
+
+    def do_pager(self, arg: str) -> None:
+        """Alias for `more`."""
+        self.do_more(arg)
+
+    def do_clear(self, arg: str) -> None:
+        """Clear previous command output from the Defined Content Area and redraw the current display without altering files or session state."""
+        msg = self.theme.c("[Screen cleared — session state, timer, and workspace files preserved.]", "muted")
+        self._content_lines = [msg]
+        if self._viewport_active and is_interactive_tty():
+            self._render_shell_viewport()
+        elif not is_interactive_tty():
+            print(msg)
+
+    def do_cls(self, arg: str) -> None:
+        """Alias for `clear`."""
+        self.do_clear(arg)
+
+    def do_clean(self, arg: str) -> None:
+        """Safely remove explicitly defined disposable build/editor artifacts inside rendu/ without touching student source or data files."""
+        t = self.theme
+        validate_safe_basedir(self.exam_basedir)
+        if not self.rendu_dir.exists():
+            print(t.c(f"[clean] Turn-in directory '{self.rendu_dir}' does not exist yet (0 artifacts removed).", "muted"))
+            return
+        if self.rendu_dir.is_symlink():
+            self.last_exit_code = 1
+            print(t.c(f"Error: Refusing to clean symlinked rendu directory '{self.rendu_dir}'.", "err", "bold"))
+            return
+
+        rendu_resolved = self.rendu_dir.resolve()
+        dry_run = "--dry-run" in arg.split()
+        artifact_names = {"a.out", "core", ".DS_Store", ".gdb_history", "user_bin", "ref_bin", "user_run"}
+        artifact_suffixes = {".o", ".obj", ".gch", ".swp", ".swo"}
+        protected_suffixes = {".c", ".h", ".cpp", ".hpp", ".sh", ".py", ".txt", ".md", ".yml", ".json", ".out", ".tmp", ".in", ".dat"}
+
+        removed: list[str] = []
+        for cand in sorted(self.rendu_dir.rglob("*")):
+            if ".git" in cand.parts:
+                continue
+            if cand.is_symlink() or not cand.is_file():
+                continue
+            try:
+                cand_resolved = cand.resolve()
+                cand_resolved.relative_to(rendu_resolved)
+            except Exception:
+                continue
+            if cand.name == "Makefile" or (cand.suffix.lower() in protected_suffixes and cand.name not in artifact_names):
+                continue
+            is_artifact = (
+                cand.name in artifact_names
+                or cand.suffix.lower() in artifact_suffixes
+                or cand.name.endswith("~")
+            )
+            if is_artifact:
+                rel = str(cand.relative_to(self.rendu_dir))
+                if not dry_run:
+                    cand.unlink(missing_ok=True)
+                removed.append(rel)
+
+        prefix = "[clean --dry-run]" if dry_run else "[clean]"
+        if removed:
+            print(t.c(f"{prefix} Removed {len(removed)} generated artifact(s) from {self.rendu_dir}: {', '.join(removed)}", "ok", "bold"))
+        else:
+            print(t.c(f"{prefix} 0 generated artifacts found in {self.rendu_dir}. Student source files and session state untouched.", "ok"))
+
+    def do_time(self, arg: str) -> None:
+        """Display current local clock, exam start/end timestamps, elapsed duration, and remaining countdown."""
+        t = self.theme
+        self._refresh_lifecycle_state()
+        now_dt = self._now_dt()
+        start_dt = self._start_dt()
+        end_dt = self._expires_dt()
+        el_sec = self._elapsed_seconds()
+        eh, em_r = divmod(el_sec, 3600)
+        em, es = divmod(em_r, 60)
+        rule = self._rule_line("-")
+        print(rule)
+        print(f"Current local time   : {now_dt.strftime('%d/%m/%Y %H:%M:%S %Z').strip()}")
+        print(f"Exam start time      : {start_dt.strftime('%d/%m/%Y %H:%M:%S')}")
+        print(f"The end date for exam: {end_dt.strftime('%d/%m/%Y %H:%M:%S')}")
+        print(f"Elapsed session time : {eh:02d}:{em:02d}:{es:02d} ({el_sec}s)")
+        print(f"Remaining exam time  : {self._format_timer()} ({self._format_hms()})")
+        print(f"Session state        : {t.c(self.lifecycle_state.upper(), 'info', 'bold')}")
+        print(rule)
+
+    def do_history(self, arg: str) -> None:
+        """Display session command history and grading attempt history."""
+        t = self.theme
+        rule = self._rule_line("-")
+        print(rule)
+        print(t.c("SESSION COMMAND & GRADING HISTORY", "primary", "bold"))
+        print("Command Log:")
+        if self.cmd_history:
+            for idx, entry in enumerate(self.cmd_history[-25:], 1):
+                print(f"  {idx:>2}. {entry}")
+        else:
+            print("  (no commands recorded yet)")
+        print("Grading Attempts:")
+        if self.history:
+            for idx, item in enumerate(self.history, 1):
+                print(f"  {idx:>2}. {item}")
+        else:
+            print("  (no grading attempts recorded yet)")
+        print(rule)
+
+    def default(self, line: str) -> None:
+        """Intercept clear/cls/Ctrl+L and unknown commands gracefully."""
+        cmd_lower = line.strip().lower()
+        if cmd_lower in {"clear", "cls"} or line.strip() == "\x0c":
+            self.do_clear("")
+            self.last_exit_code = 0
+            return
+        self.last_exit_code = 2
+        t = self.theme
+        print(t.c(f"  Error: Unknown command: {line!r}. Type 'help' or 'status' to see available commands.", "warn"))
+
+    def do_subject(self, arg: str) -> None:
+        """Display the current assignment's subject.en.txt with syntax & header highlighting (`subject [--full|--raw]`)."""
+        subj_file = self.subjects_dir / self.current_assignment / "subject.en.txt"
+        if not subj_file.exists():
+            subj_file = self._provision_subject_files(self.current_assignment)
+        raw_text = subj_file.read_text(encoding="utf-8", errors="replace")
+        flags = arg.strip().lower().split()
+        if "--raw" in flags or "raw" in flags or not self.theme.enabled:
+            print(raw_text)
+            return
+        full_flag = "--full" in flags or "full" in flags or "all" in flags
+        print(self.theme.render_subject(raw_text, subject_id=self.current_assignment, full=full_flag))
+
+    def do_sub(self, arg: str) -> None:
+        """Alias for `subject`."""
+        self.do_subject(arg)
+
+    def _scaffold_current_assignment(self) -> Path:
+        t = self.theme
+        subj_file = self._provision_subject_files(self.current_assignment)
+        disk_meta = parse_subject_disk_metadata(subj_file)
+        meta_path = KIT_ROOT / "subjects" / "exams" / self.current_assignment / "meta.yml"
+        meta = yaml.safe_load(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+
+        exp_files = meta.get("expected_files") or [
+            f.strip() for f in disk_meta["expected_files"].split(",") if f.strip() and f.strip() != "Unknown"
+        ]
+        if not exp_files:
+            exp_files = [f"{self.current_assignment}.c"]
+
+        assign_dir = self.rendu_dir / self.current_assignment
+        assign_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy any helper headers (e.g. ft_list.h) provided by the subject folder
+        src_subj_dir = KIT_ROOT / "subjects" / "exams" / self.current_assignment
+        for hf in src_subj_dir.glob("*.h"):
+            dest_h = assign_dir / hf.name
+            if not dest_h.exists():
+                shutil.copy2(hf, dest_h)
+
+        primary_file = assign_dir / exp_files[0]
+        for fname in exp_files:
+            if "*" in fname:
+                continue
+            fpath = assign_dir / fname
+            if fpath.exists():
+                print(t.c(f"[init] File already exists (preserved): {fpath}", "warn"))
+                continue
+            fpath.parent.mkdir(parents=True, exist_ok=True)
+            if fname.endswith(".sh"):
+                fpath.write_text("#!/bin/sh\n\n", encoding="utf-8")
+                os.chmod(fpath, 0o755)
+            elif fname.endswith(".h"):
+                guard = re.sub(r"[^A-Za-z0-9]", "_", fname).upper()
+                fpath.write_text(
+                    build_42_header(fname, self.login) + f"#ifndef {guard}\n# define {guard}\n\n#endif\n",
+                    encoding="utf-8",
+                )
+            elif fname.endswith(".c"):
+                hdr = build_42_header(fname, self.login)
+                allowed = str(disk_meta.get("allowed_functions", ""))
+                includes: list[str] = []
+                if any(fn in allowed for fn in ("write", "read", "close", "fork", "pipe", "dup2", "execve")):
+                    includes.append("#include <unistd.h>")
+                if any(fn in allowed for fn in ("malloc", "free", "exit", "atoi")):
+                    includes.append("#include <stdlib.h>")
+                if any(fn in allowed for fn in ("printf", "fopen", "getline", "perror")):
+                    includes.append("#include <stdio.h>")
+                if any(fn in allowed for fn in ("open",)):
+                    includes.append("#include <fcntl.h>")
+                inc_block = ("\n".join(includes) + "\n\n") if includes else ""
+                proto = disk_meta.get("prototype", "")
+                stype = meta.get("type", "")
+                if stype == "c_function" or (proto and not proto.startswith("None") and "main(" not in proto):
+                    sig = proto.rstrip(";")
+                    body = f"{sig}\n{{\n\t/* TODO: implement {self.current_assignment} */\n}}\n"
+                else:
+                    body = "int\tmain(int argc, char **argv)\n{\n\t(void)argc;\n\t(void)argv;\n\treturn (0);\n}\n"
+                fpath.write_text(hdr + inc_block + body, encoding="utf-8")
+            print(t.c(f"[init] Created starter file: {fpath}", "ok", "bold"))
+
+        print(t.c(f"[init] Turn-in directory ready: {assign_dir}", "primary"))
+        return primary_file
+
+    def do_init(self, arg: str) -> None:
+        """Create turn-in folder `rendu/<assignment>/` and generate starter files with 42 header & prototype."""
+        self._scaffold_current_assignment()
+
+    def do_scaffold(self, arg: str) -> None:
+        """Alias for `init`."""
+        self._scaffold_current_assignment()
+
+    def do_edit(self, arg: str) -> None:
+        """Scaffold (if needed) and open the current assignment's source file in your editor ($EDITOR / vim / code / nano)."""
+        t = self.theme
+        assign_dir = self.rendu_dir / self.current_assignment
+        c_files = sorted(assign_dir.glob("*.c")) if assign_dir.exists() else []
+        target_file = c_files[0] if c_files else self._scaffold_current_assignment()
+        editor = arg.strip() or os.environ.get("EDITOR") or ("vim" if shutil.which("vim") else "nano")
+        cmd = [*shlex.split(editor), str(target_file)]
+        print(t.c(f"[edit] Opening {' '.join(cmd)} ...", "accent"))
+        try:
+            subprocess.call(cmd)
+        except Exception as exc:
+            print(t.c(f"[edit] Could not launch editor '{editor}': {exc}", "err"))
+        finally:
+            if self._viewport_active and is_interactive_tty():
+                self._real_stdout.write("\033[?1049h\033[?25h\033[H\033[2J")
+                self._real_stdout.flush()
+
+    def do_vim(self, arg: str) -> None:
+        """Open current assignment in vim."""
+        self.do_edit("vim")
+
+    def do_nano(self, arg: str) -> None:
+        """Open current assignment in nano."""
+        self.do_edit("nano")
+
+    def do_code(self, arg: str) -> None:
+        """Open current assignment in VS Code (`code`)."""
+        self.do_edit("code")
+
+    def do_check(self, arg: str) -> None:
+        if not self.practice:
+            t = self.theme
+            print(t.c("  [examshell] 'check' is only available in practice mode (--mode practice).", "warn"))
+            return
+        """[Pre-Flight Check] Run the 5-Gate Moulinette pipeline on local `rendu/<assignment>` WITHOUT using a grademe attempt!"""
+        t = self.theme
+        local_dir = self.rendu_dir / self.current_assignment
+        print(t.c(f"=== PRE-FLIGHT CHECK (Zero Penalty): {self.current_assignment} ===", "primary", "bold"))
+        if not local_dir.exists() or not any(local_dir.iterdir()):
+            print(t.c(f"Turn-in directory is empty: {local_dir}", "err", "bold"))
+            print(t.c("Tip: Run `init` or `edit` first to create your starter file!", "accent"))
+            return
+        res = grade_subject(
+            KIT_ROOT,
+            f"exams/{self.current_assignment}",
+            local_dir,
+            is_exam=True,
+            strict=False,
+            enforce_norm=self.norm_enabled,
+        )
+        print(render_five_gate_scorecard(res, t, norm_enabled=self.norm_enabled))
+        if res.passed:
+            print(t.c(f"\n[PRE-FLIGHT OK] All 5 Gates PASSED! Run `grademe` now to claim your points!", "ok", "bold"))
+        else:
+            print(t.c(f"\n[PRE-FLIGHT KO] Status: {res.status}", "err", "bold"))
+            summary = res.format_exam_trace_summary()
+            if summary:
+                print(summary)
+            else:
+                tail_lines = "\n".join(res.trace.splitlines()[-15:])
+                print(tail_lines)
+
+    def do_test(self, arg: str) -> None:
+        """Alias for `check` (runs local 5-Gate pre-flight check without penalty)."""
+        self.do_check(arg)
+
+    def do_list(self, arg: str) -> None:
+        """List all levels and candidate exercises in the current exam pool."""
+        t = self.theme
+        print(t.c("=" * 80, "border"))
+        print(t.c(f"  EXAM POOL LEVELS & CANDIDATES: {self.pool}", "primary", "bold"))
+        print(t.c("-" * 80, "border"))
+        for idx, lvl in enumerate(self.levels):
+            lnum = lvl.get("level", idx)
+            pts = lvl.get("points", round(100 / max(1, len(self.levels))))
+            raw_c = lvl.get("candidates") or lvl.get("subjects") or lvl.get("assignments") or []
+            c_names = [c["id"] if isinstance(c, dict) else str(c) for c in raw_c]
+            marker = t.c(">>", "ok", "bold") if idx == self.current_idx else "  "
+            formatted_c = [
+                t.c(f"[{c}]", "ok", "bold") if (idx == self.current_idx and c == self.current_assignment) else c
+                for c in c_names
+            ]
+            print(f"{marker} Level {lnum:<2} ({pts:>2} pts): {', '.join(formatted_c)}")
+        print(t.c("-" * 80, "border"))
+        print(t.c("Tip: Use `assign <slug>`, `level <N>`, or `reroll` to switch exercises.", "muted"))
+        print(t.c("=" * 80, "border"))
+
+    def do_level(self, arg: str) -> None:
+        """Jump directly to a specific level number (`level 0` .. `level N`)."""
+        raw = arg.strip()
+        if not raw.isdigit():
+            print(f"Usage: level <0..{len(self.levels) - 1}>")
+            return
+        target_lvl = int(raw)
+        for idx, lvl in enumerate(self.levels):
+            if int(lvl.get("level", idx)) == target_lvl or idx == target_lvl:
+                self.current_idx = idx
+                self.attempts = 0
+                self._reset_cooldown()
+                self.current_assignment = self._pick_assignment()
+                self._provision_subject_files(self.current_assignment)
+                self._save_session()
+                print(self.theme.c(f"Switched to Level {lvl.get('level', idx)}: {self.current_assignment}", "ok", "bold"))
+                self.do_status("")
+                return
+        print(f"Level {target_lvl} not found (valid range: 0..{len(self.levels) - 1}).")
+
+    def do_reroll(self, arg: str) -> None:
+        """Draw a different random exercise from the current level."""
+        lvl = self.levels[self.current_idx]
+        raw_list = lvl.get("assignments") or lvl.get("subjects") or lvl.get("exercises") or lvl.get("candidates") or []
+        candidates = [c["id"] if isinstance(c, dict) else str(c) for c in raw_list]
+        others = [c for c in candidates if c != self.current_assignment]
+        self.current_assignment = random.choice(others) if others else self._pick_assignment()
+        self.attempts = 0
+        self._reset_cooldown()
+        self._provision_subject_files(self.current_assignment)
+        self._save_session()
+        print(self.theme.c(f"Rerolled Level {lvl['level']} assignment -> {self.current_assignment}", "ok", "bold"))
+        self.do_status("")
+
+    def do_next(self, arg: str) -> None:
+        """Alias for `reroll`."""
+        self.do_reroll(arg)
+
+    def do_theme(self, arg: str) -> None:
+        """Switch color theme live (`theme 42-cluster | jcluzet-exam | tokyo-night | gruvbox | plain`)."""
+        name = arg.strip().lower()
+        if name == "plain":
+            self.theme = ThemeEngine("plain")
+            self.prompt = "examshell> "
+            print("Theme set to: plain")
+            return
+        if self.theme.set_theme(name):
+            self.theme.enabled = True
+            self.prompt = self.theme.c("examshell> ", "primary", "bold")
+            print(self.theme.c(f"Theme switched to '{name}'!", "ok", "bold"))
+        else:
+            print(f"Available themes: {', '.join(sorted(PALETTES))} | plain")
+
+    def do_enable(self, arg: str) -> None:
+        """Enable optional features such as 42 Norminette enforcement (`enable norm`)."""
+        if arg.strip().lower() in {"norm", "norminette"}:
+            self.norm_enabled = True
+            self._save_session()
+            print(self.theme.c("[Norminette Gate] 42 Norm v3/v4 enforcement ENABLED for grademe.", "ok", "bold"))
+        else:
+            print("Usage: enable norm")
+
+    def do_disable(self, arg: str) -> None:
+        """Disable optional features such as 42 Norminette enforcement (`disable norm`)."""
+        if arg.strip().lower() in {"norm", "norminette"}:
+            self.norm_enabled = False
+            self._save_session()
+            print(self.theme.c("[Norminette Gate] 42 Norm v3/v4 enforcement DISABLED (default exam mode).", "warn", "bold"))
+        else:
+            print("Usage: disable norm")
+
+    def do_norm(self, arg: str) -> None:
+        """Toggle or set 42 Norminette gate (`norm on` / `norm off`)."""
+        sub = arg.strip().lower()
+        if sub in {"on", "enable", "1", "true"}:
+            self.do_enable("norm")
+        elif sub in {"off", "disable", "0", "false"}:
+            self.do_disable("norm")
+        else:
+            if self.norm_enabled:
+                self.do_disable("norm")
+            else:
+                self.do_enable("norm")
+
+    def do_push(self, arg: str) -> None:
+        """Stage, commit, and push files in rendu/ to the local Vogsphere Git repository."""
+        t = self.theme
+        if not self.rendu_dir.exists():
+            print(t.c(f"Turn-in directory {self.rendu_dir} does not exist!", "err"))
+            return
+        subprocess.run(["git", "add", "-A"], cwd=self.rendu_dir, capture_output=True)
+        subprocess.run(
+            [
+                "git",
+                "-c", f"user.name={self.login}",
+                "-c", f"user.email={self.login}@student.1337.ma",
+                "commit",
+                "-m",
+                f"Submit {self.current_assignment}",
+            ],
+            cwd=self.rendu_dir,
+            capture_output=True,
+        )
+        p_push = subprocess.run(["git", "push", "origin", "master"], cwd=self.rendu_dir, capture_output=True, text=True)
+        if p_push.returncode != 0:
+            p_push = subprocess.run(["git", "push", "-u", "origin", "HEAD:master"], cwd=self.rendu_dir, capture_output=True, text=True)
+        if p_push.returncode == 0:
+            print(t.c(f"[Vogsphere] Successfully pushed '{self.current_assignment}' from {self.rendu_dir}!", "ok", "bold"))
+        else:
+            print(t.c(f"[Vogsphere] Push warning: {p_push.stderr.strip()}", "warn"))
+
+    def _apply_reference_solution(self) -> None:
+        self.last_exit_code = 2
+        print(
+            self.theme.c(
+                "Error: Reference solutions are strictly locked. Read 'subject' and debug from 'trace'.",
+                "err",
+                "bold",
+            )
+        )
+
+    def do_solve(self, arg: str) -> None:
+        """Reference solutions are strictly locked."""
+        self.last_exit_code = 2
+        if not self.practice:
+            print(self.theme.c("Error: Command 'solve' is restricted in normal exam mode.", "err", "bold"))
+            return
+        print(
+            self.theme.c(
+                "Error: Reference solutions are strictly locked. Read 'subject' and debug from 'trace'.",
+                "err",
+                "bold",
+            )
+        )
+
+    def do_solution(self, arg: str) -> None:
+        """Reference solutions are strictly locked."""
+        self.last_exit_code = 2
+        if not self.practice:
+            print(self.theme.c("Error: Command 'solution' is restricted in normal exam mode.", "err", "bold"))
+            return
+        print(
+            self.theme.c(
+                "Error: Reference solutions are strictly locked. Read 'subject' and debug from 'trace'.",
+                "err",
+                "bold",
+            )
+        )
+
+    def do_run(self, arg: str) -> None:
+        if not self.practice:
+            t = self.theme
+            print(t.c("  [examshell] 'run' is only available in practice mode (--mode practice).", "warn"))
+            return
+        """Compile your code in `rendu/<assignment>` and run it with custom arguments (`run "arg1" "arg2"`)."""
+        import tempfile
+        from deepthought.grader import has_main_definition
+
+        t = self.theme
+        local_dir = self.rendu_dir / self.current_assignment
+        c_files = sorted(local_dir.glob("*.c")) if local_dir.is_dir() else []
+        if not c_files:
+            print(t.c(f"No .c files found in {local_dir}. Run `init` or `edit` first!", "err", "bold"))
+            return
+        if not any(has_main_definition(cf) for cf in c_files):
+            print(t.c(f"[run] '{self.current_assignment}' is a C function exercise (no main() in file) -> running 5-Gate test harness:", "accent"))
+            self.do_check(arg)
+            return
+        try:
+            user_args = shlex.split(arg)
+        except ValueError:
+            user_args = arg.split()
+        def _cat_e(text: str) -> str:
+            rendered = text.replace("\n", "$\n")
+            return rendered[:-1] if rendered.endswith("\n") else rendered
+
+        launch_errors = (OSError, ValueError, subprocess.SubprocessError)
+        try:
+            with tempfile.TemporaryDirectory(prefix="exam_run_") as td:
+                work = Path(td)
+                for p in local_dir.iterdir():
+                    if p.is_file():
+                        shutil.copy2(p, work / p.name)
+                subj_dir = KIT_ROOT / "subjects" / "exams" / self.current_assignment
+                for hf in subj_dir.glob("*.h"):
+                    if not (work / hf.name).exists():
+                        shutil.copy2(hf, work / hf.name)
+                exe = work / "user_run"
+                cmd_comp = ["cc", "-Wall", "-Wextra", "-Werror", *[p.name for p in c_files], "-o", str(exe)]
+                print(t.c(f"$> {' '.join(['cc', '-Wall', '-Wextra', '-Werror', *[p.name for p in c_files], '-o', self.current_assignment])}", "accent"))
+                # The compiler reads student-controlled input (e.g. `#include </dev/zero>`), so it gets the same bounds.
+                try:
+                    comp_rc, _comp_out, comp_err, comp_timed_out, comp_truncated = _run_bounded_subprocess(
+                        cmd_comp, cwd=work, timeout=RUN_COMPILE_TIMEOUT_S
+                    )
+                except launch_errors as exc:
+                    self.last_exit_code = 1
+                    print(t.c(f"[run] Could not launch the compiler: {exc}", "err", "bold"))
+                    return
+                if comp_timed_out or comp_truncated or comp_rc != 0:
+                    self.last_exit_code = 1
+                    print(t.c("Compilation failed:", "err", "bold"))
+                    if comp_timed_out:
+                        print(t.c(f"Compiler timeout (> {RUN_COMPILE_TIMEOUT_S:.0f}s) — compiler killed.", "err", "bold"))
+                    elif comp_truncated:
+                        print(t.c(f"Compiler output limit (> {MAX_RUN_OUTPUT_BYTES // 1024} KB) — compiler killed.", "err", "bold"))
+                    if comp_err.strip():
+                        print(t.c(comp_err.rstrip(), "err"))
+                    return
+                quoted = " ".join(shlex.quote(a) for a in user_args)
+                print(t.c(f"$> ./{self.current_assignment} {quoted} | cat -e".rstrip(), "accent"))
+                try:
+                    run_rc, run_out, run_err, timed_out, truncated = _run_bounded_subprocess(
+                        [str(exe), *user_args], cwd=work, timeout=2.0
+                    )
+                except launch_errors as exc:
+                    self.last_exit_code = 1
+                    print(t.c(f"[run] Could not execute the compiled program: {exc}", "err", "bold"))
+                    return
+                if truncated or timed_out:
+                    # Show the beginning of what was printed before the kill, then the reason.
+                    self.last_exit_code = 1
+                    if run_out:
+                        print(t.c(_cat_e(run_out[:RUN_PREVIEW_CHARS]), "ok"))
+                        if len(run_out) > RUN_PREVIEW_CHARS:
+                            print(t.c(f"[... only the first {RUN_PREVIEW_CHARS} characters of the captured stdout are shown]", "muted"))
+                    if truncated:
+                        print(t.c(f"Output limit (> {MAX_RUN_OUTPUT_BYTES // 1024} KB) — program killed, check for infinite print loops!", "err", "bold"))
+                    else:
+                        print(t.c("Timeout (> 2.0s) — check for infinite loops!", "err", "bold"))
+                    return
+                cat_e_out = _cat_e(run_out)
+                if cat_e_out:
+                    print(t.c(cat_e_out, "ok"))
+                else:
+                    print(t.c("(empty stdout)", "muted"))
+                if run_err:
+                    print(t.c(f"[stderr]: {run_err.rstrip()}", "warn"))
+                print(t.c(f"[exit code: {run_rc}]", "muted"))
+        except KeyboardInterrupt:
+            # The bounded runner has already killed the whole process group on its way out.
+            self.last_exit_code = 130
+            print(t.c("[run] Interrupted (^C) — program killed.", "warn", "bold"))
+
+
+    def do_grademe(self, arg: str) -> None:
+        """Clone strictly from the bare Vogsphere repository and run Deepthought grading (`grademe [--now]`)."""
+        t = self.theme
+        self._refresh_lifecycle_state()
+        if self.lifecycle_state == "expired" or self._is_expired():
+            self.lifecycle_state = "expired"
+            self.last_exit_code = 1
+            self._save_session()
+            print(t.c("Error: Exam time has expired. Grading submissions are no longer accepted.", "err", "bold"))
+            return
+        if self.lifecycle_state in {"passed", "abandoned", "failed"}:
+            self.last_exit_code = 1
+            print(t.c(f"Error: Exam session is already '{self.lifecycle_state}'. Cannot grade further.", "err", "bold"))
+            return
+
+        flags = arg.strip().lower().split()
+        if any(f in {"--now", "now", "--skip", "skip", "--no-wait"} for f in flags):
+            if not self.practice:
+                self.last_exit_code = 2
+                print(
+                    t.c(
+                        "Error: Cooldown bypass flags (--now / --skip) are restricted in normal exam mode.",
+                        "err",
+                        "bold",
+                    )
+                )
+                return
+            self._reset_cooldown()
+
+        rem_wait = self._cooldown_remaining()
+        if rem_wait > 0:
+            total_pen = max(rem_wait, self.last_penalty_sec or (max(1, self.attempts) * self.cooldown_step))
+            s1 = self._format_cooldown_short(self.cooldown_step)
+            s2 = self._format_cooldown_short(self.cooldown_step * 2)
+            s3 = self._format_cooldown_short(self.cooldown_step * 3)
+            s4 = self._format_cooldown_short(self.cooldown_step * 4)
+            def _build_cd_panel(cur_left: int) -> list[str]:
+                cd_rows = [
+                    f"{t.secondary('Assignment      ')} : {t.primary(self.current_assignment)} (Failed attempts on this exercise: {t.warn(str(self.attempts))})",
+                    f"{t.secondary('Current Penalty ')} : {t.warn(self._format_cooldown_human(total_pen))} ({self.cooldown_step}s × {max(1, self.attempts)})",
+                    f"{t.secondary('Remaining Wait  ')} : {t.bold(self._format_cooldown_human(cur_left))}",
+                    f"{t.secondary('Penalty Scale   ')} : Fail #1 = {s1} -> Fail #2 = {s2} -> Fail #3 = {s3} -> Fail #4 = {s4} (+{self.cooldown_step}s each fail)",
+                    f"{t.secondary('Auto-Reset      ')} : Passing the exercise automatically resets the cooldown timer to {t.ok('0s')}!",
+                ]
+                return t.box_panel("⏳ GRADING COOLDOWN ACTIVE", cd_rows, border_color="warn").splitlines()
+
+            if self._viewport_active and is_interactive_tty():
+                fd = sys.stdin.fileno()
+                old_attrs = termios.tcgetattr(fd)
+                new_attrs = list(old_attrs)
+                new_attrs[3] = new_attrs[3] & ~(termios.ICANON | termios.ECHO | termios.ISIG)
+                try:
+                    termios.tcsetattr(fd, termios.TCSADRAIN, new_attrs)
+                    while True:
+                        left = self._cooldown_remaining()
+                        if left <= 0:
+                            break
+                        m, s = divmod(left, 60)
+                        pbar = t.progress_bar(total_pen - left, float(total_pen), width=18)
+                        hint_s = "(Press Ctrl+C to return to prompt & use `check`)" if self.practice else "(Press Ctrl+C to return to prompt)"
+                        prog_line = f"  {t.warn('⏳ Cooldown:')} {pbar} {t.bold(f'{m:02d}:{s:02d}')} remaining {t.muted(hint_s)}"
+                        self._content_lines = [*_build_cd_panel(left), "", prog_line]
+                        self._render_shell_viewport()
+                        b = _read_next_tty_byte(fd, timeout_s=0.95)
+                        if b == 3:  # Ctrl+C
+                            raise KeyboardInterrupt
+                except KeyboardInterrupt:
+                    self.last_exit_code = 130
+                    left_now = self._cooldown_remaining()
+                    print("\n".join(_build_cd_panel(left_now)))
+                    print(t.c(f"  [Cooldown] Paused wait ({self._format_cooldown_human(left_now)} left in background).", "warn", "bold"))
+                    if self.practice:
+                        print(t.c("  Tip: Use `check` or `run` right now with 0s wait, or `cooldown reset` / `grademe --now` to skip wait.", "muted"))
+                    return
+                finally:
+                    try:
+                        termios.tcsetattr(fd, termios.TCSADRAIN, old_attrs)
+                    except Exception:
+                        pass
+                print(t.c("  ✓ Cooldown complete! Proceeding with official Deepthought grading...", "ok", "bold"))
+            else:
+                print("\n".join(_build_cd_panel(rem_wait)))
+                if sys.stdin.isatty() or "--wait" in flags:
+                    try:
+                        while True:
+                            left = self._cooldown_remaining()
+                            if left <= 0:
+                                break
+                            m, s = divmod(left, 60)
+                            pbar = t.progress_bar(total_pen - left, float(total_pen), width=18)
+                            prompt_hint = "(Press Ctrl+C to return to prompt & use `check`)" if self.practice else "(Press Ctrl+C to return to prompt)"
+                            line = f"\r  {t.warn('⏳ Cooldown:')} {pbar} {t.bold(f'{m:02d}:{s:02d}')} remaining {t.muted(prompt_hint)}   "
+                            sys.stdout.write(line)
+                            sys.stdout.flush()
+                            time.sleep(1)
+                        sys.stdout.write("\r" + (" " * 96) + "\r")
+                        sys.stdout.flush()
+                        print(t.c("  ✓ Cooldown complete! Proceeding with official Deepthought grading...", "ok", "bold"))
+                    except KeyboardInterrupt:
+                        self.last_exit_code = 130
+                        sys.stdout.write("\n")
+                        sys.stdout.flush()
+                        left_now = self._cooldown_remaining()
+                        print(t.c(f"  [Cooldown] Paused wait ({self._format_cooldown_human(left_now)} left in background).", "warn", "bold"))
+                        if self.practice:
+                            print(t.c("  Tip: Use `check` or `run` right now with 0s wait, or `cooldown reset` / `grademe --now` to skip wait.", "muted"))
+                        return
+                else:
+                    # Piped / `-c` execution: never block on the timer and never grade through an active cooldown.
+                    self.last_exit_code = 1
+                    print(t.c(f"  [Cooldown] 'grademe' refused: {self._format_cooldown_human(rem_wait)} left. Other commands still work.", "err", "bold"))
+                    if self.practice:
+                        print(t.c("  Tip: Use `check` or `run` meanwhile, `grademe --wait` to block until it ends, or `grademe --now` to skip it.", "muted"))
+                    else:
+                        print(t.c("  Tip: Use `grademe --wait` to block until the cooldown ends.", "muted"))
+                    return
+
+        lvl = self.levels[self.current_idx]
+        pts = lvl.get("points", round(100 / max(1, len(self.levels))))
+        cur_attempt = self.attempts
+        trace_name = f"{lvl['level']}-{cur_attempt}_{self.current_assignment}.trace"
+        trace_path = self.traces_dir / trace_name
+
+        pre_lines = [
+            "Before continuing, please make SURE that you have pushed your files,",
+            f"that they are in the right directory (~/exam-basedir/rendu/{self.current_assignment}),",
+            "and that you didn't forget anything.",
+            "If your assignment is wrong, you will stay on the same assignment at the same level.",
+        ]
+        if is_interactive_tty() and self._viewport_active:
+            try:
+                confirm = self._prompt_in_viewport("Are you sure? [y/N]: ", extra_lines=pre_lines).strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                print("Grading request cancelled.")
+                return
+            if confirm not in {"y", "yes"}:
+                print("Grading request cancelled.")
+                return
+        elif sys.stdin.isatty():
+            print("")
+            for pl in pre_lines:
+                print(pl)
+            print("")
+            try:
+                confirm = input("Are you sure? [y/N] ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                print("")
+                return
+            if confirm not in {"y", "yes"}:
+                return
+        else:
+            print("")
+            for pl in pre_lines:
+                print(pl)
+            print("")
+            print("Are you sure? [y/N] y")
+
+        print(t.c("OK, making a grading request to the server now.", "primary"))
+        print("")
+        print(t.c("We will now wait for the job to complete.", "muted"))
+        print(t.c("Please be patient, this CAN take several minutes...", "muted"))
+        print(t.c("(10 seconds is fast, 30 seconds is expected, 3 minutes is a maximum)", "muted"))
+        print(t.c("waiting...", "muted"))
+
+        while True:
+            has_push, pushed_dir = collect_pushed_files(self.vogsphere_dir)
+            cleanup_root = pushed_dir.parent if pushed_dir.name == "repo" else pushed_dir
+            try:
+                submit_path = pushed_dir / self.current_assignment
+
+                git_log_proc = subprocess.run(
+                    ["git", f"--git-dir={self.vogsphere_dir}", "log", "--stat", "-n", "5"],
+                    text=True,
+                    capture_output=True,
+                )
+                if git_log_proc.returncode == 0 and git_log_proc.stdout.strip():
+                    git_log_text = git_log_proc.stdout.rstrip()
+                else:
+                    git_log_text = "No commits pushed to vogsphere bare repository."
+
+                # STRICT VOGSPHERE ENFORCEMENT: Do NOT fall back to unpushed local files in rendu/!
+                target_dir = submit_path if (has_push and submit_path.exists()) else (pushed_dir / "__missing_submission__")
+                if not has_push and target_dir.exists():
+                    shutil.rmtree(target_dir)
+                try:
+                    result = grade_subject(
+                        KIT_ROOT,
+                        f"exams/{self.current_assignment}",
+                        target_dir,
+                        is_exam=True,
+                        strict=False,
+                        git_log_text=git_log_text,
+                        enforce_norm=self.norm_enabled,
+                    )
+                except FileNotFoundError:
+                    from deepthought.grader import build_deepthought_header
+
+                    hdr = build_deepthought_header(
+                        self.current_assignment,
+                        target_dir,
+                        [f"{self.current_assignment}.c"],
+                        git_log_text=git_log_text,
+                    )
+                    fallback_trace = (
+                        f"{hdr}\n$> ls -la {self.current_assignment}\n"
+                        f"ls: {self.current_assignment}: No such file or directory\nNothing turned in\nGrade: 0"
+                    )
+                    result = GradeReport(self.current_assignment, False, "Nothing turned in", "Nothing turned in", fallback_trace, "", {})
+                break
+            except Exception as exc:
+                print(t.c(">>>>>>>>>> ERROR <<<<<<<<<<", "err", "bold"))
+                print(f"There was an error during the grading job! Specifically:\n  {exc}")
+                print('You can choose to "retry" the grading job, or to "abort" it (draw a new assignment at the same level with no penalty).')
+                if not sys.stdin.isatty():
+                    return
+                try:
+                    choice = self._prompt_confirm_line("Action [retry/abort]: ").strip().lower()
+                except (EOFError, KeyboardInterrupt):
+                    return
+                if choice.startswith("a"):
+                    lvl_cands = lvl.get("candidates", [])
+                    others = [c for c in lvl_cands if c != self.current_assignment] or lvl_cands
+                    self.current_assignment = random.choice(others)
+                    self._provision_subject_files(self.current_assignment)
+                    self._save_session()
+                    print(t.c(f"Current assignment aborted without penalty. New assignment for level {lvl['level']}: {self.current_assignment}", "ok", "bold"))
+                    return
+                print(t.c("Retrying grading job...", "primary"))
+            finally:
+                if cleanup_root.exists() and cleanup_root.name.startswith("vogsphere_pull_"):
+                    shutil.rmtree(cleanup_root, ignore_errors=True)
+
+        full_trace_text = result.trace
+        summary_block = result.format_exam_trace_summary(include_coaching=self.practice)
+        if summary_block and summary_block not in full_trace_text:
+            full_trace_text = full_trace_text.rstrip() + "\n\n" + summary_block + "\n"
+
+        trace_path.write_text(full_trace_text, encoding="utf-8")
+        alias_trace = self.traces_dir / f"0-0_{self.current_assignment}.trace"
+        alias_trace.write_text(full_trace_text, encoding="utf-8")
+        level_slug_trace = self.traces_dir / f"{lvl['level']}-{self.current_assignment}.trace"
+        level_slug_trace.write_text(full_trace_text, encoding="utf-8")
+        self.attempts += 1
+
+        if result.passed:
+            self._reset_cooldown()
+            self.grade = min(100, self.grade + pts)
+            self.history.append(f"Level {lvl['level']} [{self.current_assignment}]: {result.status} (+{pts} pts)")
+            self.level_records.append(
+                {
+                    "level": lvl["level"],
+                    "attempt": cur_attempt,
+                    "slug": self.current_assignment,
+                    "points": pts,
+                    "state": "Success",
+                }
+            )
+            print(t.c(">>>>>>>>>> SUCCESS <<<<<<<<<<", "ok", "bold"))
+            print(t.c(f"You have passed assignment '{self.current_assignment}'!", "ok"))
+            print(f"Your new grade is: {self.grade} / 100")
+            print(f">>> RESULT: {result.status} — Grade: {self.grade}/100 <<<")
+            print(f"Trace saved to {t.c(f'~/exam-basedir/traces/{trace_name}', 'info')}")
+            print(t.c("✓ Grading cooldown timer has been reset to 0s!", "ok"))
+            p_prof = load_student_profile(self.login)
+            # XP is credited once per exercise: the profile list survives a
+            # deleted workspace ledger, so re-running the exam cannot farm XP.
+            if p_prof.mark_validated(f"exams/{self.current_assignment}"):
+                p_prof.award_xp(pts * 4)
+            p_prof.save()
+            if self.current_idx + 1 < len(self.levels):
+                self.current_idx += 1
+                self.attempts = 0
+                self.current_assignment = self._pick_assignment()
+                self._provision_subject_files(self.current_assignment)
+                print(f"Advancing to Level {self.levels[self.current_idx]['level']}: {self.current_assignment}")
+            else:
+                self.grade = 100
+                self.lifecycle_state = "passed"
+                print(t.c("CONGRATULATIONS! You have completed all levels of this exam (100/100)!", "ok", "bold"))
+        else:
+            self.last_exit_code = 1
+            self.history.append(f"Level {lvl['level']} [{self.current_assignment}]: {result.status} (attempt {self.attempts})")
+            self.level_records.append(
+                {
+                    "level": lvl["level"],
+                    "attempt": cur_attempt,
+                    "slug": self.current_assignment,
+                    "points": pts,
+                    "state": "Failure",
+                }
+            )
+            print(t.c(">>>>>>>>>> FAILURE <<<<<<<<<<", "err", "bold"))
+            print(t.c("You have failed the assignment.", "err"))
+            detail_s = f" ({result.reason})" if result.reason and result.reason != result.status else ""
+            print(f">>> RESULT: {result.status}{detail_s} — Grade remains {self.grade}/100 <<<")
+            if summary_block:
+                clean_summary = "\n".join(
+                    ln for ln in summary_block.splitlines()
+                    if not ln.strip().startswith(">>>>>>>>>> FAILURE")
+                )
+                if clean_summary.strip():
+                    print(clean_summary)
+            print(f"Trace saved to {t.c(f'~/exam-basedir/traces/{trace_name}', 'info')}")
+            if self.cooldown_enabled:
+                penalty_sec = self.attempts * self.cooldown_step
+                self.last_penalty_sec = penalty_sec
+                self.next_grademe_ts = self._now_ts() + penalty_sec
+                s1 = self._format_cooldown_short(self.cooldown_step)
+                s2 = self._format_cooldown_short(self.cooldown_step * 2)
+                s3 = self._format_cooldown_short(self.cooldown_step * 3)
+                s4 = self._format_cooldown_short(self.cooldown_step * 4)
+                print(
+                    t.c(
+                        f"⏳ [COOLDOWN PENALTY]: Fail #{self.attempts} -> You must wait {self._format_cooldown_human(penalty_sec)} before your next `grademe`.",
+                        "warn",
+                        "bold",
+                    )
+                )
+                print(
+                    t.c(
+                        f"   Penalty Scale : 1st fail = {s1} -> 2nd fail = {s2} -> 3rd fail = {s3} -> 4th fail = {s4} (+{self.cooldown_step}s each fail, resets to 0s on pass)",
+                        "muted",
+                    )
+                )
+
+        self._save_session()
+        if not (is_interactive_tty() and self._viewport_active):
+            print("\n(Press Enter to continue...)")
+            print("")
+            self.do_status("")
+
+    def do_trace(self, arg: str) -> None:
+        """Print the most recent Deepthought trace file with syntax coloring."""
+        traces = sorted(self.traces_dir.glob("*.trace"), key=lambda p: p.stat().st_mtime)
+        if not traces:
+            print(self.theme.c("No traces available yet. Run `check` or `grademe` first.", "warn"))
+            return
+        raw_trace = traces[-1].read_text(encoding="utf-8", errors="replace")
+        print(self.theme.colorize_trace(raw_trace))
+
+    def do_diff(self, arg: str) -> None:
+        """Show the unified diff from the most recent failed trace."""
+        traces = sorted(self.traces_dir.glob("*.trace"), key=lambda p: p.stat().st_mtime)
+        if not traces:
+            print(self.theme.c("No traces available yet. Run `check` or `grademe` first.", "warn"))
+            return
+        raw_trace = traces[-1].read_text(encoding="utf-8", errors="replace")
+        diff_lines = [
+            line for line in raw_trace.splitlines()
+            if line.startswith(("---", "+++", "@@", "-", "+", "$> ./", "$> diff", "Diff ", "Expected", "Actual", "Status :", "Detail :"))
+        ]
+        if not diff_lines:
+            print(self.theme.colorize_trace("\n".join(raw_trace.splitlines()[-25:])))
+            return
+        colored = self.theme.colorize_trace("\n".join(diff_lines)).splitlines()
+        print(self.theme.box_panel(f"LAST TRACE DIFF — {traces[-1].name}", colored, border_color="primary"))
+
+    def do_tool(self, arg: str) -> None:
+        """Alias for `tools`."""
+        self.do_help(arg)
+
+    def do_guidelines(self, arg: str) -> None:
+        """Display the official 42 / 1337 Exam General & Coding Guidelines (examGUIDELINES.md)."""
+        g_file = KIT_ROOT / "docs" / "examGUIDELINES.md"
+        if g_file.is_file():
+            raw = g_file.read_text(encoding="utf-8", errors="replace").rstrip()
+            print(self.theme.box_panel("OFFICIAL 42 EXAM GENERAL & CODING GUIDELINES", raw.splitlines(), border_color="primary"))
+        else:
+            rows = [
+                "1. Pure C only (except shell exercises). Respect exact file/directory/function names.",
+                "2. Turn in files inside ~/exam-basedir/rendu/<assignment>/ and push to Vogsphere before grademe.",
+                "3. Programs with explicit files compile with: clang -Wall -Wextra -Werror file1.c ... -o program_name",
+                "4. Programs with *.c *.h compile with:        clang -Wall -Wextra -Werror *.c -o program_name",
+                "5. Single functions compile with:             clang -c -Wall -Wextra -Werror yourfile.c (linked with Deepthought main.c)",
+                "6. Any function not listed in Allowed functions is strictly forbidden (Cheating: -42).",
+            ]
+            print(self.theme.box_panel("OFFICIAL 42 EXAM GENERAL & CODING GUIDELINES", rows, border_color="primary"))
+
+    def do_rules(self, arg: str) -> None:
+        """Alias for `guidelines`."""
+        self.do_guidelines(arg)
+
+    def do_tools(self, arg: str) -> None:
+        """Display extended student helper commands (`subject`, `trace`, `logs`, `time`, `clean`, etc.)."""
+        self.do_help(arg)
+
+    def do_help(self, arg: str) -> None:
+        """Display the 3 core exam commands (`status`, `grademe`, `finish`) and reveal extra helper commands."""
+        t = self.theme
+        topic = arg.strip().lower()
+        if topic and topic not in {"all", "tools", "extra"}:
+            if not self.practice and topic not in NORMAL_MODE_ALLOWLIST:
+                self.last_exit_code = 2
+                print(t.c(f"Error: Help topic '{topic}' is restricted in normal exam mode. Available commands: status, grademe, finish, tools (or subject, trace, logs, time, clean, clear, help).", "err", "bold"))
+                return
+            fn = getattr(self, f"do_{topic}", None)
+            if fn and fn.__doc__:
+                lines = [
+                    f"{t.secondary('Command')} : {t.cmd(topic)}",
+                    f"{t.secondary('Usage  ')} : {fn.__doc__.strip()}",
+                ]
+                print(t.box_panel(f"HELP — {topic.upper()}", lines, border_color="primary"))
+                return
+            super().do_help(arg)
+            return
+
+        rows = [
+            t.bold("Core Exam Commands (Official 42 ExamShell):"),
+            f"  {t.accent('status'):<18} Display current level, grade, assignment history, and remaining time",
+            f"  {t.accent('grademe'):<18} Push check & submit your current assignment to Deepthought",
+            f"  {t.accent('finish'):<18} End your exam session and record final score",
+            "",
+            t.bold("Extra Helper Commands (Convenience Tools):"),
+            f"  {t.accent('subject [--pager]'):<18} Display the current assignment subject.en.txt",
+            f"  {t.accent('trace [--pager]'):<18} Display the Deepthought trace & diff of your last grademe",
+            f"  {t.accent('logs [file]'):<18} List or read saved trace files in ~/exam-basedir/traces/",
+            f"  {t.accent('time'):<18} Display session clock, remaining time, and cooldown timer",
+            f"  {t.accent('history'):<18} Display chronological history of your grademe attempts",
+            f"  {t.accent('clean'):<18} Remove compiled binaries/temp files (a.out, *.o) from rendu/",
+            f"  {t.accent('clear'):<18} Clear terminal screen and redraw status",
+            f"  {t.accent('more'):<18} Open interactive scrollable pager (j/k/Space/q) on long output",
+            f"  {t.accent('guidelines'):<18} Display official 42 Exam General & Coding Guidelines",
+        ]
+        if self.practice:
+            rows.extend(
+                [
+                    "",
+                    t.bold("Practice Mode Commands (--practice only):"),
+                    f"  {t.ok('check / test'):<18} Instant local Moulinette test (0s cooldown, no git push needed)",
+                    f"  {t.ok('run [args...]'):<18} Compile and run your code with custom arguments",
+                    f"  {t.ok('edit [editor]'):<18} Open current assignment in your editor ($EDITOR / vim)",
+                    f"  {t.ok('push'):<18} Auto-stage, commit, and push rendu/ to Vogsphere",
+                    f"  {t.ok('skip / reroll'):<18} Advance level or draw another assignment at current level",
+                    f"  {t.ok('cooldown reset'):<18} Reset grading cooldown timer to 0s",
+                ]
+            )
+        print(t.box_panel("EXAMSHELL COMMANDS (CORE + EXTRA TOOLS)", rows, border_color="primary"))
+
+    def do_assign(self, arg: str) -> None:
+        """Set or switch the current assignment slug (e.g., 'assign ft_strlen' or 'assign ft_split')."""
+        if not self.practice:
+            self.last_exit_code = 2
+            print(self.theme.c("Error: Command 'assign' is restricted in normal exam mode.", "err", "bold"))
+            return
+        slug = arg.strip()
+        if not slug:
+            print("Usage: assign <exercise_slug>")
+            return
+        subj_dir = KIT_ROOT / "subjects" / "exams" / slug
+        if not subj_dir.exists():
+            print(f"Unknown exam exercise: {slug}")
+            return
+        self.current_assignment = slug
+        self.attempts = 0
+        self._reset_cooldown()
+        self._provision_subject_files(slug)
+        self._save_session()
+        print(f"Current assignment set to: {slug}")
+        self.do_status("")
+
+    def complete_assign(self, text: str, line: str, begidx: int, endidx: int) -> List[str]:
+        if not self.practice:
+            return []
+        all_slugs = sorted(p.name for p in (KIT_ROOT / "subjects" / "exams").iterdir() if p.is_dir())
+        return [s for s in all_slugs if s.startswith(text)]
+
+    def complete_theme(self, text: str, line: str, begidx: int, endidx: int) -> List[str]:
+        if not self.practice:
+            return []
+        opts = [*sorted(PALETTES), "plain"]
+        return [o for o in opts if o.startswith(text)]
+
+    def complete_enable(self, text: str, line: str, begidx: int, endidx: int) -> List[str]:
+        if not self.practice:
+            return []
+        return [o for o in ["norm", "norminette"] if o.startswith(text)]
+
+    def complete_disable(self, text: str, line: str, begidx: int, endidx: int) -> List[str]:
+        if not self.practice:
+            return []
+        return [o for o in ["norm", "norminette"] if o.startswith(text)]
+
+
+    def do_ssh_key(self, arg: str) -> None:
+        """Bind or list SSH public keys (id_rsa_pub) for the local bare Vogsphere repository directly in terminal."""
+        from deepthought.vogsphere import get_registered_ssh_keys, register_ssh_key
+
+        raw = arg.strip()
+        if not raw or raw == "list":
+            keys = get_registered_ssh_keys(self.vogsphere_dir)
+            print(f"Vogsphere Bare Repo : {self.vogsphere_dir}")
+            print(f"Registered SSH Keys : {len(keys)}")
+            for idx, k in enumerate(keys, 1):
+                short = k if len(k) <= 72 else (k[:48] + "..." + k[-20:])
+                print(f"  [{idx}] {short}")
+            return
+        key_path = Path(raw).expanduser()
+        pubkey_text = key_path.read_text(encoding="utf-8") if key_path.is_file() else raw
+        try:
+            info = register_ssh_key(self.vogsphere_dir, pubkey_text, login=self.login)
+            print(f"vogsphere: (INFO) Transaction ID : {info['transaction_id']}")
+            print(f"vogsphere: (INFO) SSH Key bound  : {info['key_type']} {info['fingerprint']} ({info['comment']})")
+            print(f"vogsphere: (INFO) Repository URI : {info['vogsphere_uri']}")
+            print("vogsphere: (INFO) You have read and write rights on this repository")
+        except ValueError as exc:
+            print(f"vogsphere: (ERROR) {exc}")
+
+    def do_klist(self, arg: str) -> None:
+        """Display Kerberos ticket cache (as referenced by Vogsphere in exqm.txt)."""
+        now_dt = self._start_dt()
+        exp_dt = dt.datetime.fromtimestamp(self.start_ts + 36000, tz=now_dt.tzinfo)
+        print(f"Ticket cache: FILE:/tmp/krb5cc_1000_{self.login}")
+        print(f"Default principal: {self.login}@1337.MA")
+        print("")
+        print("Valid starting       Expires              Service principal")
+        print(f"{now_dt.strftime('%d/%m/%Y %H:%M:%S')}  {exp_dt.strftime('%d/%m/%Y %H:%M:%S')}  krbtgt/1337.MA@1337.MA")
+        print(f"        renew until {(now_dt + dt.timedelta(days=7)).strftime('%d/%m/%Y %H:%M:%S')}")
+
+    def do_force_success(self, arg: str) -> None:
+        """[Practice Mode] Force current assignment validation and advance to the next level."""
+        if not self.practice:
+            self.last_exit_code = 2
+            print(self.theme.c("Error: Command 'force_success' is restricted in normal exam mode.", "err", "bold"))
+            return
+        lvl = self.levels[self.current_idx]
+        pts = lvl.get("points", round(100 / max(1, len(self.levels))))
+        cur_attempt = self.attempts
+        self._reset_cooldown()
+        self.grade = min(100, self.grade + pts)
+        self.history.append(f"Level {lvl['level']} [{self.current_assignment}]: FORCED OK (+{pts} pts)")
+        self.level_records.append(
+            {
+                "level": lvl["level"],
+                "attempt": cur_attempt,
+                "slug": self.current_assignment,
+                "points": pts,
+                "state": "Success",
+            }
+        )
+        print(">>>>>>>>>> SUCCESS <<<<<<<<<<")
+        print(f"You have passed assignment '{self.current_assignment}'!")
+        print(f"Your new grade is: {self.grade} / 100")
+        if self.current_idx + 1 < len(self.levels):
+            self.current_idx += 1
+            self.attempts = 0
+            self.current_assignment = self._pick_assignment()
+            self._provision_subject_files(self.current_assignment)
+            print(f"Advancing to Level {self.levels[self.current_idx]['level']}: {self.current_assignment}")
+        else:
+            self.grade = 100
+            self.lifecycle_state = "passed"
+            print("CONGRATULATIONS! You have completed all levels of this exam (100/100)!")
+        self._save_session()
+
+    def do_remove_grade_time(self, arg: str) -> None:
+        """[Practice Mode] Reset grading wait/cooldown timer between grademe attempts."""
+        if not self.practice:
+            self.last_exit_code = 2
+            print(self.theme.c("Error: Command 'remove_grade_time' is restricted in normal exam mode.", "err", "bold"))
+            return
+        self._reset_cooldown()
+        self._save_session()
+        print(self.theme.c("[VIP Practice] Cooldown timer between grademe requests has been reset to 0s!", "ok", "bold"))
+
+    def do_cooldown(self, arg: str) -> None:
+        """View, reset, or configure the progressive grademe failure wait timer (`cooldown [reset|off|on|<seconds>]`)."""
+        if not self.practice:
+            self.last_exit_code = 2
+            print(self.theme.c("Error: Command 'cooldown' is restricted in normal exam mode.", "err", "bold"))
+            return
+        t = self.theme
+        sub = arg.strip().lower()
+        if sub in {"reset", "clear", "0", "skip"}:
+            self._reset_cooldown()
+            self._save_session()
+            print(t.c("✓ Grading cooldown timer reset to 0s! You can run `grademe` immediately.", "ok", "bold"))
+            return
+        if sub in {"off", "disable", "false"}:
+            self.cooldown_enabled = False
+            self._reset_cooldown()
+            self._save_session()
+            print(t.c("✓ Progressive grading cooldown DISABLED (0s wait between grademe attempts).", "warn", "bold"))
+            return
+        if sub in {"on", "enable", "true"}:
+            self.cooldown_enabled = True
+            self._save_session()
+            print(t.c(f"✓ Progressive grading cooldown ENABLED (+{self.cooldown_step}s per failed attempt, resets on pass).", "ok", "bold"))
+            return
+        if sub.isdigit() and int(sub) > 0:
+            self.cooldown_step = int(sub)
+            self._save_session()
+            s1 = self._format_cooldown_short(self.cooldown_step)
+            s2 = self._format_cooldown_short(self.cooldown_step * 2)
+            s3 = self._format_cooldown_short(self.cooldown_step * 3)
+            print(t.c(f"✓ Cooldown step set to {self.cooldown_step}s per failure ({s1} -> {s2} -> {s3} ...).", "ok", "bold"))
+            return
+
+        rem = self._cooldown_remaining()
+        next_pen = (self.attempts + 1) * self.cooldown_step
+        s1 = self._format_cooldown_short(self.cooldown_step)
+        s2 = self._format_cooldown_short(self.cooldown_step * 2)
+        s3 = self._format_cooldown_short(self.cooldown_step * 3)
+        s4 = self._format_cooldown_short(self.cooldown_step * 4)
+        state_str = (
+            t.c("DISABLED (0s wait)", "muted")
+            if not self.cooldown_enabled
+            else (
+                t.c(f"⏳ WAITING — {self._format_cooldown_human(rem)} remaining", "warn", "bold")
+                if rem > 0
+                else t.c("✓ READY (0s wait right now)", "ok", "bold")
+            )
+        )
+        rows = [
+            f"{t.secondary('Cooldown Status  ')} : {state_str}",
+            f"{t.secondary('Current Exercise ')} : {t.primary(self.current_assignment)} (Failed grademe attempts: {t.bold(str(self.attempts))})",
+            f"{t.secondary('Next Fail Penalty')} : {t.warn(self._format_cooldown_human(next_pen))} (Attempt #{self.attempts + 1} if failed)",
+            f"{t.secondary('Progression Scale')} : Fail #1 = {s1} -> Fail #2 = {s2} -> Fail #3 = {s3} -> Fail #4 = {s4} (+{self.cooldown_step}s each fail)",
+            f"{t.secondary('Reset Condition  ')} : Resets to {t.ok('0s')} automatically when you pass the exercise!",
+            "",
+            t.bold("Quick Cooldown Commands:"),
+            f"  {pad_visible(t.cmd('cooldown reset'), 24)} Clear active wait timer to 0s immediately (alias: {t.cmd('remove_grade_time')})",
+            f"  {pad_visible(t.cmd('cooldown off') + ' / ' + t.cmd('on'), 24)} Disable or enable progressive wait penalties for this session",
+            f"  {pad_visible(t.cmd('cooldown 30'), 24)} Set base wait increment in seconds (default: 30s)",
+            f"  {pad_visible(t.cmd('grademe --now'), 24)} Grade immediately and bypass any active cooldown timer",
+        ]
+        print(t.box_panel("GRADING COOLDOWN TIMER — PRO CONTROL PANEL", rows, border_color="primary"))
+
+    def do_kinit(self, arg: str) -> None:
+        """Simulate `kinit [student_login]` Kerberos TGT acquisition for @1337.MA (never stores or echoes passwords)."""
+        tokens = arg.strip().split()
+        prompt_pw = "--prompt" in tokens
+        clean_tokens = [tok for tok in tokens if tok != "--prompt"]
+        login = clean_tokens[0] if clean_tokens else self.login
+        self.login = login
+        print("[LOCAL SIMULATION — Kerberos TGT Acquisition]")
+        if prompt_pw and sys.stdin.isatty():
+            try:
+                _ = _read_masked_password(f"Password for {login}@1337.MA (simulated, hidden): ")
+            except (EOFError, KeyboardInterrupt):
+                print("")
+                return
+        else:
+            print(f"Password for {login}@1337.MA: [hidden — local simulation]")
+        print(f"Authenticating {login}@1337.MA... [OK]")
+        self.do_klist("")
+
+    def do_sessions(self, arg: str) -> None:
+        """Display the verbatim Examshell v2.4.1-release EXAM SESSION SELECTION table."""
+        print_session_selection_table(self.login)
+
+    def do_menu(self, arg: str) -> None:
+        """Display the official 42 / 1337 exam tracks menu and session selection table."""
+        print_session_selection_table(self.login)
+        print("")
+        print_official_menu()
+
+    def do_finish(self, arg: str) -> bool:
+        """End the exam session."""
+        finish_lines = [
+            "Please confirm that you REALLY want to end your current session.",
+            "If you do, you will not be able to do anything with it anymore!",
+        ]
+        if is_interactive_tty() and self._viewport_active:
+            try:
+                ans = self._prompt_in_viewport("Are you finished? [y/N]: ", extra_lines=finish_lines).strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                print("Finish cancelled. Session remains active.")
+                return False
+            if ans not in {"y", "yes"}:
+                print("Finish cancelled. Session remains active.")
+                return False
+        elif sys.stdin.isatty():
+            for fl in finish_lines:
+                print(fl)
+            try:
+                ans = input("Are you finished? [y/N] ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                print("")
+                return False
+            if ans not in {"y", "yes"}:
+                return False
+        else:
+            for fl in finish_lines:
+                print(fl)
+            print("Are you finished? [y/N] y")
+        self._save_session(finished=True)
+        print("Your session has been marked as finished. You may now log out.")
+        return True
+
+    def do_exit(self, arg: str) -> bool:
+        return self.do_finish(arg)
+
+    def do_quit(self, arg: str) -> bool:
+        return self.do_finish(arg)
+
+    def do_EOF(self, arg: str) -> bool:
+        if not (is_interactive_tty() and self._viewport_active):
+            print("")
+        return self.do_finish(arg)
+
+
+def _describe_pool_levels(slug: str, fallback: str = "Levels") -> tuple[str, str]:
+    yml_path = KIT_ROOT / "pools" / "exams" / f"{slug}.yml"
+    if not yml_path.is_file():
+        return "4h (14400s)", fallback
+    try:
+        data = yaml.safe_load(yml_path.read_text(encoding="utf-8")) or {}
+        secs = int(data.get("duration_seconds") or 0)
+        h = secs // 3600
+        dur_str = f"{h}h ({secs}s)" if secs else "4h (14400s)"
+        levels = data.get("levels") or []
+        if not levels:
+            return dur_str, fallback
+        n = len(levels)
+        pts = levels[0].get("points", round(100 / n))
+        total_ex = sum(len(l.get("candidates") or []) for l in levels)
+        return dur_str, f"{n} Levels (0..{n - 1}, {pts} pts/lvl, {total_ex} exercises)"
+    except Exception:
+        return "4h (14400s)", fallback
+
+
+SESSION_TRACKS = (
+    ("c_piscine_exam_00", "C Piscine Exam 00", "piscine"),
+    ("c_piscine_exam_01", "C Piscine Exam 01", "piscine"),
+    ("c_piscine_exam_02", "C Piscine Exam 02", "piscine"),
+    ("c_piscine_final_exam", "C Piscine Final Exam", "piscine"),
+    ("rank02", "Exam Rank 02", "common core"),
+    ("rank03", "Exam Rank 03", "common core"),
+    ("rank04", "Exam Rank 04", "common core"),
+    ("rank05", "Exam Rank 05", "common core"),
+    ("rank06", "Exam Rank 06", "common core"),
+)
+
+
+def _pool_facts(slug: str) -> tuple[str, str, str, str]:
+    """(duration, levels, points per level, exercises) read from pools/exams/<slug>.yml; '?' when unknown."""
+    try:
+        data = yaml.safe_load((KIT_ROOT / "pools" / "exams" / f"{slug}.yml").read_text(encoding="utf-8")) or {}
+    except Exception:
+        return "?", "?", "?", "?"
+    secs = int(data.get("duration_seconds") or 0)
+    h, m = divmod(secs // 60, 60)
+    dur = f"{h}h" if m == 0 else f"{h}h{m:02d}"
+    levels = data.get("levels") or []
+    n = len(levels)
+    pts = str(levels[0].get("points", round(100 / n))) if n else "?"
+    total = sum(len(lv.get("candidates") or []) for lv in levels)
+    return (dur if secs else "?"), (str(n) if n else "?"), pts, (str(total) if n else "?")
+
+
+def print_session_selection_table(login: str = DEFAULT_LOGIN) -> None:
+    t = ThemeEngine("plain")
+    cols, _ = t.term_size()
+    w = max(44, min(80, cols))
+    print("=" * w)
+    print("EXAM SESSION SELECTION")
+    print("-" * w)
+    print(f"Available sessions for '{login}':")
+    print("")
+    if cols < 72:
+        print("  ID  Session               Dur     Status")
+        print("  --  --------------------  ------  -----------")
+        print("  0   C Piscine Exam 00     06h00m  [COMPLETED]")
+        print("  1   C Piscine Exam 01     06h00m  [AVAILABLE]")
+        print("  2   C Piscine Exam 02     08h00m  [LOCKED]")
+        print("  3   C Piscine Final Exam  10h00m  [LOCKED]")
+    else:
+        print("  ID   Session Name                  Rank / Cursus        Duration   Status")
+        print("  --   ---------------------------   ------------------   --------   -----------")
+        print("  0    C Piscine Exam 00             C Piscine            06h 00m    [COMPLETED]")
+        print("  1    C Piscine Exam 01             C Piscine            06h 00m    [AVAILABLE]")
+        print("  2    C Piscine Exam 02             C Piscine            08h 00m    [LOCKED]")
+        print("  3    C Piscine Final Exam          C Piscine            10h 00m    [LOCKED]")
+    print("")
+    print("-" * w)
+    print("Select session ID to launch (or 'q' to quit): 1")
+    print("=" * w)
+
+
+def print_official_menu(theme: ThemeEngine | None = None) -> None:
+    t = theme or ThemeEngine("plain" if os.environ.get("NO_COLOR") else "42-cluster")
+    cols, _ = t.term_size()
+    w = max(44, min(88, cols))
+    print(t.startup_banner(version="v0.1.1", mode="real", width=w))
+    print("=" * w)
+    print("  42 / 1337 OFFICIAL EXAMSHELL v0.1.1 — AVAILABLE EXAM TRACKS (--menu)")
+    print("=" * w)
+    official_piscine = [
+        ("c_piscine_exam_00", "C Piscine Exam 00"),
+        ("c_piscine_exam_01", "C Piscine Exam 01"),
+        ("c_piscine_exam_02", "C Piscine Exam 02"),
+        ("c_piscine_final_exam", "C Piscine Final Exam"),
+    ]
+    print("  [PISCINE PART — OFFICIAL 42 / 1337 C PISCINE EXAMS]")
+    for idx, (slug, title) in enumerate(official_piscine, 1):
+        dur, lvls = _describe_pool_levels(slug, "Levels")
+        if cols < 76:
+            print(f"  {idx}) {slug} ({dur}) — {lvls}")
+        else:
+            print(f"    {idx}) {slug:<22} | {title:<22} | Duration: {dur:<12} | {lvls}")
+    print("-" * w)
+    print("  [STUD_PART — COMMON CORE EXAMS (SEPARATED)]")
+    common_core = [
+        ("rank02", "Common Core Exam Rank 02"),
+        ("rank03", "Common Core Exam Rank 03"),
+        ("rank04", "Common Core Exam Rank 04"),
+        ("rank05", "Common Core Exam Rank 05"),
+        ("rank06", "Common Core Exam Rank 06"),
+    ]
+    for idx, (slug, title) in enumerate(common_core, 5):
+        dur, lvls = _describe_pool_levels(slug, "Levels")
+        if cols < 76:
+            print(f"  {idx}) {slug} ({dur}) — {lvls}")
+        else:
+            print(f"    {idx}) {slug:<22} | {title:<24} | Duration: {dur:<12} | {lvls}")
+    print("=" * w)
+
+
+def interactive_identity_screen(
+    theme: ThemeEngine,
+    login: str = DEFAULT_LOGIN,
+    basedir: Path | None = None,
+    mode: str = "real",
+) -> str:
+    """STAGE 1/4: IDENTITY — Startup banner and simulated Kerberos / Vogsphere identity screen."""
+    active_login = login
+    disp_basedir = "~/exam-basedir" if basedir is None else str(basedir)
+    mode_lbl = "PRACTICE / COACHING MODE" if mode == "practice" else "NORMAL EXAM MODE"
+    status_notice = ""
+
+    def _build_stage1_lines(cols: int, rows: int) -> list[str]:
+        w = max(40, min(88, cols))
+        lines: list[str] = []
+        banner_lines = theme.startup_banner(version="v0.1.1", mode=mode, width=w, height=rows).splitlines()
+        if rows >= 18:
+            lines.extend(banner_lines)
+        else:
+            lines.extend(banner_lines[:4])
+        lines.append(theme.c("  [STAGE 1/4: IDENTITY — LOCAL KERBEROS / VOGSPHERE SESSION]", "primary", "bold"))
+        lines.append(theme.c("-" * w, "border"))
+        lines.append(f"  Principal  : {theme.c(f'{active_login}@1337.MA', 'ok', 'bold')} [LOCAL SIMULATION]")
+        lines.append(f"  Active Mode: {theme.c(mode_lbl, 'warn' if mode == 'practice' else 'ok', 'bold')}")
+        lines.append(f"  Workspace  : {theme.c(disp_basedir, 'info')}")
+        if status_notice:
+            lines.append(f"  Status     : {status_notice}")
+        budget = max(6, rows - 2)
+        if len(lines) > budget:
+            lines = lines[:budget]
+        else:
+            lines.extend([""] * (budget - len(lines)))
+        footer = theme.c(
+            clip_visible("Enter=Exam Selection | kinit <login>=Switch User | q=Quit", cols),
+            "muted",
+        )
+        lines.append(footer)
+        return lines
+
+    while True:
+        cols, rows = theme.term_size()
+        prompt_str = (
+            theme.c(f"Identity [{active_login}] (Enter=continue, 'kinit <login>', q=quit): ", "primary", "bold")
+            if theme.enabled
+            else f"Identity [{active_login}] (Enter=continue, 'kinit <login>', q=quit): "
+        )
+        sys.stdout.write(render_viewport_frame(_build_stage1_lines(cols, rows), prompt_str, cols, rows))
+        sys.stdout.flush()
+        try:
+            raw = _read_tty_line(
+                prompt_str,
+                theme,
+                redraw_fn=lambda b, p: sys.stdout.write(
+                    render_viewport_frame(_build_stage1_lines(*theme.term_size()), prompt_str, *theme.term_size())
+                )
+                or sys.stdout.flush(),
+            ).strip()
+        except (EOFError, KeyboardInterrupt):
+            raise SystemExit(0)
+
+        low = raw.lower()
+        if not raw or low in {"c", "continue", "next", "ok"}:
+            return active_login
+        if low in {"q", "quit", "exit"}:
+            raise SystemExit(0)
+        if low.startswith("kinit") or low.startswith("login"):
+            parts = raw.split()
+            if len(parts) >= 2:
+                active_login = parts[1].strip()
+            else:
+                login_prompt = f"Login [{active_login}]: "
+                try:
+                    entered = _read_tty_line(login_prompt, theme).strip()
+                    if entered:
+                        active_login = entered
+                except (EOFError, KeyboardInterrupt):
+                    continue
+            try:
+                _ = _read_masked_password(
+                    f"Password for {active_login}@1337.MA (simulated, hidden): ",
+                    theme=theme,
+                )
+            except (EOFError, KeyboardInterrupt):
+                continue
+            status_notice = theme.c(
+                f"Kerberos ticket initialized for {active_login}@1337.MA [LOCAL]",
+                "ok",
+                "bold",
+            )
+            continue
+        status_notice = theme.c(
+            f"Unrecognized input '{raw}'. Press Enter to continue, 'kinit <login>', or 'q' to quit.",
+            "warn",
+        )
+
+
+def interactive_select_pool(
+    theme: ThemeEngine,
+    login: str = DEFAULT_LOGIN,
+    basedir: Path | None = None,
+    mode: str = "real",
+) -> tuple[str, bool, bool, str]:
+    """EXAM SESSION SELECTION — msfconsole-style session table read from pools/exams/*.yml."""
+    choices = [(slug, title, track, *_pool_facts(slug)) for slug, title, track in SESSION_TRACKS]
+
+    sess_file = (basedir or (Path.home() / "exam-basedir")) / ".session.json"
+    saved_session: dict | None = None
+    if sess_file.is_file():
+        try:
+            data = json.loads(sess_file.read_text(encoding="utf-8"))
+            if not data.get("finished", False) and data.get("pool"):
+                saved_session = data
+        except Exception:
+            saved_session = None
+
+    active_login = login
+    page = 0
+    notice = ""
+    default_choice = "0" if saved_session else "1"
+    prompt_range = f"0-{len(choices)}" if saved_session else f"1-{len(choices)}"
+
+    def _build_stage2_lines(cols: int, rows: int) -> tuple[list[str], int]:
+        nonlocal page
+        w = max(40, min(80, cols))
+        mode_tag = "practice / coaching" if mode == "practice" else "normal exam"
+        piscine_n = sum(1 for c in choices if c[2] == "piscine")
+        stats = theme.stats_block(
+            [
+                "examshell v0.1.1 - 42 / 1337 exam environment",
+                f"{len(choices)} sessions - {piscine_n} piscine - {len(choices) - piscine_n} common core",
+                f"Principal: {active_login}@1337.MA - mode: {mode_tag}",
+            ],
+            width=w,
+        )
+        resume_ln: list[str] = []
+        if saved_session:
+            resume_ln = [clip_visible(theme.status(
+                "status",
+                f"Unfinished session: {saved_session.get('pool', '?')} "
+                f"(grade {saved_session.get('grade', 0)}/100, on {saved_session.get('current_assignment', '?')}). "
+                f"Type {theme.c('0', 'ok', 'bold')} to resume.",
+            ), cols)]
+        wide = cols >= 72
+        headers = ["#", "Exam", "Track", "Time", "Levels", "Pts/Lvl", "Exercises"] if wide else ["#", "Exam", "Time", "Lvls"]
+
+        def _row(i: int, c: tuple) -> list[str]:
+            slug, title, track, dur, lvls, pts, exs = c
+            return [str(i), title, track, dur, lvls, pts, exs] if wide else [str(i), title, dur, lvls]
+
+        footer = clip_visible(theme.status(
+            "status", f"Type a number [{prompt_range}], 'kinit <login>', 'n'/'p' to page, or 'q' to quit."
+        ), cols)
+        tail = ([notice] if notice else []) + [footer]
+        banner = theme.tool_banner("examshell", w, tagline="Don't Panic. Deepthought is watching.")
+        all_rows = [_row(i, c) for i, c in enumerate(choices, 1)]
+        budget = rows - 1  # last row is the prompt
+
+        def _compose(full: bool, with_banner: bool, sub_rows: list[list[str]], title: str) -> list[str]:
+            tbl = theme.table(title, headers, sub_rows, max_width=cols)
+            if not full:
+                tbl = [tbl[0], *tbl[3:]]  # drop '=' underline and blank on tiny screens
+                return [stats[0], *resume_ln, *tbl, *tail]
+            out = [*banner, ""] if with_banner else []
+            return [*out, *stats, "", *resume_ln, *tbl, "", *tail]
+
+        title = "EXAM SESSION SELECTION"
+        for full, with_banner in ((True, True), (True, False), (False, False)):
+            if with_banner and not banner:
+                continue
+            lines = _compose(full, with_banner, all_rows, title)
+            if len(lines) <= budget:
+                page = 0
+                return lines, 1
+
+        fixed = len(_compose(False, False, [], title))
+        per_page = max(1, budget - fixed)
+        total_pages = max(1, (len(all_rows) + per_page - 1) // per_page)
+        page = page % total_pages
+        sub = all_rows[page * per_page : (page + 1) * per_page]
+        return _compose(False, False, sub, f"{title} - Page {page + 1}/{total_pages}")[:budget], total_pages
+
+    while True:
+        cols, rows = theme.term_size()
+        frame_lines, total_pages = _build_stage2_lines(cols, rows)
+        prompt_str = (
+            theme.c(
+                f"Select session [{prompt_range}] (Enter={default_choice}, q=quit): ",
+                "primary",
+                "bold",
+            )
+            if theme.enabled
+            else f"Select session [{prompt_range}] (Enter={default_choice}, q=quit): "
+        )
+        _write_viewport_frame(frame_lines, prompt_str, cols, rows)
+        try:
+            raw = _read_tty_line(
+                prompt_str,
+                theme,
+                redraw_fn=lambda b, p: _write_viewport_frame(
+                    _build_stage2_lines(*theme.term_size())[0], prompt_str, *theme.term_size()
+                ),
+            ).strip()
+        except (EOFError, KeyboardInterrupt):
+            raise SystemExit(0)
+
+        low = raw.lower()
+        if low in {"clear", "cls"} or raw == "\x0c":
+            notice = ""
+            continue
+        if low in {"n", "next"}:
+            page = (page + 1) % max(1, total_pages)
+            notice = ""
+            continue
+        if low in {"p", "prev"}:
+            page = (page - 1) % max(1, total_pages)
+            notice = ""
+            continue
+        if low.startswith("kinit") or low.startswith("login"):
+            parts = raw.split()
+            if len(parts) >= 2:
+                active_login = parts[1].strip()
+            else:
+                try:
+                    entered = _read_tty_line(f"Login [{active_login}]: ", theme).strip()
+                    if entered:
+                        active_login = entered
+                except (EOFError, KeyboardInterrupt):
+                    continue
+            try:
+                _ = _read_masked_password(
+                    f"Password for {active_login}@1337.MA (simulated, hidden): ",
+                    theme=theme,
+                )
+            except (EOFError, KeyboardInterrupt):
+                continue
+            notice = theme.status("good", f"Kerberos ticket initialized for {active_login}@1337.MA (local simulation)")
+            continue
+        if low in {"q", "quit", "exit"}:
+            raise SystemExit(0)
+        if not raw:
+            raw = default_choice
+        if raw == "0" and saved_session:
+            return str(saved_session.get("pool", choices[0][0])), False, True, active_login
+        if raw.isdigit() and 1 <= int(raw) <= len(choices):
+            return choices[int(raw) - 1][0], False, False, active_login
+        resolved_cand = resolve_pool_slug(raw)
+        cand_file = Path(raw) if Path(raw).is_file() else (KIT_ROOT / "pools" / "exams" / f"{resolved_cand}.yml")
+        if cand_file.exists():
+            return raw, False, False, active_login
+        notice = theme.status("error", f"Unknown session '{raw}'. Pick a number from the table or a pool slug.")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="42 / 1337 Authentic ExamShell v0.1.1 — Pro Edition")
+    parser.add_argument("pool", nargs="?", default=None, help="Exam pool ID (e.g. c_piscine_exam_00, exam00, examfinal)")
+    parser.add_argument("-p", "--pool", dest="pool_flag", default=None, help="Exam pool ID")
+    parser.add_argument("-m", "--menu", action="store_true", help="Display official exam tracks menu and exit")
+    parser.add_argument("--mode", choices=["real", "test", "practice"], default=None, help="Session mode (default: real)")
+    parser.add_argument("--practice", action="store_true", help="Enable special practice/coaching mode (alias for --mode practice)")
+    parser.add_argument("--duration", type=int, default=None, help="Override exam duration in seconds (> 0)")
+    parser.add_argument("-l", "--level", type=int, default=None, help="Starting exam level")
+    parser.add_argument("-s", "--seed", type=int, default=42, help="Random seed for candidate pool draw")
+    parser.add_argument("--login", default=DEFAULT_LOGIN, help="Student login (defaults to $USER)")
+    parser.add_argument("-b", "--basedir", "--workspace", dest="basedir", type=Path, default=None, help="Custom exam-basedir path")
+    parser.add_argument("--fresh", action="store_true", help="Force fresh session")
+    parser.add_argument("-r", "--resume", action="store_true", help="Resume existing session in basedir")
+    parser.add_argument("-t", "--theme", default="42-cluster", choices=sorted(PALETTES), help="Color theme")
+    parser.add_argument("-c", "--command", dest="command", default=None, help="Execute a single examshell command and exit")
+    parser.add_argument("--no-color", action="store_true", help="Disable ANSI colors")
+    if any(arg.split("=", 1)[0].strip().lower() in {"--solution", "--solve", "solution", "solve"} for arg in sys.argv[1:]):
+        print("Error: Reference solutions are strictly locked in ExamShell to preserve the 42 / 1337 peer-learning methodology. Use 'subject' and debug from the Deepthought trace.")
+        return 2
+    args = parser.parse_args()
+
+    use_no_color = bool(args.no_color or os.environ.get("NO_COLOR"))
+    t_sel = ThemeEngine("plain" if use_no_color else args.theme)
+
+    if args.menu:
+        print_official_menu(t_sel)
+        return 0
+
+    if args.basedir is not None:
+        try:
+            validate_safe_basedir(args.basedir)
+        except ValueError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+
+    raw_pool_arg = args.pool_flag or args.pool
+    if raw_pool_arg and str(raw_pool_arg).strip().lower() in {"clear", "cls"}:
+        if is_interactive_tty():
+            sys.stdout.write("\033[H\033[2J")
+            sys.stdout.flush()
+        return 0
+    explicit_mode = "practice" if args.practice else args.mode
+    practice_flag = explicit_mode == "practice"
+    resume_flag = bool(args.resume and not args.fresh)
+    # A one-shot command (-c "status") must never wipe an existing exam to
+    # run: when a session file is present, resume it instead.
+    if args.command is not None and not args.fresh and not resume_flag:
+        _bd = Path(args.basedir) if args.basedir else (Path.home() / "exam-basedir")
+        try:
+            if (_bd.expanduser() / ".session.json").is_file():
+                resume_flag = True
+        except OSError:
+            pass
+    active_login = args.login
+    showed_menu_banner = False
+
+    with TerminalSessionGuard():
+        if os.environ.get("EXAMSHELL_SIMULATE_CRASH") == "startup":
+            raise RuntimeError("Simulated startup crash for terminal restoration verification")
+
+        if raw_pool_arg is None and not resume_flag and is_interactive_tty():
+            raw_pool_arg, extra_prac, picked_resume, active_login = interactive_select_pool(
+                t_sel,
+                login=active_login,
+                basedir=Path(args.basedir) if args.basedir else None,
+                mode="practice" if practice_flag else "real",
+            )
+            showed_menu_banner = True
+            practice_flag = practice_flag or extra_prac
+            if picked_resume and not args.fresh:
+                resume_flag = True
+
+        pool_id = raw_pool_arg or "c_piscine_exam_00"
+        resolved_pool = resolve_pool_slug(pool_id)
+        pool_path = Path(pool_id) if Path(pool_id).is_file() else (KIT_ROOT / "pools" / "exams" / f"{resolved_pool}.yml")
+        if not pool_path.exists():
+            print(f"Error: Unknown exam pool '{pool_id}'. Available in pools/exams/:")
+            for p in sorted((KIT_ROOT / "pools" / "exams").glob("*.yml")):
+                print("  -", p.stem)
+            return 1
+
+        try:
+            shell = ExamShell(
+                pool=pool_id,
+                level=args.level,
+                seed=args.seed,
+                practice=practice_flag,
+                explicit_mode=explicit_mode,
+                theme_name=args.theme,
+                no_color=use_no_color,
+                basedir=Path(args.basedir) if args.basedir else None,
+                resume_session=resume_flag,
+                login=active_login,
+                duration_override=args.duration,
+                defer_init_basedir=True,
+                fresh_confirmed=bool(args.fresh),
+            )
+        except ValueError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+
+        shell.print_boot_header(show_banner=not showed_menu_banner)
+        if args.command is not None:
+            for raw_ln in str(args.command).splitlines():
+                cmd_line = raw_ln.strip()
+                if not cmd_line:
+                    continue
+                print(f"examshell> {cmd_line}")
+                if shell.onecmd(cmd_line):
+                    break
+            return int(getattr(shell, "last_exit_code", 0) or 0)
+        if not is_interactive_tty():
+            for line in sys.stdin:
+                cmd_line = line.strip()
+                if not cmd_line:
+                    continue
+                print(f"examshell> {cmd_line}")
+                if shell.onecmd(cmd_line):
+                    break
+            return 0
+
+        def _handle_ctrl_c() -> None:
+            shell.last_exit_code = 130
+            shell._footer_notice = "^C — Input cleared (session active; type 'finish' or press Ctrl+D to exit)"
+            shell._render_shell_viewport()
+
+        def _handle_ctrl_l(buf_s: str, cur_p: int) -> None:
+            shell.do_clear("")
+            shell._render_shell_viewport(buf_s, cur_p)
+
+        while True:
+            shell._waiting_for_input = True
+            try:
+                cmd_line = _read_tty_line(
+                    shell.prompt,
+                    shell.theme,
+                    redraw_fn=lambda buf_s, cur_p: shell._render_shell_viewport(buf_s, cur_p),
+                    tick_fn=shell._tick_persistent_clock,
+                    clear_fn=_handle_ctrl_l,
+                    ctrl_c_fn=_handle_ctrl_c,
+                    completer_fn=shell._complete_tty_input,
+                    history=shell._raw_cmd_history,
+                    allow_ctrl_c_clear=True,
+                )
+            except KeyboardInterrupt:
+                _handle_ctrl_c()
+                continue
+            except EOFError:
+                cmd_line = "EOF"
+
+            shell._waiting_for_input = False
+            if cmd_line.strip() == "__simulate_crash__" and os.environ.get("EXAMSHELL_SIMULATE_CRASH") == "1":
+                raise RuntimeError("Simulated runtime exception inside STAGE 4/4: EXAM SHELL")
+            if shell.onecmd(cmd_line):
+                break
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+

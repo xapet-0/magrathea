@@ -1,0 +1,4 @@
+Examples:
+  count_letters("Hello 1337!") -> 5
+  count_letters("12345") -> 0
+    count_letters("") -> 0

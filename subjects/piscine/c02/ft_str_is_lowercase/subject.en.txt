@@ -1,0 +1,25 @@
+Assignment name  : ft_str_is_lowercase
+Expected files   : ft_str_is_lowercase.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 02 (Official PDF)
+Exercise         : ft_str_is_lowercase
+Turn-in directory: ex04/
+Expected files   : ft_str_is_lowercase.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function that returns 1 if the given string contains only lowercase alpha-
+betical characters and 0 if it contains any other character.
+• Here is how it should be prototyped:
+int ft_str_is_lowercase(char *str);
+• It should return 1 ifstr is empty.
+
+Your function must be declared as follows:
+    int ft_str_is_lowercase(char *str);
+
+Examples:
+    ft_str_is_lowercase("abc") -> 1
+    ft_str_is_lowercase("abC") -> 0
+    ft_str_is_lowercase("") -> 1

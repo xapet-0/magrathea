@@ -1,0 +1,15 @@
+id: cycle_detector
+type: c_function
+module: Piscine Exams 00–Final
+xp: 290
+expected_files:
+- cycle_detector.c
+allowed_functions:
+- malloc
+- free
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int cycle_detector(const t_list *list);

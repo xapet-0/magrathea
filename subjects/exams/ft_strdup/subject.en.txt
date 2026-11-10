@@ -1,0 +1,55 @@
+Assignment name  : ft_strdup
+Expected files   : ft_strdup.c
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+Reproduce the behavior of the function strdup (man strdup).
+
+Your function must be declared as follows:
+
+char    *ft_strdup(char *src);
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : char *s = ft_strdup("Piscine"); if (s) { printf("%s\n", s); free(s); }
+    Expected Output   : 'Piscine\n'
+  [Standard Test 2] Name: sentence
+    Call / Invocation : char *s = ft_strdup("1337 School"); printf("%s\n", s); free(s)
+    Expected Output   : '1337 School\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: empty_string [Test description: "empty_string"]
+    Call / Invocation : char *s = ft_strdup(""); printf("[%s]\n", s); free(s)
+    Expected Output   : '[]\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: ft_strdup_oracle_stress
+    C Source Driver:
+    int main(void)
+    {
+        char *cases[] = {"", "abc", "hello world", 0};
+        int i;
+        for (i = 0; cases[i]; ++i)
+        {
+            char *got = ft_strdup(cases[i]);
+            if (!got || got == cases[i] || strcmp(got, cases[i]) != 0) { fprintf(stderr, "strdup mismatch\n"); free(got); return (1); }
+            free(got);
+        }
+        return (0);
+    }
+
+>>> DEDICATED _MAIN.c TEST DRIVERS (Nigal / Samuel Karani / Official):
+  File: 2-0-ft_strdup_MAIN.c
+    #include <stdio.h>
+    char    *ft_strdup(char *src);
+    
+    int main(void) {
+    	char *greet = "Salut";
+    	char *test1 = "Gonna pass this test, even if I gotta dup!\n";
+    	char *test2 = ft_strdup(test1);
+    
+    	printf("%s\n", ft_strdup(greet));
+    	printf("test1: %s", test1);
+    	printf("test2: %s", test2);
+    	return 0;
+    }

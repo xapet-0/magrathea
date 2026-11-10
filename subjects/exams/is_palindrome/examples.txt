@@ -1,0 +1,8 @@
+# Examples for is_palindrome (from official subject specification)
+
+Examples:
+
+$> ./is_palindrome "aaabb" | cat -e
+$> $
+$> ./is_palindrome "zaz" | cat -e
+$> zaz$

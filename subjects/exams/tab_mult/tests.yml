@@ -1,0 +1,361 @@
+mode: c_program
+fixed_tests:
+- name: can_tab_mult_T01
+  description: mult_3
+  args:
+  - '3'
+  expected: '1 x 3 = 3
+
+    2 x 3 = 6
+
+    3 x 3 = 9
+
+    4 x 3 = 12
+
+    5 x 3 = 15
+
+    6 x 3 = 18
+
+    7 x 3 = 21
+
+    8 x 3 = 24
+
+    9 x 3 = 27
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_tab_mult_T02
+  description: mult_9
+  args:
+  - '9'
+  expected: '1 x 9 = 9
+
+    2 x 9 = 18
+
+    3 x 9 = 27
+
+    4 x 9 = 36
+
+    5 x 9 = 45
+
+    6 x 9 = 54
+
+    7 x 9 = 63
+
+    8 x 9 = 72
+
+    9 x 9 = 81
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_tab_mult_T03
+  description: mult_1
+  args:
+  - '1'
+  expected: '1 x 1 = 1
+
+    2 x 1 = 2
+
+    3 x 1 = 3
+
+    4 x 1 = 4
+
+    5 x 1 = 5
+
+    6 x 1 = 6
+
+    7 x 1 = 7
+
+    8 x 1 = 8
+
+    9 x 1 = 9
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_tab_mult_T04
+  description: no_args
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - '19'
+  expected: '1 x 19 = 19
+
+    2 x 19 = 38
+
+    3 x 19 = 57
+
+    4 x 19 = 76
+
+    5 x 19 = 95
+
+    6 x 19 = 114
+
+    7 x 19 = 133
+
+    8 x 19 = 152
+
+    9 x 19 = 171
+
+    '
+- name: test_06_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '1 x 0 = 0
+
+    2 x 0 = 0
+
+    3 x 0 = 0
+
+    4 x 0 = 0
+
+    5 x 0 = 0
+
+    6 x 0 = 0
+
+    7 x 0 = 0
+
+    8 x 0 = 0
+
+    9 x 0 = 0
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: '1 x 0 = 0
+
+    2 x 0 = 0
+
+    3 x 0 = 0
+
+    4 x 0 = 0
+
+    5 x 0 = 0
+
+    6 x 0 = 0
+
+    7 x 0 = 0
+
+    8 x 0 = 0
+
+    9 x 0 = 0
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '1 x 1337 = 1337
+
+    2 x 1337 = 2674
+
+    3 x 1337 = 4011
+
+    4 x 1337 = 5348
+
+    5 x 1337 = 6685
+
+    6 x 1337 = 8022
+
+    7 x 1337 = 9359
+
+    8 x 1337 = 10696
+
+    9 x 1337 = 12033
+
+    '
+- name: test_09_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '1 x 42 = 42
+
+    2 x 42 = 84
+
+    3 x 42 = 126
+
+    4 x 42 = 168
+
+    5 x 42 = 210
+
+    6 x 42 = 252
+
+    7 x 42 = 294
+
+    8 x 42 = 336
+
+    9 x 42 = 378
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: '1 x 0 = 0
+
+    2 x 0 = 0
+
+    3 x 0 = 0
+
+    4 x 0 = 0
+
+    5 x 0 = 0
+
+    6 x 0 = 0
+
+    7 x 0 = 0
+
+    8 x 0 = 0
+
+    9 x 0 = 0
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./tab_mult 9
+  args: &id001
+  - '9'
+  expected: '1 x 9 = 9
+
+    2 x 9 = 18
+
+    3 x 9 = 27
+
+    4 x 9 = 36
+
+    5 x 9 = 45
+
+    6 x 9 = 54
+
+    7 x 9 = 63
+
+    8 x 9 = 72
+
+    9 x 9 = 81
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./tab_mult 19
+  args: &id002
+  - '19'
+  expected: '1 x 19 = 19
+
+    2 x 19 = 38
+
+    3 x 19 = 57
+
+    4 x 19 = 76
+
+    5 x 19 = 95
+
+    6 x 19 = 114
+
+    7 x 19 = 133
+
+    8 x 19 = 152
+
+    9 x 19 = 171
+
+    '
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./tab_mult | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_tab_mult_T05
+  origin: subject_folder/42ExamPractice/tab_mult/tester.sh
+  input: ./tab_mult "9"
+  expected: Matches 42 reference standard output and exit code
+- id: can_tab_mult_T06
+  origin: subject_folder/42ExamPractice/tab_mult/tester.sh
+  input: ./tab_mult "1"
+  expected: Matches 42 reference standard output and exit code
+- id: can_tab_mult_T07
+  origin: subject_folder/42ExamPractice/tab_mult/tester.sh
+  input: ./tab_mult "12"
+  expected: Matches 42 reference standard output and exit code
+- id: can_tab_mult_T08
+  origin: subject_folder/42ExamPractice/tab_mult/tester.sh
+  input: ./tab_mult "4"
+  expected: Matches 42 reference standard output and exit code
+- id: can_tab_mult_T09
+  origin: subject_folder/42ExamPractice/tab_mult/tester.sh
+  input: ./tab_mult "0"
+  expected: Matches 42 reference standard output and exit code
+- id: can_tab_mult_T10
+  origin: subject_folder/examples.txt
+  input: ./tab_mult 9
+  expected: 1 x 9 = 9\n2 x 9 = 18\n3 x 9 = 27\n4 x 9 = 36\n5 x 9 = 45\n6 x 9 = 54\n7
+    x 9 = 63\n8 x 9 = 72\n9 x 9 = 81
+- id: can_tab_mult_T11
+  origin: subject_folder/examples.txt
+  input: ./tab_mult 19
+  expected: 1 x 19 = 19\n2 x 19 = 38\n3 x 19 = 57\n4 x 19 = 76\n5 x 19 = 95\n6 x 19
+    = 114\n7 x 19 = 133\n8 x 19 = 152\n9 x 19 = 171
+- id: can_tab_mult_T12
+  origin: subject_folder/examples.txt
+  input: ./tab_mult \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '10'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  9  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - '20'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  19  '
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./tab_mult | cat -e
+  perturbed_input:
+  - tab_mult_near_arg_1
+  - tab_mult_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_tab_mult_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/tab_mult/tester.sh)
+  original_input: ./tab_mult "9"
+  perturbed_input: ./uab_mult "9"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_tab_mult_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/tab_mult/tester.sh)
+  original_input: ./tab_mult "1"
+  perturbed_input: ./uab_mult "1"

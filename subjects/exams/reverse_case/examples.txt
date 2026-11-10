@@ -1,0 +1,9 @@
+Examples:
+$> ./reverse_case "Hello 42!" | cat -e
+hELLO 42!$
+$> ./reverse_case "abcXYZ" | cat -e
+ABCxyz$
+$> ./reverse_case "" | cat -e
+$
+$> ./reverse_case | cat -e
+$

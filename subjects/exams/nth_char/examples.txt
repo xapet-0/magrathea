@@ -1,0 +1,9 @@
+Examples:
+$> ./nth_char "abcdef" "2" | cat -e
+bdf$
+$> ./nth_char "42" "1" | cat -e
+42$
+$> ./nth_char "123456" "3" | cat -e
+36$
+$> ./nth_char | cat -e
+$

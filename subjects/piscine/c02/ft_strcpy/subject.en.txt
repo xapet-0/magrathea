@@ -1,0 +1,16 @@
+Assignment name  : ft_strcpy
+Turn-in directory: ex00/
+Expected files   : ft_strcpy.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Reproduce the behavior of the functionstrcpy (man strcpy).
+• Here is how it should be prototyped:
+char *ft_strcpy(char *dest, char *src);
+
+Your function must be declared as follows:
+    char *ft_strcpy(char *dest, char *src);
+
+Examples:
+    char d[16]; printf("%s\n", ft_strcpy(d, "abc"))
+    Output: abc

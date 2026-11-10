@@ -1,0 +1,92 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_is_negative_T01
+  description: 'Functional verification of input: `ft_is_negative(-1)`'
+  expr: ft_is_negative(-1)
+  stdout: 'N
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_is_negative_T02
+  description: 'Functional verification of input: `ft_is_negative(0)`'
+  expr: ft_is_negative(0)
+  stdout: 'P
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_is_negative_T03
+  description: 'Functional verification of input: `ft_is_negative(42)`'
+  expr: ft_is_negative(42)
+  stdout: 'P
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_is_negative_T04_int_min
+  description: INT_MIN negative boundary
+  expr: ft_is_negative(-2147483648)
+  stdout: 'N
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_one
+  expr: ft_is_negative(1)
+  tier: baseline
+  stdout: P
+- name: test_06_neg_42
+  expr: ft_is_negative(-42)
+  tier: baseline
+  stdout: N
+- name: test_07_int_max
+  expr: ft_is_negative(2147483647)
+  tier: edge
+  stdout: P
+- name: test_08_neg_two
+  expr: ft_is_negative(-2)
+  tier: edge
+  stdout: N
+- name: test_09_large_neg
+  expr: ft_is_negative(-999999)
+  tier: stress
+  stdout: N
+- name: test_10_large_pos
+  expr: ft_is_negative(999999)
+  tier: stress
+  stdout: P
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_is_negative
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_is_negative_T05
+  origin: subject_folder/mini-moulinette/ex04/ft_is_negative.c
+  input: 'Input:'
+  expected: 'Expected: P'
+- id: pool_ft_is_negative_T06
+  origin: subject_folder/mini-moulinette/ex04/ft_is_negative.c
+  input: 'Input:'
+  expected: 'Expected: N'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_is_negative
+  perturbed_input:
+  - ft_is_negative_near_arg_1
+  - ft_is_negative_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_is_negative_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex04/ft_is_negative.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_is_negative_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex04/ft_is_negative.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'

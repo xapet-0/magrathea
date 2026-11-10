@@ -1,0 +1,24 @@
+Assignment name  : ft_div_mod
+Expected files   : ft_div_mod.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 01 (Official PDF)
+Exercise         : ft_div_mod
+Turn-in directory: ex03/
+Expected files   : ft_div_mod.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function ft_div_mod with the following prototype:
+void ft_div_mod(int a, int b, int *div, int *mod);
+• This function divides ‘a’ by ‘b’ and stores the result in the integer pointed to by
+‘div’. It also stores the remainder of the division of ‘a’ by ‘b’ in the integer pointed
+to by ‘mod’.
+
+Your function must be declared as follows:
+    void ft_div_mod(int a, int b, int *div, int *mod);
+
+Examples:
+    int d, m; ft_div_mod(10, 3, &d, &m); printf("%d %d\n", d, m)
+    Output: 3 1

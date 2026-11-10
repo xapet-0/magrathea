@@ -1,0 +1,28 @@
+project: PROJECT_NAME
+scale_version: "1337HUB-v4.2"
+stop_on_first_failure: true
+zero_tolerance_gates:
+  - segfault
+  - bus_error
+  - double_free
+  - memory_leak
+  - norminette_error
+  - forbidden_function_minus_42
+sections:
+  - id: preliminaries
+    title: "Preliminaries & Repository Integrity"
+    points: 10
+    checks:
+      - "Clone only from official Vogsphere repository into an empty folder."
+      - "Verify no malicious aliases in shell environment."
+      - "Verify signature.txt or norminette + strict compiler flags (-Wall -Wextra -Werror)."
+  - id: conceptual_defense
+    title: "Explain Before Checking"
+    points: 30
+    checks:
+      - "Student explains architecture and trade-offs clearly before running tests."
+  - id: live_mutation
+    title: "Live Mutation & Persistence Audit"
+    points: 60
+    checks:
+      - "Modify a rule, port, cron interval, or boundary input live during defense and verify behavior."

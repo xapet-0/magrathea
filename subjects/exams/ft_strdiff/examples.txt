@@ -1,0 +1,9 @@
+# Examples for ft_strdiff (from official subject specification)
+
+Examples:
+
+$>./ft_strdiff("hello", "hella")  →  4  
+$>./ft_strdiff("test", "test")  →  -1  
+$>./ft_strdiff("abc", "abcd")  →  3  
+$>./ft_strdiff("abcd", "abc")  →  3  
+$>./ft_strdiff("", "abc")  →  0

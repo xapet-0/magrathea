@@ -1,0 +1,7 @@
+Examples:
+$> FT_CSV="data.csv" sh csv_sum.sh | cat -e
+142$
+$> FT_CSV="data2.csv" sh csv_sum.sh | cat -e
+0$
+$> FT_CSV="data3.csv" sh csv_sum.sh | cat -e
+42$

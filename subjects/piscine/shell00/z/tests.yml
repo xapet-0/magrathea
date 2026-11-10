@@ -1,0 +1,43 @@
+mode: shell
+fixed_tests:
+- name: pool_z_T01
+  description: Standard baseline execution and behavior check for `z`
+  args: []
+  input: '`sh z.sh` (standard shell environment)'
+  expected: '*(none)*'
+  category: Functional
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: cat z
+  args: &id001
+  - z
+  expected: 'Z
+
+    '
+  cat_e: false
+folder_examples:
+- id: folder_fixture_01
+  origin: subject_folder/z
+  input: z
+  expected: Z
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - z!
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  z  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_fixture_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/z)
+  original_input: z
+  perturbed_input: z!

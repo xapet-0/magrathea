@@ -1,0 +1,18 @@
+id: freq_rank
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- freq_rank.sh
+allowed_functions:
+- tr
+- sort
+- uniq
+- awk
+- sed
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh freq_rank.sh [args...]

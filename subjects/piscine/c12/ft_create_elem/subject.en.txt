@@ -1,0 +1,23 @@
+Assignment name  : ft_create_elem
+Expected files   : ft_create_elem.c ft_list.h
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_create_elem
+Turn-in directory: ex00/
+Expected files   : ft_create_elem.c, ft_list.h
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+• Create the function ft_create_elem, which creates a new element oft_list type.
+• It should assigndata to the given argument andnext to NULL.
+• Here is how it should be prototyped:
+t_list *ft_create_elem( void *data);
+
+Your function must be declared as follows:
+    t_list *ft_create_elem(void *data);
+
+Examples:
+    t_list *n=ft_create_elem("x"); printf("%s:%d\n",(char*)n->data,n->next==0)
+    Output: x:1

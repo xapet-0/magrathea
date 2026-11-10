@@ -1,0 +1,8 @@
+# Examples for is_vowel (from official subject specification)
+
+Example:
+
+    $> is_vowel('a') = 1
+    $> is_vowel('U') = 1
+    $> is_vowel('P') = 0
+    $> is_vowel ('z') = 0

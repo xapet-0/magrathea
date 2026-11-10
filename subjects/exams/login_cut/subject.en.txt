@@ -1,0 +1,12 @@
+Assignment name  : login_cut
+Expected files   : login_cut.sh
+Allowed commands : grep, cut
+--------------------------------------------------------------------------------
+Write a shell script that reads /etc/passwd, ignores all comment lines starting
+with '#', and displays only the login names (the first field separated by ':').
+
+Examples:
+$> ./login_cut.sh | head -n 3 | cat -e
+nobody$
+root$
+daemon$

@@ -1,0 +1,69 @@
+subject_id: glob_shield
+fixed_tests:
+- name: test_01_a_b_c
+  args:
+  - a * b   c
+  stdout: 'a * b   c
+
+    '
+- name: test_02_Hello_World
+  args:
+  - Hello    *    World?
+  stdout: 'Hello    *    World?
+
+    '
+- name: test_03_1337_42
+  args:
+  - 1337   42
+  stdout: '1337   42
+
+    '
+- name: test_04_brackets_and_qmark
+  args:
+  - '*   ?   [a-z]'
+  stdout: '*   ?   [a-z]
+
+    '
+- name: test_05_only_stars
+  args:
+  - '*   **   ***'
+  tier: edge
+  stdout: '*   **   ***
+
+    '
+- name: test_06_single_token
+  args:
+  - magrathea
+  tier: edge
+  stdout: 'magrathea
+
+    '
+- name: test_07_leading_trailing_spaces
+  args:
+  - '   foo   *   bar   '
+  tier: edge
+  stdout: "   foo   *   bar   \n"
+- name: test_08_question_marks
+  args:
+  - '?  ??  ???'
+  tier: baseline
+  stdout: '?  ??  ???
+
+    '
+- name: test_09_brackets_globs
+  args:
+  - '[0-9]   [!a-z]   *.c'
+  tier: baseline
+  stdout: '[0-9]   [!a-z]   *.c
+
+    '
+- name: test_10_six_mixed_tokens
+  args:
+  - 1  *  2  ?  3  [a]
+  tier: stress
+  stdout: '1  *  2  ?  3  [a]
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

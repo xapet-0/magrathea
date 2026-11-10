@@ -1,0 +1,12 @@
+id: skip.sh
+type: shell
+module: Shell 01
+xp: 150
+expected_files:
+- skip.sh
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true

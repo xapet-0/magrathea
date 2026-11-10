@@ -1,0 +1,16 @@
+Assignment name  : rtfm_ls
+Expected files   : rtfm_ls.sh
+Allowed commands : ls
+--------------------------------------------------------------------------------
+
+Write a shell script that lists entries in the current directory one per line
+using ls.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh rtfm_ls.sh | cat -e
+large$
+small$

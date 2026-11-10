@@ -1,0 +1,110 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_str_is_lowercase_T01
+  description: 'Functional verification of input: `ft_str_is_lowercase("abc")`'
+  expr: ft_str_is_lowercase("abc")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_str_is_lowercase_T02
+  description: 'Functional verification of input: `ft_str_is_lowercase("abC")`'
+  expr: ft_str_is_lowercase("abC")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_str_is_lowercase_T03
+  description: 'Functional verification of input: `ft_str_is_lowercase("")`'
+  expr: ft_str_is_lowercase("")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_str_is_lowercase_T04_digit
+  description: digit_in_lowercase_str
+  expr: ft_str_is_lowercase("abc1")
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_full_alphabet
+  expr: ft_str_is_lowercase("abcdefghijklmnopqrstuvwxyz")
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_06_single_z
+  expr: ft_str_is_lowercase("z")
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_07_boundary_backtick
+  expr: ft_str_is_lowercase("`abc")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_boundary_left_brace
+  expr: ft_str_is_lowercase("abc{")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_with_space
+  expr: ft_str_is_lowercase("hello world")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_single_upper
+  expr: ft_str_is_lowercase("A")
+  tier: edge
+  stdout: '0
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_str_is_lowercase
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_str_is_lowercase_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: ft_str_is_lowercase("abc")
+  expected: 1\n
+- id: pool_ft_str_is_lowercase_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: ft_str_is_lowercase("abC")
+  expected: 0\n
+- id: pool_ft_str_is_lowercase_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: ft_str_is_lowercase("")
+  expected: 1\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_str_is_lowercase
+  perturbed_input:
+  - ft_str_is_lowercase_near_arg_1
+  - ft_str_is_lowercase_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_str_is_lowercase_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: ft_str_is_lowercase("abc")
+  perturbed_input: gt_str_is_lowercase("abc")
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_str_is_lowercase_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: ft_str_is_lowercase("abC")
+  perturbed_input: gt_str_is_lowercase("abC")

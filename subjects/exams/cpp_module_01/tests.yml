@@ -1,0 +1,56 @@
+mode: cpp
+main_cpp: "#include \"Warlock.hpp\"\n#include \"Dummy.hpp\"\n#include \"Fwoosh.hpp\"\
+  \nint main()\n{\n  Warlock richard(\"Richard\", \"the Titled\");\n  Dummy bob;\n\
+  \  Fwoosh* fwoosh = new Fwoosh();\n  richard.learnSpell(fwoosh);\n  richard.introduce();\n\
+  \  richard.launchSpell(\"Fwoosh\", bob);\n  richard.forgetSpell(\"Fwoosh\");\n \
+  \ richard.launchSpell(\"Fwoosh\", bob);\n  delete fwoosh;\n  return 0;\n}\n"
+expected_stdout: 'Richard: This looks like another boring day.
+
+  Richard: I am Richard, the Titled!
+
+  Target Practice Dummy has been fwooshed!
+
+  Richard: My job here is done!
+
+  '
+must_not_compile: []
+fixed_tests:
+- name: cpp_module_01_canonical_driver
+  main_code: ''
+  expected: ''
+- name: cpp_module_01_coplien_and_const_contract
+  main_code: ''
+  expected: ''
+- name: cpp_module_01_boundary_and_state_invariants
+  main_code: ''
+  expected: ''
+- name: cpp_module_01_destructor_and_resource_lifecycle
+  main_code: ''
+  expected: ''
+- name: test_05_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_06_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_07_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_08_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_09_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_10_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+subject_examples: []
+folder_examples: []
+near_examples: []

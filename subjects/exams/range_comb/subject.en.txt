@@ -1,0 +1,19 @@
+Assignment name  : range_comb
+Expected files   : range_comb.c
+Allowed functions: malloc, free
+--------------------------------------------------------------------------------
+
+Write a function that generates all n! permutations of integers {0, 1, ..., n-1}
+in lexicographical order and returns them as a NULL-terminated array of int*
+arrays (or NULL if n <= 0).
+
+Prototype:
+int	**range_comb(int n);
+
+Your function must be declared as follows:
+    int **range_comb(int n);
+
+Examples:
+    range_comb(0) == NULL -> 1
+    range_comb(-3) == NULL -> 1
+    r != NULL && r[0][0] == 0 && r[1] == NULL -> 1

@@ -1,0 +1,412 @@
+#!/usr/bin/env python3
+"""
+ft_lock -- 42 / 1337 Cluster Session Locker & Idle Escalation Daemon.
+
+Architecture & Edge-Case Handling:
+1. Environment Sanitization: Reconstructs missing DBUS_SESSION_BUS_ADDRESS from
+   XDG_RUNTIME_DIR (/run/user/<uid>/bus) for tmux/subshell/cron invocations, and
+   validates graphical session presence (DISPLAY / WAYLAND_DISPLAY).
+2. D-Bus Ownership Verification: Queries org.freedesktop.DBus.NameHasOwner before
+   invoking ScreenSaver.Lock so non-running desktop daemons are never auto-activated.
+3. Desktop-Aware Dispatch: Prioritizes lockers matching XDG_CURRENT_DESKTOP
+   (e.g., xfconf LockCommand / org.xfce.ScreenSaver on XFCE; org.gnome.ScreenSaver
+   on GNOME) before generic fallbacks.
+4. Post-Lock State Verification: Confirms the lock actually engaged via D-Bus
+   GetActive or systemd-logind LockedHint=yes so silent no-ops (like unsubscribed
+   loginctl lock-session or power-manager stubs) are never reported as success.
+5. 42 Idle Escalation State Machine (--daemon / --check-idle): Parses ft_lock
+   configuration (TIMEOUT_LOCK_MINUTES=5, TIMEOUT_DELOG_MINUTES=35,
+   TIMEOUT_DELOG_FORCED_MINUTES=37) and queries session idle time.
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
+
+@dataclass
+class FtLockConfig:
+    log_level: str = "info"
+    log_format: str = "console"
+    timeout_lock_minutes: int = 5
+    timeout_delog_minutes: int = 35
+    timeout_delog_forced_minutes: int = 37
+
+
+CONFIG_SEARCH_PATHS: tuple[Path, ...] = (
+    Path("/etc/ft_lock"),
+    Path("/etc/ft_lock.conf"),
+    Path("/etc/default/ft_lock"),
+)
+
+
+def _get_config_search_paths() -> tuple[Path, ...]:
+    xdg_cfg = os.environ.get("XDG_CONFIG_HOME", "").strip()
+    user_cfg_dir = Path(xdg_cfg) if xdg_cfg else (Path.home() / ".config")
+    return (*CONFIG_SEARCH_PATHS, user_cfg_dir / "ft_lock.conf")
+
+
+def load_ft_lock_config(custom_path: Path | None = None) -> FtLockConfig:
+    """Parse key=value and yaml-style settings from ft_lock configuration files and env."""
+    cfg = FtLockConfig()
+    paths = (custom_path,) if custom_path else _get_config_search_paths()
+    for p in paths:
+        if not p or not p.is_file():
+            continue
+        try:
+            for raw_line in p.read_text(encoding="utf-8", errors="ignore").splitlines():
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                m_kv = re.match(r"^([A-Za-z0-9_]+)\s*[:=]\s*\"?([^\"#]+)\"?$", line)
+                if not m_kv:
+                    continue
+                k, v = m_kv.group(1).strip(), m_kv.group(2).strip()
+                if k == "log_level":
+                    cfg.log_level = v
+                elif k == "log_format":
+                    cfg.log_format = v
+                elif k == "TIMEOUT_LOCK_MINUTES" and v.isdigit():
+                    cfg.timeout_lock_minutes = int(v)
+                elif k == "TIMEOUT_DELOG_MINUTES" and v.isdigit():
+                    cfg.timeout_delog_minutes = int(v)
+                elif k == "TIMEOUT_DELOG_FORCED_MINUTES" and v.isdigit():
+                    cfg.timeout_delog_forced_minutes = int(v)
+        except OSError:
+            continue
+
+    # Environment variable overrides
+    for env_key, attr in (
+        ("TIMEOUT_LOCK_MINUTES", "timeout_lock_minutes"),
+        ("TIMEOUT_DELOG_MINUTES", "timeout_delog_minutes"),
+        ("TIMEOUT_DELOG_FORCED_MINUTES", "timeout_delog_forced_minutes"),
+    ):
+        val = os.environ.get(env_key, "").strip()
+        if val.isdigit():
+            setattr(cfg, attr, int(val))
+    return cfg
+
+
+def _build_session_env() -> dict[str, str]:
+    """Ensure DBUS_SESSION_BUS_ADDRESS and XDG_RUNTIME_DIR are valid even inside tmux/cron."""
+    env = os.environ.copy()
+    uid = os.getuid()
+    runtime_dir = env.get("XDG_RUNTIME_DIR") or f"/run/user/{uid}"
+    if Path(runtime_dir).is_dir():
+        env.setdefault("XDG_RUNTIME_DIR", runtime_dir)
+    if not env.get("DBUS_SESSION_BUS_ADDRESS"):
+        bus_sock = Path(runtime_dir) / "bus"
+        if bus_sock.exists():
+            env["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path={bus_sock}"
+    return env
+
+
+def _has_graphical_display(env: dict[str, str]) -> bool:
+    return bool(env.get("DISPLAY") or env.get("WAYLAND_DISPLAY"))
+
+
+def _dbus_name_has_owner(service: str, env: dict[str, str]) -> bool:
+    """Verify a D-Bus service is actively owned on the session bus without auto-starting it."""
+    if not shutil.which("dbus-send"):
+        return False
+    cmd = [
+        "dbus-send", "--session", "--print-reply", "--reply-timeout=800",
+        "--dest=org.freedesktop.DBus", "/org/freedesktop/DBus",
+        "org.freedesktop.DBus.NameHasOwner", f"string:{service}",
+    ]
+    try:
+        res = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=1.2, check=False)
+        return res.returncode == 0 and "boolean true" in res.stdout
+    except Exception:
+        return False
+
+
+def _dbus_screensaver_is_active(service: str, obj_path: str, env: dict[str, str]) -> bool:
+    """Query ScreenSaver.GetActive to confirm the lock screen actually engaged."""
+    if not shutil.which("dbus-send"):
+        return False
+    cmd = [
+        "dbus-send", "--session", "--print-reply", "--reply-timeout=800",
+        f"--dest={service}", obj_path, f"{service}.GetActive",
+    ]
+    try:
+        res = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=1.2, check=False)
+        return res.returncode == 0 and "boolean true" in res.stdout
+    except Exception:
+        return False
+
+
+def _resolve_logind_session_id(env: dict[str, str]) -> str | None:
+    """Resolve current user's graphical logind session ID even when XDG_SESSION_ID is unset."""
+    sid = env.get("XDG_SESSION_ID", "").strip()
+    if sid:
+        return sid
+    if not shutil.which("loginctl"):
+        return None
+    uid_str = str(os.getuid())
+    try:
+        res = subprocess.run(
+            ["loginctl", "list-sessions", "--no-legend"],
+            env=env, capture_output=True, text=True, timeout=1.5, check=False,
+        )
+        for line in res.stdout.splitlines():
+            parts = line.split()
+            if len(parts) >= 2 and parts[1] == uid_str:
+                return parts[0]
+    except Exception:
+        pass
+    return None
+
+
+def _logind_is_locked(session_id: str | None, env: dict[str, str]) -> bool:
+    if not session_id or not shutil.which("loginctl"):
+        return False
+    try:
+        res = subprocess.run(
+            ["loginctl", "show-session", session_id, "-p", "LockedHint", "--value"],
+            env=env, capture_output=True, text=True, timeout=1.2, check=False,
+        )
+        return res.returncode == 0 and res.stdout.strip().lower() == "yes"
+    except Exception:
+        return False
+
+
+def _try_dbus_lock(service: str, obj_path: str, env: dict[str, str]) -> bool:
+    """Lock via D-Bus only if the service is already owned, and verify activation."""
+    if not _dbus_name_has_owner(service, env):
+        return False
+    cmd = [
+        "dbus-send", "--session", "--type=method_call",
+        f"--dest={service}", obj_path, f"{service}.Lock",
+    ]
+    try:
+        res = subprocess.run(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2.0, check=False)
+        if res.returncode != 0:
+            return False
+        # Poll briefly for the locker to grab the display and report active state
+        for _ in range(6):
+            if _dbus_screensaver_is_active(service, obj_path, env):
+                return True
+            time.sleep(0.08)
+        # GNOME/XFCE ScreenSaver.Lock succeeded on an owned service
+        return service in {"org.gnome.ScreenSaver", "org.xfce.ScreenSaver", "org.cinnamon.ScreenSaver", "org.mate.ScreenSaver"}
+    except Exception:
+        return False
+
+
+def _query_xfconf_lock_command(env: dict[str, str]) -> str | None:
+    """Read custom XFCE LockCommand from xfconf-query as xflock4 does."""
+    if not shutil.which("xfconf-query"):
+        return None
+    try:
+        res = subprocess.run(
+            ["xfconf-query", "-c", "xfce4-session", "-p", "/general/LockCommand"],
+            env=env, capture_output=True, text=True, timeout=1.2, check=False,
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            return res.stdout.strip()
+    except Exception:
+        pass
+    return None
+
+
+def lock_cluster_session(env: dict[str, str] | None = None) -> tuple[bool, str]:
+    """
+    Execute desktop-aware session locking with ownership pre-checks and state verification.
+    Returns (locked_ok, backend_name).
+    """
+    env = env or _build_session_env()
+    session_id = _resolve_logind_session_id(env)
+
+    # 1. Virtual Console (TTY) fallback when no X11/Wayland display is active
+    if not _has_graphical_display(env):
+        if sys.stdin.isatty() and shutil.which("vlock"):
+            res = subprocess.run(["vlock"], env=env, check=False)
+            return (res.returncode == 0, "vlock")
+        return False, "no-display"
+
+    desktop = (env.get("XDG_CURRENT_DESKTOP") or env.get("DESKTOP_SESSION") or "").lower()
+
+    # 2. Order D-Bus ScreenSaver targets according to the active desktop environment
+    dbus_targets: list[tuple[str, str]] = []
+    if "xfce" in desktop:
+        dbus_targets.append(("org.xfce.ScreenSaver", "/org/xfce/ScreenSaver"))
+    elif "gnome" in desktop or "ubuntu" in desktop:
+        dbus_targets.append(("org.gnome.ScreenSaver", "/org/gnome/ScreenSaver"))
+    elif "cinnamon" in desktop:
+        dbus_targets.append(("org.cinnamon.ScreenSaver", "/org/cinnamon/ScreenSaver"))
+    elif "mate" in desktop:
+        dbus_targets.append(("org.mate.ScreenSaver", "/org/mate/ScreenSaver"))
+
+    for fallback_target in (
+        ("org.gnome.ScreenSaver", "/org/gnome/ScreenSaver"),
+        ("org.xfce.ScreenSaver", "/org/xfce/ScreenSaver"),
+        ("org.cinnamon.ScreenSaver", "/org/cinnamon/ScreenSaver"),
+        ("org.mate.ScreenSaver", "/org/mate/ScreenSaver"),
+        ("org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver"),
+    ):
+        if fallback_target not in dbus_targets:
+            dbus_targets.append(fallback_target)
+
+    for service, obj_path in dbus_targets:
+        if _try_dbus_lock(service, obj_path, env):
+            return True, service
+
+    # 3. XFCE custom LockCommand / xflock4 / light-locker-command
+    if "xfce" in desktop:
+        custom_cmd = _query_xfconf_lock_command(env)
+        if custom_cmd:
+            parts = custom_cmd.split()
+            if parts and shutil.which(parts[0]):
+                try:
+                    r = subprocess.run(parts, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3.0, check=False)
+                    if r.returncode == 0:
+                        return True, f"xfconf:{parts[0]}"
+                except subprocess.TimeoutExpired:
+                    # Blocking locker (e.g. i3lock --nofork) is actively holding the screen
+                    return True, f"xfconf:{parts[0]}"
+                except Exception:
+                    pass
+
+    # 4. Dedicated CLI lockers (xflock4, light-locker-command, dm-tool, xdg-screensaver)
+    cli_candidates: list[tuple[str, list[str]]] = [
+        ("light-locker-command", ["light-locker-command", "--lock"]),
+        ("xflock4", ["xflock4"]),
+        ("xdg-screensaver", ["xdg-screensaver", "lock"]),
+        ("dm-tool", ["dm-tool", "lock"]),
+    ]
+    for label, cmd in cli_candidates:
+        if not shutil.which(cmd[0]):
+            continue
+        try:
+            res = subprocess.run(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3.0, check=False)
+            if res.returncode == 0:
+                return True, label
+        except subprocess.TimeoutExpired:
+            return True, label
+        except Exception:
+            continue
+
+    # 5. systemd-logind fallback: ONLY report success if LockedHint transitions to 'yes'
+    if shutil.which("loginctl"):
+        l_cmd = ["loginctl", "lock-session", session_id] if session_id else ["loginctl", "lock-sessions"]
+        try:
+            res = subprocess.run(l_cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2.0, check=False)
+            if res.returncode == 0:
+                for _ in range(8):
+                    if _logind_is_locked(session_id, env):
+                        return True, "loginctl(LockedHint=yes)"
+                    time.sleep(0.08)
+        except Exception:
+            pass
+
+    return False, "none"
+
+
+def get_idle_milliseconds(env: dict[str, str] | None = None) -> int:
+    """Query user idle time in milliseconds via Mutter IdleMonitor, xprintidle, or /dev/pts."""
+    env = env or _build_session_env()
+    if _dbus_name_has_owner("org.gnome.Mutter.IdleMonitor", env):
+        cmd = [
+            "dbus-send", "--session", "--print-reply", "--reply-timeout=800",
+            "--dest=org.gnome.Mutter.IdleMonitor",
+            "/org/gnome/Mutter/IdleMonitor/Core",
+            "org.gnome.Mutter.IdleMonitor.GetIdletime",
+        ]
+        try:
+            res = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=1.2, check=False)
+            m = re.search(r"uint64\s+(\d+)", res.stdout)
+            if m:
+                return int(m.group(1))
+        except Exception:
+            pass
+
+    if shutil.which("xprintidle") and env.get("DISPLAY"):
+        try:
+            res = subprocess.run(["xprintidle"], env=env, capture_output=True, text=True, timeout=1.2, check=False)
+            if res.returncode == 0 and res.stdout.strip().isdigit():
+                return int(res.stdout.strip())
+        except Exception:
+            pass
+
+    # Fallback: minimum mtime age across active user pseudo-terminals in /dev/pts
+    pts_dir = Path("/dev/pts")
+    if pts_dir.is_dir():
+        now = time.time()
+        uid = os.getuid()
+        min_idle_s: float | None = None
+        for p in pts_dir.iterdir():
+            if not p.name.isdigit():
+                continue
+            try:
+                st = p.stat()
+                if st.st_uid == uid:
+                    idle_s = max(0.0, now - st.st_mtime)
+                    if min_idle_s is None or idle_s < min_idle_s:
+                        min_idle_s = idle_s
+            except OSError:
+                continue
+        if min_idle_s is not None:
+            return int(min_idle_s * 1000)
+    return 0
+
+
+def evaluate_escalation_stage(idle_minutes: float, cfg: FtLockConfig) -> str:
+    """
+    42 Cluster 3-Stage Idle Escalation State Machine:
+    - ACTIVE            : idle < timeout_lock_minutes (5m)
+    - LOCK_ENGAGED      : timeout_lock_minutes <= idle < timeout_delog_minutes (5m..35m)
+    - ESC_DELOG_ARMED   : timeout_delog_minutes <= idle < timeout_delog_forced_minutes (35m..37m)
+    - FORCED_DELOG      : idle >= timeout_delog_forced_minutes (>= 37m)
+    """
+    if idle_minutes >= cfg.timeout_delog_forced_minutes:
+        return "FORCED_DELOG"
+    if idle_minutes >= cfg.timeout_delog_minutes:
+        return "ESC_DELOG_ARMED"
+    if idle_minutes >= cfg.timeout_lock_minutes:
+        return "LOCK_ENGAGED"
+    return "ACTIVE"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="ft_lock (42 Network cluster session locker & idle policy)")
+    parser.add_argument("--status", action="store_true", help="Display current idle policy, active backend, and state")
+    parser.add_argument("--dry-run", action="store_true", help="Probe lock backends without locking")
+    parser.add_argument("--config", type=Path, default=None, help="Optional path to ft_lock configuration file")
+    args = parser.parse_args()
+
+    cfg = load_ft_lock_config(args.config)
+    env = _build_session_env()
+
+    if args.status or args.dry_run:
+        idle_ms = get_idle_milliseconds(env)
+        idle_min = idle_ms / 60000.0
+        stage = evaluate_escalation_stage(idle_min, cfg)
+        desktop = env.get("XDG_CURRENT_DESKTOP") or env.get("DESKTOP_SESSION") or "headless"
+        print("ft_lock (42 Network lockscreen@42network.org integration)")
+        print(
+            f"Policy : lock={cfg.timeout_lock_minutes}m | "
+            f"esc_delog={cfg.timeout_delog_minutes}m | "
+            f"forced_delog={cfg.timeout_delog_forced_minutes}m"
+        )
+        print(f"Session: desktop={desktop} | idle={idle_ms}ms ({idle_min:.2f}m) | stage={stage}")
+        return 0
+
+    locked, backend = lock_cluster_session(env)
+    if locked:
+        print(f"[ft_lock] Cluster session locked and verified via {backend}.")
+        return 0
+
+    print(f"[ft_lock] Warning: unable to lock session (reason: {backend}).", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

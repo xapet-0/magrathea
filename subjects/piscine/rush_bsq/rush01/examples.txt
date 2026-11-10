@@ -1,0 +1,30 @@
+# Examples for rush01 (from official subject specification)
+
+example:
+• Yes, we know AI exists — and yes, it can solve your projects. But you’re here to
+learn, not to prove that AI has learned. Don’t waste your time (or ours) just to
+demonstrate that AI can solve the given problem.
+• Learning at 42 isn’t about knowing the answer — it’s about developing the ability
+to find one. AI gives you the answer directly, but that prevents you from building
+your own reasoning. And reasoning takes time, effort, and involves failure. The
+path to success is not supposed to be easy.
+• Keep in mind that during exams, AI is not available — no internet, no smartphones,
+etc. You’ll quickly realise if you’ve relied too heavily on AI in your learning process.
+• Peer learning exposes you to different ideas and approaches, improving your inter-
+personal skills and your ability to think divergently. That’s far more valuable than
+just chatting with a bot. So don’t be shy — talk, ask questions, and learn together!
+• Yes, AI will be part of the curriculum — both as a learning tool and as a topic
+in itself. You’ll even have the chance to build your own AI software. In order to
+learn more about our crescendo approach you’ll go through in the documentation
+available on the intranet.
+✓ Good practice:
+I’m stuck on a new concept. I ask someone nearby how they approached it. We talk
+for 10 minutes — and suddenly it clicks. I get it.
+✗ Bad practice:
+I secretly use AI, copy some code that looks right. During peer evaluation, I can’t
+explain anything. I fail. During the exam — no AI — I’m stuck again. I fail.
+Subject
+Exercise 00
+Rush01
+Turn-in directory: ex00/
+Files to turn in: All the necessary files (*.c)

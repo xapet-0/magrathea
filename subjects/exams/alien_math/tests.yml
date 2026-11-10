@@ -1,0 +1,213 @@
+fixed_tests:
+- name: test_01
+  env:
+    FT_NBR1: '1'
+    FT_NBR2: '1'
+  stdout: '2
+
+    '
+  tier: baseline
+- name: folder_ex_01
+  tier: folder_example
+  args: []
+  stdout: '2
+
+    '
+  env:
+    FT_NBR1: '1'
+    FT_NBR2: '1'
+- name: folder_ex_02
+  tier: folder_example
+  args: []
+  stdout: '42
+
+    '
+  env:
+    FT_NBR1: '40'
+    FT_NBR2: '2'
+- name: folder_ex_03
+  tier: folder_example
+  args: []
+  stdout: '1337
+
+    '
+  env:
+    FT_NBR1: '1300'
+    FT_NBR2: '37'
+- name: test_05_env
+  env:
+    FT_LINE: '42'
+    FT_VAR: '42'
+    TARGET: '42'
+  args: []
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+  exit_code: 2
+- name: test_06_env
+  env:
+    FT_LINE: '1337'
+    FT_VAR: '1337'
+    TARGET: '1337'
+  args: []
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+  exit_code: 2
+- name: test_07_env
+  env:
+    FT_LINE: piscine
+    FT_VAR: piscine
+    TARGET: piscine
+  args: []
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+  exit_code: 2
+- name: test_08_env
+  env:
+    FT_LINE: magrathea
+    FT_VAR: magrathea
+    TARGET: magrathea
+  args: []
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+  exit_code: 2
+- name: test_09_env
+  env:
+    FT_LINE: world
+    FT_VAR: world
+    TARGET: world
+  args: []
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+  exit_code: 2
+- name: test_10_env
+  env:
+    FT_LINE: hello
+    FT_VAR: hello
+    TARGET: hello
+  args: []
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+  exit_code: 2
+subject_id: alien_math
+mode: shell
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: FT_NBR1="1" FT_NBR2="1" sh alien_math.sh | cat -e
+  args: &id001
+  - FT_NBR2=1
+  - sh
+  - alien_math.sh
+  expected: '2
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: FT_NBR1="40" FT_NBR2="2" sh alien_math.sh | cat -e
+  args: &id002
+  - FT_NBR2=2
+  - sh
+  - alien_math.sh
+  expected: '42
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: FT_NBR1="1300" FT_NBR2="37" sh alien_math.sh | cat -e
+  args: &id003
+  - FT_NBR2=37
+  - sh
+  - alien_math.sh
+  expected: '1337
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_alien_math_T04
+  origin: subject_folder/examples.txt
+  input: FT_NBR1="1" FT_NBR2="1" sh alien_math.sh \| cat -e
+  expected: 2$
+- id: e1337_alien_math_T05
+  origin: subject_folder/examples.txt
+  input: FT_NBR1="40" FT_NBR2="2" sh alien_math.sh \| cat -e
+  expected: 42$
+- id: e1337_alien_math_T06
+  origin: subject_folder/examples.txt
+  input: FT_NBR1="1300" FT_NBR2="37" sh alien_math.sh \| cat -e
+  expected: 1337$
+- id: folder_fixture_04
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- env:\n    FT_NBR1: '1'\n    FT_NBR2: '1'\n  stdout: '2\n\
+    \n    '\n- env:\n    FT_NBR1: '40'\n    FT_NBR2: '2'\n  stdout: '42\n\n    '\n\
+    - env:\n    FT_NBR1: '13"
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - GT_NBR2=1
+  - th
+  - blien_math.sh
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  FT_NBR2=1  '
+  - sh
+  - alien_math.sh
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - GT_NBR2=2
+  - th
+  - blien_math.sh
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  FT_NBR2=2  '
+  - sh
+  - alien_math.sh
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - GT_NBR2=37
+  - th
+  - blien_math.sh
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  FT_NBR2=37  '
+  - sh
+  - alien_math.sh
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_alien_math_T04
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: FT_NBR1="1" FT_NBR2="1" sh alien_math.sh \| cat -e
+  perturbed_input: GT_NBR1="1" FT_NBR2="1" sh alien_math.sh
+- id: near_folder_02_boundary_neighbor
+  derived_from: e1337_alien_math_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: FT_NBR1="40" FT_NBR2="2" sh alien_math.sh \| cat -e
+  perturbed_input: GT_NBR1="40" FT_NBR2="2" sh alien_math.s

@@ -1,0 +1,30 @@
+Assignment name  : reverse_tree
+Expected files   : reverse_tree.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that flips a binary tree horizontally in-place by swapping the
+left and right children of every node.
+
+Prototype:
+void	reverse_tree(struct s_node *root);
+
+Required structure / declarations:
+#ifndef S_NODE_H
+# define S_NODE_H
+struct s_node
+{
+    int           value;
+    struct s_node *left;
+    struct s_node *right;
+};
+#endif
+
+Your function must be declared as follows:
+    void reverse_tree(struct s_node *root);
+
+Examples:
+    r.left->value == 2 && r.right->value == 1 -> 1
+    reverse_tree(NULL); printf("ok\n")
+    Output: ok
+    r.value == 42 && r.left == NULL && r.right == NULL -> 1

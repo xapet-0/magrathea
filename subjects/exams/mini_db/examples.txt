@@ -1,0 +1,26 @@
+# Examples for mini_db (from official subject specification)
+
+Example:
+
+$> ./mini_db 1111 .save &
+$> nc localhost 1111 | cat -e
+POST A B
+O$
+POST B C
+0$
+GET A
+0 B$
+GET C
+1$
+DELETE A
+O$
+DELETE C
+1$
+UNKNOWN_COMMAND
+2$
+^C
+$> pkill -SIGINT mini_db
+$> ./mini_db 1111 .save &
+$> echo "GET B" | nc localhost 1111 | cat -e
+0 C$
+S>

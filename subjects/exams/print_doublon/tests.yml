@@ -1,0 +1,131 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty array (size = 0), single element, and NULL pointer in `print_doublon`
+  input: print_doublon(tab, 0) and print_doublon(NULL, 0)
+  expected: Safe return without memory violation
+- name: edge_02_B
+  code: '[B]'
+  title: Array with duplicate elements and all elements identical in `print_doublon`
+  input: print_doublon([5, 5, 5, 5], 4)
+  expected: Preserve stable sort or return correct count
+- name: edge_03_B
+  code: '[B]'
+  title: Array already sorted in reverse order in `print_doublon`
+  input: print_doublon([9, 8, 7, 6, 5], 5)
+  expected: Properly sort array with no missing elements
+- name: edge_04_T
+  code: '[T]'
+  title: Performance verification on large array in `print_doublon`
+  input: Run print_doublon on array of 10,000 elements
+  expected: Complete within timeout limit
+fixed_tests:
+- name: test_01_a_4_b_3
+  call: print_doublon(a, 4, b, 3)
+  setup:
+  - int a[] = {1, 2, 10, 15}
+  - int b[] = {2, 15, 20}
+  stdout: '2 15
+
+    '
+- name: test_02_a_3_b_3
+  call: print_doublon(a, 3, b, 3)
+  setup:
+  - int a[] = {1, 3, 5}
+  - int b[] = {2, 4, 6}
+  stdout: '
+
+    '
+- name: test_03_a_3_b_2
+  call: print_doublon(a, 3, b, 2)
+  setup:
+  - int a[] = {-5, 0, 42}
+  - int b[] = {-5, 42}
+  stdout: '-5 42
+
+    '
+- name: test_04_a_1_b_1
+  call: print_doublon(a, 1, b, 1)
+  setup:
+  - int a[] = {42}
+  - int b[] = {42}
+  stdout: '42
+
+    '
+- name: test_05_empty_first
+  setup:
+  - int a[] = {1}; int b[] = {1, 2};
+  call: print_doublon(a, 0, b, 2)
+  tier: edge
+  stdout: '
+
+    '
+- name: test_06_empty_second
+  setup:
+  - int a[] = {1, 2}; int b[] = {1};
+  call: print_doublon(a, 2, b, 0)
+  tier: edge
+  stdout: '
+
+    '
+- name: test_07_match_only_at_ends
+  setup:
+  - int a[] = {1, 5, 10}; int b[] = {10, 20, 30};
+  call: print_doublon(a, 3, b, 3)
+  tier: edge
+  stdout: '10
+
+    '
+- name: test_08_all_elements_match
+  setup:
+  - int a[] = {2, 4, 6, 8}; int b[] = {2, 4, 6, 8};
+  call: print_doublon(a, 4, b, 4)
+  tier: baseline
+  stdout: '2 4 6 8
+
+    '
+- name: test_09_negative_and_positive
+  setup:
+  - int a[] = {-100, -50, 0, 50, 100}; int b[] = {-50, 0, 100};
+  call: print_doublon(a, 5, b, 3)
+  tier: baseline
+  stdout: '-50 0 100
+
+    '
+- name: test_10_unequal_lengths_6_and_5
+  setup:
+  - int a[] = {1, 3, 5, 7, 9, 11}; int b[] = {2, 3, 6, 7, 11};
+  call: print_doublon(a, 6, b, 5)
+  tier: stress
+  stdout: '3 7 11
+
+    '
+folder_examples:
+- expected: 'Output: 2 15\n    int a[] = {1, 3, 5}; int b[] = {2, 4, 6}; print_doublon(a,
+    3, b, 3)\n    Output: \n    int a[] = {-5, 0, 42}; int b[] = {-5, 42}; print_doublon(a,
+    3, b, 2)\n    Output: -5 42'
+  id: can_print_doublon_T05
+  input: int a[] = {1, 2, 10, 15}; int b[] = {2, 15, 20}; print_doublon(a, 4, b, 3)
+  origin: subject_folder/examples.txt
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval print_doublon
+  perturbed_input:
+  - print_doublon_near_arg_1
+  - print_doublon_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_print_doublon_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: int a[] = {1, 2, 10, 15}; int b[] = {2, 15, 20}; print_doublon(a,
+    4, b, 3)
+  perturbed_input: 'jnt a[] = {1, 2, 10, 15}; int b[] = {2, '
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval print_doublon
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

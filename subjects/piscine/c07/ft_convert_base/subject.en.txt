@@ -1,0 +1,30 @@
+Assignment name  : ft_convert_base
+Expected files   : ft_convert_base.c ft_convert_base2.c
+Allowed functions: malloc, free
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 07 (Official PDF)
+Exercise         : ft_convert_base
+Turn-in directory: ex04/
+Expected files   : ft_convert_base.c, ft_convert_base2.c
+Allowed functions: malloc, free
+--------------------------------------------------------------------------------
+
+• Create a function that returns the result of converting the stringnbr from base
+base_from to basebase_to.
+• nbr, base_from, andbase_to may be read-only.
+• nbr will follow the same rules asft_atoi_base (from another module). Beware of
+the characters ’+’, ’-’, and whitespaces.
+• The number represented bynbr must fit inside anint.
+• If a base is invalid,NULL should be returned.
+• The returned number must be prefixed only by a single and unique ’-’ if necessary;
+no whitespaces, no ’+’.
+• Here is how it should be prototyped:
+char *ft_convert_base(char *nbr, char *base_from, char *base_to);
+
+[pool_ft_convert_base_T01] Input: char *s=ft_convert_base("42","0123456789","01"); printf("%s\n",s); free(s)  ==>  Expected: 101010\n
+[pool_ft_convert_base_T02] Input: Invocations: ft_convert_base(nbr, from, to)  ==>  Expected: Differential comparison with reference implementation
+[pool_ft_convert_base_T03] Input: Input: 42  ==>  Expected: Expected: 101010
+[pool_ft_convert_base_T04] Input: Input: -42  ==>  Expected: Expected: -101010
+[pool_ft_convert_base_T05] Input: Input: 101010  ==>  Expected: Expected: 2A
+[pool_ft_convert_base_T06] Input: Input: 42  ==>  Expected: Expected:

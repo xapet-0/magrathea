@@ -1,0 +1,21 @@
+Assignment name  : ft_strpbrk
+Expected files   : ft_strpbrk.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Reproduce exactly the behavior of the function strpbrk (man strpbrk).
+
+The function locates the first occurrence in the string s1 of any of the
+bytes in the string s2, returning a pointer to the byte in s1 or NULL if
+no such byte is found.
+
+The function should be prototyped as follows:
+
+char	*ft_strpbrk(const char *s1, const char *s2);
+
+Your function must be declared as follows:
+    char *ft_strpbrk(const char *s1, const char *s2);
+
+Examples:
+    char *p=ft_strpbrk("abcdef","dx"); printf("%s\n",p)
+    Output: def

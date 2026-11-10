@@ -1,0 +1,157 @@
+mode: c_program
+fixed_tests:
+- name: cur_polyset_T01
+  description: dedup_2
+  args:
+  - '42'
+  - '1337'
+  - '42'
+  expected: '42 1337
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_polyset_T02
+  description: single
+  args:
+  - '42'
+  expected: '42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_polyset_T03
+  description: all_dups
+  args:
+  - '7'
+  - '7'
+  - '7'
+  expected: '7
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_polyset_T04
+  description: ordered
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '2'
+  - '1'
+  expected: '1 2 3
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: '1 2 3 4
+
+    '
+- name: test_06_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: '0
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: '-1 5 10 20
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: '42 1337 100 200
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: '1 2 3
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  - '5'
+  tier: baseline
+  stdout: '1 2 3 4 5
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval polyset
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_polyset_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''42'', ''1337'', ''42'']'
+  expected: 42 1337\n
+- id: cur_polyset_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''42'']'
+  expected: 42\n
+- id: cur_polyset_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''7'', ''7'', ''7'']'
+  expected: 7\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval polyset
+  perturbed_input:
+  - polyset_near_arg_1
+  - polyset_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_polyset_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''42'', ''1337'', ''42'']'
+  perturbed_input: '[''42'', ''1337'', ''42'']!'
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_polyset_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''42'']'
+  perturbed_input: '[''42'']!'
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Boundary conditions and extreme values in `polyset`
+  input: Boundary test vector for polyset
+  expected: Conform to subject specifications
+- name: edge_02_M
+  code: '[M]'
+  title: Memory hygiene and leak checks in `polyset`
+  input: Run polyset with leak checks enabled
+  expected: 0 bytes leaked

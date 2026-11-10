@@ -1,0 +1,30 @@
+Assignment name  : write_string
+Expected files   : write_string.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a function that displays a string on the standard output.
+
+The pointer passed to the function contains the address of the string's first
+character.
+
+Your function must be declared as follows:
+
+void	write_string(char *str);
+==========================================================================================
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : write_string("Hello 1337"); write(1, "\n", 1)
+    Expected Output   : 'Hello 1337\n'
+  [Standard Test 2] Name: test
+    Call / Invocation : write_string("42"); write(1, "\n", 1)
+    Expected Output   : '42\n'
+  [Standard Test 3] Name: test
+    Call / Invocation : write_string("a b c"); write(1, "\n", 1)
+    Expected Output   : 'a b c\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Call / Invocation : write_string(""); write(1, "\n", 1)
+    Expected Output   : '\n'

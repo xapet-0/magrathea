@@ -1,0 +1,16 @@
+Assignment name  : wdmatch_2
+Expected files   : wdmatch_2.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes two strings and checks whether the first string can
+be formed using characters from the second string in order. If possible, display
+the first string followed by a newline; otherwise display only a newline.
+
+Examples:
+$> ./wdmatch_2 "faya" "fgvvfdxcacpolhyghbreda" | cat -e
+faya$
+$> ./wdmatch_2 "faya" "fgvvfdxcacpolhyghbred" | cat -e
+$
+$> ./wdmatch_2 "quarante deux" "qfqfsudf arzgsayns tsregfdgs sjytdekuoixq " | cat -e
+quarante deux$

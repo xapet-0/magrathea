@@ -1,0 +1,138 @@
+mode: c_program
+fixed_tests:
+- name: cur_print_even_T01
+  description: FOR_42
+  args:
+  - FOR 42
+  expected: 'FR4
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_print_even_T02
+  description: abcd
+  args:
+  - abcd
+  expected: 'ac
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_print_even_T03
+  description: empty
+  args:
+  - ''
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_print_even_T04
+  description: no_args
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_06_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: "  \n"
+- name: test_07_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '13
+
+    '
+- name: test_08_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '4_ewr
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: '!#%&(
+
+    '
+- name: test_10_arg_auto
+  args:
+  - a b c d e
+  tier: baseline
+  stdout: 'abcde
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval print_even
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_print_even_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''FOR 42'']'
+  expected: FR4\n
+- id: cur_print_even_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''abcd'']'
+  expected: ac\n
+- id: cur_print_even_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '['''']'
+  expected: '`\n` (Empty argument outputs single newline)'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval print_even
+  perturbed_input:
+  - print_even_near_arg_1
+  - print_even_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_print_even_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''FOR 42'']'
+  perturbed_input: '[''GOR 42'']'
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_print_even_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''abcd'']'
+  perturbed_input: '[''bbcd'']'
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `print_even`
+  input: "print_even(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `print_even`
+  input: print_even("   word   ") and print_even("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `print_even`
+  input: print_even("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `print_even`
+  input: Execute print_even with no arguments and with 3 arguments
+  expected: Print newline only

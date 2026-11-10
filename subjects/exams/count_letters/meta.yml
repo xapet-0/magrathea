@@ -1,0 +1,13 @@
+id: count_letters
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- count_letters.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int count_letters(char *str);

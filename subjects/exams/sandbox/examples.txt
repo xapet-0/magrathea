@@ -1,0 +1,2 @@
+[cur_sandbox_T01] Input: printf("sandbox_ready\n")  ==>  Expected: sandbox_ready\n
+[cur_sandbox_T02] Input: Invocations: sandbox(nice_fn, 2, false); sandbox(bad_exit_fn, 2, false); sandbox(segv_fn, 2, false)  ==>  Expected: Differential comparison with reference implementation

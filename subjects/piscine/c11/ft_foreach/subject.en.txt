@@ -1,0 +1,29 @@
+Assignment name  : ft_foreach
+Expected files   : ft_foreach.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 11 (Official PDF)
+Exercise         : ft_foreach
+Turn-in directory: ex00/
+Expected files   : ft_foreach.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create the function ft_foreach, which applies a given function to all elements of
+an integer array. This function should be applied in the order of the array.
+• Here is how the function should be prototyped:
+void ft_foreach(int *tab, int length, void(*f)(int));
+For example, the ft_foreach function can be used as follows to display all the
+all integers of the array:
+ft_foreach(tab, 1337, &ft_putnbr);
+
+Prototype:
+    void ft_foreach(int *tab, int length, void (*f)(int));
+
+For example, the ft_foreach function can be used as follows to display all the
+integers the an array:
+ft_foreach(tab, 1337, &ft_putnbr);
+
+Prototype:
+    void ft_foreach(int *tab, int length, void (*f)(int));

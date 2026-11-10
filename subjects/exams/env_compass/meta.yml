@@ -1,0 +1,17 @@
+id: env_compass
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 300
+expected_files:
+- env_compass.sh
+allowed_functions:
+- printf
+- uname
+- id
+- pwd
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh env_compass.sh [args...]

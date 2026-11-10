@@ -1,0 +1,64 @@
+fixed_tests:
+- call: char d[20] = "Hello"; ft_strncat(d, " World", 3); printf("%s\n", d);
+  name: pool_ft_strncat_T01
+  stdout: 'Hello Wo
+
+    '
+- call: char d[20] = "Hello"; ft_strncat(d, " World", 0); printf("%s\n", d);
+  name: ft_strncat_zero_nb
+  stdout: 'Hello
+
+    '
+- call: char d[20] = "42"; ft_strncat(d, " School", 50); printf("%s\n", d);
+  name: ft_strncat_nb_greater_than_src
+  stdout: '42 School
+
+    '
+- call: char d[20] = "Test"; ft_strncat(d, "", 5); printf("%s\n", d);
+  name: ft_strncat_empty_src
+  stdout: 'Test
+
+    '
+- name: test_05_both_empty
+  call: char d[16] = ""; ft_strncat(d, "", 5); printf("[%s]\n", d);
+  tier: edge
+  stdout: '[]
+
+    '
+- name: test_06_empty_dst
+  call: char d[16] = ""; ft_strncat(d, "abcdef", 4); printf("%s\n", d);
+  tier: baseline
+  stdout: 'abcd
+
+    '
+- name: test_07_exact_src_len
+  call: char d[16] = "42_"; ft_strncat(d, "school", 6); printf("%s\n", d);
+  tier: baseline
+  stdout: '42_school
+
+    '
+- name: test_08_null_termination_after_trunc
+  call: char d[16]; for(int i=0;i<16;i++) d[i]='X'; d[0]='a'; d[1]=0; ft_strncat(d,
+    "bcdef", 2); printf("%s|%d\n", d, d[3] == 0);
+  tier: edge
+  stdout: 'abc|1
+
+    '
+- name: test_09_return_pointer_identity
+  call: char d[16] = "hi"; char *r = ft_strncat(d, "!", 1); printf("%d:%s\n", r ==
+    d, r);
+  tier: edge
+  stdout: '1:hi!
+
+    '
+- name: test_10_chained_strncat
+  call: char d[32] = ""; ft_strncat(d, "1337_xxxx", 5); ft_strncat(d, "42_yyyy", 2);
+    printf("%s\n", d);
+  tier: stress
+  stdout: '1337_42
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

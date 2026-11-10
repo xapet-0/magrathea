@@ -1,0 +1,121 @@
+mode: c_function
+fixed_tests:
+- name: gnl_multiline_mixed
+  setup:
+  - FILE *fp = fopen("gnl_test.txt", "w"); fputs("hello\n1337\n42", fp); fclose(fp);
+  - int fd = open("gnl_test.txt", 0);
+  - char *l1 = get_next_line(fd); char *l2 = get_next_line(fd); char *l3 = get_next_line(fd);
+    char *l4 = get_next_line(fd); close(fd);
+  call: 'printf("%s|%s|%s|%d\n", l1 ? l1 : "NULL", l2 ? l2 : "NULL", l3 ? l3 : "NULL",
+    l4 == NULL); free(l1); free(l2); free(l3)'
+  stdout: 'hello
+
+    |1337
+
+    |42|1
+
+    '
+- name: gnl_empty_file_returns_null
+  setup:
+  - FILE *fp = fopen("gnl_empty.txt", "w"); fclose(fp);
+  - int fd = open("gnl_empty.txt", 0); char *l1 = get_next_line(fd); close(fd);
+  call: printf("%d\n", l1 == NULL)
+  stdout: '1
+
+    '
+- name: gnl_no_trailing_newline
+  setup:
+  - FILE *fp = fopen("gnl_notrail.txt", "w"); fputs("alpha\nbeta", fp); fclose(fp);
+  - int fd = open("gnl_notrail.txt", 0);
+  - char *l1 = get_next_line(fd); char *l2 = get_next_line(fd); char *l3 = get_next_line(fd);
+    close(fd);
+  call: 'printf("%s|%s|%d\n", l1 ? l1 : "NULL", l2 ? l2 : "NULL", l3 == NULL); free(l1);
+    free(l2)'
+  stdout: 'alpha
+
+    |beta|1
+
+    '
+- name: gnl_consecutive_empty_lines
+  setup:
+  - FILE *fp = fopen("gnl_empty_lines.txt", "w"); fputs("\n\n\n", fp); fclose(fp);
+  - int fd = open("gnl_empty_lines.txt", 0);
+  - char *l1 = get_next_line(fd); char *l2 = get_next_line(fd); char *l3 = get_next_line(fd);
+    char *l4 = get_next_line(fd); close(fd);
+  call: printf("%d:%d:%d:%d\n", l1 != NULL && strcmp(l1, "\n") == 0, l2 != NULL &&
+    strcmp(l2, "\n") == 0, l3 != NULL && strcmp(l3, "\n") == 0, l4 == NULL); free(l1);
+    free(l2); free(l3)
+  stdout: '1:1:1:1
+
+    '
+- name: test_05_negative_fd
+  setup:
+  - char *l = get_next_line(-1);
+  call: printf("%d\n", l == NULL)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_single_line_with_nl
+  setup:
+  - FILE *fp = fopen("gnl_s1.txt", "w"); fputs("42_network\n", fp); fclose(fp); int
+    fd = open("gnl_s1.txt", 0); char *l1 = get_next_line(fd); char *l2 = get_next_line(fd);
+    close(fd);
+  call: printf("%s|%d\n", l1, l2 == NULL); free(l1)
+  tier: baseline
+  stdout: '42_network
+
+    |1
+
+    '
+- name: test_07_single_char_no_nl
+  setup:
+  - FILE *fp = fopen("gnl_s2.txt", "w"); fputs("Z", fp); fclose(fp); int fd = open("gnl_s2.txt",
+    0); char *l1 = get_next_line(fd); char *l2 = get_next_line(fd); close(fd);
+  call: printf("%s|%d\n", l1, l2 == NULL); free(l1)
+  tier: edge
+  stdout: 'Z|1
+
+    '
+- name: test_08_single_newline_only
+  setup:
+  - FILE *fp = fopen("gnl_s3.txt", "w"); fputs("\n", fp); fclose(fp); int fd = open("gnl_s3.txt",
+    0); char *l1 = get_next_line(fd); char *l2 = get_next_line(fd); close(fd);
+  call: printf("%d|%d\n", l1 != NULL && strcmp(l1, "\n") == 0, l2 == NULL); free(l1)
+  tier: edge
+  stdout: '1|1
+
+    '
+- name: test_09_four_lines
+  setup:
+  - FILE *fp = fopen("gnl_s4.txt", "w"); fputs("a\nbb\nccc\ndddd\n", fp); fclose(fp);
+    int fd = open("gnl_s4.txt", 0); char *l1 = get_next_line(fd); char *l2 = get_next_line(fd);
+    char *l3 = get_next_line(fd); char *l4 = get_next_line(fd); char *l5 = get_next_line(fd);
+    close(fd);
+  call: printf("%s%s%s%s|%d\n", l1, l2, l3, l4, l5 == NULL); free(l1); free(l2); free(l3);
+    free(l4)
+  tier: baseline
+  stdout: 'a
+
+    bb
+
+    ccc
+
+    dddd
+
+    |1
+
+    '
+- name: test_10_long_line_200_bytes
+  setup:
+  - FILE *fp = fopen("gnl_s5.txt", "w"); for(int i=0;i<50;i++) fputs("1337", fp);
+    fputs("\n", fp); fclose(fp); int fd = open("gnl_s5.txt", 0); char *l1 = get_next_line(fd);
+    char *l2 = get_next_line(fd); close(fd);
+  call: printf("%zu|%d\n", strlen(l1), l2 == NULL); free(l1)
+  tier: stress
+  stdout: '201|1
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,19 @@
+Assignment name  : is_separator
+Expected files   : is_separator.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that returns 1 if the character c is a whitespace separator
+(' ', '\t', '\n', '\v', '\f', '\r'), and 0 otherwise.
+
+Your function must be declared as follows:
+
+int	is_separator(char c);
+
+Your function must be declared as follows:
+    int is_separator(char c);
+
+Examples:
+    is_separator(' ') -> 1
+    is_separator('\t') -> 1
+    is_separator('\n') -> 1

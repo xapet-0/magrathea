@@ -1,0 +1,9 @@
+# Examples for env_compass (from official subject specification)
+
+Examples:
+$> USER="marvin" HOME="/home/marvin" PWD="/tmp" sh env_compass.sh | cat -e
+marvin:/home/marvin:/tmp$
+$> USER="student" HOME="/Users/student" PWD="/var" sh env_compass.sh | cat -e
+student:/Users/student:/var$
+$> USER="root" HOME="/root" PWD="/" sh env_compass.sh | cat -e
+root:/root:/$

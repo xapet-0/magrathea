@@ -1,0 +1,16 @@
+Assignment name  : active_bits
+Expected files   : active_bits.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that returns the number of active bits (bits set to 1) in the
+binary representation of an integer value.
+
+Your function must be declared as follows:
+
+unsigned int	active_bits(int value);
+
+Examples:
+  active_bits(42) -> 3   (42 in binary is 101010)
+  active_bits(0)  -> 0
+  active_bits(7)  -> 3   (7 in binary is 111)

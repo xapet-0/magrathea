@@ -1,0 +1,21 @@
+Assignment name  : ft_bubblesort
+Expected files   : ft_bubblesort.c
+Allowed functions:
+Version          : 1
+--------------------------------------------------------------------------------
+
+Write a function that sorts an array of integers using the Bubble Sort algorithm.
+
+Explanation:
+    Bubble sort is a sorting algorithm that compares two adjacent elements and swaps 
+        them until they are in the intended order.
+
+Your function must be declared as follows:
+    void ft_bubblesort(int *arr, int size);
+
+[cur_ft_bubblesort_T01] Input: int a[]={5,1,4,2}; ft_bubblesort(a,4); printf("%d,%d,%d,%d\n",a[0],a[1],a[2],a[3])  ==>  Expected: 1,2,4,5\n
+[cur_ft_bubblesort_T02] Input: Invocations: ft_bubblesort(a,6)  ==>  Expected: Differential comparison with reference implementation
+[cur_ft_bubblesort_T03] Input: Dynamic generation rule via generate_random_array()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_ft_bubblesort_T04] Input: Dynamic generation rule via test_sorted_array()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_ft_bubblesort_T05] Input: Dynamic generation rule via test_reverse_sorted_array()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_ft_bubblesort_T06] Input: Dynamic generation rule via test_random_array()  ==>  Expected: Deterministic output validated by Deepthought oracle

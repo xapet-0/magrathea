@@ -1,0 +1,201 @@
+mode: c_program
+fixed_tests:
+- name: can_aff_last_param_T01
+  description: 'Functional verification of input: `[''one'', ''two'']`'
+  args:
+  - one
+  - two
+  expected: 'two
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_aff_last_param_T02
+  description: Standard baseline execution and behavior check for `aff_last_param`
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_aff_last_param_T03
+  description: edge_aff_last_many_args
+  args:
+  - first
+  - second
+  - third
+  expected: 'third
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_aff_last_param_T04
+  description: edge_aff_last_empty_arg
+  args:
+  - first
+  - ''
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - zaz
+  - mange
+  - des
+  - chats
+  expected: 'chats
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - j'aime le savon
+  expected: 'j''aime le savon
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: '4
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: '0
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: '20
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: '200
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./aff_last_param "zaz" "mange" "des" "chats" | cat -e
+  args: &id001
+  - zaz
+  - mange
+  - des
+  - chats
+  expected: 'chats
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./aff_last_param "j'aime le savon" | cat -e
+  args: &id002
+  - j'aime le savon
+  expected: 'j''aime le savon
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./aff_last_param
+  args: []
+  expected: '$
+
+    '
+  cat_e: false
+folder_examples:
+- id: can_aff_last_param_T05
+  origin: subject_folder/examples.txt
+  input: ./aff_last_param "zaz" "mange" "des" "chats" \| cat -e
+  expected: chats$
+- id: can_aff_last_param_T06
+  origin: subject_folder/examples.txt
+  input: ./aff_last_param "j'aime le savon" \| cat -e
+  expected: j'aime le savon$
+- id: can_aff_last_param_T07
+  origin: subject_folder/examples.txt
+  input: ./aff_last_param
+  expected: $
+- id: folder_fixture_04
+  origin: subject_folder/aff_first_param.txt
+  input: aff_first_param.txt
+  expected: 'Assignment name  : aff_first_param
+
+    Expected files   : aff_first_param.c
+
+    Allowed functions: write
+
+    ---------------------------------------------------------------'
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - zbz
+  - nange
+  - ees
+  - dhats
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  zaz  '
+  - mange
+  - des
+  - chats
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - k'aime le savon
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  j''aime le savon  '
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./aff_last_param
+  perturbed_input:
+  - aff_last_param_near_arg_1
+  - aff_last_param_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_aff_last_param_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./aff_last_param "zaz" "mange" "des" "chats" \| cat -e
+  perturbed_input: ./bff_last_param "zaz" "mange" "des" "ch
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_aff_last_param_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./aff_last_param "j'aime le savon" \| cat -e
+  perturbed_input: ./bff_last_param "j'aime le savon" \| ca

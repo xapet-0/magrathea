@@ -1,0 +1,6 @@
+[cur_ft_strjoin_T01] Input: printf("%s\n", s); free(s)  ==>  Expected: Hello 1337\n
+[cur_ft_strjoin_T02] Input: printf("%s\n", s); free(s)  ==>  Expected: 42\n
+[cur_ft_strjoin_T03] Input: Input:  ==>  Expected: Expected:
+[cur_ft_strjoin_T04] Input: Dynamic generation rule via random_string()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_ft_strjoin_T05] Input: Dynamic generation rule via basic_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_ft_strjoin_T06] Input: Dynamic generation rule via empty_first_string_test()  ==>  Expected: Deterministic output validated by Deepthought oracle

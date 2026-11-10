@@ -1,0 +1,106 @@
+mode: c_program
+fixed_tests:
+- name: can_only_z_T01
+  description: no_args
+  args: []
+  expected: z
+  category: Functional
+  tier: baseline
+- name: can_only_z_T02
+  description: one_arg
+  args:
+  - ignored
+  expected: z
+  category: Functional
+  tier: baseline
+- name: can_only_z_T03
+  description: empty_arg
+  args:
+  - ''
+  expected: z
+  category: Edge Case
+  tier: baseline
+- name: can_only_z_T04
+  description: two_args
+  args:
+  - '1337'
+  - '42'
+  expected: z
+  category: Functional
+  tier: baseline
+- name: can_only_z_T05
+  description: many_args
+  args:
+  - a
+  - b
+  - c
+  - d
+  expected: z
+  category: Functional
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: z
+- name: test_07_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: z
+- name: test_08_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: z
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: z
+- name: test_10_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: z
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./only_z | cat -e
+  args: []
+  expected: 'z
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_only_z_T06
+  origin: subject_folder/examples.txt
+  input: ./only_z \| cat -e
+  expected: z$
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./only_z | cat -e
+  perturbed_input:
+  - only_z_near_arg_1
+  - only_z_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_only_z_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./only_z \| cat -e
+  perturbed_input: ./pnly_z \| cat -e

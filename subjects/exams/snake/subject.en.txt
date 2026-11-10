@@ -1,0 +1,22 @@
+Assignment name  : snake
+Expected files   : snake.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a snake_case string and converts it to PascalCase
+(removing underscores and capitalizing the first letter of every word including
+the first word), followed by a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./snake "hello_world_yes" | cat -e
+HelloWorldYes$
+$> ./snake "piscine" | cat -e
+Piscine$
+$> ./snake "" | cat -e
+$
+$> ./snake | cat -e
+$

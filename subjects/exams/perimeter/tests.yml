@@ -1,0 +1,122 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `perimeter`
+  input: perimeter(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `perimeter`
+  input: Input with no valid solution or containing duplicate values in perimeter
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `perimeter`
+  input: Run perimeter with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `perimeter`
+  input: Inspect sequence of traversed or printed nodes in perimeter
+  expected: Exact match with standard traversal order required in subject
+fixed_tests:
+- name: test_01_r
+  call: perimeter(&r)
+  setup:
+  - struct s_node r={92,0,0}
+  stdout: '92
+
+    '
+- name: test_02_NULL
+  call: perimeter(NULL)
+  stdout: ''
+- name: test_03_root
+  call: perimeter(&root)
+  setup:
+  - struct s_node l={10,0,0}, r={20,0,0}, root={92,&l,&r}
+  stdout: '92 10 20
+
+    '
+- name: test_04_root
+  call: perimeter(&root)
+  setup:
+  - struct s_node ll={5,0,0}, l={10,&ll,0}, r={20,0,0}, root={92,&l,&r}
+  stdout: '92 10 5 20
+
+    '
+- name: test_05_left_only_tree
+  setup:
+  - struct s_node l2={3,0,0}, l1={2,&l2,0}, root={1,&l1,0};
+  call: perimeter(&root)
+  tier: edge
+  stdout: '1 2 3
+
+    '
+- name: test_06_right_only_tree
+  setup:
+  - struct s_node r2={3,0,0}, r1={2,0,&r2}, root={1,0,&r1};
+  call: perimeter(&root)
+  tier: edge
+  stdout: '1 3 2
+
+    '
+- name: test_07_full_seven_nodes
+  setup:
+  - struct s_node n4={4,0,0},n5={5,0,0},n6={6,0,0},n7={7,0,0},n2={2,&n4,&n5},n3={3,&n6,&n7},n1={1,&n2,&n3};
+  call: perimeter(&n1)
+  tier: baseline
+  stdout: '1 2 4 5 6 7 3
+
+    '
+- name: test_08_two_nodes_left
+  setup:
+  - struct s_node l={10,0,0}, root={20,&l,0};
+  call: perimeter(&root)
+  tier: edge
+  stdout: '20 10
+
+    '
+- name: test_09_two_nodes_right
+  setup:
+  - struct s_node r={30,0,0}, root={20,0,&r};
+  call: perimeter(&root)
+  tier: edge
+  stdout: '20 30
+
+    '
+- name: test_10_diamond_with_inner_leaf
+  setup:
+  - struct s_node ll={4,0,0}, lr={5,0,0}, rr={6,0,0}, l={2,&ll,&lr}, r={3,0,&rr},
+    root={1,&l,&r};
+  call: perimeter(&root)
+  tier: stress
+  stdout: '1 2 4 5 6 3
+
+    '
+folder_examples:
+- expected: 'Output: 92\n    perimeter(NULL)\n    Output: \n    struct s_node l={10,0,0},
+    r={20,0,0}, root={92,&l,&r}; perimeter(&root)\n    Output: 92 10 20'
+  id: can_perimeter_T05
+  input: struct s_node r={92,0,0}; perimeter(&r)
+  origin: subject_folder/examples.txt
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval perimeter
+  perturbed_input:
+  - perimeter_near_arg_1
+  - perimeter_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_perimeter_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: struct s_node r={92,0,0}; perimeter(&r)
+  perturbed_input: ttruct s_node r={92,0,0}; perimeter(&r)
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval perimeter
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

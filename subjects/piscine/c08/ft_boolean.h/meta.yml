@@ -1,0 +1,12 @@
+id: ft_boolean.h
+type: c_header
+module: C 08
+xp: 190
+expected_files:
+- ft_boolean.h
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true

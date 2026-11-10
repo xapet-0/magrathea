@@ -1,0 +1,9 @@
+Examples:
+$> ./interval_space "abc" | cat -e
+a   b   c$
+$> ./interval_space "x" | cat -e
+x$
+$> ./interval_space "" | cat -e
+$
+$> ./interval_space | cat -e
+$

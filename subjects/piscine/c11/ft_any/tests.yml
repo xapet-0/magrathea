@@ -1,0 +1,61 @@
+fixed_tests:
+- call: char *a[]={"abc","","def",0}; printf("%d\n",ft_any(a,dt_is_empty));
+  name: pool_ft_any_T01_match
+  stdout: '1
+
+    '
+- call: char *a[]={"abc","42","def",0}; printf("%d\n",ft_any(a,dt_is_empty));
+  name: pool_ft_any_T02_no_match
+  stdout: '0
+
+    '
+- call: char *a[]={0}; printf("%d\n",ft_any(a,dt_is_empty));
+  name: ft_any_empty_tab
+  stdout: '0
+
+    '
+- call: char *a[]={"","",0}; printf("%d\n",ft_any(a,dt_is_empty));
+  name: ft_any_all_match
+  stdout: '1
+
+    '
+- name: test_05_first_element_matches
+  call: char *a[]={"","abc","def",0}; printf("%d\n",ft_any(a,dt_is_empty));
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_last_element_matches
+  call: char *a[]={"abc","def","",0}; printf("%d\n",ft_any(a,dt_is_empty));
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_single_matching
+  call: char *a[]={"",0}; printf("%d\n",ft_any(a,dt_is_empty));
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_08_single_non_matching
+  call: char *a[]={"nonempty",0}; printf("%d\n",ft_any(a,dt_is_empty));
+  tier: baseline
+  stdout: '0
+
+    '
+- name: test_09_short_predicate_match
+  call: char *a[]={"long","word","x",0}; printf("%d\n",ft_any(a,dt_is_short));
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_10_short_predicate_no_match
+  call: char *a[]={"hello","world","1337",0}; printf("%d\n",ft_any(a,dt_is_short));
+  tier: stress
+  stdout: '0
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

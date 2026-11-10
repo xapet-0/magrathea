@@ -1,0 +1,7 @@
+Examples:
+$> ./ping_pong 3 | cat -e
+ping$
+$> ./ping_pong 5 | cat -e
+pong$
+$> ./ping_pong 15 | cat -e
+ping pong$

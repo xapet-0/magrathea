@@ -1,0 +1,5 @@
+# Examples for prev_character (from official subject specification)
+
+Example:
+    $>  prev_character ('B') = A
+    $>  prev_character('a') = z

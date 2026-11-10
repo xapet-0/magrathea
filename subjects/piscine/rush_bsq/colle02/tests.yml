@@ -1,0 +1,150 @@
+mode: c_program
+fixed_tests:
+- name: pool_colle02_T01
+  description: '42'
+  args:
+  - '42'
+  expected: 'forty two
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_colle02_T02
+  description: '0'
+  args:
+  - '0'
+  expected: 'zero
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_colle02_T03
+  description: '100000'
+  args:
+  - '100000'
+  expected: 'one hundred thousand
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_colle02_T04
+  description: negative_error
+  args:
+  - '-42'
+  expected: 'Error
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_one
+  args:
+  - '1'
+  tier: baseline
+  stdout: 'one
+
+    '
+- name: test_06_ten
+  args:
+  - '10'
+  tier: baseline
+  stdout: 'ten
+
+    '
+- name: test_07_nineteen
+  args:
+  - '19'
+  tier: baseline
+  stdout: 'nineteen
+
+    '
+- name: test_08_ninety_nine
+  args:
+  - '99'
+  tier: baseline
+  stdout: 'ninety nine
+
+    '
+- name: test_09_one_hundred
+  args:
+  - '100'
+  tier: edge
+  stdout: 'one hundred
+
+    '
+- name: test_10_no_args_error
+  args: []
+  tier: edge
+  stdout: 'Error
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: printf "o---o\n|   |\no---o\n" | ./colle02 | cat -e
+  args: &id001
+  - '"o---o\n'
+  expected: '[colle-00] [5] [3]
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: printf "invalid\n" | ./colle02 | cat -e
+  args: &id002
+  - invalid\n
+  expected: 'aucune
+
+    '
+  cat_e: true
+folder_examples:
+- id: pool_colle02_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''42'']'
+  expected: forty two\n
+- id: pool_colle02_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''0'']'
+  expected: zero\n
+- id: pool_colle02_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''100000'']'
+  expected: one hundred thousand\n
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '"p---o\n'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  "o---o\n  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - jnvalid\n
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  invalid\n  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_colle02_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''42'']'
+  perturbed_input: '[''42'']!'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_colle02_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''0'']'
+  perturbed_input: '[''0'']!'

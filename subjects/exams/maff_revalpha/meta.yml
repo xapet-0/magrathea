@@ -1,0 +1,14 @@
+id: maff_revalpha
+type: c_program
+module: Piscine Exams 00–Final
+xp: 285
+expected_files:
+- maff_revalpha.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

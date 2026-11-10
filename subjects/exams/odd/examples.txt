@@ -1,0 +1,9 @@
+# Examples for odd (from official subject specification)
+
+Example:
+
+$> ./odd 
+13579
+$> ./odd | cat -e
+13579$
+==========================================================================================

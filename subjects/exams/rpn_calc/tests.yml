@@ -1,0 +1,169 @@
+mode: c_program
+fixed_tests:
+- name: can_rpn_calc_T01
+  description: 'Functional verification of input: `[''3 4 +'']`'
+  args:
+  - 3 4 +
+  expected: '7
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_rpn_calc_T02
+  description: 'Functional verification of input: `[''5 1 2 + 4 * + 3 -'']`'
+  args:
+  - 5 1 2 + 4 * + 3 -
+  expected: '14
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_rpn_calc_T03
+  description: 'Functional verification of input: `[''1 +'']`'
+  args:
+  - 1 +
+  expected: 'Error
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_rpn_calc_T04
+  description: edge_rpn_calc_bad_argc_none
+  args: []
+  expected: 'Error
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_rpn_calc_T05
+  description: edge_rpn_calc_bad_argc_many
+  args:
+  - 3 4 +
+  - ignored
+  expected: 'Error
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - 1 2 * 3 * 4 +
+  expected: '10
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - 1 2 3 4 +
+  expected: 'Error
+
+    '
+- name: test_08_arg_auto
+  args:
+  - ''
+  - ''
+  tier: baseline
+  stdout: 'Error
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  tier: baseline
+  stdout: 'Error
+
+    '
+- name: test_10_arg_auto
+  args:
+  - pad
+  - test
+  tier: baseline
+  stdout: 'Error
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./rpn_calc "1 2 * 3 * 4 +" | cat -e
+  args: &id001
+  - 1 2 * 3 * 4 +
+  expected: '10
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./rpn_calc "1 2 3 4 +" | cat -e
+  args: &id002
+  - 1 2 3 4 +
+  expected: 'Error
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./rpn_calc |cat -e
+  args: []
+  expected: 'Error
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_rpn_calc_T06
+  origin: subject_folder/examples.txt
+  input: ./rpn_calc "1 2 * 3 * 4 +" \| cat -e
+  expected: 10$
+- id: can_rpn_calc_T07
+  origin: subject_folder/examples.txt
+  input: ./rpn_calc "1 2 3 4 +" \| cat -e
+  expected: Error$
+- id: can_rpn_calc_T08
+  origin: subject_folder/examples.txt
+  input: ./rpn_calc \|cat -e
+  expected: Error$
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - 1 2 * 3 * 4 +!
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  1 2 * 3 * 4 +  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - 1 2 3 4 +!
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  1 2 3 4 +  '
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./rpn_calc |cat -e
+  perturbed_input:
+  - rpn_calc_near_arg_1
+  - rpn_calc_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_rpn_calc_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./rpn_calc "1 2 * 3 * 4 +" \| cat -e
+  perturbed_input: ./spn_calc "1 2 * 3 * 4 +" \| cat -e
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_rpn_calc_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./rpn_calc "1 2 3 4 +" \| cat -e
+  perturbed_input: ./spn_calc "1 2 3 4 +" \| cat -e

@@ -1,0 +1,17 @@
+id: get_next_line
+type: c_function
+module: Exam Rank 02
+xp: 460
+expected_files:
+- get_next_line.c
+- get_next_line.h
+allowed_functions:
+- read
+- free
+- malloc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: char *get_next_line(int fd);

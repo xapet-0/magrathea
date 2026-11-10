@@ -1,0 +1,9 @@
+Examples:
+$> ./g_diam "1-2 2-3 3-4" | cat -e
+4$
+$> ./g_diam "1-2 2-3 3-1" | cat -e
+3$
+$> ./g_diam "10-20" | cat -e
+2$
+$> ./g_diam | cat -e
+$

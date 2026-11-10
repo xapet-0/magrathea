@@ -1,0 +1,7 @@
+# Examples for factorial_number (from official subject specification)
+
+Example:
+
+    factorial_number (5) -> 1*2*3*4*5 = 120
+    factorial_number (2) -> 1*2 = 2
+    factorial_number (0) -> 1

@@ -1,0 +1,13 @@
+id: frequency_character
+type: c_function
+module: "Piscine Exams 00\u2013Final"
+xp: 280
+expected_files:
+- frequency_character.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int frequency_character(char c, char *str);

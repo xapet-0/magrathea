@@ -1,0 +1,13 @@
+id: ft_strspn
+type: c_function
+module: Exam Rank 02
+xp: 430
+expected_files:
+- ft_strspn.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: size_t ft_strspn(const char *s, const char *accept);

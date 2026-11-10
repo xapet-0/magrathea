@@ -1,0 +1,13 @@
+id: ft_sort_int_tab
+type: c_function
+module: C 01
+xp: 130
+expected_files:
+- ft_sort_int_tab.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void ft_sort_int_tab(int *tab, int size);

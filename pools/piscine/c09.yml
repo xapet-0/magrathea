@@ -1,0 +1,12 @@
+id: c09
+display_name: 1337 / 42 Piscine — C 09
+exercises:
+- ex: ex00
+  subject_id: piscine/c09/c09_libft
+  xp: 240
+- ex: ex01
+  subject_id: piscine/c09/c09_makefile
+  xp: 270
+- ex: ex02
+  subject_id: piscine/c09/c09_ft_split
+  xp: 240

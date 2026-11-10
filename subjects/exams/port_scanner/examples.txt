@@ -1,0 +1,3 @@
+Examples:
+$> sh port_scanner.sh "80" | cat -e
+80$

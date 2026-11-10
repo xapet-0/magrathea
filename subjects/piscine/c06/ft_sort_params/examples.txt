@@ -1,0 +1,18 @@
+# Examples for ft_sort_params (from official subject specification)
+
+Examples:
+$> ./ft_sort_params "bbb" "aaa" "ccc" | cat -e
+aaa$
+bbb$
+ccc$
+$> ./ft_sort_params "z" "A" "a" "0" | cat -e
+0$
+A$
+a$
+z$
+$> ./ft_sort_params | cat -e
+$
+$> ./ft_sort_params "b" "a" "b" | cat -e
+a$
+b$
+b$

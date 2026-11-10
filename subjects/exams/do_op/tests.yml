@@ -1,0 +1,256 @@
+mode: c_program
+fixed_tests:
+- name: can_do_op_T01
+  description: 'Functional verification of input: `[''7'', ''+'', ''5'']`'
+  args:
+  - '7'
+  - +
+  - '5'
+  expected: '12
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_do_op_T02
+  description: case_add_negative
+  args:
+  - '-7'
+  - +
+  - '5'
+  expected: '-2
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_do_op_T03
+  description: case_mul
+  args:
+  - '6'
+  - '*'
+  - '7'
+  expected: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_do_op_T04
+  description: case_div
+  args:
+  - '84'
+  - /
+  - '2'
+  expected: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_do_op_T05
+  description: case_mod
+  args:
+  - '85'
+  - '%'
+  - '43'
+  expected: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_do_op_T06
+  description: case_bad_argc
+  args:
+  - '1'
+  - +
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - '123'
+  - '*'
+  - '456'
+  expected: '56088
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - '9828'
+  - /
+  - '234'
+  expected: '42
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - '1'
+  - +
+  - '-43'
+  expected: '-42
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args: []
+  expected: '
+
+    '
+- name: near_ex_two_args_only
+  tier: near_example
+  args:
+  - arg1
+  - arg2
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./do_op "123" "*" 456 | cat -e
+  args: &id001
+  - '123'
+  - '*'
+  - '456'
+  expected: '56088
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./do_op "9828" "/" 234 | cat -e
+  args: &id002
+  - '9828'
+  - /
+  - '234'
+  expected: '42
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./do_op "1" "+" "-43" | cat -e
+  args: &id003
+  - '1'
+  - +
+  - '-43'
+  expected: '-42
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./do_op | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_do_op_T07
+  origin: subject_folder/42ExamPractice/do_op/tester.sh
+  input: ./do_op "1" "+" "-43"
+  expected: Matches 42 reference standard output and exit code
+- id: can_do_op_T08
+  origin: subject_folder/42ExamPractice/do_op/tester.sh
+  input: ./do_op "9828" "%" "234"
+  expected: Matches 42 reference standard output and exit code
+- id: can_do_op_T09
+  origin: subject_folder/42ExamPractice/do_op/tester.sh
+  input: ./do_op "9828" "/" "234"
+  expected: Matches 42 reference standard output and exit code
+- id: can_do_op_T10
+  origin: subject_folder/42ExamPractice/do_op/tester.sh
+  input: ./do_op "123" "*" "456"
+  expected: Matches 42 reference standard output and exit code
+- id: can_do_op_T11
+  origin: subject_folder/42ExamPractice/do_op/tester.sh
+  input: ./do_op "9828" "/" "2"
+  expected: Matches 42 reference standard output and exit code
+- id: can_do_op_T12
+  origin: subject_folder/examples.txt
+  input: ./do_op "123" "*" 456 \| cat -e
+  expected: 56088$
+- id: can_do_op_T13
+  origin: subject_folder/examples.txt
+  input: ./do_op "9828" "/" 234 \| cat -e
+  expected: 42$
+- id: can_do_op_T14
+  origin: subject_folder/examples.txt
+  input: ./do_op "1" "+" "-43" \| cat -e
+  expected: -42$
+- id: can_do_op_T15
+  origin: subject_folder/examples.txt
+  input: ./do_op \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '124'
+  - '*!'
+  - '457'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  123  '
+  - '*'
+  - '456'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - '9829'
+  - /!
+  - '235'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  9828  '
+  - /
+  - '234'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - '2'
+  - +!
+  - '-44'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  1  '
+  - +
+  - '-43'
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./do_op | cat -e
+  perturbed_input:
+  - do_op_near_arg_1
+  - do_op_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_do_op_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/do_op/tester.sh)
+  original_input: ./do_op "1" "+" "-43"
+  perturbed_input: ./eo_op "1" "+" "-43"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_do_op_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/do_op/tester.sh)
+  original_input: ./do_op "9828" "%" "234"
+  perturbed_input: ./eo_op "9828" "%" "234"

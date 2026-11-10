@@ -1,0 +1,14 @@
+id: union
+type: c_program
+module: Exam Rank 02
+xp: 475
+expected_files:
+- union.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

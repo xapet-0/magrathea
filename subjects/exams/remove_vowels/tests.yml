@@ -1,0 +1,214 @@
+mode: c_program
+fixed_tests:
+- name: cur_remove_vowels_T01
+  description: 'Functional verification of input: `[''Hello World!'']`'
+  args:
+  - Hello World!
+  expected: 'Hll Wrld!
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_remove_vowels_T02
+  description: 'Functional verification of input: `[''AEIOUxyz'']`'
+  args:
+  - AEIOUxyz
+  expected: 'xyz
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_remove_vowels_T03
+  description: edge_remove_vowels_empty
+  args:
+  - ''
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_remove_vowels_T04
+  description: edge_remove_vowels_bad_argc
+  args: []
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - Hi there, how are you?
+  expected: 'H thr, hw r y?
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - Hello world!
+  expected: 'Hll wrld!
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - ''
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_10_arg_auto
+  args:
+  - pad
+  - test
+  tier: baseline
+  stdout: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./remove_vowels "Hi there, how are you?" | cat -e
+  args: &id001
+  - Hi there, how are you?
+  expected: 'H thr, hw r y?
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./remove_vowels "Hello world!" | cat -e
+  args: &id002
+  - Hello world!
+  expected: 'Hll wrld!
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./remove_vowels | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./remove_vowels "" | cat -e
+  args: &id003
+  - ''
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: cur_remove_vowels_T05
+  origin: subject_folder/deepthought/corrections/exams/remove_vowels/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_remove_vowels_T06
+  origin: subject_folder/deepthought/corrections/exams/remove_vowels/generator.py
+  input: Dynamic generation rule via basic_test1()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_remove_vowels_T07
+  origin: subject_folder/deepthought/corrections/exams/remove_vowels/generator.py
+  input: Dynamic generation rule via empty_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_remove_vowels_T08
+  origin: subject_folder/deepthought/corrections/exams/remove_vowels/generator.py
+  input: Dynamic generation rule via random_strings_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - Ii there, how are you?
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  Hi there, how are you?  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - Iello world!
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  Hello world!  '
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./remove_vowels | cat -e
+  perturbed_input:
+  - remove_vowels_near_arg_1
+  - remove_vowels_near_arg_2
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - ' '
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '    '
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_remove_vowels_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/remove_vowels/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_remove_vowels_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/remove_vowels/generator.py)
+  original_input: Dynamic generation rule via basic_test1()
+  perturbed_input: Eynamic generation rule via basic_test1(
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `remove_vowels`
+  input: "remove_vowels(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `remove_vowels`
+  input: remove_vowels("   word   ") and remove_vowels("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `remove_vowels`
+  input: remove_vowels("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `remove_vowels`
+  input: Execute remove_vowels with no arguments and with 3 arguments
+  expected: Print newline only

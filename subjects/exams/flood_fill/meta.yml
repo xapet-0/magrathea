@@ -1,0 +1,13 @@
+id: flood_fill
+type: c_function
+module: Exam Rank 02
+xp: 470
+expected_files:
+- flood_fill.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void flood_fill(char **tab, t_point size, t_point begin);

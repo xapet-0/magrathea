@@ -1,0 +1,106 @@
+subject_id: atoi_base
+fixed_tests:
+- name: test_01_1a_16
+  expr: atoi_base("1a", 16)
+  stdout: '26
+
+    '
+  tier: baseline
+- name: folder_ex_02
+  tier: folder_example
+  expr: atoi_base("-2a", 16)
+  stdout: '-42
+
+    '
+- name: folder_ex_03
+  tier: folder_example
+  expr: atoi_base("101010", 2)
+  stdout: '42
+
+    '
+- name: folder_ex_04
+  tier: folder_example
+  expr: atoi_base("42", 10)
+  stdout: '42
+
+    '
+- name: folder_ex_05
+  tier: folder_example
+  expr: atoi_base("", 10)
+  stdout: '0
+
+    '
+- name: test_06_zero
+  expr: atoi_base("0", 10)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_uppercase_hex
+  expr: atoi_base("FF", 16)
+  tier: baseline
+  stdout: '255
+
+    '
+- name: test_08_base_8
+  expr: atoi_base("77", 8)
+  tier: baseline
+  stdout: '63
+
+    '
+- name: test_09_base_4_negative
+  expr: atoi_base("-123", 4)
+  tier: edge
+  stdout: '-27
+
+    '
+- name: test_10_stop_at_invalid_digit
+  expr: atoi_base("101201", 2)
+  tier: stress
+  stdout: '5
+
+    '
+oracle_tests:
+- name: edge_atoi_base_numeric
+  source: "int atoi_base(const char *str, int str_base);\nint main(void)\n{\n    if\
+    \ (atoi_base(\"\", 10) != 0) return (1);\n    if (atoi_base(\" \\t \", 10) !=\
+    \ 0) return (1);\n    if (atoi_base(\"-2a\", 16) != -42) return (1);\n    if (atoi_base(\"\
+    101010\", 2) != 42) return (1);\n    return (0);\n}\n"
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval atoi_base
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: e1337_atoi_base_T03
+  origin: subject_folder/examples.txt
+  input: atoi_base("1a", 16) -> 26
+  expected: atoi_base("-2a", 16) -> -42\natoi_base("101010", 2) -> 42\natoi_base("42",
+    10) -> 42\natoi_base("", 10) -> 0
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "subject_id: atoi_base\nfixed_tests:\n- expr: atoi_base(\"1a\", 16)\n\
+    \  stdout: '26\n\n    '\noracle_tests:\n- name: edge_atoi_base_numeric\n  source:\
+    \ \"int atoi_base(const "
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval atoi_base
+  perturbed_input:
+  - atoi_base_near_arg_1
+  - atoi_base_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_atoi_base_T03
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: atoi_base("1a", 16) -> 26
+  perturbed_input: btoi_base("1a", 16) -> 26
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

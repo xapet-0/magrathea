@@ -1,0 +1,203 @@
+mode: c_program
+fixed_tests:
+- name: can_rev_print_T01
+  description: 'Functional verification of input: `[''abc'']`'
+  args:
+  - abc
+  expected: 'cba
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_rev_print_T02
+  description: case_spaces
+  args:
+  - hello world
+  expected: 'dlrow olleh
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_rev_print_T03
+  description: case_empty
+  args:
+  - ''
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_rev_print_T04
+  description: case_bad_argc
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - zaz
+  expected: 'zaz
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - dub0 a POIL
+  expected: 'LIOP a 0bud
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - ''
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_10_arg_auto
+  args:
+  - pad
+  - test
+  tier: baseline
+  stdout: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./rev_print "zaz" | cat -e
+  args: &id001
+  - zaz
+  expected: 'zaz
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./rev_print "dub0 a POIL" | cat -e
+  args: &id002
+  - dub0 a POIL
+  expected: 'LIOP a 0bud
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./rev_print | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_rev_print_T05
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_print_T06
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "   "
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_print_T07
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "dub0 a POIL"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_print_T08
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "Papache est un sabre" "a" "o"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_print_T09
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "FOR PONY"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_print_T10
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "a" "b"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_print_T11
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "3:21 Ba  tOut  moUn ki Ka di KE m'en Ka fe fot"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_print_T12
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "zaz" "art" "zul"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_print_T13
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "this        ...       is sparta, then again, maybe    not"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_print_T14
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "jacob" "a" "b" "c" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_print_T15
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "ZoZ eT Dovid oiME le METol." "o" "a"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rev_print_T16
+  origin: subject_folder/42ExamPractice/rev_print/tester.sh
+  input: ./rev_print "AkjhZ zLKIJz , 23y "
+  expected: Matches 42 reference standard output and exit code
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - zbz
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  zaz  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - eub0 a POIL
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  dub0 a POIL  '
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./rev_print | cat -e
+  perturbed_input:
+  - rev_print_near_arg_1
+  - rev_print_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_rev_print_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rev_print/tester.sh)
+  original_input: ./rev_print "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  perturbed_input: ./sev_print "wNcOre Un ExEmPle Pas Facil
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_rev_print_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rev_print/tester.sh)
+  original_input: ./rev_print "   "
+  perturbed_input: ./sev_print "   "

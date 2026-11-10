@@ -1,0 +1,13 @@
+id: ft_strcapitalize
+type: c_function
+module: C 02
+xp: 155
+expected_files:
+- ft_strcapitalize.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: char *ft_strcapitalize(char *str);

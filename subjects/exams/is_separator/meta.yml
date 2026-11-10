@@ -1,0 +1,13 @@
+id: is_separator
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- is_separator.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int is_separator(char c);

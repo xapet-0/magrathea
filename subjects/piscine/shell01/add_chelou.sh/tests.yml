@@ -1,0 +1,124 @@
+subject_id: add_chelou.sh
+fixed_tests:
+- name: salut_example
+  env:
+    FT_NBR1: \'?"\"'\
+    FT_NBR2: rcrdmddd
+  args: []
+  stdout: 'Salut
+
+    '
+  tier: baseline
+- name: zero_plus_one
+  env:
+    FT_NBR1: ''''
+    FT_NBR2: r
+  args: []
+  stdout: 't
+
+    '
+  tier: baseline
+- name: zero_plus_zero
+  env:
+    FT_NBR1: ''''
+    FT_NBR2: m
+  args: []
+  stdout: 'g
+
+    '
+  tier: edge_case
+- name: two_plus_two
+  env:
+    FT_NBR1: '"'
+    FT_NBR2: d
+  args: []
+  stdout: 'o
+
+    '
+  tier: edge_case
+- name: test_05_one_plus_one
+  env:
+    FT_NBR1: \
+    FT_NBR2: r
+  args: []
+  tier: baseline
+  stdout: 'a
+
+    '
+- name: test_06_three_plus_four
+  env:
+    FT_NBR1: '?'
+    FT_NBR2: u
+  args: []
+  tier: baseline
+  stdout: 'i
+
+    '
+- name: test_07_four_plus_four_carry
+  env:
+    FT_NBR1: '!'
+    FT_NBR2: u
+  args: []
+  tier: edge
+  stdout: 'o
+
+    '
+- name: test_08_base5_10_plus_zero
+  env:
+    FT_NBR1: \'
+    FT_NBR2: m
+  args: []
+  tier: edge
+  stdout: " \n"
+- name: test_09_base5_24_plus_1
+  env:
+    FT_NBR1: '"!'
+    FT_NBR2: r
+  args: []
+  tier: baseline
+  stdout: 'ta
+
+    '
+- name: test_10_multi_digit_sum
+  env:
+    FT_NBR1: \?!
+    FT_NBR2: rcdu
+  args: []
+  tier: stress
+  stdout: ''
+  expect_empty: true
+mode: shell
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./r_dwssap.sh
+  args: []
+  expected: 'sstq_, sorebrek_brk_, soibten_, sergtsop_, scodved_, rlaxcm_, rgmecived_,
+    revreswodniw_,
+
+    revressta_.$>
+
+    • Follow the steps in the exact order given!
+
+    • Did you check with your left-side neighbor?
+
+    '
+  cat_e: false
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: add_chelou.sh baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./r_dwssap.sh
+  perturbed_input:
+  - add_chelou.sh_near_arg_1
+  - add_chelou.sh_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: add_chelou.sh baseline folder fixture
+  perturbed_input: bdd_chelou.sh baseline folder fixture

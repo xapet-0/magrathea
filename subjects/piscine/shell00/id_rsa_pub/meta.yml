@@ -1,0 +1,12 @@
+id: id_rsa_pub
+type: shell
+module: Shell 00
+xp: 130
+expected_files:
+- id_rsa_pub
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true

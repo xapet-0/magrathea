@@ -1,0 +1,81 @@
+subject_id: palindrome_sh
+fixed_tests:
+- name: test_01_no_args
+  env:
+    FT_LINE: kayak
+  args: []
+  stdout: '1
+
+    '
+- name: test_02_no_args
+  env:
+    FT_LINE: hello
+  args: []
+  stdout: '0
+
+    '
+- name: test_03_no_args
+  env:
+    FT_LINE: radar
+  args: []
+  stdout: '1
+
+    '
+- name: test_04_no_args
+  env:
+    FT_LINE: '1331'
+  args: []
+  stdout: '1
+
+    '
+- name: test_05_single_char
+  env:
+    FT_LINE: a
+  args: []
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_two_same_chars
+  env:
+    FT_LINE: aa
+  args: []
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_two_diff_chars
+  env:
+    FT_LINE: ab
+  args: []
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_racecar
+  env:
+    FT_LINE: racecar
+  args: []
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_09_non_palindrome_near
+  env:
+    FT_LINE: abca
+  args: []
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_longer_palindrome
+  env:
+    FT_LINE: '123454321'
+  args: []
+  tier: stress
+  stdout: '1
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,212 @@
+mode: shell
+fixed_tests:
+- name: cur_black_hole_T01
+  description: No arguments
+  args: []
+  stdout: 'OK
+
+    '
+  expected: 'OK
+
+    '
+  exit_code: 0
+  category: Functional
+  tier: baseline
+- name: cur_black_hole_T02
+  description: Single argument
+  args:
+  - ignored_err
+  stdout: 'OK
+
+    '
+  expected: 'OK
+
+    '
+  exit_code: 0
+  category: Functional
+  tier: subject_example
+- name: cur_black_hole_T03
+  description: Multiple arguments
+  args:
+  - a
+  - b
+  stdout: 'OK
+
+    '
+  expected: 'OK
+
+    '
+  exit_code: 0
+  category: Functional
+  tier: subject_example
+- name: cur_black_hole_T04_many_args
+  description: Three arguments
+  args:
+  - one
+  - two
+  - three
+  stdout: 'OK
+
+    '
+  expected: 'OK
+
+    '
+  exit_code: 0
+  category: Edge Case
+  tier: edge_case
+- name: test_05_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: 'OK
+
+    '
+- name: test_06_arg_auto
+  args:
+  - a
+  - b
+  - c
+  tier: baseline
+  stdout: 'OK
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '10'
+  - '20'
+  - '30'
+  tier: baseline
+  stdout: 'OK
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - school
+  tier: baseline
+  stdout: 'OK
+
+    '
+- name: test_09_arg_auto
+  args:
+  - one
+  - two
+  - ''
+  tier: baseline
+  stdout: 'OK
+
+    '
+- name: test_10_arg_auto
+  args:
+  - ''
+  - ''
+  - ''
+  tier: baseline
+  stdout: 'OK
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: sh black_hole.sh | cat -e
+  args: &id001
+  - black_hole.sh
+  expected: 'OK
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: sh black_hole.sh "ignored_err" | cat -e
+  args: &id002
+  - black_hole.sh
+  - ignored_err
+  expected: 'OK
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: sh black_hole.sh "a" "b" | cat -e
+  args: &id003
+  - black_hole.sh
+  - a
+  - b
+  expected: 'OK
+
+    '
+  cat_e: true
+folder_examples:
+- id: cur_black_hole_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '`sh black_hole.sh` (standard shell environment)'
+  expected: OK\n
+- id: cur_black_hole_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''ignored_err'']'
+  expected: OK\n
+- id: cur_black_hole_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''a'', ''b'']'
+  expected: OK\n
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - clack_hole.sh
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  black_hole.sh  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - clack_hole.sh
+  - jgnored_err
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  black_hole.sh  '
+  - ignored_err
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - clack_hole.sh
+  - b
+  - c
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  black_hole.sh  '
+  - a
+  - b
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_black_hole_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '`sh black_hole.sh` (standard shell environment)'
+  perturbed_input: '`th black_hole.sh` (standard shell envir'
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_black_hole_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''ignored_err'']'
+  perturbed_input: '[''jgnored_err'']'

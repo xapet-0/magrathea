@@ -1,0 +1,27 @@
+Assignment name  : btree_insert_data
+Expected files   : btree_insert_data.c ft_btree.h
+Allowed functions: btree_create_node
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 13 (Official PDF)
+Exercise         : btree_insert_data
+Turn-in directory: ex04/
+Expected files   : btree_insert_data.c, ft_btree.h
+Allowed functions: btree_create_node
+--------------------------------------------------------------------------------
+
+• Create a function btree_insert_data which inserts the elementitem into a tree.
+The tree passed as argument will be sorted: for eachnode, all lower elements are
+located on the left side, and all higher or equal elements are located on the right.
+We’ll also pass a comparison function similar tostrcmp as an argument.
+• The root parameter points to the root node of the tree. When called for the first
+time, it should point toNULL.
+• Here’s how it should be prototyped :
+void btree_insert_data(t_btree **root, void *item, int (*cmpf)(void *, void *));
+
+Your function must be declared as follows:
+    void btree_insert_data(t_btree **root, void *item, int (*cmpf)(void *, void *));
+
+Examples:
+    int a=2,b=1,c=3; t_btree *root=0; btree_insert_data(&root,&a,dt_cmp); btree_insert_data(&root,&b,dt_cmp); btree_insert_data(&root,&c,dt_cmp); printf("%d:%d:%d\n",*(int*)root->item,*(int*)root->left->item,*(int*)root->right->item)
+    Output: 2:1:3

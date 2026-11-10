@@ -1,0 +1,16 @@
+id: rle_sh
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 290
+expected_files:
+- rle_sh.sh
+allowed_functions:
+- printf
+- awk
+- sed
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh rle_sh.sh [args...]

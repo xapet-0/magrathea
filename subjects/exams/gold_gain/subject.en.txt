@@ -1,0 +1,19 @@
+Assignment name  : gold_gain
+Expected files   : gold_gain.c
+Allowed functions: malloc, free
+--------------------------------------------------------------------------------
+
+Write a function that takes an n x n grid of gold quantities and returns the
+maximum gold collectible starting from any row in column 0 and moving to
+(row-1, col+1), (row, col+1), or (row+1, col+1) at each step.
+
+Prototype:
+int	gold_gain(int **mine, int n);
+
+Your function must be declared as follows:
+    int gold_gain(int **mine, int n);
+
+Examples:
+    gold_gain(m, 3) -> 8
+    gold_gain(m, 1) -> 42
+    gold_gain(m, 2) -> 7

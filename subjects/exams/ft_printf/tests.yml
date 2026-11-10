@@ -1,0 +1,155 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_printf_T01
+  description: 'Functional verification of input: `int r = ft_printf("Hex %s is %d
+    and %x\n", "n`'
+  call: int r = ft_printf("Hex %s is %d and %x\n", "number", 42, 42); printf("%d\n",
+    r);
+  stdout: 'Hex number is 42 and 2a
+
+    24
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_printf_T02
+  description: 'Functional verification of input: `int r = ft_printf("%s\n", (char
+    *)0); printf(`'
+  call: int r = ft_printf("%s\n", (char *)0); printf("%d\n", r);
+  stdout: '(null)
+
+    7
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_printf_T03
+  description: 'Functional verification of input: `int r = ft_printf("%d %d %x\n",
+    0, -214748364`'
+  call: int r = ft_printf("%d %d %x\n", 0, -2147483648, 0); printf("%d\n", r);
+  stdout: '0 -2147483648 0
+
+    16
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_printf_T04
+  description: 'Functional verification of input: `int r = ft_printf("1337"); printf(":%d\n",
+    r)`'
+  call: int r = ft_printf("1337"); printf(":%d\n", r);
+  stdout: '1337:4
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_empty_format
+  call: int r = ft_printf(""); printf("R=%d\n", r);
+  tier: edge
+  stdout: 'R=0
+
+    '
+- name: test_06_empty_string_arg
+  call: int r = ft_printf("[%s]\n", ""); printf("%d\n", r);
+  tier: edge
+  stdout: '[]
+
+    3
+
+    '
+- name: test_07_int_max_and_neg_one
+  call: int r = ft_printf("%d %d\n", 2147483647, -1); printf("%d\n", r);
+  tier: edge
+  stdout: '2147483647 -1
+
+    14
+
+    '
+- name: test_08_hex_boundaries
+  call: int r = ft_printf("%x %x %x\n", 15, 16, 255); printf("%d\n", r);
+  tier: baseline
+  stdout: 'f 10 ff
+
+    8
+
+    '
+- name: test_09_hex_uint_max
+  call: int r = ft_printf("%x\n", -1); printf("%d\n", r);
+  tier: edge
+  stdout: 'ffffffff
+
+    9
+
+    '
+- name: test_10_multiple_mixed_specifiers
+  call: int r = ft_printf("%s:%d:%x:%s:%d\n", "a", -42, 42, (char*)0, 0); printf("%d\n",
+    r);
+  tier: stress
+  stdout: 'a:-42:2a:(null):0
+
+    18
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_printf
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_ft_printf_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: int r = ft_printf("Hex %s is %d and %x\n", "number", 42, 42); printf("%d\n",
+    r);
+  expected: Hex number is 42 and 2a\n24\n
+- id: cur_ft_printf_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: int r = ft_printf("%s\n", (char *)0); printf("%d\n", r);
+  expected: (null)\n7\n
+- id: cur_ft_printf_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: int r = ft_printf("%d %d %x\n", 0, -2147483648, 0); printf("%d\n", r);
+  expected: 0 -2147483648 0\n16\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_printf
+  perturbed_input:
+  - ft_printf_near_arg_1
+  - ft_printf_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ft_printf_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: int r = ft_printf("Hex %s is %d and %x\n", "number", 42, 42); printf("%d\n",
+    r);
+  perturbed_input: jnt r = ft_printf("Hex %s is %d and %x\n
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ft_printf_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: int r = ft_printf("%s\n", (char *)0); printf("%d\n", r);
+  perturbed_input: jnt r = ft_printf("%s\n", (char *)0); pr
+edge_cases:
+- name: edge_01_P
+  code: '[P]'
+  title: File descriptor leak audit in `ft_printf`
+  input: Run ft_printf and check open file descriptors in /proc/self/fd
+  expected: Only stdin, stdout, stderr remain open
+- name: edge_02_P
+  code: '[P]'
+  title: Child process reaping and zombie prevention in `ft_printf`
+  input: Spawn multiple processes in ft_printf and verify with waitpid
+  expected: No zombie processes remain in process table
+- name: edge_03_B
+  code: '[B]'
+  title: Command-line arguments contract enforcement in `ft_printf`
+  input: Invoke ft_printf with invalid argument counts
+  expected: Emit exact error string to stderr and exit with non-zero status
+- name: edge_04_M
+  code: '[M]'
+  title: Stream buffer cleanup on EOF in `ft_printf`
+  input: Stream large input to ft_printf until EOF
+  expected: 0 bytes leaked

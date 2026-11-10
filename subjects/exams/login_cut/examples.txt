@@ -1,0 +1,7 @@
+# Examples for login_cut (from official subject specification)
+
+Examples:
+$> ./login_cut.sh | head -n 3 | cat -e
+nobody$
+root$
+daemon$

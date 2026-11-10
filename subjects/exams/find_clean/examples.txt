@@ -1,0 +1,6 @@
+Examples:
+$> sh find_clean.sh | cat -e
+./junk~$
+./#tmp#$
+$> sh find_clean.sh | cat -e
+./a~$

@@ -1,0 +1,3 @@
+Examples:
+$> ./diff | cat -e
+$

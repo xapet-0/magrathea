@@ -1,0 +1,102 @@
+name: 1337_classic_examfinal
+display_name: "1337 Classic Piscine \u2014 Final Exam"
+duration_seconds: 28800
+levels:
+- level: 0
+  points: 10
+  candidates:
+  - rpn_calc
+  - size_variables
+  - slice
+  - smallest_number
+  - snake
+  - snake_case
+  - sort_words
+- level: 1
+  points: 10
+  candidates:
+  - spy
+  - str_maxlenoc
+  - strlen_sh
+  - sub_complex
+  - sum_n
+  - swap_cases
+  - takes_place
+- level: 2
+  points: 10
+  candidates:
+  - title
+  - triangle_area
+  - triangle_perimeter
+  - unmatch
+  - upcase_sh
+  - vigenere
+  - volume_cube
+- level: 3
+  points: 10
+  candidates:
+  - volume_cuboid
+  - volume_histogram
+  - wdmatch_2
+  - wdmatch_alt
+  - word_count_sh
+  - word_edges
+  - write_string
+- level: 4
+  points: 10
+  candidates:
+  - zigzag
+  - alien_math
+  - atoi_base
+  - black_hole
+  - clone_list
+  - comma_dot
+- level: 5
+  points: 10
+  candidates:
+  - csv_sum
+  - cycle_detector
+  - dash_trap
+  - dup_finder
+  - env_compass
+  - env_expander
+- level: 6
+  points: 10
+  candidates:
+  - exit_truth
+  - find_clean
+  - freq_rank
+  - ft_itoa_base
+  - glob_shield
+  - ifs_surgeon
+- level: 7
+  points: 10
+  candidates:
+  - intersection
+  - is_looping
+  - itoa_base
+  - lego_pipe
+  - line_window
+  - list_trait
+- level: 8
+  points: 10
+  candidates:
+  - login_cut
+  - matrix_trans
+  - micro_marvin
+  - mini_born2beroot
+  - mini_shell_sh
+  - mirror_sort
+- level: 9
+  points: 10
+  candidates:
+  - odd_epur
+  - parse_int_base
+  - port_scanner
+  - queue
+  - quote_trap
+  - rtfm_ls
+pool_group: piscine
+rank_order: 7
+prerequisites:
+- 1337_classic_exam02

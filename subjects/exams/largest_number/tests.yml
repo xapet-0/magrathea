@@ -1,0 +1,193 @@
+mode: c_function
+fixed_tests:
+- name: cur_largest_number_T01
+  description: 'Functional verification of input: `largest_number(3, 14, 96)`'
+  expr: largest_number(3, 14, 96)
+  stdout: '96
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_largest_number_T02
+  description: 'Functional verification of input: `largest_number(63, 14, 16)`'
+  expr: largest_number(63, 14, 16)
+  stdout: '63
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_largest_number_T03
+  description: 'Functional verification of input: `largest_number(-10, -3, -99)`'
+  expr: largest_number(-10, -3, -99)
+  stdout: '-3
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_largest_number_T04
+  description: 'Functional verification of input: `largest_number(7, 7, -1)`'
+  expr: largest_number(7, 7, -1)
+  stdout: '7
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_largest_number_T05
+  description: 'Functional verification of input: `largest_number(-2147483648, 2147483647,
+    0)`'
+  expr: largest_number(-2147483648, 2147483647, 0)
+  stdout: '2147483647
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_06_middle_is_largest
+  expr: largest_number(10, 99, 20)
+  tier: baseline
+  stdout: '99
+
+    '
+- name: test_07_all_equal
+  expr: largest_number(42, 42, 42)
+  tier: edge
+  stdout: '42
+
+    '
+- name: test_08_all_zeros
+  expr: largest_number(0, 0, 0)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_two_equal_max_second_third
+  expr: largest_number(1, 50, 50)
+  tier: edge
+  stdout: '50
+
+    '
+- name: test_10_negative_close_values
+  expr: largest_number(-1, -2, -3)
+  tier: stress
+  stdout: '-1
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: largest_number(3, 14, 96) = 96
+  args: &id001
+  - 14,
+  - 96)
+  - '='
+  - '96'
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: largest_number(63, 14, 16) = 63
+  args: &id002
+  - 14,
+  - 16)
+  - '='
+  - '63'
+  expected: ''
+  cat_e: false
+folder_examples:
+- id: cur_largest_number_T06
+  origin: subject_folder/deepthought/corrections/exams/largest_number/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_largest_number_T07
+  origin: subject_folder/deepthought/corrections/exams/largest_number/generator.py
+  input: Dynamic generation rule via decimal_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_largest_number_T08
+  origin: subject_folder/deepthought/corrections/exams/largest_number/generator.py
+  input: Dynamic generation rule via zero_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_largest_number_T09
+  origin: subject_folder/deepthought/corrections/exams/largest_number/generator.py
+  input: Dynamic generation rule via large_radius_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_largest_number_T10
+  origin: subject_folder/deepthought/corrections/exams/largest_number/generator.py
+  input: Dynamic generation rule via negative_radius_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_largest_number_T11
+  origin: subject_folder/deepthought/corrections/exams/largest_number/generator.py
+  input: Dynamic generation rule via negative_positive_radius_test_1()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_largest_number_T12
+  origin: subject_folder/deepthought/corrections/exams/largest_number/generator.py
+  input: Dynamic generation rule via negative_positive_radius_test_2()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - 14,!
+  - 96)!
+  - =!
+  - '97'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  14,  '
+  - 96)
+  - '='
+  - '96'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - 14,!
+  - 16)!
+  - =!
+  - '64'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  14,  '
+  - 16)
+  - '='
+  - '63'
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_largest_number_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/largest_number/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_largest_number_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/largest_number/generator.py)
+  original_input: Dynamic generation rule via decimal_test()
+  perturbed_input: Eynamic generation rule via decimal_test
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty array (size = 0), single element, and NULL pointer in `largest_number`
+  input: largest_number(tab, 0) and largest_number(NULL, 0)
+  expected: Safe return without memory violation
+- name: edge_02_B
+  code: '[B]'
+  title: Array with duplicate elements and all elements identical in `largest_number`
+  input: largest_number([5, 5, 5, 5], 4)
+  expected: Preserve stable sort or return correct count
+- name: edge_03_B
+  code: '[B]'
+  title: Array already sorted in reverse order in `largest_number`
+  input: largest_number([9, 8, 7, 6, 5], 5)
+  expected: Properly sort array with no missing elements
+- name: edge_04_T
+  code: '[T]'
+  title: Performance verification on large array in `largest_number`
+  input: Run largest_number on array of 10,000 elements
+  expected: Complete within timeout limit

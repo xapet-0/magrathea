@@ -1,0 +1,13 @@
+id: ft_advanced_sort_string_tab
+type: c_function
+module: C 11
+xp: 260
+expected_files:
+- ft_advanced_sort_string_tab.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void ft_advanced_sort_string_tab(char **tab, int (*cmp)(char *, char *));

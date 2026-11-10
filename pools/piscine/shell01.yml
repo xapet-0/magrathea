@@ -1,0 +1,27 @@
+id: shell01
+display_name: 1337 / 42 Piscine — Shell 01
+exercises:
+- ex: ex00
+  subject_id: piscine/shell01/print_groups.sh
+  xp: 150
+- ex: ex01
+  subject_id: piscine/shell01/find_sh.sh
+  xp: 160
+- ex: ex02
+  subject_id: piscine/shell01/count_files.sh
+  xp: 150
+- ex: ex03
+  subject_id: piscine/shell01/mac.sh
+  xp: 160
+- ex: ex04
+  subject_id: piscine/shell01/special_filename_MaRViN
+  xp: 150
+- ex: ex05
+  subject_id: piscine/shell01/skip.sh
+  xp: 150
+- ex: ex06
+  subject_id: piscine/shell01/r_dwssap.sh
+  xp: 150
+- ex: ex07
+  subject_id: piscine/shell01/add_chelou.sh
+  xp: 150

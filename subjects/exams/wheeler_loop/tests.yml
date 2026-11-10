@@ -1,0 +1,125 @@
+fixed_tests:
+- name: test_01_files
+  files:
+    a.txt: '1'
+  stdout: './a.txt
+
+    '
+- name: test_02_files
+  files:
+    b.txt: '1'
+    c.txt: '2'
+  stdout: './b.txt
+
+    ./c.txt
+
+    '
+- name: test_03_three_files
+  files:
+    p.txt: '1'
+    q.txt: '2'
+    r.txt: '3'
+  stdout: './p.txt
+
+    ./q.txt
+
+    ./r.txt
+
+    '
+- name: test_04_prefixed_files
+  files:
+    01_a: x
+    02_b: y
+  stdout: './01_a
+
+    ./02_b
+
+    '
+- name: test_05_four_files
+  files:
+    1.txt: a
+    2.txt: b
+    3.txt: c
+    4.txt: d
+  tier: baseline
+  stdout: './1.txt
+
+    ./2.txt
+
+    ./3.txt
+
+    ./4.txt
+
+    '
+- name: test_06_uppercase_names
+  files:
+    ALPHA: '1'
+    BETA: '2'
+  tier: baseline
+  stdout: './ALPHA
+
+    ./BETA
+
+    '
+- name: test_07_underscore_names
+  files:
+    ft_a.c: '1'
+    ft_b.c: '2'
+    ft_c.c: '3'
+  tier: baseline
+  stdout: './ft_a.c
+
+    ./ft_b.c
+
+    ./ft_c.c
+
+    '
+- name: test_08_single_char_names
+  files:
+    x: '1'
+    y: '2'
+    z: '3'
+  tier: edge
+  stdout: './x
+
+    ./y
+
+    ./z
+
+    '
+- name: test_09_extensions_mix
+  files:
+    a.h: '1'
+    b.c: '2'
+    c.sh: '3'
+  tier: baseline
+  stdout: './a.h
+
+    ./b.c
+
+    ./c.sh
+
+    '
+- name: test_10_five_files
+  files:
+    f1: '1'
+    f2: '2'
+    f3: '3'
+    f4: '4'
+    f5: '5'
+  tier: stress
+  stdout: './f1
+
+    ./f2
+
+    ./f3
+
+    ./f4
+
+    ./f5
+
+    '
+subject_id: wheeler_loop
+subject_examples: []
+folder_examples: []
+near_examples: []

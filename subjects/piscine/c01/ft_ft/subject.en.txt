@@ -1,0 +1,36 @@
+======================================ft_ft.txt=========================================
+Assignment name  : ft_ft
+Expected files   : ft_ft.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Create a function that takes a pointer to int as a parameter , and sets the values '42' to that int
+
+Here is how it should be prototyped
+
+void ft_ft(int *nbr)
+==========================================================================================
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : int x = 0; ft_ft(&x); printf("%d\n", x)
+    Expected Output   : '42\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: overwrite_zero [Test description: "overwrite_zero"]
+    Call / Invocation : int x = 0; ft_ft(&x); printf("%d\n", x)
+    Expected Output   : '42\n'
+  [Edge Case 2] Name: overwrite_negative [Test description: "overwrite_negative"]
+    Call / Invocation : int x = -999; ft_ft(&x); printf("%d\n", x)
+    Expected Output   : '42\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: ft_ft_oracle_stress
+    C Source Driver:
+    int main(void)
+    {
+        int n = -123;
+        ft_ft(&n);
+        if (n != 42) { fprintf(stderr, "ft_ft did not write 42\n"); return (1); }
+        return (0);
+    }

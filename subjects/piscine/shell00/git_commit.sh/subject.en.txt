@@ -1,0 +1,41 @@
+Assignment name  : git_commit.sh
+Turn-in directory: ex05/
+Expected files   : git_commit.sh
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+GiT commit?
+Turn-in directory: ex05/
+Files to turn in: git_commit.sh
+Allowed functions: None
+• Create a shell script that displays the ids of the last 5 commits in your git repository.
+%> bash git_commit.sh | cat -e
+baa23b54f0adb7bf42623d6d0a6ed4587e11412a$
+2f52d74b1387fa80eea844969e8dc5483b531ac1$
+905f53d98656771334f53f59bb984fc29774701f$
+5ddc8474f4f15b3fcb72d08fcb333e19c3a27078$
+e94d0b448c03ec633f16d84d63beaef9ae7e7be8$
+%>
+• Your script will be tested in our own environment.
+• RTFM!
+• The first retry delay is short, trigger an intermediate
+evaluation to track your progress!
+Milestone Achieved, Keep Going!
+You’ve completed the mandatory exercises for this project. Now, you have a choice:
+• Continue with theoptional exercisesto explore more.
+• Move on to yournext project.
+Both paths will introduce you to useful concepts. Consider the following before making
+your decision:
+• Your first exam, as well as the end-of-week rush, will focus on C programming. It
+might therefore be useful to gain experience in this field beforehand. (You’ll learn
+more about the rush soon).
+• Your performance in this Piscine is evaluated on multiple factors:
+◦ Project completion is one aspect.
+◦ Overall progress through the full list of Piscine projects is another. Choose
+wisely to maximize your results.
+• You can retry the same project in a few days or weeks until the end of the Piscine.
+• Staying in sync with your peers promotes better collaboration.
+
+Examples:
+$> ./git_commit.sh | cat -e
+$

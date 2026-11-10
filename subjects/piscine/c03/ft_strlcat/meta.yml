@@ -1,0 +1,13 @@
+id: ft_strlcat
+type: c_function
+module: C 03
+xp: 165
+expected_files:
+- ft_strlcat.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: unsigned int ft_strlcat(char *dest, char *src, unsigned int size);

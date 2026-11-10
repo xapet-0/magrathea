@@ -1,0 +1,7 @@
+# Examples for micro_marvin (from official subject specification)
+
+Examples:
+$> ./micro_marvin.sh len "hello"
+5
+$> ./micro_marvin.sh rev "abc"
+cba

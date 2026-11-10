@@ -1,0 +1,9 @@
+# Examples for exit_truth (from official subject specification)
+
+Examples:
+$> sh exit_truth.sh "42" | cat -e
+$
+$> sh exit_truth.sh "0" | cat -e
+$
+$> sh exit_truth.sh "1337" | cat -e
+$

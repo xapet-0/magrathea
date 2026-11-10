@@ -1,0 +1,133 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `longest_sequence`
+  input: longest_sequence(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `longest_sequence`
+  input: Input with no valid solution or containing duplicate values in longest_sequence
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `longest_sequence`
+  input: Run longest_sequence with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `longest_sequence`
+  input: Inspect sequence of traversed or printed nodes in longest_sequence
+  expected: Exact match with standard traversal order required in subject
+fixed_tests:
+- name: test_01_NULL
+  expr: longest_sequence(NULL)
+  stdout: '0
+
+    '
+- name: test_02_a
+  expr: longest_sequence(&a)
+  setup:
+  - struct s_node a={10,0,0}
+  stdout: '1
+
+    '
+- name: test_03_a
+  expr: longest_sequence(&a)
+  setup:
+  - struct s_node c={7,0,0}, b={6,&c,0}, a={5,&b,0}
+  stdout: '3
+
+    '
+- name: test_04_a
+  expr: longest_sequence(&a)
+  setup:
+  - struct s_node b={10,0,0}, a={5,&b,0}
+  stdout: '1
+
+    '
+- name: test_05_right_branch_longer
+  setup:
+  - struct s_node r3={13,0,0}, r2={12,0,&r3}, r1={11,0,&r2}, l1={20,0,0}, root={10,&l1,&r1};
+  expr: longest_sequence(&root)
+  tier: baseline
+  stdout: '4
+
+    '
+- name: test_06_decreasing_values_not_counted
+  setup:
+  - struct s_node c={3,0,0}, b={4,&c,0}, a={5,&b,0};
+  expr: longest_sequence(&a)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_equal_values_not_consecutive
+  setup:
+  - struct s_node c={5,0,0}, b={5,&c,0}, a={5,&b,0};
+  expr: longest_sequence(&a)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_sequence_starts_below_root
+  setup:
+  - struct s_node d={4,0,0}, c={3,&d,0}, b={2,&c,0}, a={100,&b,0};
+  expr: longest_sequence(&a)
+  tier: edge
+  stdout: '3
+
+    '
+- name: test_09_negative_consecutive
+  setup:
+  - struct s_node c={-1,0,0}, b={-2,&c,0}, a={-3,&b,0};
+  expr: longest_sequence(&a)
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_10_length_5_zigzag
+  setup:
+  - struct s_node n5={5,0,0}, n4={4,&n5,0}, n3={3,0,&n4}, n2={2,&n3,0}, n1={1,0,&n2};
+  expr: longest_sequence(&n1)
+  tier: stress
+  stdout: '5
+
+    '
+folder_examples:
+- expected: Zero assertion failures (exit code 0)
+  id: can_longest_sequence_T04
+  input: Compiled and run with longest_sequence_MAIN.c
+  origin: subject_folder/longest_sequence_MAIN.c
+- expected: "struct s_node\n{\n\tint value;\n\tstruct s_node *left;\n\tstruct s_node\
+    \ *right;\n};\n\nint longest_sequence_h(struct s_node *node, int s)\n{\n\tif (!node)\n\
+    \t\treturn 0;\n\tif (!"
+  id: folder_fixture_02
+  input: longest_sequence_MAIN.c
+  origin: subject_folder/longest_sequence_MAIN.c
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval longest_sequence
+  perturbed_input:
+  - longest_sequence_near_arg_1
+  - longest_sequence_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_longest_sequence_T04
+  id: near_folder_01_boundary_neighbor
+  original_input: Compiled and run with longest_sequence_MAIN.c
+  perturbed_input: Dompiled and run with longest_sequence_M
+  strategy: Neighbouring perturbation of folder example (subject_folder/longest_sequence_MAIN.c)
+- derived_from: folder_fixture_02
+  id: near_folder_02_boundary_neighbor
+  original_input: longest_sequence_MAIN.c
+  perturbed_input: mongest_sequence_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/longest_sequence_MAIN.c)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval longest_sequence
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

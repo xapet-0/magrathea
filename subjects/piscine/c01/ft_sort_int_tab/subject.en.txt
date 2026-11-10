@@ -1,0 +1,18 @@
+Assignment name  : ft_sort_int_tab
+Turn-in directory: ex08/
+Expected files   : ft_sort_int_tab.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function that sorts an array of integers in ascending order.
+• The function takes two arguments: a pointer to an int and the number of elements
+in the array.
+• The function should be prototyped as follows:
+void ft_sort_int_tab(int *tab, int size);
+
+Your function must be declared as follows:
+    void ft_sort_int_tab(int *tab, int size);
+
+Examples:
+    int t[] = {5,3,1,4,2}; ft_sort_int_tab(t, 5); for(int i=0;i<5;i++) printf("%d ", t[i]); printf("\n")
+    Output: 1 2 3 4 5

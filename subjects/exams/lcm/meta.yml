@@ -1,0 +1,13 @@
+id: lcm
+type: c_function
+module: Exam Rank 02
+xp: 430
+expected_files:
+- lcm.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: unsigned int lcm(unsigned int a, unsigned int b);

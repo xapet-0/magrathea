@@ -1,0 +1,63 @@
+fixed_tests:
+- call: char *p=ft_strchr("hello", 'l'); printf("%s\n", p)
+  name: cur_ft_strchr_T01
+  stdout: 'llo
+
+    '
+- call: printf("%p\n", (void*)ft_strchr("hello", 'z'))
+  name: cur_ft_strchr_T02
+  stdout: '(nil)
+
+    '
+- call: char *p=ft_strchr("hello", 0); printf("%d\n", p != NULL && *p == 0)
+  name: ft_strchr_null_terminator
+  stdout: '1
+
+    '
+- call: char *p=ft_strchr("42 school", '4'); printf("%s\n", p)
+  name: ft_strchr_first_char
+  stdout: '42 school
+
+    '
+- name: test_05_last_char
+  call: char *p=ft_strchr("abcdef", 'f'); printf("%s\n", p)
+  tier: edge
+  stdout: 'f
+
+    '
+- name: test_06_first_of_duplicates
+  call: const char *s="abacaba"; char *p=ft_strchr(s, 'a'); printf("%ld\n", (long)(p
+    - s))
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_empty_string_miss
+  call: printf("%d\n", ft_strchr("", 'a') == NULL)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_empty_string_nul
+  call: const char *s=""; char *p=ft_strchr(s, 0); printf("%d\n", p == s)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_not_found_char
+  call: 'const char *s="abc"; char *p=ft_strchr(s, ''z''); printf("%s\n", p ? p :
+    "NULL")'
+  tier: edge
+  stdout: 'NULL
+
+    '
+- name: test_10_special_chars
+  call: char *p=ft_strchr("foo\tbar\nbaz", '\n'); printf("%s", p)
+  tier: stress
+  stdout: '
+
+    baz'
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

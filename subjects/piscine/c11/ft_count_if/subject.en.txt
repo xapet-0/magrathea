@@ -1,0 +1,24 @@
+Assignment name  : ft_count_if
+Expected files   : ft_count_if.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 11 (Official PDF)
+Exercise         : ft_count_if
+Turn-in directory: ex03/
+Expected files   : ft_count_if.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function ft_count_if, which returns the number of elements in the array
+for which the function f does not return 0.
+• This function will be applied in the order of the array.
+• Here is how the function should be prototyped:
+int ft_count_if(char **tab, int length, int(*f)(char*));
+
+Your function must be declared as follows:
+    int ft_count_if(char **tab, int length, int (*f)(char *));
+
+Examples:
+    char *a[]={"a","bb","c"}; printf("%d\n",ft_count_if(a,3,dt_is_short))
+    Output: 2

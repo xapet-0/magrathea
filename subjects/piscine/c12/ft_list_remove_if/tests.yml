@@ -1,0 +1,118 @@
+fixed_tests:
+- call: printf("%s|%d\n", (char *)head->data, head->next == NULL); free(head->data);
+    free(head);
+  name: pool_ft_list_remove_if_T01
+  setup:
+  - t_list *head = ft_create_elem(strdup("rm"));
+  - head->next = ft_create_elem(strdup("keep"));
+  - ft_list_remove_if(&head, "rm", dt_cmp, free);
+  stdout: 'keep|1
+
+    '
+- call: ft_list_remove_if(NULL, "x", dt_cmp, free); t_list *empty=NULL; ft_list_remove_if(&empty,
+    "x", dt_cmp, free); printf("NULL_OK\n");
+  name: ft_list_remove_if_null_head
+  stdout: 'NULL_OK
+
+    '
+- call: 'printf("%s\n", head == NULL ? "ALL_REMOVED" : "FAIL");'
+  name: ft_list_remove_if_all_matching
+  setup:
+  - t_list *head = ft_create_elem(strdup("x"));
+  - head->next = ft_create_elem(strdup("x"));
+  - ft_list_remove_if(&head, "x", dt_cmp, free);
+  stdout: 'ALL_REMOVED
+
+    '
+- call: while(a){ printf("%s,", (char *)a->data); free(a->data); t_list *nx = a->next;
+    free(a); a = nx; } printf("\n");
+  name: ft_list_remove_if_middle_and_tail
+  setup:
+  - t_list *a = ft_create_elem(strdup("k1"));
+  - t_list *b = ft_create_elem(strdup("rm"));
+  - t_list *c = ft_create_elem(strdup("k2"));
+  - t_list *d = ft_create_elem(strdup("rm"));
+  - a->next = b; b->next = c; c->next = d;
+  - ft_list_remove_if(&a, "rm", dt_cmp, free);
+  stdout: 'k1,k2,
+
+    '
+- name: test_05_no_match_keeps_all
+  setup:
+  - t_list *a = ft_create_elem(strdup("1"));
+  - a->next = ft_create_elem(strdup("2"));
+  - ft_list_remove_if(&a, "9", dt_cmp, free);
+  call: while(a){ printf("%s,", (char *)a->data); free(a->data); t_list *nx = a->next;
+    free(a); a = nx; } printf("\n");
+  tier: baseline
+  stdout: '1,2,
+
+    '
+- name: test_06_consecutive_head_matches
+  setup:
+  - t_list *a = ft_create_elem(strdup("rm"));
+  - t_list *b = ft_create_elem(strdup("rm"));
+  - t_list *c = ft_create_elem(strdup("ok"));
+  - a->next = b; b->next = c;
+  - ft_list_remove_if(&a, "rm", dt_cmp, free);
+  call: while(a){ printf("%s,", (char *)a->data); free(a->data); t_list *nx = a->next;
+    free(a); a = nx; } printf("\n");
+  tier: edge
+  stdout: 'ok,
+
+    '
+- name: test_07_consecutive_middle_matches
+  setup:
+  - t_list *a = ft_create_elem(strdup("1"));
+  - t_list *b = ft_create_elem(strdup("rm"));
+  - t_list *c = ft_create_elem(strdup("rm"));
+  - t_list *d = ft_create_elem(strdup("2"));
+  - a->next = b; b->next = c; c->next = d;
+  - ft_list_remove_if(&a, "rm", dt_cmp, free);
+  call: while(a){ printf("%s,", (char *)a->data); free(a->data); t_list *nx = a->next;
+    free(a); a = nx; } printf("\n");
+  tier: edge
+  stdout: '1,2,
+
+    '
+- name: test_08_consecutive_tail_matches
+  setup:
+  - t_list *a = ft_create_elem(strdup("keep"));
+  - t_list *b = ft_create_elem(strdup("rm"));
+  - t_list *c = ft_create_elem(strdup("rm"));
+  - a->next = b; b->next = c;
+  - ft_list_remove_if(&a, "rm", dt_cmp, free);
+  call: while(a){ printf("%s,", (char *)a->data); free(a->data); t_list *nx = a->next;
+    free(a); a = nx; } printf("\n");
+  tier: edge
+  stdout: 'keep,
+
+    '
+- name: test_09_single_node_removed
+  setup:
+  - t_list *a = ft_create_elem(strdup("rm"));
+  - ft_list_remove_if(&a, "rm", dt_cmp, free);
+  call: printf("%d\n", a == NULL);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_10_alternating_five_nodes
+  setup:
+  - t_list *n1 = ft_create_elem(strdup("rm"));
+  - t_list *n2 = ft_create_elem(strdup("A"));
+  - t_list *n3 = ft_create_elem(strdup("rm"));
+  - t_list *n4 = ft_create_elem(strdup("B"));
+  - t_list *n5 = ft_create_elem(strdup("rm"));
+  - n1->next=n2; n2->next=n3; n3->next=n4; n4->next=n5;
+  - ft_list_remove_if(&n1, "rm", dt_cmp, free);
+  call: while(n1){ printf("%s,", (char *)n1->data); free(n1->data); t_list *nx = n1->next;
+    free(n1); n1 = nx; } printf("\n");
+  tier: stress
+  stdout: 'A,B,
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

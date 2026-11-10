@@ -1,0 +1,16 @@
+id: cpp_module_00
+type: cpp
+module: Exam Rank 05
+xp: 670
+expected_files:
+- Warlock.cpp
+- Warlock.hpp
+allowed_functions:
+- new
+- delete
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: class Cpp_module_00 { ... };

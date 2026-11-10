@@ -1,0 +1,14 @@
+id: matrix_trans
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- matrix_trans.sh
+allowed_functions:
+- awk
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh matrix_trans.sh [args...]

@@ -1,0 +1,26 @@
+Assignment name  : c01_ft_putstr
+Turn-in directory: ex05/
+Expected files   : ft_putstr.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+ft_putstr
+Turn-in directory: ex05/
+Files to turn in: ft_putstr.c
+Allowed functions: write
+• Create a function that displays a string of characters on the standard output.
+• The function should be prototyped as follows:
+void ft_putstr(char *str);
+
+Your function must be declared as follows:
+    void ft_putstr(char *str);
+
+Examples:
+    ft_putstr("Hello World")
+    Output: Hello World
+    ft_putstr("")
+    Output: 
+    ft_putstr("")
+    Output: 
+    ft_putstr("42 school")
+    Output: 42 school

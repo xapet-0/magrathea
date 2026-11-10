@@ -1,0 +1,88 @@
+name: c_piscine_exam_02
+display_name: "42 / 1337 C Piscine \u2014 Exam 02 (Advanced)"
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 12
+  candidates:
+  - camel_to_snake
+  - ft_strcmp
+  - ft_strcspn
+  - ft_strpbrk
+  - ft_strrev
+  - is_power_of_2
+  - print_bits
+- level: 1
+  points: 12
+  candidates:
+  - reverse_bits
+  - snake_to_camel
+  - swap_bits
+  - is_separator
+  - is_vowel
+  - largest_number
+  - lengthOfLongestSubstring
+- level: 2
+  points: 12
+  candidates:
+  - length_words
+  - longest_subarray
+  - longest_word
+  - moment
+  - mult_complex
+  - naahio
+  - next_character
+- level: 3
+  points: 12
+  candidates:
+  - nth_char
+  - nth_remove
+  - nth_reverse
+  - occ_a
+  - occ_a_sh
+  - occ_z
+  - odd
+- level: 4
+  points: 13
+  candidates:
+  - only_digits_sh
+  - only_sh
+  - operations
+  - options
+  - ord_alphlong
+  - orderWeight
+  - palindrome_sh
+- level: 5
+  points: 13
+  candidates:
+  - perm_setup
+  - ping_pong
+  - pingpong
+  - prev_character
+  - print_bits_rev
+  - print_doublon
+  - print_even
+- level: 6
+  points: 13
+  candidates:
+  - print_interval
+  - print_nth_char
+  - print_odd
+  - range_comb
+  - rectangle_area
+  - rectangle_perimeter
+  - remove_duplicate
+- level: 7
+  points: 13
+  candidates:
+  - remove_vowels
+  - rev_str_sh
+  - reverse_case
+  - rle
+  - rle_decode
+  - rle_sh
+  - rot_42
+pool_group: piscine
+rank_order: 6
+prerequisites:
+- c_piscine_exam_01

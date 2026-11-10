@@ -1,0 +1,31 @@
+======================================occ_z.txt=========================================
+Assignment name  : occ_z
+Expected files   : occ_z.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that takes a string and return how many times it incounters 'Z'
+
+The function should be declared as follows
+
+int occ_z(char *str);
+==========================================================================================
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : occ_z("ZAZ_zaz_ZZ")
+    Expected Output   : '4\n'
+  [Standard Test 2] Name: test
+    Call / Invocation : occ_z("zzz")
+    Expected Output   : '0\n'
+  [Standard Test 3] Name: test
+    Call / Invocation : occ_z("Z")
+    Expected Output   : '1\n'
+  [Standard Test 4] Name: test
+    Call / Invocation : occ_z("ZZZZ")
+    Expected Output   : '4\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Call / Invocation : occ_z("")
+    Expected Output   : '0\n'

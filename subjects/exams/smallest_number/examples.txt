@@ -1,0 +1,6 @@
+# Examples for smallest_number (from official subject specification)
+
+Example:
+
+    $> smallest_number(3, 14 ,96) = 3
+    $> smallest_number(63, 14, 16) = 14

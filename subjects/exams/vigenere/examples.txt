@@ -1,0 +1,9 @@
+Examples:
+$> ./vigenere "hello" "abc"
+hfnlp
+$> ./vigenere "Hello World!" "abc"
+Hfnlp Yosnd!
+$> ./vigenere "A-B-C" "bc"
+B-D-D
+$> ./vigenere "attack at dawn!" "lemon"
+lxfopv ef rnhr!

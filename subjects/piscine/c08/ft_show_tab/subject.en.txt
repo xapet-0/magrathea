@@ -1,0 +1,61 @@
+Assignment name  : ft_show_tab
+Expected files   : ft_show_tab.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 08 (Official PDF)
+Exercise         : ft_show_tab
+Turn-in directory: ex05/
+Expected files   : ft_show_tab.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+• Create a function that displays the content of the array created by the previous
+function.
+• Here’s how it should be prototyped:
+void ft_show_tab(struct s_stock_str *par);
+• The structure will be the same as the previous exercise and will be defined in the
+ft_stock_str.h file
+• For each element, we’ll display:
+◦ the string followed by a ’\n’
+◦ the size followed by a ’\n’
+◦ the copy of the string (that could have been modified) followed by a ’\n’
+• We’ll test your function with ourft_strs_to_tab (previous exercise). Make it
+work according to this !
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : struct s_stock_str t[2]; t[0].size=2; t[0].str="ab"; t[0].copy="ab"; t[1].str=0; ft_show_tab(t)
+    Expected Output   : 'ab\n2\nab\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: case_ft_show_tab_two_entries [Test description: "case_ft_show_tab_two_entries"]
+    Call / Invocation : struct s_stock_str t[3]; t[0].size=3; t[0].str="abc"; t[0].copy="abc"; t[1].size=1; t[1].str="Z"; t[1].copy="Z"; t[2].str=0; ft_show_tab(t)
+    Expected Output   : 'abc\n3\nabc\nZ\n1\nZ\n'
+  [Edge Case 2] Name: edge_ft_show_tab_edges_duplicate_edges [Test description: "edge_ft_show_tab_edges_duplicate_edges"]
+    Call / Invocation : struct s_stock_str t[4]; t[0].size=1; t[0].str=" "; t[0].copy=" "; t[1].size=0; t[1].str=""; t[1].copy=""; t[2].size=1; t[2].str=" "; t[2].copy=" "; t[3].str=0; ft_show_tab(t)
+    Expected Output   : ' \n1\n \n\n0\n\n \n1\n \n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: ft_show_tab_oracle_stress
+    C Source Driver:
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include "ft_stock_str.h"
+    
+    void ft_show_tab(struct s_stock_str *par);
+    
+    int main(void)
+    {
+        struct s_stock_str empty_tab[1];
+        empty_tab[0].str = 0;
+        ft_show_tab(empty_tab);
+        
+        struct s_stock_str tab[3];
+        tab[0].size = 0; tab[0].str = ""; tab[0].copy = "";
+        tab[1].size = 4; tab[1].str = "test"; tab[1].copy = "test";
+        tab[2].str = 0;
+        
+        ft_show_tab(tab);
+        return 0;
+    }

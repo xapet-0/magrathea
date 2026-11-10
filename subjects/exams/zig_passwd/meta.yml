@@ -1,0 +1,21 @@
+id: zig_passwd
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- zig_passwd.sh
+allowed_functions:
+- grep
+- awk
+- cut
+- rev
+- sort
+- paste
+- sed
+- tr
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh zig_passwd.sh [args...]

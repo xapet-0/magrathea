@@ -1,0 +1,14 @@
+id: base16
+type: c_program
+module: Piscine Exams 00–Final
+xp: 295
+expected_files:
+- base16.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

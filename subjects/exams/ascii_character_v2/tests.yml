@@ -1,0 +1,198 @@
+mode: c_program
+fixed_tests:
+- name: cur_ascii_character_v2_T01
+  description: 'Functional verification of input: `[''A'']`'
+  args:
+  - A
+  expected: '65
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ascii_character_v2_T02
+  description: 'Functional verification of input: `[''z'']`'
+  args:
+  - z
+  expected: '122
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ascii_character_v2_T03
+  description: 'Functional verification of input: `[''0'']`'
+  args:
+  - '0'
+  expected: '48
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ascii_character_v2_T04
+  description: 'Functional verification of input: `['''']`'
+  args:
+  - ''
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ascii_character_v2_T05
+  description: Standard baseline execution and behavior check for `ascii_character_v2`
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+- name: test_07_arg_auto
+  args:
+  - ''
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '42'
+  - '1337'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - pad
+  - test
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '!@#$'
+  - '%^&*'
+  tier: baseline
+  stdout: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./ascii_character_v2 "A" | cat -e
+  args: &id001
+  - A
+  expected: '65
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./ascii_character_v2 "z" | cat -e
+  args: &id002
+  - z
+  expected: '122
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./ascii_character_v2 "0" | cat -e
+  args: &id003
+  - '0'
+  expected: '48
+
+    '
+  cat_e: true
+folder_examples:
+- id: cur_ascii_character_v2_T06
+  origin: subject_folder/deepthought/corrections/exams/ascii_character_v2/generator.py
+  input: Dynamic generation rule via random_character()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ascii_character_v2_T07
+  origin: subject_folder/deepthought/corrections/exams/ascii_character_v2/generator.py
+  input: Dynamic generation rule via empty_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ascii_character_v2_T08
+  origin: subject_folder/deepthought/corrections/exams/ascii_character_v2/generator.py
+  input: Dynamic generation rule via multiple_arguments_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - B
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  A  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - z!
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  z  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - '1'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  0  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ascii_character_v2_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ascii_character_v2/generator.py)
+  original_input: Dynamic generation rule via random_character()
+  perturbed_input: Eynamic generation rule via random_chara
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ascii_character_v2_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ascii_character_v2/generator.py)
+  original_input: Dynamic generation rule via empty_test()
+  perturbed_input: Eynamic generation rule via empty_test()
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and non-printable characters in `ascii_character_v2`
+  input: "ascii_character_v2(\"\") and ascii_character_v2(\"\t\n\x01\x1F\")"
+  expected: Preserve non-alphabetic characters unmodified
+- name: edge_02_B
+  code: '[B]'
+  title: Argument count verification (argc != 2) in `ascii_character_v2`
+  input: Execute ascii_character_v2 with 0 arguments and with > 1 argument
+  expected: Print newline only
+- name: edge_03_D
+  code: '[D]'
+  title: Idempotence and involution property check for `ascii_character_v2`
+  input: 'Apply transformation twice: ascii_character_v2(ascii_character_v2(s))'
+  expected: Valid transformation output matching mathematical cipher cycle
+- name: edge_04_B
+  code: '[B]'
+  title: Boundary alphabetic letters ('a', 'z', 'A', 'Z') in `ascii_character_v2`
+  input: ascii_character_v2("a z A Z")
+  expected: Accurate wraparound without overflowing outside alphabet bounds

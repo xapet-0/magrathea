@@ -1,0 +1,9 @@
+Examples:
+$> ./operations "40" "+" "2" | cat -e
+42$
+$> ./operations "50" "-" "8" | cat -e
+42$
+$> ./operations "6" "*" "7" | cat -e
+42$
+$> ./operations | cat -e
+$

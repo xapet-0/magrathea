@@ -1,0 +1,91 @@
+fixed_tests:
+- call: printf("%s\n", str);
+  name: fix_loop_fill_7_hashes
+  setup:
+  - char str[32] = "Welcome to 1337";
+  - ft_function(str, 35, 7);
+  stdout: '####### to 1337
+
+    '
+- call: printf("%s\n", str);
+  name: fix_loop_fill_3_X
+  setup:
+  - char str[8] = "abcdef";
+  - ft_function(str, 88, 3);
+  stdout: 'XXXdef
+
+    '
+- call: printf("%s\n", str);
+  name: fix_loop_fill_0_chars
+  setup:
+  - char str[8] = "abcdef";
+  - ft_function(str, 90, 0);
+  stdout: 'abcdef
+
+    '
+- call: printf("%s\n", str);
+  name: fix_loop_fill_full_buffer
+  setup:
+  - char str[6] = "hello";
+  - ft_function(str, 90, 5);
+  stdout: 'ZZZZZ
+
+    '
+- name: test_05_fill_1_char
+  setup:
+  - char str[8] = "abcdef";
+  - ft_function(str, 65, 1);
+  call: printf("%s\n", str);
+  tier: edge
+  stdout: 'Abcdef
+
+    '
+- name: test_06_fill_digits
+  setup:
+  - char str[10] = "123456789";
+  - ft_function(str, 48, 4);
+  call: printf("%s\n", str);
+  tier: baseline
+  stdout: '000056789
+
+    '
+- name: test_07_fill_dash
+  setup:
+  - char str[12] = "hello_world";
+  - ft_function(str, 45, 5);
+  call: printf("%s\n", str);
+  tier: baseline
+  stdout: '-----_world
+
+    '
+- name: test_08_fill_underscore
+  setup:
+  - char str[8] = "1337_42";
+  - ft_function(str, 95, 2);
+  call: printf("%s\n", str);
+  tier: baseline
+  stdout: '__37_42
+
+    '
+- name: test_09_fill_all_but_last
+  setup:
+  - char str[6] = "abcde";
+  - ft_function(str, 42, 4);
+  call: printf("%s\n", str);
+  tier: edge
+  stdout: '****e
+
+    '
+- name: test_10_fill_ten_bytes
+  setup:
+  - char str[16] = "0123456789abcdef";
+  - ft_function(str, 120, 10);
+  call: printf("%s\n", str);
+  tier: stress
+  stdout: 'xxxxxxxxxxabcdef
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

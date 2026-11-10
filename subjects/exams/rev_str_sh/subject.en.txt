@@ -1,0 +1,19 @@
+Assignment name  : rev_str_sh
+Expected files   : rev_str_sh.sh
+Allowed commands : printf, rev
+--------------------------------------------------------------------------------
+
+Write a shell script that reverses the string stored in the environment
+variable FT_LINE and prints it followed by a newline.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> FT_LINE="Hello" sh rev_str_sh.sh | cat -e
+olleH$
+$> FT_LINE="1337" sh rev_str_sh.sh | cat -e
+7331$
+$> FT_LINE="a" sh rev_str_sh.sh | cat -e
+a$

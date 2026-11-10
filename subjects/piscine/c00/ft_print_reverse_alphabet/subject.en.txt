@@ -1,0 +1,28 @@
+Assignment name  : ft_print_reverse_alphabet
+Expected files   : ft_print_reverse_alphabet.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 00 (Official PDF)
+Exercise         : ft_print_reverse_alphabet
+Turn-in directory: ex02/
+Expected files   : ft_print_reverse_alphabet.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+• Create a function that displays the alphabet in lowercase, on a single line, in de-
+scending order, starting from the letter ’z’.
+• The function should be prototyped as follows:
+void ft_print_reverse_alphabet(void);
+Push your code to Git regularly!
+
+Your function must be declared as follows:
+    void ft_print_reverse_alphabet(void);
+
+Examples:
+    ft_print_reverse_alphabet()
+    Output: zyxwvutsrqponmlkjihgfedcba
+    ft_print_reverse_alphabet(); write(1, "\n", 1)
+    Output: zyxwvutsrqponmlkjihgfedcba
+    ft_print_reverse_alphabet(); ft_print_reverse_alphabet(); write(1, "\n", 1)
+    Output: zyxwvutsrqponmlkjihgfedcbazyxwvutsrqponmlkjihgfedcba

@@ -1,0 +1,99 @@
+fixed_tests:
+- name: test_01_expr
+  expr: is_separator(' ')
+  stdout: '1
+
+    '
+  tier: baseline
+- name: test_02_t
+  expr: is_separator('\t')
+  stdout: '1
+
+    '
+  tier: baseline
+- name: test_03_n
+  expr: is_separator('\n')
+  stdout: '1
+
+    '
+  tier: baseline
+- name: test_04_a
+  expr: is_separator('a')
+  stdout: '0
+
+    '
+  tier: baseline
+- name: test_05_0
+  expr: is_separator('0')
+  stdout: '0
+
+    '
+  tier: baseline
+- name: test_06_nul_byte
+  expr: is_separator(0)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_vertical_tab_or_cr
+  expr: is_separator('Z')
+  tier: baseline
+  stdout: '0
+
+    '
+- name: test_08_underscore
+  expr: is_separator('_')
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_exclamation
+  expr: is_separator('!')
+  tier: baseline
+  stdout: '0
+
+    '
+- name: test_10_space_plus_tab
+  expr: is_separator(' ') + is_separator('\t') + is_separator('\n')
+  tier: stress
+  stdout: '3
+
+    '
+subject_id: is_separator
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval is_separator
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: e1337_is_separator_T06
+  origin: subject_folder/examples.txt
+  input: is_separator(' ') -> 1
+  expected: is_separator('\t') -> 1\n    is_separator('\n') -> 1
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- expr: is_separator(' ')\n  stdout: '1\n\n    '\n- expr:\
+    \ is_separator('\\t')\n  stdout: '1\n\n    '\n- expr: is_separator('\\n')\n  stdout:\
+    \ '1\n\n    '\n- expr:"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval is_separator
+  perturbed_input:
+  - is_separator_near_arg_1
+  - is_separator_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_is_separator_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: is_separator(' ') -> 1
+  perturbed_input: js_separator(' ') -> 1
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

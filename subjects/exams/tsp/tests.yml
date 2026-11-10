@@ -1,0 +1,139 @@
+fixed_tests:
+- name: unit_square
+  args: []
+  stdin: '0.0, 0.0
+
+    0.0, 1.0
+
+    1.0, 1.0
+
+    1.0, 0.0
+
+    '
+  stdout: '4.00
+
+    '
+- name: scaled_square
+  args: []
+  stdin: '0.0, 0.0
+
+    0.0, 2.0
+
+    2.0, 2.0
+
+    2.0, 0.0
+
+    '
+  stdout: '8.00
+
+    '
+- name: two_points
+  args: []
+  stdin: '0.0, 0.0
+
+    3.0, 4.0
+
+    '
+  stdout: '10.00
+
+    '
+- name: single_point
+  args: []
+  stdin: '0.0, 0.0
+
+    '
+  stdout: '0.00
+
+    '
+- name: test_05_collinear_three_points
+  args: []
+  stdin: '0.0, 0.0
+
+    1.0, 0.0
+
+    3.0, 0.0
+
+    '
+  tier: edge
+  stdout: '6.00
+
+    '
+- name: test_06_right_triangle_3_4_5
+  args: []
+  stdin: '0.0, 0.0
+
+    3.0, 0.0
+
+    0.0, 4.0
+
+    '
+  tier: baseline
+  stdout: '12.00
+
+    '
+- name: test_07_rectangle_3_by_1
+  args: []
+  stdin: '0.0, 0.0
+
+    3.0, 0.0
+
+    3.0, 1.0
+
+    0.0, 1.0
+
+    '
+  tier: baseline
+  stdout: '8.00
+
+    '
+- name: test_08_permuted_unit_square
+  args: []
+  stdin: '0.0, 0.0
+
+    1.0, 1.0
+
+    0.0, 1.0
+
+    1.0, 0.0
+
+    '
+  tier: edge
+  stdout: '4.00
+
+    '
+- name: test_09_negative_coordinates
+  args: []
+  stdin: '-1.0, -1.0
+
+    -1.0, 1.0
+
+    1.0, 1.0
+
+    1.0, -1.0
+
+    '
+  tier: edge
+  stdout: '8.00
+
+    '
+- name: test_10_five_points_pentagon
+  args: []
+  stdin: '0.0, 0.0
+
+    2.0, 0.0
+
+    2.0, 2.0
+
+    1.0, 3.0
+
+    0.0, 2.0
+
+    '
+  tier: stress
+  stdout: '8.83
+
+    '
+subject_id: tsp
+subject_examples: []
+folder_examples: []
+near_examples: []

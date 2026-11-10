@@ -1,0 +1,21 @@
+Assignment name  : ft_subtract
+Expected files   : ft_subtract.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Create a function that subtracts an integer a from the integer pointed to by ptr.
+
+It must be prototyped as follows:
+
+void	ft_subtract(int a, int *ptr);
+
+Your function must be declared as follows:
+    void ft_subtract(int a, int *ptr);
+
+Examples:
+    int x = 50; ft_subtract(8, &x); printf("%d\n", x)
+    Output: 42
+    int x = 10; ft_subtract(15, &x); printf("%d\n", x)
+    Output: -5
+    int x = 0; ft_subtract(0, &x); printf("%d\n", x)
+    Output: 0

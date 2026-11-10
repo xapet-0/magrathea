@@ -1,0 +1,3 @@
+[cur_ft_mul_T01] Input: printf("%d\n", x)  ==>  Expected: 42\n
+[cur_ft_mul_T02] Input: printf("%d\n", x)  ==>  Expected: -12\n
+[cur_ft_mul_T03] Input: printf("%d\n", x)  ==>  Expected: 0\n

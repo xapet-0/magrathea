@@ -1,0 +1,186 @@
+fixed_tests:
+- name: hello_world_yes
+  args:
+  - hello_world_yes
+  stdout: 'HelloWorldYes
+
+    '
+  tier: baseline
+- name: single
+  args:
+  - piscine
+  stdout: 'Piscine
+
+    '
+  tier: baseline
+- name: empty
+  args:
+  - ''
+  stdout: '
+
+    '
+  tier: baseline
+- name: no_args
+  args: []
+  stdout: '
+
+    '
+  tier: baseline
+- name: test_05_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_06_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: "   \n"
+- name: test_07_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '1337
+
+    '
+- name: test_08_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '42Network
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: '!@#$%^&*()
+
+    '
+- name: test_10_arg_auto
+  args:
+  - a b c d e
+  tier: baseline
+  stdout: 'A b c d e
+
+    '
+subject_id: snake
+mode: c_program
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./snake "hello_world_yes" | cat -e
+  args: &id001
+  - hello_world_yes
+  expected: 'HelloWorldYes
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./snake "piscine" | cat -e
+  args: &id002
+  - piscine
+  expected: 'Piscine
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./snake "" | cat -e
+  args: &id003
+  - ''
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./snake | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_snake_T05
+  origin: subject_folder/examples.txt
+  input: ./snake "hello_world_yes" \| cat -e
+  expected: HelloWorldYes$
+- id: e1337_snake_T06
+  origin: subject_folder/examples.txt
+  input: ./snake "piscine" \| cat -e
+  expected: Piscine$
+- id: e1337_snake_T07
+  origin: subject_folder/examples.txt
+  input: ./snake "" \| cat -e
+  expected: $
+- id: e1337_snake_T08
+  origin: subject_folder/examples.txt
+  input: ./snake \| cat -e
+  expected: $
+- id: folder_fixture_05
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- name: hello_world_yes\n  args:\n  - hello_world_yes\n\
+    \  stdout: 'HelloWorldYes\n\n    '\n- name: single\n  args:\n  - piscine\n  stdout:\
+    \ 'Piscine\n\n    '\n- "
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - iello_world_yes
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  hello_world_yes  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - qiscine
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  piscine  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - ' '
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '    '
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./snake | cat -e
+  perturbed_input:
+  - snake_near_arg_1
+  - snake_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_snake_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./snake "hello_world_yes" \| cat -e
+  perturbed_input: ./tnake "hello_world_yes" \| cat -e
+- id: near_folder_02_boundary_neighbor
+  derived_from: e1337_snake_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./snake "piscine" \| cat -e
+  perturbed_input: ./tnake "piscine" \| cat -e

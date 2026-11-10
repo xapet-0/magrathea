@@ -1,0 +1,6 @@
+# Examples for quote_trap (from official subject specification)
+
+Examples:
+$> export FT_VAR="42_Piscine"
+$> ./quote_trap.sh | cat -e
+$FT_VAR = 42_Piscine$

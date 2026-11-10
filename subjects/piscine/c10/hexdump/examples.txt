@@ -1,0 +1,7 @@
+# Examples for hexdump (from official subject specification)
+
+Examples:
+$> ./hexdump "-C" "a.txt" | cat -e
+$
+$> ./hexdump "-C" "no_such_file.txt" | cat -e
+$

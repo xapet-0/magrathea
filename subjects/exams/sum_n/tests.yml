@@ -1,0 +1,141 @@
+mode: c_function
+fixed_tests:
+- name: cur_sum_n_T01
+  description: 'Functional verification of input: `sum_n(10)`'
+  expr: sum_n(10)
+  stdout: '55
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_sum_n_T02
+  description: 'Functional verification of input: `sum_n(0)`'
+  expr: sum_n(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_sum_n_T03
+  description: edge_sum_n_negative
+  expr: sum_n(-5)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_sum_n_T04_hundred
+  description: sum_1_to_100
+  expr: sum_n(100)
+  stdout: '5050
+
+    '
+  category: Functional
+  tier: edge_case
+- name: test_05_one
+  expr: sum_n(1)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_two
+  expr: sum_n(2)
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_07_five
+  expr: sum_n(5)
+  tier: baseline
+  stdout: '15
+
+    '
+- name: test_08_neg_one
+  expr: sum_n(-1)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_forty_two
+  expr: sum_n(42)
+  tier: baseline
+  stdout: '903
+
+    '
+- name: test_10_thousand
+  expr: sum_n(1000)
+  tier: stress
+  stdout: '500500
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval sum_n
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_sum_n_T04
+  origin: subject_folder/deepthought/corrections/exams/sum_n/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_sum_n_T05
+  origin: subject_folder/deepthought/corrections/exams/sum_n/generator.py
+  input: Dynamic generation rule via basic_test1()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_sum_n_T06
+  origin: subject_folder/deepthought/corrections/exams/sum_n/generator.py
+  input: Dynamic generation rule via basic_test2()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_sum_n_T07
+  origin: subject_folder/deepthought/corrections/exams/sum_n/generator.py
+  input: Dynamic generation rule via basic_test3()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_sum_n_T08
+  origin: subject_folder/deepthought/corrections/exams/sum_n/generator.py
+  input: Dynamic generation rule via valid_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_sum_n_T09
+  origin: subject_folder/deepthought/corrections/exams/sum_n/generator.py
+  input: Dynamic generation rule via multiple_arguments_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval sum_n
+  perturbed_input:
+  - sum_n_near_arg_1
+  - sum_n_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_sum_n_T04
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/sum_n/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_sum_n_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/sum_n/generator.py)
+  original_input: Dynamic generation rule via basic_test1()
+  perturbed_input: Eynamic generation rule via basic_test1(
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `sum_n`
+  input: sum_n(INT_MIN), sum_n(0), sum_n(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `sum_n`
+  input: Run sum_n with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `sum_n`
+  input: sum_n(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `sum_n`
+  input: Call sum_n on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out

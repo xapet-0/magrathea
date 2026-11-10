@@ -1,0 +1,5 @@
+# Examples for wheeler_loop (from official subject specification)
+
+Examples:
+$> sh wheeler_loop.sh | cat -e
+./a.txt$

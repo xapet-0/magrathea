@@ -1,0 +1,5 @@
+# Examples for ft_list_sort (from official subject specification)
+
+Examples:
+    t_list c={"b",0}; t_list b={"c",&c}; t_list a={"a",&b}; t_list *l=&a; ft_list_sort(&l,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n")
+    Output: abc

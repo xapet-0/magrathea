@@ -1,0 +1,13 @@
+id: ft_str_is_printable
+type: c_function
+module: C 02
+xp: 155
+expected_files:
+- ft_str_is_printable.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int ft_str_is_printable(char *str);

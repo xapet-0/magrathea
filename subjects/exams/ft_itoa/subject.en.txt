@@ -1,0 +1,18 @@
+Assignment name  : ft_itoa
+Expected files   : ft_itoa.c
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+Write a function that takes an int and converts it to a null-terminated string.
+The function returns the result in a char array that you must allocate.
+
+Your function must be declared as follows:
+
+char	*ft_itoa(int nbr);
+
+[can_ft_itoa_T01] Input: char *s=ft_itoa(-42); printf("%s\n",s); free(s)  ==>  Expected: -42\n
+[can_ft_itoa_T02] Input: Invocations: ft_itoa(n)  ==>  Expected: Differential comparison with reference implementation
+[can_ft_itoa_T03] Input: Invocations: ft_itoa(0); ft_itoa(-2147483648); ft_itoa(42) (+1 more)  ==>  Expected: Differential comparison with reference implementation
+[can_ft_itoa_T04] Input: ./ft_itoa "16"  ==>  Expected: Matches 42 reference standard output and exit code
+[can_ft_itoa_T05] Input: ./ft_itoa "-13268"  ==>  Expected: Matches 42 reference standard output and exit code
+[can_ft_itoa_T06] Input: ./ft_itoa "13268"  ==>  Expected: Matches 42 reference standard output and exit code

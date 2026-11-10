@@ -1,0 +1,27 @@
+Assignment name  : ft_recursive_factorial
+Expected files   : ft_recursive_factorial.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 05 (Official PDF)
+Exercise         : ft_recursive_factorial
+Turn-in directory: ex01/
+Expected files   : ft_recursive_factorial.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a recursive function that returns the factorial of the given parameter.
+• If the argument is not valid, the function should return 0.
+• Overflows do not need to be handled; the function’s return value will be undefined
+in such cases.
+• The function should be prototyped as follows:
+int ft_recursive_factorial(int nb);
+
+Your function must be declared as follows:
+    int ft_recursive_factorial(int nb);
+
+Examples:
+    ft_recursive_factorial(-1) -> 0
+    ft_recursive_factorial(6) -> 720
+    ft_recursive_factorial(0) -> 1
+    ft_recursive_factorial(-5) -> 0

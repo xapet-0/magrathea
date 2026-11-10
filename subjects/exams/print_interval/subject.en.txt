@@ -1,0 +1,22 @@
+Assignment name  : print_interval
+Expected files   : print_interval.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a string and displays it, replacing characters based
+on their 0-indexed position in the string:
+- Starting from position 0:
+  - If the character position is a non-null multiple of both 3 and 5, display '5'.
+  - If the character position is a non-null multiple of 3, display '5'.
+  - If the character position is a non-null multiple of 5, display '3'.
+  - Otherwise, display the character as is.
+Note: Position 0 is NOT a non-null multiple and must never be replaced.
+If the number of arguments is not 1, display only a newline.
+
+Examples:
+$> ./print_interval "abcdef" | cat -e
+abc5e3$
+$> ./print_interval "welcome to 42 school" | cat -e
+wel5o35 t5345 s5ho5l$
+$> ./print_interval | cat -e
+$

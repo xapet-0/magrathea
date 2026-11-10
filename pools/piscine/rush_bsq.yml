@@ -1,0 +1,27 @@
+id: rush_bsq
+display_name: 1337 / 42 Piscine — Rush 00–02 & BSQ
+exercises:
+- ex: ex00
+  subject_id: piscine/rush_bsq/rush00
+  xp: 505
+- ex: ex01
+  subject_id: piscine/rush_bsq/rush01
+  xp: 505
+- ex: ex02
+  subject_id: piscine/rush_bsq/rush02
+  xp: 505
+- ex: ex03
+  subject_id: piscine/rush_bsq/bsq
+  xp: 505
+- ex: ex04
+  subject_id: piscine/rush_bsq/colle02
+  xp: 505
+- ex: ex05
+  subject_id: piscine/rush_bsq/sastantua
+  xp: 490
+- ex: ex06
+  subject_id: piscine/rush_bsq/match_n_match
+  xp: 490
+- ex: ex07
+  subject_id: piscine/rush_bsq/sudoku
+  xp: 505

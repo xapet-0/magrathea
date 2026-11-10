@@ -1,0 +1,90 @@
+fixed_tests:
+- env:
+    FT_USER: root
+  name: root_groups
+  stdout: root
+- env:
+    FT_USER: daemon
+  exit_code: 0
+  name: daemon_groups
+- name: root_groups_repeat
+  env:
+    FT_USER: root
+  stdout: root
+- name: nobody_or_daemon_groups
+  env:
+    FT_USER: daemon
+  exit_code: 0
+- name: test_05_root_again
+  env:
+    FT_USER: root
+  tier: baseline
+  stdout: root
+- name: test_06_daemon_again
+  env:
+    FT_USER: daemon
+  exit_code: 0
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+- name: test_07_bin_or_root
+  env:
+    FT_USER: root
+  tier: edge
+  stdout: root
+- name: test_08_sys_or_daemon
+  env:
+    FT_USER: daemon
+  exit_code: 0
+  tier: edge
+  stdout: ''
+  expect_empty: true
+- name: test_09_root_no_newline_check
+  env:
+    FT_USER: root
+  tier: edge
+  stdout: root
+- name: test_10_root_env_override
+  env:
+    FT_USER: root
+  tier: stress
+  stdout: root
+folder_examples:
+- expected: Matches reference correction
+  id: folder_ex_01
+  input: print_groups.sh baseline folder fixture
+  origin: subject_folder/examples.txt
+mode: shell
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_lexical_shift
+  original_input: &id001
+  - sh
+  - print_groups.sh
+  perturbed_input:
+  - th
+  - qrint_groups.sh
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_01
+  id: near_subj_01_whitespace_envelope
+  original_input: *id001
+  perturbed_input:
+  - '  sh  '
+  - print_groups.sh
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: folder_ex_01
+  id: near_folder_01_boundary_neighbor
+  original_input: print_groups.sh baseline folder fixture
+  perturbed_input: qrint_groups.sh baseline folder fixture
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+subject_examples:
+- args: *id001
+  cat_e: true
+  command: FT_USER="root" sh print_groups.sh | cat -e
+  expected: 'root
+
+    '
+  id: subj_ex_01
+  origin: subject.en.txt
+subject_id: print_groups.sh

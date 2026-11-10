@@ -1,0 +1,15 @@
+id: ft_list_remove_if
+type: c_function
+module: C 12
+xp: 340
+expected_files:
+- ft_list_remove_if.c
+- ft_list.h
+allowed_functions:
+- free
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: (*cmp)(list_ptr->data, data_ref);

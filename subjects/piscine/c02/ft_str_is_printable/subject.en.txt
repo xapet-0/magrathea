@@ -1,0 +1,24 @@
+Assignment name  : ft_str_is_printable
+Expected files   : ft_str_is_printable.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 02 (Official PDF)
+Exercise         : ft_str_is_printable
+Turn-in directory: ex06/
+Expected files   : ft_str_is_printable.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function that returns1if the given string contains only printable characters
+and 0 if it contains any other character.
+• Here is how it should be prototyped:
+int ft_str_is_printable(char *str);
+• It should return 1 ifstr is empty.
+
+Your function must be declared as follows:
+    int ft_str_is_printable(char *str);
+
+Examples:
+    ft_str_is_printable("abc XYZ") -> 1
+    ft_str_is_printable("abc\n") -> 0

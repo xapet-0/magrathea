@@ -1,0 +1,150 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `ft_mul`
+  input: ft_mul(INT_MIN), ft_mul(0), ft_mul(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `ft_mul`
+  input: Run ft_mul with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `ft_mul`
+  input: ft_mul(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `ft_mul`
+  input: Call ft_mul on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out
+fixed_tests:
+- name: test_01_d_n_x
+  call: printf("%d\n", x)
+  setup:
+  - int x = 6
+  - ft_mul(7, &x)
+  stdout: '42
+
+    '
+- name: test_02_d_n_x
+  call: printf("%d\n", x)
+  setup:
+  - int x = -3
+  - ft_mul(4, &x)
+  stdout: '-12
+
+    '
+- name: test_03_d_n_x
+  call: printf("%d\n", x)
+  setup:
+  - int x = 99
+  - ft_mul(0, &x)
+  stdout: '0
+
+    '
+- name: test_04_d_n_x
+  call: printf("%d\n", x)
+  setup:
+  - int x = -6
+  - ft_mul(-7, &x)
+  stdout: '42
+
+    '
+- name: test_05_multiply_by_one
+  setup:
+  - int x = 1337
+  - ft_mul(1, &x)
+  call: printf("%d\n", x)
+  tier: edge
+  stdout: '1337
+
+    '
+- name: test_06_multiply_by_neg_one
+  setup:
+  - int x = 42
+  - ft_mul(-1, &x)
+  call: printf("%d\n", x)
+  tier: edge
+  stdout: '-42
+
+    '
+- name: test_07_zero_dest
+  setup:
+  - int x = 0
+  - ft_mul(99, &x)
+  call: printf("%d\n", x)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_chained_mul
+  setup:
+  - int x = 2
+  - ft_mul(3, &x)
+  - ft_mul(7, &x)
+  call: printf("%d\n", x)
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_09_powers_of_ten
+  setup:
+  - int x = 100
+  - ft_mul(100, &x)
+  call: printf("%d\n", x)
+  tier: baseline
+  stdout: '10000
+
+    '
+- name: test_10_large_negative
+  setup:
+  - int x = -125
+  - ft_mul(8, &x)
+  call: printf("%d\n", x)
+  tier: stress
+  stdout: '-1000
+
+    '
+folder_examples:
+- expected: 42\n
+  id: cur_ft_mul_T01
+  input: printf("%d\n", x)
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: -12\n
+  id: cur_ft_mul_T02
+  input: printf("%d\n", x)
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: 0\n
+  id: cur_ft_mul_T03
+  input: printf("%d\n", x)
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval ft_mul
+  perturbed_input:
+  - ft_mul_near_arg_1
+  - ft_mul_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: cur_ft_mul_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: printf("%d\n", x)
+  perturbed_input: qrintf("%d\n", x)
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+- derived_from: cur_ft_mul_T02
+  id: near_folder_02_boundary_neighbor
+  original_input: printf("%d\n", x)
+  perturbed_input: qrintf("%d\n", x)
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval ft_mul
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

@@ -1,0 +1,25 @@
+name: rank04
+display_name: "42 Common Core \u2014 Exam Rank 04"
+pool_group: cursus
+rank_order: 24
+prerequisites:
+- rank03
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 33
+  candidates:
+  - popen
+  - microshell
+  - n_queens
+- level: 1
+  points: 33
+  candidates:
+  - permutations
+  - powerset
+  - rip
+- level: 2
+  points: 34
+  candidates:
+  - tsp
+  - vbc (without tree)

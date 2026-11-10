@@ -1,0 +1,26 @@
+Assignment name  : btree_apply_by_level
+Expected files   : btree_apply_by_level.c ft_btree.h
+Allowed functions: malloc, free
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 13 (Official PDF)
+Exercise         : btree_apply_by_level
+Turn-in directory: ex07/
+Expected files   : btree_apply_by_level.c, ft_btree.h
+Allowed functions: malloc, free
+--------------------------------------------------------------------------------
+
+• Create a function btree_apply_by_level which applies the function passed as an
+argument to each node of the tree. The tree must be browsed level by level. The
+function called will take three arguments :
+◦ The first argument, of typevoid * , corresponds to the node’s item ;
+◦ The second argument, of typeint, corresponds to the level at which we find
+it: 0 for the root, 1 for children, 2 for grand-children, etc. ;
+◦ The third argument, of typeint, is worth 1 if it is the firstnode of the level,
+or 0 otherwise.
+• Here’s how it should be prototyped :
+void btree_apply_by_level(t_btree *root, void (*applyf)(void *item, int current_level, int is_first_elem));
+
+[pool_btree_apply_by_level_T01] Input: t_btree l={"L",0,0}; t_btree r={"R",0,0}; t_btree root={"C",&l,&r}; btree_apply_by_level(&root,dt_apply); printf("\n")  ==>  Expected: 0:1:C,1:1:L,1:0:R,\n
+[pool_btree_apply_by_level_T02] Input: Invocations: btree_apply_by_level(&root,dt_apply)  ==>  Expected: 0:1:C,1:1:L,1:0:R,2:1:LL,\n
+[pool_btree_apply_by_level_T03] Input: Invocations: btree_apply_by_level(0, dt_apply_whitespace_dup); btree_apply_by_level(&root, dt_apply_whitespace_dup)  ==>  Expected: 0:1:C,1:1:	,1:0:	,\n

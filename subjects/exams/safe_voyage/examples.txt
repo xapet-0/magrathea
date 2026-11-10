@@ -1,0 +1,9 @@
+# Examples for safe_voyage (from official subject specification)
+
+Examples:
+$> sh safe_voyage.sh "/tmp" | cat -e
+/tmp$
+$> sh safe_voyage.sh "/nonexistent_dir_42" | cat -e
+$
+$> sh safe_voyage.sh "/var" | cat -e
+/var$

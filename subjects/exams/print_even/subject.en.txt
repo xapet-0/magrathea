@@ -1,0 +1,24 @@
+Assignment name  : print_even
+Expected files   : print_even.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+create a program that only writes the character if the index its on in is a multiple of 2.
+
+./a.out "FOR 42" | cat -e
+FR4$
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: FOR_42
+    Args       : ['FOR 42']
+    Expected Output   : 'FR4\n'
+  [Standard Test 2] Name: abcd
+    Args       : ['abcd']
+    Expected Output   : 'ac\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: empty [Test description: "empty"]
+    Args       : ['']
+    Expected Output   : '\n'
+  [Edge Case 2] Name: no_args [Test description: "no_args"]
+    Args       : []
+    Expected Output   : '\n'

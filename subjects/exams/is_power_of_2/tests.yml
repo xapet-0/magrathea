@@ -1,0 +1,130 @@
+mode: c_function
+fixed_tests:
+- name: can_is_power_of_2_T01
+  description: 'Functional verification of input: `is_power_of_2(16)`'
+  expr: is_power_of_2(16)
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_is_power_of_2_T02
+  description: 'Functional verification of input: `is_power_of_2(18)`'
+  expr: is_power_of_2(18)
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_is_power_of_2_T03
+  description: case_level2_power_zero
+  expr: is_power_of_2(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_is_power_of_2_T04
+  description: case_level2_power_one
+  expr: is_power_of_2(1)
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_is_power_of_2_T05
+  description: case_level2_power_large
+  expr: is_power_of_2(1024)
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_is_power_of_2_T06
+  description: case_level2_power_large_false
+  expr: is_power_of_2(1025)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_is_power_of_2_T07
+  description: case_level2_power_two
+  expr: is_power_of_2(2)
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_is_power_of_2_T08
+  description: case_level2_power_three
+  expr: is_power_of_2(3)
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_is_power_of_2_T09
+  description: case_level2_power_high_bit
+  expr: is_power_of_2(2147483648u)
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval is_power_of_2
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_is_power_of_2_T11
+  origin: subject_folder/42ExamPractice/is_power_of_2/tester.sh
+  input: ./is_power_of_2 "1"
+  expected: Matches 42 reference standard output and exit code
+- id: can_is_power_of_2_T12
+  origin: subject_folder/42ExamPractice/is_power_of_2/tester.sh
+  input: ./is_power_of_2 "-3"
+  expected: Matches 42 reference standard output and exit code
+- id: can_is_power_of_2_T13
+  origin: subject_folder/42ExamPractice/is_power_of_2/tester.sh
+  input: ./is_power_of_2 "1023"
+  expected: Matches 42 reference standard output and exit code
+- id: can_is_power_of_2_T14
+  origin: subject_folder/42ExamPractice/is_power_of_2/tester.sh
+  input: ./is_power_of_2 "0"
+  expected: Matches 42 reference standard output and exit code
+- id: can_is_power_of_2_T15
+  origin: subject_folder/42ExamPractice/is_power_of_2/tester.sh
+  input: ./is_power_of_2 "1024"
+  expected: Matches 42 reference standard output and exit code
+- id: can_is_power_of_2_T16
+  origin: subject_folder/2-6-is_power_of_2_MAIN.c
+  input: Compiled and run with 2-6-is_power_of_2_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_07
+  origin: subject_folder/2-6-is_power_of_2_MAIN.c
+  input: 2-6-is_power_of_2_MAIN.c
+  expected: "#include <stdio.h>\n\nint is_power_of_2(unsigned int n);\n\nint main(void)\n\
+    {\n\tunsigned int num[7];\n\tnum[0] = 0;\n\tnum[1] = 200;\n\tnum[2] = 32;\n\t\
+    num[3] = 256;\n\tnum[4] "
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval is_power_of_2
+  perturbed_input:
+  - is_power_of_2_near_arg_1
+  - is_power_of_2_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_is_power_of_2_T11
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/is_power_of_2/tester.sh)
+  original_input: ./is_power_of_2 "1"
+  perturbed_input: ./js_power_of_2 "1"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_is_power_of_2_T12
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/is_power_of_2/tester.sh)
+  original_input: ./is_power_of_2 "-3"
+  perturbed_input: ./js_power_of_2 "-3"

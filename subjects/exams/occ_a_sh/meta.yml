@@ -1,0 +1,16 @@
+id: occ_a_sh
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 290
+expected_files:
+- occ_a_sh.sh
+allowed_functions:
+- printf
+- tr
+- wc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh occ_a_sh.sh [args...]

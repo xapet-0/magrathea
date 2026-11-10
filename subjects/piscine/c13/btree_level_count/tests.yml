@@ -1,0 +1,67 @@
+fixed_tests:
+- call: t_btree ll={"LL",0,0}; t_btree l={"L",&ll,0}; t_btree r={"R",0,0}; t_btree
+    root={"C",&l,&r}; printf("%d\n",btree_level_count(&root));
+  name: pool_btree_level_count_T01
+  stdout: '3
+
+    '
+- call: t_btree root={"R",0,0}; printf("%d:%d\n",btree_level_count(0),btree_level_count(&root));
+  name: pool_btree_level_count_T02_null_and_single
+  stdout: '0:1
+
+    '
+- call: t_btree l3={"4",0,0}; t_btree l2={"3",&l3,0}; t_btree l1={"2",&l2,0}; t_btree
+    root={"1",&l1,0}; printf("%d\n",btree_level_count(&root));
+  name: btree_level_count_unbalanced_left_4
+  stdout: '4
+
+    '
+- call: t_btree l={"L",0,0}; t_btree r={"R",0,0}; t_btree root={"C",&l,&r}; printf("%d\n",btree_level_count(&root));
+  name: btree_level_count_balanced_two_level
+  stdout: '2
+
+    '
+- name: test_05_right_skewed_3
+  call: t_btree r2={"3",0,0},r1={"2",0,&r2},root={"1",0,&r1}; printf("%d\n",btree_level_count(&root));
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_06_zigzag_depth_5
+  call: t_btree n5={"5",0,0},n4={"4",&n5,0},n3={"3",0,&n4},n2={"2",&n3,0},n1={"1",0,&n2};
+    printf("%d\n",btree_level_count(&n1));
+  tier: edge
+  stdout: '5
+
+    '
+- name: test_07_full_three_levels_7_nodes
+  call: t_btree n4={"4",0,0},n5={"5",0,0},n6={"6",0,0},n7={"7",0,0},n2={"2",&n4,&n5},n3={"3",&n6,&n7},n1={"1",&n2,&n3};
+    printf("%d\n",btree_level_count(&n1));
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_08_right_deeper_than_left
+  call: t_btree l={"L",0,0},rrr={"RRR",0,0},rr={"RR",0,&rrr},r={"R",0,&rr},root={"C",&l,&r};
+    printf("%d\n",btree_level_count(&root));
+  tier: edge
+  stdout: '4
+
+    '
+- name: test_09_two_nodes_left_or_right
+  call: t_btree c={"child",0,0},r1={"root1",&c,0},r2={"root2",0,&c}; printf("%d:%d\n",btree_level_count(&r1),btree_level_count(&r2));
+  tier: baseline
+  stdout: '2:2
+
+    '
+- name: test_10_depth_six_chain
+  call: t_btree v[6]; for(int i=0;i<6;i++){v[i].item="x"; v[i].left=(i<5)?&v[i+1]:0;
+    v[i].right=0;} printf("%d\n",btree_level_count(&v[0]));
+  tier: stress
+  stdout: '6
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

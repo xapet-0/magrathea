@@ -1,0 +1,21 @@
+Assignment name  : word_count_sh
+Expected files   : word_count_sh.sh
+Allowed commands : printf, echo, wc, tr
+--------------------------------------------------------------------------------
+
+Write a shell script that displays the number of words contained in the
+environment variable FT_LINE, followed by a newline, without spaces.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> FT_LINE="Hello   world 1337" sh word_count_sh.sh | cat -e
+3$
+$> FT_LINE="   " sh word_count_sh.sh | cat -e
+0$
+$> FT_LINE="one two three four" sh word_count_sh.sh | cat -e
+4$
+$> FT_LINE="single" sh word_count_sh.sh | cat -e
+1$

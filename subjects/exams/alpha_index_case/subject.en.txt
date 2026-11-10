@@ -1,0 +1,22 @@
+Assignment name  : alpha_index_case
+Expected files   : alpha_index_case.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a string and converts letters at even alphabetical
+positions ('b', 'd', ...) to uppercase and odd alphabetical positions ('a', 'c',
+...) to lowercase, followed by a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./alpha_index_case "abcd" | cat -e
+aBcD$
+$> ./alpha_index_case | cat -e
+$
+$> ./alpha_index_case "a1b2c" | cat -e
+a1B2c$
+$> ./alpha_index_case | cat -e
+$

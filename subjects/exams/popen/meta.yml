@@ -1,0 +1,19 @@
+allowed_functions:
+- pipe
+- fork
+- dup2
+- execvp
+- close
+- exit
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+expected_files:
+- popen.c
+id: popen
+module: Exam Rank 04
+norminette: false
+prototype: int ft_popen(const char *file, char *const argv[], char type);
+type: c_function
+xp: 570

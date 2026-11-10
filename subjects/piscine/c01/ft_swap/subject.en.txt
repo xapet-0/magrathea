@@ -1,0 +1,17 @@
+Assignment name  : ft_swap
+Turn-in directory: ex02/
+Expected files   : ft_swap.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a functionthatswapsthevaluesoftwointegersusingtheiraddressesreceived
+as parameters.
+• The function should be prototyped as follows:
+void ft_swap(int *a, int *b);
+
+Your function must be declared as follows:
+    void ft_swap(int *a, int *b);
+
+Examples:
+    int a = 1, b = 2; ft_swap(&a, &b); printf("%d %d\n", a, b)
+    Output: 2 1

@@ -1,0 +1,9 @@
+Examples:
+$> ./first_unique "aabbccd" | cat -e
+d$
+$> ./first_unique "abacabad" | cat -e
+c$
+$> ./first_unique "aabb" | cat -e
+$
+$> ./first_unique | cat -e
+$

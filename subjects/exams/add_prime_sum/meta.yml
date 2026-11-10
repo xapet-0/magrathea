@@ -1,0 +1,15 @@
+id: add_prime_sum
+type: c_program
+module: Exam Rank 02
+xp: 445
+expected_files:
+- add_prime_sum.c
+allowed_functions:
+- write
+- exit
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

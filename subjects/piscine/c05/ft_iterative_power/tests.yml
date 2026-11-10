@@ -1,0 +1,118 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_iterative_power_T01
+  description: 'Functional verification of input: `ft_iterative_power(2,-1)`'
+  expr: ft_iterative_power(2,-1)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_iterative_power_T02
+  description: 'Functional verification of input: `ft_iterative_power(2,8)`'
+  expr: ft_iterative_power(2,8)
+  stdout: '256
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_iterative_power_T03
+  description: edge_iterative_power_zero
+  expr: ft_iterative_power(42, 0)
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_iterative_power_T04
+  description: edge_iterative_power_negative
+  expr: ft_iterative_power(2, -3)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_iterative_power_T05
+  description: edge_iterative_power_positive
+  expr: ft_iterative_power(3, 3)
+  stdout: '27
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_06_zero_to_zero
+  expr: ft_iterative_power(0, 0)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_zero_to_positive
+  expr: ft_iterative_power(0, 5)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_negative_base_odd_power
+  expr: ft_iterative_power(-3, 3)
+  tier: edge
+  stdout: '-27
+
+    '
+- name: test_09_negative_base_even_power
+  expr: ft_iterative_power(-2, 4)
+  tier: edge
+  stdout: '16
+
+    '
+- name: test_10_ten_to_five
+  expr: ft_iterative_power(10, 5)
+  tier: stress
+  stdout: '100000
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_iterative_power
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_iterative_power_T07
+  origin: subject_folder/mini-moulinette/ex02/ft_iterative_power.c
+  input: 'Input:'
+  expected: 'Expected: 1'
+- id: pool_ft_iterative_power_T08
+  origin: subject_folder/mini-moulinette/ex02/ft_iterative_power.c
+  input: 'Input:'
+  expected: 'Expected: 2'
+- id: pool_ft_iterative_power_T09
+  origin: subject_folder/mini-moulinette/ex02/ft_iterative_power.c
+  input: 'Input:'
+  expected: 'Expected: 9'
+- id: pool_ft_iterative_power_T10
+  origin: subject_folder/mini-moulinette/ex02/ft_iterative_power.c
+  input: 'Input:'
+  expected: 'Expected: -8'
+- id: pool_ft_iterative_power_T11
+  origin: subject_folder/mini-moulinette/ex02/ft_iterative_power.c
+  input: 'Input:'
+  expected: 'Expected: 0'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_iterative_power
+  perturbed_input:
+  - ft_iterative_power_near_arg_1
+  - ft_iterative_power_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_iterative_power_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_iterative_power.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_iterative_power_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_iterative_power.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'

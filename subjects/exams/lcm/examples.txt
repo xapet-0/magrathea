@@ -1,0 +1,6 @@
+[can_lcm_T01] Input: lcm(6, 8)  ==>  Expected: 24\n
+[can_lcm_T02] Input: lcm(0, 5)  ==>  Expected: 0\n
+[can_lcm_T03] Input: lcm(14, 21)  ==>  Expected: 42\n
+[can_lcm_T04] Input: lcm(13, 17)  ==>  Expected: 221\n
+[can_lcm_T05] Input: lcm(21, 21)  ==>  Expected: 21\n
+[can_lcm_T06] Input: Invocations: lcm(0, 42); lcm(42, 0); lcm(6, 8) (+4 more)  ==>  Expected: Differential comparison with reference implementation

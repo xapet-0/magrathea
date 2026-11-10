@@ -1,0 +1,516 @@
+#!/usr/bin/env python3
+"""1337 / 42 Deepthought Evaluator — 5-Gate Module & Exercise Engine."""
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import sys
+from pathlib import Path
+
+KIT_ROOT = (
+    Path(__file__).resolve().parents[1]
+    if (Path(__file__).resolve().parents[1] / "pools").exists()
+    else Path(__file__).resolve().parent
+)
+if str(KIT_ROOT) not in sys.path:
+    sys.path.insert(0, str(KIT_ROOT))
+
+import yaml
+from deepthought.grader import GradeReport, grade_subject
+from deepthought.progression import XPTracker, load_student_profile
+from deepthought.ui_theme import PALETTES, ThemeEngine, pad_visible
+
+_MODULE_PREFIX_RE = re.compile(r"^(?:c\d{2}|shell\d{2}|rush\w*)_")
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
+
+def _load_yaml(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        data = yaml.load(path.read_text(encoding="utf-8", errors="replace"), Loader=_YAML_LOADER)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def tilde_path(p: Path | str) -> str:
+    """Format an absolute path using UNIX '~' shorthand for $HOME (e.g. ~/Downloads/...)."""
+    try:
+        resolved = str(Path(p).expanduser().resolve())
+    except Exception:
+        resolved = str(p)
+    home = str(Path.home())
+    if resolved == home:
+        return "~"
+    if resolved.startswith(home + "/"):
+        return "~" + resolved[len(home):]
+    return resolved
+
+
+def resolve_module_slug(module_id: str) -> str:
+    slug = module_id.lower().strip()
+    alias_file = KIT_ROOT / "pools" / "official_42_slugs.yml"
+    if alias_file.is_file():
+        aliases = _load_yaml(alias_file)
+        slug = (aliases.get("piscine") or {}).get(slug, slug)
+    return slug
+
+
+def resolve_subject(target: str) -> tuple[str, bool, Path | None]:
+    """Resolve an exercise slug or relative path to (subj_rel, is_exam, subj_dir)."""
+    clean = target.strip().strip("/")
+    direct = KIT_ROOT / "subjects" / clean
+    if direct.is_dir():
+        return clean, clean.startswith("exams/"), direct
+
+    piscine_root = KIT_ROOT / "subjects" / "piscine"
+    if "/" in clean:
+        mod_part, ex_part = clean.split("/", 1)
+        c1 = piscine_root / mod_part / ex_part
+        if c1.is_dir():
+            return f"piscine/{mod_part}/{ex_part}", False, c1
+        c2 = piscine_root / mod_part / f"{mod_part}_{ex_part}"
+        if c2.is_dir():
+            return f"piscine/{mod_part}/{mod_part}_{ex_part}", False, c2
+
+    matches = sorted(piscine_root.glob(f"*/{clean}"))
+    if not matches:
+        matches = sorted(piscine_root.glob(f"*/*_{clean}"))
+    if matches:
+        rel = str(matches[0].relative_to(KIT_ROOT / "subjects"))
+        return rel, False, matches[0]
+
+    clean_unpref = _MODULE_PREFIX_RE.sub("", clean)
+    matches2 = sorted(piscine_root.glob(f"*/{clean_unpref}"))
+    if not matches2:
+        matches2 = sorted(piscine_root.glob(f"*/*_{clean_unpref}"))
+    if matches2:
+        rel = str(matches2[0].relative_to(KIT_ROOT / "subjects"))
+        return rel, False, matches2[0]
+
+    cand_e = KIT_ROOT / "subjects" / "exams" / clean
+    if cand_e.is_dir():
+        return f"exams/{clean}", True, cand_e
+    cand_e2 = KIT_ROOT / "subjects" / "exams" / clean_unpref
+    if cand_e2.is_dir():
+        return f"exams/{clean_unpref}", True, cand_e2
+
+    return clean, False, None
+
+
+def resolve_exercise_dir(target_leaf: str, subj_rel: str, explicit_dir: str | None, self_test: bool) -> Path:
+    """Locate the turn-in folder for a single exercise."""
+    if self_test:
+        corr_rel = KIT_ROOT / "corrections" / subj_rel
+        if corr_rel.is_dir():
+            return corr_rel.resolve()
+        corr_leaf = KIT_ROOT / "corrections" / "exams" / target_leaf
+        if corr_leaf.is_dir():
+            return corr_leaf.resolve()
+        return corr_rel.resolve()
+
+    if explicit_dir:
+        return Path(explicit_dir).expanduser().resolve()
+
+    for cand in [
+        KIT_ROOT / "workspace" / subj_rel,
+        KIT_ROOT / "workspace" / "rendu" / target_leaf,
+        KIT_ROOT / "workspace" / "exams" / target_leaf,
+        Path.cwd() / target_leaf,
+        Path.cwd(),
+    ]:
+        if cand.is_dir() and any(cand.glob(f"{target_leaf}.*")):
+            return cand.resolve()
+
+    return (KIT_ROOT / "workspace" / subj_rel).resolve()
+
+
+def resolve_exercise_turnin_dir(
+    module_repo_dir: Path,
+    ex_code: str,
+    ex_id: str,
+    clean_leaf: str,
+    expected_files: list[str],
+) -> Path:
+    """
+    Locate student files strictly inside `module_repo_dir` (NEVER in `corrections/`!).
+    Checks:
+      1. <module_repo_dir>/<ex_code>       (e.g. workspace/piscine/c00/ex00)
+      2. <module_repo_dir>/<ex_id>         (e.g. workspace/piscine/c00/c00_ft_putchar)
+      3. <module_repo_dir>/<clean_leaf>    (e.g. workspace/piscine/c00/ft_putchar)
+      4. <module_repo_dir> directly ONLY if expected file is at top level
+    """
+    for sub_name in (ex_code, ex_id, clean_leaf):
+        cand = module_repo_dir / sub_name
+        if cand.is_dir():
+            return cand
+    for exp in expected_files:
+        if "*" not in exp and (module_repo_dir / exp).is_file():
+            return module_repo_dir
+    return module_repo_dir / ex_code
+
+
+def render_scorecard(report: GradeReport, theme: ThemeEngine, is_exam: bool = False) -> str:
+    """Format the authentic 5-gate pipeline scorecard."""
+    st = report.status
+    g1_fail = "Nothing turned in" in st or "main() in function" in st or "Extraneous file" in st
+    g2_fail = "Cheating" in st or "Norme error" in st
+    g3_fail = st == "Does not compile" or "Makefile" in st
+    g4_fail = any(k in st for k in ("Segmentation fault", "Bus error", "Abort", "Floating point", "Timeout", "Output limit", "Redzone KO", "Leak KO", "Free KO", "Strict KO", "Exit 42", "Exit 43"))
+    g5_fail = not report.passed and not (g1_fail or g2_fail or g3_fail or g4_fail)
+
+    gates = [
+        ("gate 1", "turn-in files & entry point", not g1_fail, g1_fail),
+        ("gate 2", "elf symbol whitelist (nm -u) + norminette", not (g1_fail or g2_fail), g2_fail),
+        ("gate 3", "strict compilation (cc -Wall -Wextra -Werror)", not (g1_fail or g2_fail or g3_fail), g3_fail),
+        ("gate 4", "process sandbox & signal isolation", not (g1_fail or g2_fail or g3_fail or g4_fail), g4_fail),
+        ("gate 5", "differential output oracle & returncode", report.passed, g5_fail),
+    ]
+    lines = [f"{theme.c('===>', 'accent', 'bold')} {theme.bold('5-gate pipeline status')}"]
+    stopped = False
+    for g_id, g_desc, is_ok, is_fail in gates:
+        dots = "." * max(2, 48 - len(g_desc))
+        if stopped:
+            status_s = theme.c("SKIP", "muted")
+        elif is_fail:
+            status_s = f"{theme.c('KO', 'err', 'bold')} ({st})"
+            stopped = True
+        elif is_ok:
+            status_s = theme.c("OK", "ok", "bold")
+        else:
+            status_s = theme.c("SKIP", "muted")
+        lines.append(f"  {theme.c(g_id, 'muted')}  {g_desc} {theme.c(dots, 'muted')} {status_s}")
+    return "\n".join(lines)
+
+
+def print_usage() -> None:
+    print("""usage: deepthought [-h] [--module MODULE] [--dir DIR] [--strict]
+                   [--self-test] [--trace-out TRACE_OUT]
+                   [--theme {42-cluster,gruvbox,jcluzet-exam,tokyo-night}]
+                   [--no-color]
+                   [module | grade <exercise> | status | help]
+
+1337 / 42 Deepthought Module & Exercise Evaluator
+
+positional arguments:
+  command_or_module     Piscine module (e.g. c00), 'grade <exercise>', 'status', or 'help'
+  target                Exercise name when using 'grade' (e.g. ft_strlen)
+
+options:
+  -h, --help            show this help message and exit
+  --module MODULE_FLAG  Piscine module slug
+  --dir, --path DIR     Student repository or submission directory
+  --strict              Enable strict sandbox & dual-compiler checks
+  --self-test           Explicit developer flag to grade reference corrections/
+  --trace-out TRACE_OUT Custom file path to save the trace
+  --theme {42-cluster,gruvbox,jcluzet-exam,tokyo-night}
+                        Color palette
+  --no-color            Disable ANSI colors
+
+Commands:
+  ./bin/deepthought <module>             Evaluate an entire Piscine module (e.g. c00, c01, shell00)
+  ./bin/deepthought grade <exercise>     Evaluate a single exercise through the 5 gates
+  ./bin/deepthought status               Display student progression and 5-gate engine status
+  ./bin/deepthought help                 Show this help message
+""")
+
+
+def run_status(theme: ThemeEngine) -> int:
+    prof = load_student_profile()
+    ledger_path = KIT_ROOT / "workspace" / "xp_ledger.json"
+    tracker = XPTracker(ledger_path)
+    state = tracker.get_state()
+    val_exs = state.get("validated_exercises", {})
+
+    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold('Deepthought Grading & Student Status')}")
+    print(f"     Student     : {theme.c(prof.login, 'primary', 'bold')}")
+    print(f"     Intra Level : {theme.c(f'{prof.level:.2f}', 'ok', 'bold')}  {prof.xp_bar(20)}")
+    print(f"     Total XP    : {theme.c(str(getattr(prof, 'total_xp', getattr(prof, 'xp', 0))), 'accent')} XP")
+    print(f"     Piscine Rank: {prof.piscine_rank} | Common Core Rank: {prof.common_core_rank}")
+    print(f"     Validated   : {theme.c(str(len(val_exs)), 'ok')} exercise(s)")
+    if val_exs:
+        recent = sorted(val_exs.keys(), key=lambda k: val_exs[k].get("first_passed_at", 0))[-6:]
+        print(f"     Recent Pass : {theme.c(', '.join(recent), 'muted')}")
+    print("")
+    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold('Engine 5-Gate Infrastructure')}")
+    print(f"     Gate 1: Entry Point & Turn-in Structure  [ {theme.c('ACTIVE', 'ok', 'bold')} ]")
+    print(f"     Gate 2: Symbol Whitelist & 42 Norme      [ {theme.c('ACTIVE', 'ok', 'bold')} ]")
+    print(f"     Gate 3: Dual-Compiler (-Wall -Werror)    [ {theme.c('ACTIVE', 'ok', 'bold')} ]")
+    print(f"     Gate 4: Sandbox & Malloc Canary Redzone  [ {theme.c('ACTIVE', 'ok', 'bold')} ]")
+    print(f"     Gate 5: Differential Oracle & Returncode [ {theme.c('ACTIVE', 'ok', 'bold')} ]")
+    return 0
+
+
+def run_grade_exercise(target: str, args: argparse.Namespace, theme: ThemeEngine) -> int:
+    subj_rel, is_exam, subj_dir = resolve_subject(target)
+    leaf = _MODULE_PREFIX_RE.sub("", Path(subj_rel).name)
+
+    if not subj_dir or not subj_dir.is_dir():
+        print(f"deepthought: unknown exercise '{target}'.", file=sys.stderr)
+        return 1
+
+    sub_dir = resolve_exercise_dir(leaf, subj_rel, args.dir, args.self_test)
+    rep: GradeReport = grade_subject(
+        KIT_ROOT,
+        subj_rel,
+        sub_dir,
+        is_exam=is_exam,
+        strict=args.strict,
+        subj_dir_override=subj_dir,
+    )
+
+    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold(f'Deepthought 5-Gate Evaluation — {leaf}')}")
+    print(theme.c(f"     subject : {subj_rel}", "muted"))
+    print(theme.c(f"     turn-in : {tilde_path(sub_dir)}", "muted"))
+    print("")
+
+    print(render_scorecard(rep, theme, is_exam=is_exam))
+    print("")
+
+    status_role = "ok" if rep.passed else "err"
+    print(
+        f"{theme.c('===>', 'accent', 'bold')} "
+        f"grade: {theme.c(f'{rep.grade}%', status_role, 'bold')} "
+        f"| status: {theme.c(rep.status, status_role, 'bold')}"
+    )
+
+    traces_dir = KIT_ROOT / "workspace" / "traces"
+    traces_dir.mkdir(parents=True, exist_ok=True)
+    trace_file = Path(args.trace_out) if args.trace_out else (traces_dir / f"deepthought_{leaf}.trace")
+    trace_file.write_text(rep.trace, encoding="utf-8")
+    try:
+        rel_trace = trace_file.relative_to(KIT_ROOT)
+    except ValueError:
+        rel_trace = trace_file
+    print(theme.c(f"     trace   : {rel_trace}", "muted"))
+
+    if rep.passed and not args.self_test:
+        ledger_path = KIT_ROOT / "workspace" / "xp_ledger.json"
+        tracker = XPTracker(ledger_path)
+        meta = _load_yaml(subj_dir / "meta.yml")
+        cfg_xp = int(meta.get("xp", 100))
+        xp_res = tracker.record_evaluation(subj_rel, passed=True, grade=rep.grade, configured_xp=cfg_xp)
+        if xp_res.awarded_xp > 0:
+            prof = load_student_profile()
+            prof.award_xp(xp_res.awarded_xp)
+            prof.save()
+
+    return 0 if rep.passed else 1
+
+
+def run_grade_module(raw_mod: str, args: argparse.Namespace, theme: ThemeEngine) -> int:
+    mod_slug = resolve_module_slug(raw_mod)
+    pool_file = KIT_ROOT / "pools" / "piscine" / f"{mod_slug}.yml"
+    if not pool_file.is_file():
+        print(f"deepthought: unknown Piscine module '{raw_mod}'.", file=sys.stderr)
+        return 1
+
+    if args.self_test:
+        repo_dir = (KIT_ROOT / "corrections" / "piscine" / mod_slug).resolve()
+    elif args.dir:
+        cand_dir = Path(args.dir).expanduser().resolve()
+        if cand_dir == KIT_ROOT.resolve():
+            repo_dir = (KIT_ROOT / "workspace" / "piscine" / mod_slug).resolve()
+        else:
+            repo_dir = cand_dir
+    else:
+        cwd = Path.cwd().resolve()
+        kit = KIT_ROOT.resolve()
+        in_kit_data = any(tree == cwd or tree in cwd.parents for tree in (kit / "subjects", kit / "corrections", kit / "pools"))
+        if cwd != kit and not in_kit_data and (cwd.name.lower() == mod_slug or any(p.is_dir() for p in cwd.glob("ex[0-9][0-9]"))):
+            repo_dir = cwd
+        else:
+            repo_dir = (KIT_ROOT / "workspace" / "piscine" / mod_slug).resolve()
+
+    # The module folder is the student's to create: grading an absent one reports "Nothing turned in".
+    pool_data = _load_yaml(pool_file)
+    title = pool_data.get("display_name") or pool_data.get("title") or mod_slug.upper()
+    exercises = pool_data.get("exercises") or []
+
+    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold(f'{mod_slug}: {title}')}")
+    print(theme.c(f"     work: {tilde_path(repo_dir)}", "muted"))
+    print("")
+
+    headers = ("EX", "ASSIGNMENT", "VERDICT", "RULE")
+    w_ex, w_as, w_vd, w_rl = 4, 28, 26, 14
+    hdr_line = (
+        f"  {pad_visible(theme.c(headers[0], 'muted'), w_ex)}  "
+        f"{pad_visible(theme.c(headers[1], 'muted'), w_as)}  "
+        f"{pad_visible(theme.c(headers[2], 'muted'), w_vd)}  "
+        f"{theme.c(headers[3], 'muted')}"
+    )
+    sep_line = (
+        f"  {theme.c('-' * w_ex, 'muted')}  "
+        f"{theme.c('-' * w_as, 'muted')}  "
+        f"{theme.c('-' * w_vd, 'muted')}  "
+        f"{theme.c('-' * w_rl, 'muted')}"
+    )
+    print(hdr_line)
+    print(sep_line)
+
+    full_traces: list[str] = []
+    first_ko_seen = False
+    official_passed = 0
+    practice_passed = 0
+    total_exs = len(exercises)
+
+    ledger_path = KIT_ROOT / "workspace" / "xp_ledger.json"
+    tracker = XPTracker(ledger_path)
+
+    for idx, ex in enumerate(exercises):
+        raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
+        ex_id = Path(raw_id).name
+        ex_code = ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}"
+        clean_leaf = _MODULE_PREFIX_RE.sub("", ex_id)
+        subj_rel = f"piscine/{mod_slug}/{ex_id}"
+        subj_dir = KIT_ROOT / "subjects" / "piscine" / mod_slug / ex_id
+        if not subj_dir.is_dir():
+            alt_dir = KIT_ROOT / "subjects" / "piscine" / mod_slug / clean_leaf
+            if alt_dir.is_dir():
+                subj_dir = alt_dir
+                ex_id = clean_leaf
+                subj_rel = f"piscine/{mod_slug}/{clean_leaf}"
+
+        meta = _load_yaml(subj_dir / "meta.yml")
+        exp_files = meta.get("expected_files") or [f"{clean_leaf}.c"]
+        configured_xp = int((ex.get("xp") if isinstance(ex, dict) else None) or meta.get("xp", 100))
+
+        sub_dir = resolve_exercise_turnin_dir(repo_dir, ex_code, ex_id, clean_leaf, exp_files)
+        rep: GradeReport = grade_subject(
+            KIT_ROOT,
+            subj_rel,
+            sub_dir,
+            is_exam=False,
+            strict=args.strict,
+            subj_dir_override=subj_dir if subj_dir.is_dir() else None,
+        )
+        full_traces.append(f"===== {ex_code}: {subj_rel} ({rep.status}) =====\n{rep.trace}")
+
+        is_corr_dir = (KIT_ROOT / "corrections").resolve() in [repo_dir, *repo_dir.parents]
+        if rep.passed:
+            practice_passed += 1
+            verdict_s = theme.c("OK (100)", "ok", "bold")
+            if not first_ko_seen:
+                official_passed += 1
+                rule_s = theme.c("counted", "ok")
+                if not args.self_test and not is_corr_dir:
+                    xp_res = tracker.record_evaluation(subj_rel, passed=True, grade=100, configured_xp=configured_xp)
+                    if xp_res.awarded_xp > 0:
+                        prof = load_student_profile()
+                        prof.award_xp(xp_res.awarded_xp)
+                        prof.save()
+            else:
+                rule_s = theme.c("skipped (after KO)", "muted")
+        else:
+            short_st = rep.status if len(rep.status) <= 20 else rep.status[:19] + "…"
+            verdict_s = theme.c(f"KO ({short_st})", "err", "bold")
+            if not first_ko_seen:
+                first_ko_seen = True
+                rule_s = theme.c("first KO (stop)", "err")
+            else:
+                rule_s = theme.c("skipped", "muted")
+
+        leaf_disp = clean_leaf if len(clean_leaf) <= w_as else clean_leaf[: w_as - 1] + "…"
+        row_s = (
+            f"  {pad_visible(theme.c(ex_code, 'muted'), w_ex)}  "
+            f"{pad_visible(leaf_disp, w_as)}  "
+            f"{pad_visible(verdict_s, w_vd)}  "
+            f"{rule_s}"
+        )
+        print(row_s)
+
+    traces_dir = KIT_ROOT / "workspace" / "traces"
+    try:
+        traces_dir.mkdir(parents=True, exist_ok=True)
+    except (FileExistsError, OSError):
+        # If traces_dir is a symlink pointing to a non-existent path (e.g. in tests)
+        # or if it's a broken symlink, resolve and create the parent hierarchy safely.
+        target = traces_dir.resolve()
+        target.mkdir(parents=True, exist_ok=True)
+        trace_file = Path(args.trace_out) if args.trace_out else (target / f"deepthought_{mod_slug}.trace")
+    else:
+        trace_file = Path(args.trace_out) if args.trace_out else (traces_dir / f"deepthought_{mod_slug}.trace")
+
+    try:
+        trace_file.write_text("\n\n".join(full_traces) + "\n", encoding="utf-8")
+    except FileNotFoundError:
+        # Fallback: if trace_file.parent doesn't exist (e.g. symlink target issue)
+        trace_file.parent.mkdir(parents=True, exist_ok=True)
+        trace_file.write_text("\n\n".join(full_traces) + "\n", encoding="utf-8")
+
+    off_pct = int(round((official_passed / max(1, total_exs)) * 100))
+    prac_pct = int(round((practice_passed / max(1, total_exs)) * 100))
+    score_role = "ok" if off_pct == 100 else ("warn" if off_pct > 0 else "err")
+
+    print("")
+    print(
+        f"{theme.c('===>', 'accent', 'bold')} "
+        f"grade: {theme.c(f'{off_pct}% ({official_passed}/{total_exs} official)', score_role, 'bold')} "
+        f"| practice: {prac_pct}% ({practice_passed}/{total_exs})"
+    )
+    try:
+        rel_trace = trace_file.relative_to(KIT_ROOT)
+    except ValueError:
+        rel_trace = trace_file
+    print(theme.c(f"     trace: {rel_trace}", "muted"))
+    if practice_passed == 0:
+        print(theme.c(f"     turn-in: {tilde_path(repo_dir)}/exNN/<file>  (the folders are yours to create)", "warn"))
+    return 0 if official_passed == total_exs and total_exs > 0 else 1
+
+
+def main() -> int:
+    if len(sys.argv) > 1 and sys.argv[1].lower() in {"help", "-h", "--help"}:
+        print_usage()
+        return 0
+
+    parser = argparse.ArgumentParser(
+        description="1337 / 42 Deepthought Grading Engine — Module & Exercise Evaluator",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Commands:
+  deepthought <module>             Evaluate an entire Piscine module (e.g. c00, c01, shell00)
+  deepthought grade <exercise>     Evaluate a single exercise through the 5 gates
+  deepthought status               Display student progression and 5-gate engine status
+  deepthought help                 Show this help message
+""",
+    )
+    parser.add_argument("command_or_module", nargs="?", help="Piscine module (e.g. c00), 'grade', 'status', or 'help'")
+    parser.add_argument("target", nargs="?", help="Exercise name when using 'grade' (e.g. ft_strlen)")
+    parser.add_argument("--module", dest="module_flag", help="Piscine module slug")
+    parser.add_argument("--dir", "--path", dest="dir", default=None, help="Student repository or submission directory")
+    parser.add_argument("--strict", action="store_true", help="Enable strict sandbox & dual-compiler checks")
+    parser.add_argument("--self-test", action="store_true", help="Explicit developer flag to grade reference corrections/")
+    parser.add_argument("--trace-out", default=None, help="Custom file path to save the trace")
+    parser.add_argument("--theme", default="42-cluster", choices=sorted(PALETTES), help="Color palette")
+    parser.add_argument("--no-color", action="store_true", help="Disable ANSI colors")
+    args = parser.parse_args()
+
+    use_plain = args.no_color or bool(os.environ.get("NO_COLOR")) or (not sys.stdout.isatty() and os.environ.get("FORCE_COLOR") != "1")
+    theme = ThemeEngine("plain" if use_plain else args.theme)
+
+    cmd_or_mod = (args.command_or_module or "").strip().lower()
+
+    if cmd_or_mod in {"help"}:
+        print_usage()
+        return 0
+
+    if cmd_or_mod in {"status"}:
+        return run_status(theme)
+
+    if cmd_or_mod in {"grade"}:
+        if not args.target:
+            parser.error("Provide an exercise name to grade (e.g. `./bin/deepthought grade ft_strlen`).")
+        return run_grade_exercise(args.target, args, theme)
+
+    raw_mod = args.module_flag or args.command_or_module
+    if not raw_mod:
+        print_usage()
+        return 1
+
+    return run_grade_module(raw_mod, args, theme)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

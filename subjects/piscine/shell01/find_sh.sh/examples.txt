@@ -1,0 +1,11 @@
+# Examples for find_sh.sh (from official subject specification)
+
+Examples:
+◦ for FT_USER=bocal:
+$>./print_groups.sh
+bocal,adm,cdrom,sudo,dip,plugdev,lxd,lpadmin,libvirt$>
+◦ for FT_USER=daemon:
+$>./print_groups.sh
+daemon,bin$>
+• man id
+• Get inspired by others, but do the work yourself!

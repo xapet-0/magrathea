@@ -1,0 +1,61 @@
+mode: c_function
+fixed_tests:
+- name: circle_perimeter_positive_10
+  call: printf("%d\n", (int)(circle_perimeter(10.0f) * 100))
+  stdout: '6280
+
+    '
+- name: circle_perimeter_zero
+  call: printf("%d\n", (int)(circle_perimeter(0.0f)))
+  stdout: '0
+
+    '
+- name: circle_perimeter_radius_1
+  call: printf("%d\n", (int)(circle_perimeter(1.0f) * 100))
+  stdout: '628
+
+    '
+- name: circle_perimeter_radius_5
+  call: printf("%d\n", (int)(circle_perimeter(5.0f) * 100))
+  stdout: '3140
+
+    '
+- name: test_05_radius_2
+  call: printf("%d\n", (int)(circle_perimeter(2.0f) * 100))
+  tier: baseline
+  stdout: '1256
+
+    '
+- name: test_06_radius_3_5
+  call: printf("%d\n", (int)(circle_perimeter(3.5f) * 100))
+  tier: baseline
+  stdout: '2198
+
+    '
+- name: test_07_radius_0_5
+  call: printf("%d\n", (int)(circle_perimeter(0.5f) * 100))
+  tier: edge
+  stdout: '314
+
+    '
+- name: test_08_radius_42
+  call: printf("%d\n", (int)(circle_perimeter(42.0f) * 10))
+  tier: baseline
+  stdout: '2637
+
+    '
+- name: test_09_negative_radius
+  call: printf("%d\n", (int)(circle_perimeter(-5.0f) * 100))
+  tier: edge
+  stdout: '-3140
+
+    '
+- name: test_10_radius_100
+  call: printf("%d\n", (int)(circle_perimeter(100.0f)))
+  tier: stress
+  stdout: '628
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,24 @@
+Assignment name  : exo2
+Expected files   : exo2.tar
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine Shell 00 (v5.0 PDF)
+Exercise         : Exercise 02 — Oh yeah, mooore...
+Turn-in directory: ex02/
+Files to turn in : exo2.tar
+Allowed functions: None (mkdir, touch -t, chmod, ln, ln -s, tar -cf)
+Toolchain Gate   : tar metadata + inode hardlink + symlink verification
+--------------------------------------------------------------------------------
+
+• Create the following files and directories so that ls -l outputs exactly:
+  drwx--xr-x 2 login wheel 96 Jun 1 20:47 test0
+  -rwx--xr-- 1 login wheel 4  Jun 1 21:46 test1
+  dr-x---r-- 2 login wheel 64 Jun 1 22:45 test2
+  -r-----r-- 2 login wheel 1  Jun 1 23:44 test3
+  -rw-r----x 1 login wheel 2  Jun 1 23:43 test4
+  -r-----r-- 2 login wheel 1  Jun 1 23:44 test5
+  lrwxr-xr-x 1 login wheel 5  Jun 1 22:20 test6 -> test0
+• Archive them into exo2.tar in the ex02/ directory.
+
+[pool_exo2_T01] Input: tar -tf exo2.tar \| sort \| tr '\n' ' '  ==>  Expected: *(none)*

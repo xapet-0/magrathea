@@ -1,0 +1,15 @@
+id: c06
+display_name: 1337 / 42 Piscine — C 06
+exercises:
+- ex: ex00
+  subject_id: piscine/c06/ft_print_program_name
+  xp: 175
+- ex: ex01
+  subject_id: piscine/c06/ft_print_params
+  xp: 175
+- ex: ex02
+  subject_id: piscine/c06/ft_rev_params
+  xp: 175
+- ex: ex03
+  subject_id: piscine/c06/ft_sort_params
+  xp: 175

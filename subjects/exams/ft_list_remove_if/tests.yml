@@ -1,0 +1,125 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_list_remove_if_T01
+  setup:
+  - t_list *head = malloc(sizeof(t_list));
+  - t_list *n2 = malloc(sizeof(t_list));
+  - head->data = (void *)"rm"; head->next = n2;
+  - n2->data = (void *)"keep"; n2->next = NULL;
+  - ft_list_remove_if(&head, (void *)"rm", cmp);
+  call: printf("%s|%d\n", (char *)head->data, head->next == NULL); free(head)
+  stdout: 'keep|1
+
+    '
+- name: ft_list_remove_if_null_and_empty
+  setup:
+  - ft_list_remove_if(NULL, (void *)"x", cmp);
+  - t_list *empty = NULL;
+  - ft_list_remove_if(&empty, (void *)"x", cmp);
+  call: 'printf("%s\n", empty == NULL ? "NULL_OK" : "FAIL")'
+  stdout: 'NULL_OK
+
+    '
+- name: ft_list_remove_if_all_matching
+  setup:
+  - t_list *a = malloc(sizeof(t_list));
+  - t_list *b = malloc(sizeof(t_list));
+  - a->data = (void *)"x"; a->next = b;
+  - b->data = (void *)"x"; b->next = NULL;
+  - ft_list_remove_if(&a, (void *)"x", cmp);
+  call: 'printf("%s\n", a == NULL ? "ALL_REMOVED" : "FAIL")'
+  stdout: 'ALL_REMOVED
+
+    '
+- name: ft_list_remove_if_middle_and_tail
+  setup:
+  - t_list *a = malloc(sizeof(t_list));
+  - t_list *b = malloc(sizeof(t_list));
+  - t_list *c = malloc(sizeof(t_list));
+  - t_list *d = malloc(sizeof(t_list));
+  - a->data = (void *)"k1"; a->next = b;
+  - b->data = (void *)"rm"; b->next = c;
+  - c->data = (void *)"k2"; c->next = d;
+  - d->data = (void *)"rm"; d->next = NULL;
+  - ft_list_remove_if(&a, (void *)"rm", cmp);
+  call: while(a){ printf("%s,", (char *)a->data); t_list *nx = a->next; free(a); a
+    = nx; } printf("\n")
+  stdout: 'k1,k2,
+
+    '
+- name: test_05_no_matches
+  setup:
+  - t_list *a = malloc(sizeof(t_list)); t_list *b = malloc(sizeof(t_list));
+  - a->data = (void *)"1"; a->next = b; b->data = (void *)"2"; b->next = NULL;
+  - ft_list_remove_if(&a, (void *)"9", cmp);
+  call: while(a){ printf("%s,", (char *)a->data); t_list *nx = a->next; free(a); a
+    = nx; } printf("\n")
+  tier: baseline
+  stdout: '1,2,
+
+    '
+- name: test_06_consecutive_head_matches
+  setup:
+  - t_list *a = malloc(sizeof(t_list)); t_list *b = malloc(sizeof(t_list)); t_list
+    *c = malloc(sizeof(t_list));
+  - a->data = (void *)"rm"; a->next = b; b->data = (void *)"rm"; b->next = c; c->data
+    = (void *)"ok"; c->next = NULL;
+  - ft_list_remove_if(&a, (void *)"rm", cmp);
+  call: while(a){ printf("%s,", (char *)a->data); t_list *nx = a->next; free(a); a
+    = nx; } printf("\n")
+  tier: edge
+  stdout: 'ok,
+
+    '
+- name: test_07_consecutive_middle_matches
+  setup:
+  - t_list *a = malloc(sizeof(t_list)); t_list *b = malloc(sizeof(t_list)); t_list
+    *c = malloc(sizeof(t_list)); t_list *d = malloc(sizeof(t_list));
+  - a->data = (void *)"1"; a->next = b; b->data = (void *)"rm"; b->next = c; c->data
+    = (void *)"rm"; c->next = d; d->data = (void *)"2"; d->next = NULL;
+  - ft_list_remove_if(&a, (void *)"rm", cmp);
+  call: while(a){ printf("%s,", (char *)a->data); t_list *nx = a->next; free(a); a
+    = nx; } printf("\n")
+  tier: edge
+  stdout: '1,2,
+
+    '
+- name: test_08_consecutive_tail_matches
+  setup:
+  - t_list *a = malloc(sizeof(t_list)); t_list *b = malloc(sizeof(t_list)); t_list
+    *c = malloc(sizeof(t_list));
+  - a->data = (void *)"keep"; a->next = b; b->data = (void *)"rm"; b->next = c; c->data
+    = (void *)"rm"; c->next = NULL;
+  - ft_list_remove_if(&a, (void *)"rm", cmp);
+  call: while(a){ printf("%s,", (char *)a->data); t_list *nx = a->next; free(a); a
+    = nx; } printf("\n")
+  tier: edge
+  stdout: 'keep,
+
+    '
+- name: test_09_single_node_removed
+  setup:
+  - t_list *a = malloc(sizeof(t_list)); a->data = (void *)"rm"; a->next = NULL;
+  - ft_list_remove_if(&a, (void *)"rm", cmp);
+  call: printf("%d\n", a == NULL)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_10_five_nodes_alternating
+  setup:
+  - t_list *n1 = malloc(sizeof(t_list)); t_list *n2 = malloc(sizeof(t_list)); t_list
+    *n3 = malloc(sizeof(t_list)); t_list *n4 = malloc(sizeof(t_list)); t_list *n5
+    = malloc(sizeof(t_list));
+  - n1->data=(void*)"rm"; n1->next=n2; n2->data=(void*)"A"; n2->next=n3; n3->data=(void*)"rm";
+    n3->next=n4; n4->data=(void*)"B"; n4->next=n5; n5->data=(void*)"rm"; n5->next=NULL;
+  - ft_list_remove_if(&n1, (void *)"rm", cmp);
+  call: while(n1){ printf("%s,", (char *)n1->data); t_list *nx = n1->next; free(n1);
+    n1 = nx; } printf("\n")
+  tier: stress
+  stdout: 'A,B,
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

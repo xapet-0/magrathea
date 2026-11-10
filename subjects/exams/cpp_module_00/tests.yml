@@ -1,0 +1,74 @@
+mode: cpp
+main_cpp: "#include \"Warlock.hpp\"\nint main()\n{\n  Warlock const richard(\"Richard\"\
+  , \"Mistress of Magma\");\n  richard.introduce();\n  std::cout << richard.getName()\
+  \ << \" - \" << richard.getTitle() << std::endl;\n\n  Warlock* jack = new Warlock(\"\
+  Jack\", \"the Long\");\n  jack->introduce();\n  jack->setTitle(\"the Mighty\");\n\
+  \  jack->introduce();\n\n  delete jack;\n  return (0);\n}\n"
+expected_stdout: 'Richard: This looks like another boring day.
+
+  Richard: I am Richard, Mistress of Magma!
+
+  Richard - Mistress of Magma
+
+  Jack: This looks like another boring day.
+
+  Jack: I am Jack, the Long!
+
+  Jack: I am Jack, the Mighty!
+
+  Jack: My job here is done!
+
+  Richard: My job here is done!
+
+  '
+must_not_compile:
+- '#include "Warlock.hpp"
+
+  int main() { Warlock bob; return 0; }
+
+  '
+- '#include "Warlock.hpp"
+
+  int main() { Warlock a("A","B"); Warlock b(a); return 0; }
+
+  '
+fixed_tests:
+- name: cpp_module_00_canonical_driver
+  main_code: ''
+  expected: ''
+- name: cpp_module_00_coplien_and_const_contract
+  main_code: ''
+  expected: ''
+- name: cpp_module_00_boundary_and_state_invariants
+  main_code: ''
+  expected: ''
+- name: cpp_module_00_destructor_and_resource_lifecycle
+  main_code: ''
+  expected: ''
+- name: test_05_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_06_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_07_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_08_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_09_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+- name: test_10_auto_main
+  main_code: ''
+  tier: stress
+  stdout: __CAPTURE__
+subject_examples: []
+folder_examples: []
+near_examples: []

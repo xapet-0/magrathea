@@ -1,0 +1,62 @@
+fixed_tests:
+- call: printf("%d\n", ft_str_is_printable("abc XYZ"));
+  name: pool_ft_str_is_printable_T01
+  stdout: '1
+
+    '
+- call: printf("%d\n", ft_str_is_printable("abc\n"));
+  name: pool_ft_str_is_printable_T02
+  stdout: '0
+
+    '
+- call: printf("%d\n", ft_str_is_printable(""));
+  name: ft_str_is_printable_empty_string
+  stdout: '1
+
+    '
+- call: char s1[] = {32, 126, 0}; char s2[] = {31, 0}; char s3[] = {127, 0}; printf("%d:%d:%d\n",
+    ft_str_is_printable(s1), ft_str_is_printable(s2), ft_str_is_printable(s3));
+  name: ft_str_is_printable_boundary_chars
+  stdout: '1:0:0
+
+    '
+- name: test_05_single_space
+  call: printf("%d\n", ft_str_is_printable(" "));
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_06_single_tilde
+  call: printf("%d\n", ft_str_is_printable("~"));
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_07_with_tab
+  call: printf("%d\n", ft_str_is_printable("hello\tworld"));
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_symbols_and_digits
+  call: printf("%d\n", ft_str_is_printable("!@#$%^&*()_+-=0123456789"));
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_09_control_char_01
+  call: char s[] = {'a', 1, 'b', 0}; printf("%d\n", ft_str_is_printable(s));
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_del_char_127
+  call: char s[] = {'4', '2', 127, 0}; printf("%d\n", ft_str_is_printable(s));
+  tier: edge
+  stdout: '0
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

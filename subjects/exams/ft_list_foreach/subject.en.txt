@@ -1,0 +1,28 @@
+Assignment name  : ft_list_foreach
+Expected files   : ft_list_foreach.c
+Allowed functions: 
+--------------------------------------------------------------------------------
+
+Write a function that takes a list and a function pointer, and applies this
+function to each element of the list.
+
+It must be declared as follows:
+
+void    ft_list_foreach(t_list *begin_list, void (*f)(void *));
+
+The function pointed to by f will be used as follows:
+
+(*f)(list_ptr->data);
+
+You must use the following structure, and turn it in your file ft_list_foreach.c :
+
+typedef struct    s_list
+{
+    struct s_list *next;
+    void          *data;
+}                 t_list;
+
+[can_ft_list_foreach_T01] Input: t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; ft_list_foreach(&a,dt_print); printf("\n")  ==>  Expected: a,b,\n
+[can_ft_list_foreach_T02] Input: Invocations: ft_list_foreach(NULL, concat_data); ft_list_foreach(n1, concat_data)  ==>  Expected: Differential comparison with reference implementation
+[can_ft_list_foreach_T03] Input: Invocations: ft_list_foreach(NULL, add_first); ft_list_foreach(&a, add_first)  ==>  Expected: Differential comparison with reference implementation
+[can_ft_list_foreach_T04] Input: Compiled and run with 4-0-ft_list_foreach_MAIN.c  ==>  Expected: Zero assertion failures (exit code 0)

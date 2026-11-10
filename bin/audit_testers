@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+# **************************************************************************** #
+#   audit_testers — 6-Mode Tester Integrity Auditor (wkratos/42-examshell)     #
+#   Verifies grading engine & subject testbenches across 6 adversarial modes:  #
+#     [1] correct       -> Reference solution MUST pass (OK)                   #
+#     [2] wrong         -> Wrong output mutation MUST fail (Diff KO)           #
+#     [3] compile_error -> Syntax error MUST fail (Does not compile)           #
+#     [4] missing       -> Empty directory MUST fail (Nothing turned in)       #
+#     [5] infinite      -> Infinite loop `while(1)` MUST fail (Timeout)        #
+#     [6] semantic      -> Forbidden function (`printf`/`system`) or `main()`  #
+#                          in function exercise MUST fail (Cheating / KO)      #
+# **************************************************************************** #
+from __future__ import annotations
+
+import argparse
+import shutil
+import sys
+import tempfile
+from pathlib import Path
+
+KIT_ROOT = Path(__file__).resolve().parents[1]
+if str(KIT_ROOT) not in sys.path:
+    sys.path.insert(0, str(KIT_ROOT))
+
+import yaml
+from deepthought.grader import grade_subject
+from deepthought.ui_theme import ThemeEngine
+
+
+def find_subject_and_corr(subject_id: str) -> tuple[Path, dict, Path | None]:
+    subj_dir = KIT_ROOT / "subjects/exams" / subject_id
+    if not subj_dir.exists():
+        matches = list((KIT_ROOT / "subjects/piscine").glob(f"*/{subject_id}"))
+        if not matches:
+            raise FileNotFoundError(f"Unknown subject: {subject_id}")
+        subj_dir = matches[0]
+
+    meta = yaml.safe_load((subj_dir / "meta.yml").read_text(encoding="utf-8"))
+    corr_dir = KIT_ROOT / "corrections/exams" / subject_id
+    if not corr_dir.exists():
+        p_matches = list((KIT_ROOT / "corrections/piscine").glob(f"*/{subject_id}"))
+        corr_dir = p_matches[0] if p_matches else None
+    return subj_dir, meta, corr_dir
+
+
+def audit_single_subject(subject_id: str, ui: ThemeEngine, run_infinite: bool = True) -> tuple[int, int, list[str]]:
+    subj_dir, meta, corr_dir = find_subject_and_corr(subject_id)
+    stype = str(meta.get("type", "c_program")).lower()
+    raw_exp_list = meta.get("expected_files") or [f"{subject_id}.c"]
+    exp_file = "main.c" if (raw_exp_list[0] in ("*.c", "Makefile") or "*" in raw_exp_list[0]) else raw_exp_list[0]
+    is_exam = "subjects/exams" in subj_dir.as_posix()
+
+    passed = 0
+    total = 0
+    logs = []
+
+    with tempfile.TemporaryDirectory(prefix=f"dt_audit_{subject_id}_") as td:
+        root_tmp = Path(td)
+
+        # Mode [4]: Missing file -> MUST FAIL
+        total += 1
+        d_missing = root_tmp / "missing"
+        d_missing.mkdir()
+        rep_m = grade_subject(KIT_ROOT, subject_id, d_missing, is_exam=is_exam)
+        if not rep_m.ok and "Nothing turned in" in rep_m.status:
+            passed += 1
+            logs.append(f"  {ui.ok('[PASS]')} Mode [4] missing       -> Rejected ({rep_m.status})")
+        else:
+            logs.append(f"  {ui.ko('[FAIL]')} Mode [4] missing       -> Expected 'Nothing turned in', got {rep_m.status}")
+
+        if stype in ("c_function", "c_program"):
+            # Mode [3]: Compile Error -> MUST FAIL
+            total += 1
+            d_ce = root_tmp / "compile_err"
+            d_ce.mkdir()
+            if "Makefile" in raw_exp_list and corr_dir and (corr_dir / "Makefile").exists():
+                shutil.copy2(corr_dir / "Makefile", d_ce / "Makefile")
+            (d_ce / exp_file).write_text("int broken_syntax( { return ??? ; }\n", encoding="utf-8")
+            rep_ce = grade_subject(KIT_ROOT, subject_id, d_ce, is_exam=is_exam)
+            if not rep_ce.ok and any(k in rep_ce.status for k in ("Does not compile", "Norme error", "failed to build")):
+                passed += 1
+                logs.append(f"  {ui.ok('[PASS]')} Mode [3] compile_error -> Rejected ({rep_ce.status})")
+            else:
+                logs.append(f"  {ui.ko('[FAIL]')} Mode [3] compile_error -> Expected 'Does not compile', got {rep_ce.status}")
+
+            # Mode [2]: Wrong Implementation -> MUST FAIL
+            total += 1
+            d_wrong = root_tmp / "wrong"
+            d_wrong.mkdir()
+            if corr_dir:
+                for hf in corr_dir.glob("*.h"):
+                    shutil.copy2(hf, d_wrong / hf.name)
+                if "Makefile" in raw_exp_list and (corr_dir / "Makefile").exists():
+                    shutil.copy2(corr_dir / "Makefile", d_wrong / "Makefile")
+                for cf in corr_dir.glob("*.c"):
+                    if cf.name != exp_file:
+                        shutil.copy2(cf, d_wrong / cf.name)
+            if stype == "c_program":
+                (d_wrong / exp_file).write_text('#include <unistd.h>\nint main(void){write(1,"WRONG_42_OUTPUT\\n",16);return 0;}\n', encoding="utf-8")
+            else:
+                preamble = str(meta.get("hidden_preamble") or "")
+                proto = str(meta.get("prototype") or f"int {subject_id}(void)").rstrip(";")
+                # Add __attribute__((unused)) to parameters so -Wall -Wextra -Werror compiles cleanly and tests Diff KO!
+                if "(" in proto and ")" in proto:
+                    head, params = proto.split("(", 1)
+                    params_body = params.rsplit(")", 1)[0].strip()
+                    if params_body and params_body != "void":
+                        parts = [f"__attribute__((unused)) {p.strip()}" for p in params_body.split(",")]
+                        proto = f"{head}({', '.join(parts)})"
+                if proto.startswith("void") and "*" not in proto.split("(")[0]:
+                    (d_wrong / exp_file).write_text(f'{preamble}\n{proto} {{ }}\n', encoding="utf-8")
+                elif "*" in proto.split("(")[0]:
+                    (d_wrong / exp_file).write_text(f'#include <stddef.h>\n{preamble}\n{proto} {{ return NULL; }}\n', encoding="utf-8")
+                else:
+                    (d_wrong / exp_file).write_text(f'{preamble}\n{proto} {{ return -999999; }}\n', encoding="utf-8")
+            rep_w = grade_subject(KIT_ROOT, subject_id, d_wrong, is_exam=is_exam)
+            if not rep_w.ok and "Does not compile" not in rep_w.status:
+                passed += 1
+                logs.append(f"  {ui.ok('[PASS]')} Mode [2] wrong         -> Rejected ({rep_w.status})")
+            else:
+                logs.append(f"  {ui.ko('[FAIL]')} Mode [2] wrong         -> FALSE POSITIVE! Wrong solution passed!")
+
+            # Mode [6]: Semantic / Cheating Check -> MUST FAIL
+            total += 1
+            d_sem = root_tmp / "semantic"
+            d_sem.mkdir()
+            if corr_dir:
+                for hf in corr_dir.glob("*.h"):
+                    shutil.copy2(hf, d_sem / hf.name)
+                if "Makefile" in raw_exp_list and (corr_dir / "Makefile").exists():
+                    shutil.copy2(corr_dir / "Makefile", d_sem / "Makefile")
+            if stype == "c_function":
+                proto = str(meta.get("prototype") or f"int {subject_id}(void)").rstrip(";")
+                (d_sem / exp_file).write_text(f'{proto} {{ return 0; }}\nint main(void) {{ return 0; }}\n', encoding="utf-8")
+            else:
+                (d_sem / exp_file).write_text('#include <stdlib.h>\nint main(void){ system("echo 42"); return 0; }\n', encoding="utf-8")
+            rep_s = grade_subject(KIT_ROOT, subject_id, d_sem, is_exam=is_exam)
+            if not rep_s.ok:
+                passed += 1
+                logs.append(f"  {ui.ok('[PASS]')} Mode [6] semantic      -> Rejected ({rep_s.status})")
+            else:
+                logs.append(f"  {ui.ko('[FAIL]')} Mode [6] semantic      -> Failed to reject forbidden main()/system()!")
+
+            # Mode [5]: Infinite Loop -> MUST TIMEOUT
+            if run_infinite and stype == "c_program":
+                total += 1
+                d_inf = root_tmp / "infinite"
+                d_inf.mkdir()
+                (d_inf / exp_file).write_text("int main(void){ while(1){} return 0; }\n", encoding="utf-8")
+                rep_i = grade_subject(KIT_ROOT, subject_id, d_inf, is_exam=is_exam)
+                if not rep_i.ok and "Timeout" in rep_i.status:
+                    passed += 1
+                    logs.append(f"  {ui.ok('[PASS]')} Mode [5] infinite      -> Killed by watchdog ({rep_i.status})")
+                else:
+                    logs.append(f"  {ui.ko('[FAIL]')} Mode [5] infinite      -> Expected Timeout, got {rep_i.status}")
+
+        elif stype in ("shell", "shell_script"):
+            # Mode [2]: Wrong shell output -> MUST FAIL
+            total += 1
+            d_wrong = root_tmp / "wrong"
+            d_wrong.mkdir()
+            (d_wrong / exp_file).write_text("#!/bin/sh\necho WRONG_42_OUTPUT\nexit 42\n", encoding="utf-8")
+            rep_w = grade_subject(KIT_ROOT, subject_id, d_wrong, is_exam=is_exam)
+            if not rep_w.ok and "Does not compile" not in rep_w.status:
+                passed += 1
+                logs.append(f"  {ui.ok('[PASS]')} Mode [2] wrong         -> Rejected ({rep_w.status})")
+            else:
+                logs.append(f"  {ui.ko('[FAIL]')} Mode [2] wrong         -> FALSE POSITIVE! Wrong shell script passed!")
+
+            if run_infinite:
+                total += 1
+                d_inf = root_tmp / "infinite"
+                d_inf.mkdir()
+                (d_inf / exp_file).write_text("#!/bin/sh\nwhile true; do :; done\n", encoding="utf-8")
+                rep_i = grade_subject(KIT_ROOT, subject_id, d_inf, is_exam=is_exam)
+                if not rep_i.ok and "Timeout" in rep_i.status:
+                    passed += 1
+                    logs.append(f"  {ui.ok('[PASS]')} Mode [5] infinite      -> Killed by watchdog ({rep_i.status})")
+                else:
+                    logs.append(f"  {ui.ko('[FAIL]')} Mode [5] infinite      -> Expected Timeout, got {rep_i.status}")
+
+        elif stype == "python":
+            # Mode [3]: Syntax error -> MUST FAIL
+            total += 1
+            d_ce = root_tmp / "syntax_err"
+            d_ce.mkdir()
+            (d_ce / exp_file).write_text("def broken(:\n", encoding="utf-8")
+            rep_ce = grade_subject(KIT_ROOT, subject_id, d_ce, is_exam=is_exam)
+            if not rep_ce.ok:
+                passed += 1
+                logs.append(f"  {ui.ok('[PASS]')} Mode [3] syntax_error  -> Rejected ({rep_ce.status})")
+            else:
+                logs.append(f"  {ui.ko('[FAIL]')} Mode [3] syntax_error  -> Expected failure, got {rep_ce.status}")
+
+            # Mode [2]: Wrong Python output -> MUST FAIL
+            total += 1
+            d_wrong = root_tmp / "wrong"
+            d_wrong.mkdir()
+            (d_wrong / exp_file).write_text("def __getattr__(name): return lambda *a, **k: 'WRONG_42_OUTPUT'\nprint('WRONG_42_OUTPUT')\n", encoding="utf-8")
+            rep_w = grade_subject(KIT_ROOT, subject_id, d_wrong, is_exam=is_exam)
+            if not rep_w.ok and "Does not compile" not in rep_w.status:
+                passed += 1
+                logs.append(f"  {ui.ok('[PASS]')} Mode [2] wrong         -> Rejected ({rep_w.status})")
+            else:
+                logs.append(f"  {ui.ko('[FAIL]')} Mode [2] wrong         -> FALSE POSITIVE! Wrong Python solution passed!")
+
+            if run_infinite:
+                total += 1
+                d_inf = root_tmp / "infinite"
+                d_inf.mkdir()
+                (d_inf / exp_file).write_text("while True: pass\n", encoding="utf-8")
+                rep_i = grade_subject(KIT_ROOT, subject_id, d_inf, is_exam=is_exam)
+                if not rep_i.ok and "Timeout" in rep_i.status:
+                    passed += 1
+                    logs.append(f"  {ui.ok('[PASS]')} Mode [5] infinite      -> Killed by watchdog ({rep_i.status})")
+                else:
+                    logs.append(f"  {ui.ko('[FAIL]')} Mode [5] infinite      -> Expected Timeout, got {rep_i.status}")
+
+        # Mode [1]: Correct Reference Solution -> MUST PASS
+        if corr_dir and corr_dir.exists():
+            total += 1
+            d_ok = root_tmp / "correct"
+            shutil.copytree(corr_dir, d_ok)
+            exp_list = meta.get("expected_files") or []
+            keep_main = "main.c" in exp_list or any("*" in ef for ef in exp_list) or "Makefile" in exp_list
+            for meta_f in ["generator.py", "profile.yml", "main.c", "expected.out"]:
+                if meta_f == "main.c" and keep_main:
+                    continue
+                if (d_ok / meta_f).exists() and meta_f not in exp_list:
+                    (d_ok / meta_f).unlink()
+            rep_ok = grade_subject(KIT_ROOT, subject_id, d_ok, is_exam=is_exam)
+            if rep_ok.ok:
+                passed += 1
+                logs.append(f"  {ui.ok('[PASS]')} Mode [1] correct       -> Passed 100% ({rep_ok.status})")
+            else:
+                logs.append(f"  {ui.ko('[FAIL]')} Mode [1] correct       -> Reference solution failed: {rep_ok.status} ({rep_ok.reason})")
+
+    return passed, total, logs
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="1337/42 Deepthought 6-Mode Tester Integrity Auditor (wkratos/42-examshell)")
+    parser.add_argument("subjects", nargs="*", help="Subject IDs to audit (default: representative core suite)")
+    parser.add_argument("--no-infinite", action="store_true", help="Skip 2.0s infinite loop mode for faster batch runs")
+    args = parser.parse_args()
+
+    ui = ThemeEngine()
+    targets = args.subjects or [
+        "only_z", "aff_a", "first_word", "fizzbuzz", "rot_13", "inter", "union",
+        "wdmatch", "do_op", "fprime", "ft_strlen", "ft_swap", "ft_atoi", "ft_itoa",
+        "ft_split", "active_bits", "lcm", "rotone", "strlen_sh", "vowel_count"
+    ]
+
+    print(ui.banner("1337 / 42 TESTER INTEGRITY AUDITOR (6-MODE VERIFICATION)", "Modes: [1] correct | [2] wrong | [3] compile_error | [4] missing | [5] infinite | [6] semantic"))
+    grand_pass = 0
+    grand_total = 0
+
+    for sid in targets:
+        try:
+            p, t, logs = audit_single_subject(sid, ui, run_infinite=not args.no_infinite)
+            grand_pass += p
+            grand_total += t
+            status_badge = ui.ok(f"{p}/{t} PASS") if p == t else ui.ko(f"{p}/{t} FAIL")
+            print(f"\n{ui.bold(sid)} [{status_badge}]")
+            for line in logs:
+                print(line)
+        except Exception as e:
+            print(f"\n{ui.bold(sid)} [{ui.ko('ERROR')}]: {e}")
+
+    print("\n" + ui.rule())
+    summary = f"Total Audit Checks Passed: {grand_pass}/{grand_total}"
+    print(ui.ok(summary) if grand_pass == grand_total else ui.ko(summary))
+    return 0 if grand_pass == grand_total else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

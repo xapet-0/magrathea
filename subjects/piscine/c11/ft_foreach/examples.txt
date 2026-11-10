@@ -1,0 +1,6 @@
+For example, the ft_foreach function can be used as follows to display all the
+integers the an array:
+ft_foreach(tab, 1337, &ft_putnbr);
+
+Prototype:
+    void ft_foreach(int *tab, int length, void (*f)(int));

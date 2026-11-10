@@ -1,0 +1,9 @@
+Examples:
+$> printf "b\na\nb\n" | sh freq_rank.sh | cat -e
+2 b$
+1 a$
+$> printf "x\nx\nx\ny\n" | sh freq_rank.sh | cat -e
+3 x$
+1 y$
+$> printf "42\n" | sh freq_rank.sh | cat -e
+1 42$

@@ -1,0 +1,14 @@
+id: ft_range
+type: c_function
+module: Exam Rank 02
+xp: 450
+expected_files:
+- ft_range.c
+allowed_functions:
+- malloc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int *ft_range(int start, int end);

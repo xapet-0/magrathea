@@ -1,0 +1,199 @@
+mode: c_program
+fixed_tests:
+- name: pool_hexdump_T01
+  description: hexdump_C
+  args:
+  - -C
+  - a.txt
+  files:
+    a.txt: 'Hello 42
+
+      '
+  expected: '00000000  48 65 6c 6c 6f 20 34 32  0a                       |Hello 42.|
+
+    00000009
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_hexdump_T02
+  description: hexdump_missing_file
+  args:
+  - -C
+  - no_such_file.txt
+  expect_error: true
+  category: Functional
+  tier: baseline
+- name: pool_hexdump_T03_16bytes
+  description: hexdump_C_exact_16_bytes
+  args:
+  - -C
+  - b16.txt
+  files:
+    b16.txt: 0123456789abcdef
+  expected: '00000000  30 31 32 33 34 35 36 37  38 39 61 62 63 64 65 66  |0123456789abcdef|
+
+    00000010
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: pool_hexdump_T04_empty_file
+  description: hexdump_C_empty_file
+  args:
+  - -C
+  - empty.txt
+  files:
+    empty.txt: ''
+  expected: ''
+  category: Edge Case
+  tier: edge_case
+- name: test_05_single_byte
+  args:
+  - -C
+  - one.txt
+  files:
+    one.txt: A
+  tier: edge
+  stdout: '00000000  41                                                |A|
+
+    00000001
+
+    '
+- name: test_06_17_bytes_two_lines
+  args:
+  - -C
+  - b17.txt
+  files:
+    b17.txt: 0123456789abcdefZ
+  tier: edge
+  stdout: '00000000  30 31 32 33 34 35 36 37  38 39 61 62 63 64 65 66  |0123456789abcdef|
+
+    00000010  5a                                                |Z|
+
+    00000011
+
+    '
+- name: test_07_32_bytes_two_full_lines
+  args:
+  - -C
+  - b32.txt
+  files:
+    b32.txt: 0123456789abcdefABCDEF0123456789
+  tier: baseline
+  stdout: '00000000  30 31 32 33 34 35 36 37  38 39 61 62 63 64 65 66  |0123456789abcdef|
+
+    00000010  41 42 43 44 45 46 30 31  32 33 34 35 36 37 38 39  |ABCDEF0123456789|
+
+    00000020
+
+    '
+- name: test_08_non_printable_chars
+  args:
+  - -C
+  - ctrl.txt
+  files:
+    ctrl.txt: "\x01\x02\t\n\x7F"
+  tier: edge
+  stdout: '00000000  01 02 09 0a 7f                                    |.....|
+
+    00000005
+
+    '
+- name: test_09_duplicate_lines_asterisk
+  args:
+  - -C
+  - dup.txt
+  files:
+    dup.txt: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+  tier: stress
+  stdout: '00000000  41 41 41 41 41 41 41 41  41 41 41 41 41 41 41 41  |AAAAAAAAAAAAAAAA|
+
+    00000010  41 41 41 41 41 41 41 41  41 41 41 41 41 41 41 41  |AAAAAAAAAAAAAAAA|
+
+    00000020  41 41 41 41 41 41 41 41  41 41 41 41 41 41 41 41  |AAAAAAAAAAAAAAAA|
+
+    00000030
+
+    '
+- name: test_10_two_files_concatenated
+  args:
+  - -C
+  - p1.txt
+  - p2.txt
+  files:
+    p1.txt: '1337'
+    p2.txt: '_42
+
+      '
+  tier: baseline
+  stdout: '00000000  31 33 33 37                                       |1337|
+
+    00000004
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./hexdump "-C" "a.txt" | cat -e
+  args: &id001
+  - -C
+  - a.txt
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./hexdump "-C" "no_such_file.txt" | cat -e
+  args: &id002
+  - -C
+  - no_such_file.txt
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: folder_fixture_01
+  origin: subject_folder/srcs/main.c
+  input: srcs/main.c
+  expected: '/* **************************************************************************
+    */
+
+    /*                                                                            *'
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - -D
+  - b.txt
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  -C  '
+  - a.txt
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - -D
+  - oo_such_file.txt
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  -C  '
+  - no_such_file.txt
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_fixture_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/srcs/main.c)
+  original_input: srcs/main.c
+  perturbed_input: trcs/main.c

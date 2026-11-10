@@ -1,0 +1,100 @@
+subject_id: count_words_exam
+fixed_tests:
+- name: test_01_hello_world_42
+  expr: count_words_exam("  hello   world 42 ")
+  stdout: '3
+
+    '
+  tier: baseline
+- name: test_02_expr
+  expr: count_words_exam("")
+  stdout: '0
+
+    '
+  tier: baseline
+- name: test_03_expr
+  expr: "count_words_exam(\"   \t  \")"
+  stdout: '0
+
+    '
+  tier: baseline
+- name: test_04_one
+  expr: count_words_exam("one")
+  stdout: '1
+
+    '
+  tier: baseline
+- name: test_05_a_b_c_d
+  expr: count_words_exam("a b c d")
+  stdout: '4
+
+    '
+  tier: baseline
+- name: test_06_tabs_and_newlines
+  expr: count_words_exam("\t\n word1 \t\n word2 \n")
+  tier: edge
+  stdout: '5
+
+    '
+- name: test_07_leading_spaces
+  expr: count_words_exam("    only_lead")
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_trailing_spaces
+  expr: count_words_exam("only_trail    ")
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_two_words
+  expr: count_words_exam("1337 42")
+  tier: baseline
+  stdout: '2
+
+    '
+- name: test_10_eight_words
+  expr: count_words_exam("a bb ccc dddd eeeee ffffff g h")
+  tier: stress
+  stdout: '8
+
+    '
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval count_words_exam
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: e1337_count_words_exam_T06
+  origin: subject_folder/examples.txt
+  input: count_words_exam("  hello   world 42 ") -> 3
+  expected: "count_words_exam(\"\") -> 0\\n    count_words_exam(\"   \t  \") -> 0\\\
+    n    count_words_exam(\"one\") -> 1"
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "subject_id: count_words_exam\nfixed_tests:\n- expr: count_words_exam(\"\
+    \  hello   world 42 \")\n  stdout: '3\n\n    '\n- expr: count_words_exam(\"\"\
+    )\n  stdout: '0\n\n    '\n-"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval count_words_exam
+  perturbed_input:
+  - count_words_exam_near_arg_1
+  - count_words_exam_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_count_words_exam_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: count_words_exam("  hello   world 42 ") -> 3
+  perturbed_input: 'dount_words_exam("  hello   world 42 ") '
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

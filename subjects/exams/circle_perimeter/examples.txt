@@ -1,0 +1,3 @@
+Examples:
+  (int)(circle_perimeter(10.0f) * 100) -> 6280
+  (int)(circle_perimeter(0.0f)) -> 0

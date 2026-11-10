@@ -1,0 +1,5 @@
+# Examples for ft_str_is_numeric (from official subject specification)
+
+Examples:
+    ft_str_is_numeric("12345") -> 1
+    ft_str_is_numeric("123a5") -> 0

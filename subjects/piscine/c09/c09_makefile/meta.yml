@@ -1,0 +1,12 @@
+id: c09_makefile
+type: makefile
+module: C 09
+xp: 270
+expected_files:
+- Makefile
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true

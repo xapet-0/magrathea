@@ -1,0 +1,21 @@
+Assignment name  : rle_decode
+Expected files   : rle_decode.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that decodes a Run-Length Encoded string (e.g. "3A2BC" ->
+"AAABBC") and prints the expanded string followed by a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./rle_decode "3A2BC" | cat -e
+AAABBC$
+$> ./rle_decode "ABC" | cat -e
+ABC$
+$> ./rle_decode "" | cat -e
+$
+$> ./rle_decode | cat -e
+$

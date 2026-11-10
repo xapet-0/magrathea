@@ -1,0 +1,9 @@
+Examples:
+$> ./nth_reverse "abcdef" "2" | cat -e
+badcfe$
+$> ./nth_reverse | cat -e
+$
+$> ./nth_reverse "ABCDEFG" "3" | cat -e
+CBAFEDG$
+$> ./nth_reverse "ABC" | cat -e
+$

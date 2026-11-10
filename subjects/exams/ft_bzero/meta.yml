@@ -1,0 +1,13 @@
+id: ft_bzero
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- ft_bzero.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void ft_bzero(void *s, size_t n);

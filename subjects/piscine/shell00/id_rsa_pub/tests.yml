@@ -1,0 +1,32 @@
+mode: shell_file
+fixed_tests:
+- name: test_01_regex
+  expected_regex: ^ssh-(rsa|ed25519|ecdsa)\s+[A-Za-z0-9+/=]+
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./id_rsa_pub | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: id_rsa_pub baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./id_rsa_pub | cat -e
+  perturbed_input:
+  - id_rsa_pub_near_arg_1
+  - id_rsa_pub_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: id_rsa_pub baseline folder fixture
+  perturbed_input: jd_rsa_pub baseline folder fixture

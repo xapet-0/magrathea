@@ -1,0 +1,90 @@
+fixed_tests:
+- call: printf("%d:%d:%d:%d\n", match("main.c", "*.c"), match("main.c", "*.h"), nmatch("abcbd",
+    "*b*"), nmatch("abc", "a**"));
+  name: pool_match_n_match_T01
+  stdout: '1:0:2:3
+
+    '
+- call: printf("%d:%d:%d:%d\n", match("42", "42"), match("", ""), match("hello", ""),
+    match("", "*"));
+  name: match_exact_and_empty
+  stdout: '1:1:0:1
+
+    '
+- call: printf("%d:%d:%d\n", match("abcde", "a*e"), match("abcde", "a*z"), match("test.tar.gz",
+    "*.tar.*"));
+  name: match_complex_wildcards
+  stdout: '1:0:1
+
+    '
+- call: printf("%d:%d\n", nmatch("aaaa", "*a*"), nmatch("abc", "*"));
+  name: nmatch_patterns
+  stdout: '4:1
+
+    '
+- name: test_05_wildcard_only
+  call: printf("%d:%d:%d\n", match("anything", "*"), match("", "**"), nmatch("", "**"));
+  tier: edge
+  stdout: '1:1:1
+
+    '
+- name: test_06_prefix_and_suffix
+  call: printf("%d:%d:%d:%d\n", match("hello.c", "hello*"), match("hello.c", "*lo.c"),
+    match("hello.c", "hello.h"), match("abc", "abcd"));
+  tier: baseline
+  stdout: '1:1:0:0
+
+    '
+- name: test_07_multiple_stars_match
+  call: printf("%d:%d\n", match("a1b2c3", "*1*2*3*"), match("a1b2c3", "*1*9*"));
+  tier: baseline
+  stdout: '1:0
+
+    '
+- name: test_08_nmatch_exact_and_no_match
+  call: printf("%d:%d\n", nmatch("abc", "abc"), nmatch("abc", "abd"));
+  tier: baseline
+  stdout: '1:0
+
+    '
+- name: test_09_nmatch_two_stars
+  call: printf("%d:%d\n", nmatch("ab", "**"), nmatch("a", "***"));
+  tier: edge
+  stdout: '3:3
+
+    '
+- name: test_10_nmatch_repeated_chars
+  call: printf("%d:%d\n", nmatch("aba", "*a*"), nmatch("abcbd", "a*b*d"));
+  tier: stress
+  stdout: '2:2
+
+    '
+folder_examples:
+- expected: 1:0:2:3\n
+  id: pool_match_n_match_T01
+  input: printf("%d:%d:%d:%d\n", match("main.c", "*.c"), match("main.c", "*.h"), nmatch("abcbd",
+    "*b*"), nmatch("abc", "a**"))
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval match_n_match
+  perturbed_input:
+  - match_n_match_near_arg_1
+  - match_n_match_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: pool_match_n_match_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: printf("%d:%d:%d:%d\n", match("main.c", "*.c"), match("main.c",
+    "*.h"), nmatch("abcbd", "*b*"), nmatch("abc", "a**"))
+  perturbed_input: 'qrintf("%d:%d:%d:%d\n", match("main.c", '
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval match_n_match
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

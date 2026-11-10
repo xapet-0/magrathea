@@ -1,0 +1,9 @@
+Examples:
+$> ./slice "Hello" "3" | cat -e
+el$
+$> ./slice "abcdef" "4" | cat -e
+bcd$
+$> ./slice "Hello" "1" | cat -e
+$
+$> ./slice | cat -e
+$

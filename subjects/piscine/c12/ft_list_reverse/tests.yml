@@ -1,0 +1,67 @@
+fixed_tests:
+- call: t_list c={"c",0}; t_list b={"b",&c}; t_list a={"a",&b}; t_list *l=&a; ft_list_reverse(&l);
+    while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  name: pool_ft_list_reverse_T01
+  stdout: 'cba
+
+    '
+- call: t_list *l=NULL; ft_list_reverse(&l); printf("%d\n", l==NULL);
+  name: ft_list_reverse_null
+  stdout: '1
+
+    '
+- call: t_list a={"only",0}; t_list *l=&a; ft_list_reverse(&l); printf("%s:%d\n",(char*)l->data,l->next==NULL);
+  name: ft_list_reverse_single_node
+  stdout: 'only:1
+
+    '
+- call: t_list b={"2",0}; t_list a={"1",&b}; t_list *l=&a; ft_list_reverse(&l); printf("%s%s\n",(char*)l->data,(char*)l->next->data);
+  name: ft_list_reverse_two_nodes
+  stdout: '21
+
+    '
+- name: test_05_four_nodes
+  call: t_list d={"4",0},c={"3",&d},b={"2",&c},a={"1",&b}; t_list *l=&a; ft_list_reverse(&l);
+    while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  tier: baseline
+  stdout: '4321
+
+    '
+- name: test_06_five_nodes
+  call: t_list e={"e",0},d={"d",&e},c={"c",&d},b={"b",&c},a={"a",&b}; t_list *l=&a;
+    ft_list_reverse(&l); while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  tier: baseline
+  stdout: 'edcba
+
+    '
+- name: test_07_double_reverse_restores
+  call: t_list c={"3",0},b={"2",&c},a={"1",&b}; t_list *l=&a; ft_list_reverse(&l);
+    ft_list_reverse(&l); while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  tier: stress
+  stdout: '123
+
+    '
+- name: test_08_new_tail_next_is_null
+  call: t_list b={"2",0},a={"1",&b}; t_list *l=&a; ft_list_reverse(&l); printf("%d:%d\n",l==&b,a.next==NULL);
+  tier: edge
+  stdout: '1:1
+
+    '
+- name: test_09_null_pointer_arg
+  call: t_list *l=NULL; ft_list_reverse(&l); printf("OK\n");
+  tier: edge
+  stdout: 'OK
+
+    '
+- name: test_10_six_nodes
+  call: t_list v[6]; for(int i=0;i<6;i++){v[i].data=(void*)(long)(i+1); v[i].next=(i<5)?&v[i+1]:0;}
+    t_list *l=&v[0]; ft_list_reverse(&l); while(l){printf("%ld,",(long)l->data);l=l->next;}
+    printf("\n");
+  tier: stress
+  stdout: '6,5,4,3,2,1,
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

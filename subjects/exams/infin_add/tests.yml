@@ -1,0 +1,240 @@
+mode: c_program
+fixed_tests:
+- name: can_infin_add_T01
+  description: pos_sum
+  args:
+  - '879879087'
+  - '67548976597'
+  expected: '68428855684
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_infin_add_T02
+  description: neg_sum
+  args:
+  - '-21'
+  - '-21'
+  expected: '-42
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_infin_add_T03
+  description: cancel_zero
+  args:
+  - '-42'
+  - '42'
+  expected: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_infin_add_T04
+  description: zeros
+  args:
+  - '0'
+  - '0'
+  expected: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_arg_auto
+  args:
+  - ''
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_06_arg_auto
+  args:
+  - '42'
+  - '1337'
+  tier: baseline
+  stdout: '1379
+
+    '
+- name: test_07_arg_auto
+  args:
+  - pad
+  - test
+  tier: baseline
+  stdout: '80980
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '!@#$'
+  - '%^&*'
+  tier: baseline
+  stdout: '.00,(
+
+    '
+- name: test_09_arg_auto
+  args:
+  - abc
+  - abcdef
+  tier: baseline
+  stdout: '5462235
+
+    '
+- name: test_10_arg_auto
+  args:
+  - same
+  - same
+  tier: baseline
+  stdout: '145126
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./infin_add "879879087" "67548976597" | cat -e
+  args: &id001
+  - '879879087'
+  - '67548976597'
+  expected: '68428855684
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./infin_add "-21" "-21" | cat -e
+  args: &id002
+  - '-21'
+  - '-21'
+  expected: '-42
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./infin_add "-42" "42" | cat -e
+  args: &id003
+  - '-42'
+  - '42'
+  expected: '0
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./infin_add "0" "0" | cat -e
+  args: &id004
+  - '0'
+  - '0'
+  expected: '0
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_infin_add_T05
+  origin: subject_folder/examples.txt
+  input: ./infin_add "879879087" "67548976597" \| cat -e
+  expected: 68428855684$
+- id: can_infin_add_T06
+  origin: subject_folder/examples.txt
+  input: ./infin_add "-21" "-21" \| cat -e
+  expected: -42$
+- id: can_infin_add_T07
+  origin: subject_folder/examples.txt
+  input: ./infin_add "-42" "42" \| cat -e
+  expected: 0$
+- id: can_infin_add_T08
+  origin: subject_folder/examples.txt
+  input: ./infin_add "0" "0" \| cat -e
+  expected: 0$
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '879879088'
+  - '67548976598'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  879879087  '
+  - '67548976597'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - '-22'
+  - '-22'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  -21  '
+  - '-21'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - '-43'
+  - '43'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  -42  '
+  - '42'
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - '1'
+  - '1'
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  0  '
+  - '0'
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_infin_add_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./infin_add "879879087" "67548976597" \| cat -e
+  perturbed_input: ./jnfin_add "879879087" "67548976597" \|
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_infin_add_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./infin_add "-21" "-21" \| cat -e
+  perturbed_input: ./jnfin_add "-21" "-21" \| cat -e
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `infin_add`
+  input: infin_add(INT_MIN), infin_add(0), infin_add(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `infin_add`
+  input: Run infin_add with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `infin_add`
+  input: infin_add(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `infin_add`
+  input: Call infin_add on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out

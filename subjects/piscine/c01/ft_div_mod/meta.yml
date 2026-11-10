@@ -1,0 +1,13 @@
+id: ft_div_mod
+type: c_function
+module: C 01
+xp: 130
+expected_files:
+- ft_div_mod.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void ft_div_mod(int a, int b, int *div, int *mod);

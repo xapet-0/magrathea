@@ -1,0 +1,19 @@
+Assignment name  : ft_sort_string_tab
+Turn-in directory: ex06/
+Expected files   : ft_sort_string_tab.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create the functionft_sort_string_tab, which sorts the strings intab in ASCII
+order.
+• tab will be null-terminated.
+• The sorting will be performed by exchanging the array’s pointers.
+• Here is how it should be prototyped:
+void ft_sort_string_tab(char **tab);
+
+Your function must be declared as follows:
+    void ft_sort_string_tab(char **tab);
+
+Examples:
+    char *a[]={"pear","apple","banana",0}; ft_sort_string_tab(a); for(int i=0;a[i];i++) printf("%s,",a[i]); printf("\n")
+    Output: apple,banana,pear,

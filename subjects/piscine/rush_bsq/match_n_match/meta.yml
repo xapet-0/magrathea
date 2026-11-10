@@ -1,0 +1,13 @@
+id: match_n_match
+type: c_function
+module: Rush 00–02 & BSQ
+xp: 490
+expected_files:
+- match_n_match.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int match(char *s1, char *s2); int nmatch(char *s1, char *s2);

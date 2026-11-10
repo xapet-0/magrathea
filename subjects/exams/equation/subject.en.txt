@@ -1,0 +1,32 @@
+Assignment name  : equation
+Expected files   : equation.c
+Allowed functions: printf
+--------------------------------------------------------------------------------
+
+Write a function that prints all pairs of digits (A, B, C) in 0..9 such that
+AB + CA = n (where AB = 10*A + B and CA = 10*C + A), formatted as:
+"A = x, B = y, C = z\n" in ascending order of A, then B, then C.
+
+Prototype:
+void	equation(int n);
+
+Your function must be declared as follows:
+    void equation(int n);
+
+Examples:
+    equation(42)
+    Output: A = 0, B = 2, C = 4
+A = 1, B = 1, C = 3
+A = 2, B = 0, C = 2
+A = 3, B = 9, C = 0
+    equation(111)
+    Output: A = 2, B = 9, C = 8
+A = 3, B = 8, C = 7
+A = 4, B = 7, C = 6
+A = 5, B = 6, C = 5
+A = 6, B = 5, C = 4
+A = 7, B = 4, C = 3
+A = 8, B = 3, C = 2
+A = 9, B = 2, C = 1
+    equation(0)
+    Output: A = 0, B = 0, C = 0

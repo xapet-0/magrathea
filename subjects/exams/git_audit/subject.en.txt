@@ -1,0 +1,15 @@
+Assignment name  : git_audit
+Expected files   : git_audit.sh
+Allowed commands : git, head, printf
+--------------------------------------------------------------------------------
+
+Write a shell script that displays the short commit hash and author name of
+the latest commits in the repository (or outputs the repository status summary).
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh git_audit.sh | cat -e
+OK$

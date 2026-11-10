@@ -1,0 +1,129 @@
+mode: c_function
+fixed_tests:
+- name: can_is_anagram_T01
+  description: 'Functional verification of input: `is_anagram("cinema", "iceman")`'
+  expr: is_anagram("cinema", "iceman")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_is_anagram_T02
+  description: 'Functional verification of input: `is_anagram("hello", "world")`'
+  expr: is_anagram("hello", "world")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_is_anagram_T03
+  description: 'Functional verification of input: `is_anagram("", "")`'
+  expr: is_anagram("", "")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_is_anagram_T04
+  description: 'Functional verification of input: `is_anagram("abc", "ab")`'
+  expr: is_anagram("abc", "ab")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_is_anagram_T05
+  description: 'Functional verification of input: `is_anagram("aabbcc", "abcabc")`'
+  expr: is_anagram("aabbcc", "abcabc")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_identical_strings
+  expr: is_anagram("1337_42", "1337_42")
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_07_same_len_different_counts
+  expr: is_anagram("aab", "abb")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_case_sensitivity
+  expr: is_anagram("Abc", "abc")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_single_char_match_and_miss
+  expr: is_anagram("x", "x") * 10 + is_anagram("x", "y")
+  tier: edge
+  stdout: '10
+
+    '
+- name: test_10_printable_ascii_symbols
+  expr: 'is_anagram("!@# 123", "321 #@!")'
+  tier: stress
+  stdout: '1
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval is_anagram
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_is_anagram_T06
+  origin: subject_folder/is_anagram_MAIN.c
+  input: Compiled and run with is_anagram_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_02
+  origin: subject_folder/is_anagram_MAIN.c
+  input: is_anagram_MAIN.c
+  expected: "int     is_anagram(char *a, char *b)\n{\n\tint alpha[128] = {0};\n\t\
+    while (*a)\n\t\talpha[(unsigned int)*a++]++;\n\twhile (*b)\n\t\talpha[(unsigned\
+    \ int)*b++]--;\n\tint i = -1;"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval is_anagram
+  perturbed_input:
+  - is_anagram_near_arg_1
+  - is_anagram_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_is_anagram_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/is_anagram_MAIN.c)
+  original_input: Compiled and run with is_anagram_MAIN.c
+  perturbed_input: Dompiled and run with is_anagram_MAIN.c
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/is_anagram_MAIN.c)
+  original_input: is_anagram_MAIN.c
+  perturbed_input: js_anagram_MAIN.c
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `is_anagram`
+  input: "is_anagram(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `is_anagram`
+  input: is_anagram("   word   ") and is_anagram("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `is_anagram`
+  input: is_anagram("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `is_anagram`
+  input: Execute is_anagram with no arguments and with 3 arguments
+  expected: Print newline only

@@ -1,0 +1,12 @@
+id: testShell00
+type: shell
+module: Shell 00
+xp: 130
+expected_files:
+- testShell00.tar
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true

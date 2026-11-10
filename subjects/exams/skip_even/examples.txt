@@ -1,0 +1,10 @@
+Examples:
+$> printf "line1\nline2\nline3\n" | sh skip_even.sh | cat -e
+line1$
+line3$
+$> printf "a\nb\nc\nd\ne\n" | sh skip_even.sh | cat -e
+a$
+c$
+e$
+$> printf "only1\n" | sh skip_even.sh | cat -e
+only1$

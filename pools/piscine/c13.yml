@@ -1,0 +1,27 @@
+id: c13
+display_name: 1337 / 42 Piscine — C 13
+exercises:
+- ex: ex00
+  subject_id: piscine/c13/btree_create_node
+  xp: 370
+- ex: ex01
+  subject_id: piscine/c13/btree_apply_prefix
+  xp: 370
+- ex: ex02
+  subject_id: piscine/c13/btree_apply_infix
+  xp: 370
+- ex: ex03
+  subject_id: piscine/c13/btree_apply_suffix
+  xp: 370
+- ex: ex04
+  subject_id: piscine/c13/btree_insert_data
+  xp: 370
+- ex: ex05
+  subject_id: piscine/c13/btree_search_item
+  xp: 370
+- ex: ex06
+  subject_id: piscine/c13/btree_level_count
+  xp: 370
+- ex: ex07
+  subject_id: piscine/c13/btree_apply_by_level
+  xp: 370

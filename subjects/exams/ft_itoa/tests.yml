@@ -1,0 +1,115 @@
+mode: c_function
+fixed_tests:
+- name: subj_ex_neg_42
+  tier: subject_example
+  call: 'char *s = ft_itoa(-42); printf("%s\n", s ? s : "NULL"); free(s)'
+  stdout: '-42
+
+    '
+- name: subj_ex_zero
+  tier: subject_example
+  call: 'char *s = ft_itoa(0); printf("%s\n", s ? s : "NULL"); free(s)'
+  stdout: '0
+
+    '
+- name: folder_ex_int_min
+  tier: folder_example
+  call: 'char *s = ft_itoa(-2147483648); printf("%s\n", s ? s : "NULL"); free(s)'
+  stdout: '-2147483648
+
+    '
+- name: near_ex_neg_43
+  tier: near_example
+  call: 'char *s = ft_itoa(-43); printf("%s\n", s ? s : "NULL"); free(s)'
+  stdout: '-43
+
+    '
+- name: test_05_pos_42
+  call: 'char *s = ft_itoa(42); printf("%s\n", s ? s : "NULL"); free(s)'
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_06_pos_1
+  call: 'char *s = ft_itoa(1); printf("%s\n", s ? s : "NULL"); free(s)'
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_neg_1
+  call: 'char *s = ft_itoa(-1); printf("%s\n", s ? s : "NULL"); free(s)'
+  tier: edge
+  stdout: '-1
+
+    '
+- name: test_08_int_max
+  call: 'char *s = ft_itoa(2147483647); printf("%s\n", s ? s : "NULL"); free(s)'
+  tier: edge
+  stdout: '2147483647
+
+    '
+- name: test_09_pos_1337
+  call: 'char *s = ft_itoa(1337); printf("%s\n", s ? s : "NULL"); free(s)'
+  tier: baseline
+  stdout: '1337
+
+    '
+- name: test_10_powers_of_ten
+  call: char *s1 = ft_itoa(10); char *s2 = ft_itoa(-1000); printf("%s|%s\n", s1, s2);
+    free(s1); free(s2)
+  tier: stress
+  stdout: '10|-1000
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_itoa
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_itoa_T04
+  origin: subject_folder/42ExamPractice/ft_itoa/tester.sh
+  input: ./ft_itoa "16"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_itoa_T05
+  origin: subject_folder/42ExamPractice/ft_itoa/tester.sh
+  input: ./ft_itoa "-13268"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_itoa_T06
+  origin: subject_folder/42ExamPractice/ft_itoa/tester.sh
+  input: ./ft_itoa "13268"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_itoa_T07
+  origin: subject_folder/42ExamPractice/ft_itoa/tester.sh
+  input: ./ft_itoa "0"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_itoa_T08
+  origin: subject_folder/4-4-itoa_MAIN.c
+  input: Compiled and run with 4-4-itoa_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_06
+  origin: subject_folder/4-4-itoa_MAIN.c
+  input: 4-4-itoa_MAIN.c
+  expected: "#include <stdio.h>\n\nchar        *ft_itoa(int n);\n\nint main(void)\n\
+    {\n\tprintf(\"%s\\n\", ft_itoa(33));\n\tprintf(\"%s\\n\", ft_itoa(-33));\n\tprintf(\"\
+    %s\\n\", ft_itoa(12345));"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_itoa
+  perturbed_input:
+  - ft_itoa_near_arg_1
+  - ft_itoa_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_itoa_T04
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_itoa/tester.sh)
+  original_input: ./ft_itoa "16"
+  perturbed_input: ./gt_itoa "16"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_ft_itoa_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_itoa/tester.sh)
+  original_input: ./ft_itoa "-13268"
+  perturbed_input: ./gt_itoa "-13268"

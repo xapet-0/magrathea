@@ -1,0 +1,9 @@
+Examples:
+$> ./longest_word "hello 1337 coding school" | cat -e
+coding$
+$> ./longest_word "  piscine  " | cat -e
+piscine$
+$> ./longest_word "   " | cat -e
+$
+$> ./longest_word | cat -e
+$

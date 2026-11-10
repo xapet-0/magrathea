@@ -1,0 +1,33 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : printf("%s\n", ft_strstr("Hello World", "World"))
+    Expected Output   : 'World\n'
+  [Standard Test 2] Name: repeated_prefix
+    Call / Invocation : printf("%s\n", ft_strstr("aaab", "aab"))
+    Expected Output   : 'aab\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: empty_needle [Test description: "empty_needle"]
+    Call / Invocation : printf("%s\n", ft_strstr("1337", ""))
+    Expected Output   : '1337\n'
+  [Edge Case 2] Name: not_found [Null pointer, zero, or boundary input in call]
+    Call / Invocation : printf("%d\n", ft_strstr("1337", "42") == NULL)
+    Expected Output   : '1\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: ft_strstr_oracle_stress
+    C Source Driver:
+    int main(void)
+    {
+        char hay[] = "hello 1337 piscine 1337";
+        char *needles[] = {"", "hello", "1337", "piscine", "missing", "7", 0};
+        int i;
+        for (i = 0; needles[i]; ++i)
+        {
+            char *got = ft_strstr(hay, needles[i]);
+            char *exp = strstr(hay, needles[i]);
+            if ((got == 0) != (exp == 0) || (got && (got - hay) != (exp - hay)))
+            { fprintf(stderr, "strstr mismatch for %s\n", needles[i]); return (1); }
+        }
+        return (0);
+    }

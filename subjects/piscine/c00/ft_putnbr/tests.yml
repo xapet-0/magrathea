@@ -1,0 +1,123 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_putnbr_T01
+  description: 'Functional verification of input: `ft_putnbr(42)`'
+  expr: ft_putnbr(42)
+  stdout: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_putnbr_T02
+  description: 'Functional verification of input: `ft_putnbr(-2147483648)`'
+  expr: ft_putnbr(-2147483648)
+  stdout: '-2147483648
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_putnbr_T03
+  description: 'Functional verification of input: `ft_putnbr(0)`'
+  expr: ft_putnbr(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_putnbr_T04
+  description: 'Functional verification of input: `ft_putnbr(2147483647)`'
+  expr: ft_putnbr(2147483647)
+  stdout: '2147483647
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_putnbr_T05
+  description: case_putnbr_edges
+  call: ft_putnbr(0); write(1, "\|", 1); ft_putnbr(-2147483648); write(1, "\|", 1);
+    ft_putnbr(2147483647); write(1, "\n", 1)
+  stdout: '0|-2147483648|2147483647
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_putnbr_T06
+  description: case_putnbr_negative
+  call: ft_putnbr(-42); write(1, "\n", 1)
+  stdout: '-42
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_putnbr_T07
+  description: zero
+  call: ft_putnbr(0); write(1, "\n", 1)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_putnbr_T08
+  description: int_min
+  call: ft_putnbr(-2147483648); write(1, "\n", 1)
+  stdout: '-2147483648
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_putnbr_T09
+  description: int_max
+  call: ft_putnbr(2147483647); write(1, "\n", 1)
+  stdout: '2147483647
+
+    '
+  category: Functional
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_putnbr
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_ft_putnbr_T11
+  origin: subject_folder/mini-moulinette/ex02/ft_putnbr.c; mini-moulinette/ex07/ft_putnbr.c
+  input: 'Input:'
+  expected: 'Expected: 0'
+- id: cur_ft_putnbr_T12
+  origin: subject_folder/mini-moulinette/ex02/ft_putnbr.c; mini-moulinette/ex07/ft_putnbr.c
+  input: 'Input:'
+  expected: 'Expected: -2147483648'
+- id: cur_ft_putnbr_T13
+  origin: subject_folder/mini-moulinette/ex02/ft_putnbr.c; mini-moulinette/ex07/ft_putnbr.c
+  input: 'Input:'
+  expected: 'Expected: 2147483647'
+- id: cur_ft_putnbr_T14
+  origin: subject_folder/mini-moulinette/ex02/ft_putnbr.c; mini-moulinette/ex07/ft_putnbr.c
+  input: 'Input:'
+  expected: 'Expected: 42'
+- id: cur_ft_putnbr_T15
+  origin: subject_folder/mini-moulinette/ex02/ft_putnbr.c; mini-moulinette/ex07/ft_putnbr.c
+  input: 'Input:'
+  expected: 'Expected: -42'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_putnbr
+  perturbed_input:
+  - ft_putnbr_near_arg_1
+  - ft_putnbr_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ft_putnbr_T11
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_putnbr.c;
+    mini-moulinette/ex07/ft_putnbr.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ft_putnbr_T12
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_putnbr.c;
+    mini-moulinette/ex07/ft_putnbr.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'

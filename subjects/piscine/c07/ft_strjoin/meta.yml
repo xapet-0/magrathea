@@ -1,0 +1,15 @@
+id: ft_strjoin
+type: c_function
+module: C 07
+xp: 250
+expected_files:
+- ft_strjoin.c
+allowed_functions:
+- malloc
+- free
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: char *ft_strjoin(char const *s1, char const *s2);

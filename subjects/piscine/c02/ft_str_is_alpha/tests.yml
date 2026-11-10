@@ -1,0 +1,120 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_str_is_alpha_T01
+  description: 'Functional verification of input: `ft_str_is_alpha("Hello")`'
+  expr: ft_str_is_alpha("Hello")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_str_is_alpha_T02
+  description: 'Functional verification of input: `ft_str_is_alpha("Hel1o")`'
+  expr: ft_str_is_alpha("Hel1o")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_str_is_alpha_T03
+  description: 'Functional verification of input: `ft_str_is_alpha("")`'
+  expr: ft_str_is_alpha("")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_str_is_alpha_T04_underscore
+  description: underscore_non_alpha
+  expr: ft_str_is_alpha("abc_def")
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_all_lowercase
+  expr: ft_str_is_alpha("abcdefghijklmnopqrstuvwxyz")
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_06_all_uppercase
+  expr: ft_str_is_alpha("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_07_boundary_before_A
+  expr: ft_str_is_alpha("@abc")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_boundary_after_Z
+  expr: ft_str_is_alpha("ABC[")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_boundary_before_a
+  expr: ft_str_is_alpha("abc`")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_boundary_after_z
+  expr: ft_str_is_alpha("xyz{")
+  tier: edge
+  stdout: '0
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_str_is_alpha
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_ft_str_is_alpha_T05
+  origin: subject_folder/deepthought/corrections/exams/ft_str_is_alpha/generator.py
+  input: Dynamic generation rule via random_string()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_str_is_alpha_T06
+  origin: subject_folder/deepthought/corrections/exams/ft_str_is_alpha/generator.py
+  input: Dynamic generation rule via test_only_letters()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_str_is_alpha_T07
+  origin: subject_folder/deepthought/corrections/exams/ft_str_is_alpha/generator.py
+  input: Dynamic generation rule via test_numbers()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_str_is_alpha_T08
+  origin: subject_folder/deepthought/corrections/exams/ft_str_is_alpha/generator.py
+  input: Dynamic generation rule via test_special_characters()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_str_is_alpha_T09
+  origin: subject_folder/deepthought/corrections/exams/ft_str_is_alpha/generator.py
+  input: Dynamic generation rule via test_empty_string()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_str_is_alpha_T10
+  origin: subject_folder/deepthought/corrections/exams/ft_str_is_alpha/generator.py
+  input: Dynamic generation rule via test_mixed_string()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_str_is_alpha
+  perturbed_input:
+  - ft_str_is_alpha_near_arg_1
+  - ft_str_is_alpha_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ft_str_is_alpha_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ft_str_is_alpha/generator.py)
+  original_input: Dynamic generation rule via random_string()
+  perturbed_input: Eynamic generation rule via random_strin
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ft_str_is_alpha_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ft_str_is_alpha/generator.py)
+  original_input: Dynamic generation rule via test_only_letters()
+  perturbed_input: Eynamic generation rule via test_only_le

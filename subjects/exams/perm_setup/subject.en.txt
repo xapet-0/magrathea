@@ -1,0 +1,17 @@
+Assignment name  : perm_setup
+Expected files   : perm_setup.sh
+Allowed commands : mkdir, chmod, dd, truncate, ln
+--------------------------------------------------------------------------------
+
+Write a POSIX shell script that:
+1. Creates a directory named box with permissions rwxr-x--- (0750).
+2. Creates a file inside it named box/key of exactly 42 bytes with permissions
+   r--r----- (0440).
+3. Creates a symbolic link in the current directory named shortcut pointing
+   to box/key.
+
+Example:
+$> ./perm_setup.sh && ls -ld box box/key shortcut
+drwxr-x--- 2 marvin 42 4096 box
+-r--r----- 1 marvin 42   42 box/key
+lrwxrwxrwx 1 marvin 42    7 shortcut -> box/key

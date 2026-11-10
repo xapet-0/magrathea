@@ -1,0 +1,22 @@
+name: rank05
+display_name: "42 Common Core \u2014 Exam Rank 05"
+pool_group: cursus
+rank_order: 25
+prerequisites:
+- rank04
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 33
+  candidates:
+  - ft_popen
+  - picoshell
+- level: 1
+  points: 33
+  candidates:
+  - sandbox
+  - argo
+- level: 2
+  points: 34
+  candidates:
+  - vbc

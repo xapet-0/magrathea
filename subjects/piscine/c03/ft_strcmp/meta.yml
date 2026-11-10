@@ -1,0 +1,13 @@
+id: ft_strcmp
+type: c_function
+module: C 03
+xp: 155
+expected_files:
+- ft_strcmp.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int ft_strcmp(char *s1, char *s2);

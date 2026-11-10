@@ -1,0 +1,16 @@
+Assignment name  : parse_int_base
+Expected files   : parse_int_base.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Implement a function that reads a string encoding an integer in a given base (2..16) and returns its decimal value.
+- Skip any leading whitespace characters (ASCII value 32 or below) before the first digit.
+- A single leading + or - sign may appear before the digits.
+- Digits are 0-9 and a-f / A-F (case-insensitive).
+- Stop consuming characters as soon as one is not a valid digit for the given base.
+Prototype: int parse_int_base(const char *str, int base);
+
+Examples:
+parse_int_base(" +ff", 16) -> 255
+parse_int_base("-1010stop", 2) -> -10
+parse_int_base("cafe", 16) -> 51966

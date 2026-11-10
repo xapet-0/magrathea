@@ -1,0 +1,53 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : ft_strlen("Hello")
+    Expected Output   : '5\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: test [Null pointer, zero, or boundary input in call]
+    Call / Invocation : ft_strlen("")
+    Expected Output   : '0\n'
+  [Edge Case 2] Name: empty_string [Test description: "empty_string"]
+    Call / Invocation : ft_strlen("")
+    Expected Output   : '0\n'
+  [Edge Case 3] Name: single_char [Test description: "single_char"]
+    Call / Invocation : ft_strlen("a")
+    Expected Output   : '1\n'
+  [Edge Case 4] Name: spaces_and_tabs [Test description: "spaces_and_tabs"]
+    Call / Invocation : ft_strlen("  1337  42 ")
+    Expected Output   : '11\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: ft_strlen_oracle_stress
+    C Source Driver:
+    int main(void)
+    {
+        char longbuf[128];
+        int i;
+        const char *cases[] = {"", "Hello", "1337", "with spaces", "!@#$%^&*()", longbuf, 0};
+        for (i = 0; i < 127; ++i)
+            longbuf[i] = (char)('a' + (i % 26));
+        longbuf[127] = '\0';
+        for (i = 0; cases[i]; ++i)
+        {
+            if (ft_strlen((char *)cases[i]) != (int)strlen(cases[i]))
+            {
+                fprintf(stderr, "ft_strlen mismatch on case %d\n", i);
+                return (1);
+            }
+        }
+        return (0);
+    }
+
+>>> DEDICATED _MAIN.c TEST DRIVERS (Nigal / Samuel Karani / Official):
+  File: 1-0-ft_strlen_MAIN.c
+    #include <stdio.h>
+    
+    int ft_strlen(char *str);
+    
+    int main(void)
+    {
+        char monster[] = "ogrefly";
+        printf("%s has %d characters", monster, ft_strlen(monster));
+        return (0);
+    }

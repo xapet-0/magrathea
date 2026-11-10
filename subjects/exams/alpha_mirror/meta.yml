@@ -1,0 +1,14 @@
+id: alpha_mirror
+type: c_program
+module: Exam Rank 02
+xp: 445
+expected_files:
+- alpha_mirror.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

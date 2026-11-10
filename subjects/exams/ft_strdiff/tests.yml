@@ -1,0 +1,250 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_strdiff_T01
+  description: identical
+  expr: ft_strdiff("abc", "abc")
+  stdout: '-1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_strdiff_T02
+  description: diff_at_2
+  expr: ft_strdiff("abc", "abd")
+  stdout: '2
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_strdiff_T03
+  description: both_empty
+  expr: ft_strdiff("", "")
+  stdout: '-1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_strdiff_T04
+  description: first_empty
+  expr: ft_strdiff("", "a")
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_strdiff_T05
+  description: second_empty
+  expr: ft_strdiff("a", "")
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_strdiff_T06
+  description: different_length
+  expr: ft_strdiff("abc", "abcd")
+  stdout: '3
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_07_differ_at_index_0
+  expr: ft_strdiff("xbc", "abc")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_longer_first_string
+  expr: ft_strdiff("abcd", "abc")
+  tier: edge
+  stdout: '3
+
+    '
+- name: test_09_single_char_equal_and_diff
+  expr: ft_strdiff("a", "a") * 10 + ft_strdiff("a", "b")
+  tier: baseline
+  stdout: '-10
+
+    '
+- name: test_10_late_difference
+  expr: ft_strdiff("0123456789a", "0123456789b")
+  tier: stress
+  stdout: '10
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./ft_strdiff("hello", "hella")  →  4
+  args: &id001
+  - hella)
+  - →
+  - '4'
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./ft_strdiff("test", "test")  →  -1
+  args: &id002
+  - test)
+  - →
+  - '-1'
+  expected: ''
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./ft_strdiff("abc", "abcd")  →  3
+  args: &id003
+  - abcd)
+  - →
+  - '3'
+  expected: ''
+  cat_e: false
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./ft_strdiff("abcd", "abc")  →  3
+  args: &id004
+  - abc)
+  - →
+  - '3'
+  expected: ''
+  cat_e: false
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./ft_strdiff("", "abc")  →  0
+  args:
+  - abc)
+  - →
+  - '0'
+  expected: ''
+  cat_e: false
+folder_examples:
+- id: cur_ft_strdiff_T08
+  origin: subject_folder/deepthought/corrections/exams/ft_strdiff/generator.py
+  input: Dynamic generation rule via random_string()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strdiff_T09
+  origin: subject_folder/deepthought/corrections/exams/ft_strdiff/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strdiff_T10
+  origin: subject_folder/deepthought/corrections/exams/ft_strdiff/generator.py
+  input: Dynamic generation rule via identical_strings_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strdiff_T11
+  origin: subject_folder/deepthought/corrections/exams/ft_strdiff/generator.py
+  input: Dynamic generation rule via prefix_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strdiff_T12
+  origin: subject_folder/deepthought/corrections/exams/ft_strdiff/generator.py
+  input: Dynamic generation rule via longer_first_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strdiff_T13
+  origin: subject_folder/deepthought/corrections/exams/ft_strdiff/generator.py
+  input: Dynamic generation rule via empty_vs_nonempty_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strdiff_T14
+  origin: subject_folder/deepthought/corrections/exams/ft_strdiff/generator.py
+  input: Dynamic generation rule via random_strings_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - iella)
+  - →!
+  - '5'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  hella)  '
+  - →
+  - '4'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - uest)
+  - →!
+  - '-2'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  test)  '
+  - →
+  - '-1'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - bbcd)
+  - →!
+  - '4'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  abcd)  '
+  - →
+  - '3'
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - bbc)
+  - →!
+  - '4'
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  abc)  '
+  - →
+  - '3'
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ft_strdiff_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ft_strdiff/generator.py)
+  original_input: Dynamic generation rule via random_string()
+  perturbed_input: Eynamic generation rule via random_strin
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ft_strdiff_T09
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ft_strdiff/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: "Test `ft_strdiff` with high ASCII characters (unsigned char > 127 like '\x80\
+    ' and 'ÿ')"
+  input: "ft_strdiff(\"\x80\", \"\x7F\", ...)"
+  expected: Compare and inspect characters as unsigned char conforming to POSIX libc
+- name: edge_02_B
+  code: '[B]'
+  title: Test `ft_strdiff` at zero length (n = 0 / size = 0) and empty string ""
+  input: ft_strdiff("", "", 0)
+  expected: Do not read or write any byte out of bounds and return canonical value
+- name: edge_03_D
+  code: '[D]'
+  title: Differential property check for `ft_strdiff` against libc oracle
+  input: Compare ft_strdiff against standard library function across random permutations
+  expected: 100% exact match in return value and destination buffer state
+- name: edge_04_M
+  code: '[M]'
+  title: Canary Redzone check on string buffer boundaries in `ft_strdiff`
+  input: Pass heap buffer allocated to exact strlen(s) + 1 size to ft_strdiff
+  expected: No read or write beyond terminating null byte

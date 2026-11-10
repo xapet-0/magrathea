@@ -1,0 +1,81 @@
+fixed_tests:
+- name: test_01_80
+  args:
+  - '80'
+  stdout: '80
+
+    '
+  exit_code: 0
+- name: test_02_443
+  args:
+  - '443'
+  stdout: '443
+
+    '
+  exit_code: 0
+- name: test_03_22
+  args:
+  - '22'
+  stdout: '22
+
+    '
+  exit_code: 0
+- name: test_04_8080
+  args:
+  - '8080'
+  stdout: '8080
+
+    '
+  exit_code: 0
+- name: test_05_port_1
+  args:
+  - '1'
+  exit_code: 0
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_port_21
+  args:
+  - '21'
+  exit_code: 0
+  tier: baseline
+  stdout: '21
+
+    '
+- name: test_07_port_3000
+  args:
+  - '3000'
+  exit_code: 0
+  tier: baseline
+  stdout: '3000
+
+    '
+- name: test_08_port_5432
+  args:
+  - '5432'
+  exit_code: 0
+  tier: baseline
+  stdout: '5432
+
+    '
+- name: test_09_port_9000
+  args:
+  - '9000'
+  exit_code: 0
+  tier: baseline
+  stdout: '9000
+
+    '
+- name: test_10_port_65535
+  args:
+  - '65535'
+  exit_code: 0
+  tier: stress
+  stdout: '65535
+
+    '
+subject_id: port_scanner
+subject_examples: []
+folder_examples: []
+near_examples: []

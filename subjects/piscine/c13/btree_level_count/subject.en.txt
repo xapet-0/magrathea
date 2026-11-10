@@ -1,0 +1,22 @@
+Assignment name  : btree_level_count
+Expected files   : btree_level_count.c ft_btree.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 13 (Official PDF)
+Exercise         : btree_level_count
+Turn-in directory: ex06/
+Expected files   : btree_level_count.c, ft_btree.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function btree_level_count which returns the size of the largest branch
+passed as an argument.
+
+• Here’s how it should be prototyped :
+
+     int btree_level_count(t_btree *root);
+
+Examples:
+
+    we need to get theam from here https://git.hexanyn.fr/42/piscine/c13/-/tree/master/ex06

@@ -1,0 +1,14 @@
+id: ft_range
+type: c_function
+module: C 07
+xp: 220
+expected_files:
+- ft_range.c
+allowed_functions:
+- malloc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int *ft_range(int min, int max);

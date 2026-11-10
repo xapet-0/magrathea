@@ -1,0 +1,4 @@
+?>cat z
+Z
+?>
+Google is your friend.

@@ -1,0 +1,15 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: faya_match
+    Args       : ['faya', 'fgvvfdxcacpolhyghbreda']
+    Expected Output   : 'faya\n'
+  [Standard Test 2] Name: faya_fail
+    Args       : ['faya', 'fgvvfdxcacpolhyghbred']
+    Expected Output   : '\n'
+  [Standard Test 3] Name: quarante_deux
+    Args       : ['quarante deux', 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq ']
+    Expected Output   : 'quarante deux\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: no_args [Test description: "no_args"]
+    Args       : []
+    Expected Output   : '\n'

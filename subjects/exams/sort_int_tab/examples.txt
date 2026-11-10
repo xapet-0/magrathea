@@ -1,0 +1,43 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : int a[]={3,1,2}; sort_int_tab(a,3); printf("%d,%d,%d\n",a[0],a[1],a[2])
+    Expected Output   : '1,2,3\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: with_duplicates_and_negatives [Test description: "with_duplicates_and_negatives"]
+    Call / Invocation : int a[] = {5, -2, 5, 0, -10}; sort_int_tab(a, 5); printf("%d,%d,%d,%d,%d\n", a[0], a[1], a[2], a[3], a[4])
+    Expected Output   : '-10,-2,0,5,5\n'
+  [Edge Case 2] Name: single_element [Test description: "single_element"]
+    Call / Invocation : int a[] = {42}; sort_int_tab(a, 1); printf("%d\n", a[0])
+    Expected Output   : '42\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: case_sort_int_tab_edges
+    C Source Driver:
+    static int is_sorted(int *a, int n){ int i=1; while(i<n){ if(a[i-1] > a[i]) return 0; ++i;} return 1; }
+    int main(void)
+    {
+        int a[]={3,1,2,1,-5}; int b[]={42}; int c[]={};
+        sort_int_tab(a,5); sort_int_tab(b,1); sort_int_tab(c,0);
+        if(!is_sorted(a,5) || b[0] != 42) return (1);
+        if(a[0] != -5 || a[1] != 1 || a[2] != 1 || a[3] != 2 || a[4] != 3) return (1);
+        return (0);
+    }
+
+>>> DEDICATED _MAIN.c TEST DRIVERS (Nigal / Samuel Karani / Official):
+  File: 4-3-sort_int_tab_MAIN.c
+    #include <stdio.h>
+    
+    void	sort_int_tab(int *tab, unsigned int size);
+    	
+    int		main(void)
+    {
+    	int a[6] = {9, 7, 6, 4, 5, 10};
+    	int i = 0;
+    	int size = 6;
+    
+    	sort_int_tab(a, size);
+    	while (i < size)
+    		printf("%d\n", a[i++]);
+    	return (0);
+    }

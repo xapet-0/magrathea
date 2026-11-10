@@ -1,0 +1,20 @@
+Assignment name  : sastantua
+Expected files   : sastantua.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+# sastantua
+
+Build a `sastantua` binary. It prints the Sastantua pyramid for the numeric size argument. Local tests verify the canonical size-1 pyramid and graceful handling of size 0.
+
+The project must include a Makefile. Source files may be at the project root or under `srcs/` and headers may be at the project root or under `includes/`.
+Generated objects, binaries other than the expected binary, correction folders, and test folders must not be submitted.
+
+Your function must be declared as follows:
+    void sastantua(int size);
+
+Examples:
+    sastantua(0); sastantua(1)
+    Output: /*\
+ /***\
+/**|**\

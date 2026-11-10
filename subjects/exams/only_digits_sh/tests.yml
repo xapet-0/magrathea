@@ -1,0 +1,71 @@
+subject_id: only_digits_sh
+fixed_tests:
+- name: test_01
+  env:
+    FT_LINE: a1b2c3
+  stdout: '123
+
+    '
+- name: test_02
+  env:
+    FT_LINE: 42 is 1337!
+  stdout: '421337
+
+    '
+- name: test_03
+  env:
+    FT_LINE: abc
+  stdout: '
+
+    '
+- name: test_04_leading_zeros
+  env:
+    FT_LINE: 007_bond_99
+  stdout: '00799
+
+    '
+- name: test_05_empty_line
+  env:
+    FT_LINE: ''
+  tier: edge
+  stdout: '
+
+    '
+- name: test_06_all_digits
+  env:
+    FT_LINE: 0123456789
+  tier: baseline
+  stdout: '0123456789
+
+    '
+- name: test_07_symbols_only
+  env:
+    FT_LINE: '!@#$%^&*()_+-='
+  tier: edge
+  stdout: '
+
+    '
+- name: test_08_single_digit_in_text
+  env:
+    FT_LINE: hello 7 world
+  tier: baseline
+  stdout: '7
+
+    '
+- name: test_09_spaces_and_tabs_stripped
+  env:
+    FT_LINE: " 1 \t 3 \t 3 \t 7 "
+  tier: edge
+  stdout: '1337
+
+    '
+- name: test_10_long_interleaved
+  env:
+    FT_LINE: a9b8c7d6e5f4g3h2i1j0
+  tier: stress
+  stdout: '9876543210
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

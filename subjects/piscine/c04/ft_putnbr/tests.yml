@@ -1,0 +1,81 @@
+subject_id: ft_putnbr
+fixed_tests:
+- name: test_01_42
+  call: ft_putnbr(42)
+  stdout: '42'
+  tier: baseline
+- name: test_02_2147483648
+  call: ft_putnbr(-2147483648)
+  stdout: '-2147483648'
+  tier: baseline
+- name: test_03_0
+  call: ft_putnbr(0)
+  stdout: '0'
+  tier: baseline
+- name: test_04_2147483647
+  call: ft_putnbr(2147483647)
+  stdout: '2147483647'
+  tier: baseline
+- name: case_putnbr_edges
+  call: ft_putnbr(0); write(1, "|", 1); ft_putnbr(-2147483648); write(1, "|", 1);
+    ft_putnbr(2147483647); write(1, "\n", 1)
+  stdout: '0|-2147483648|2147483647
+
+    '
+  tier: baseline
+- name: case_putnbr_negative
+  call: ft_putnbr(-42); write(1, "\n", 1)
+  stdout: '-42
+
+    '
+  tier: baseline
+- name: zero
+  call: ft_putnbr(0); write(1, "\n", 1)
+  stdout: '0
+
+    '
+  tier: baseline
+- name: int_min
+  call: ft_putnbr(-2147483648); write(1, "\n", 1)
+  stdout: '-2147483648
+
+    '
+  tier: baseline
+- name: int_max
+  call: ft_putnbr(2147483647); write(1, "\n", 1)
+  stdout: '2147483647
+
+    '
+  tier: baseline
+oracle_tests:
+- name: ft_putnbr_oracle_stress
+  source: "#include <stdio.h>\n#include <stdlib.h>\n\nvoid ft_putnbr(int nb);\n\n\
+    int main(void)\n{\n    ft_putnbr(42);\n    ft_putnbr(0);\n    ft_putnbr(-2147483648);\n\
+    \    ft_putnbr(2147483647);\n    return 0;\n}\n"
+  stdout: 420-21474836482147483647
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_putnbr
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: ft_putnbr baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_putnbr
+  perturbed_input:
+  - ft_putnbr_near_arg_1
+  - ft_putnbr_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ft_putnbr baseline folder fixture
+  perturbed_input: gt_putnbr baseline folder fixture

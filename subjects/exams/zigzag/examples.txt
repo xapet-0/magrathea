@@ -1,0 +1,9 @@
+# Examples for zigzag (from official subject specification)
+
+Examples:
+
+
+$> ./zigzag hello | cat -e
+HeLlO$
+$> ./zigzag "a b c" | cat -e
+A B C$

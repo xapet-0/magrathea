@@ -1,0 +1,37 @@
+# ==============================================================================
+# Magrathea Authoritative Exam & Sandbox Timing Policy
+# ==============================================================================
+# Origins:
+# 1. Standard Exam Duration (14400s = 4 hours):
+#    Verified from cluster exam session trace in docs/exqm.txt (11:07:49 -> 15:07:47 = 4h)
+#    and pools/exams/{c_piscine_exam_00..02,classic_42_full,cursus_rank03_06}.yml.
+# 2. Final Exam Duration (28800s = 8 hours):
+#    Verified from pools/exams/{c_piscine_final_exam,1337_classic_examfinal}.yml.
+# 3. Progressive Failure Cooldown (30s step: 30s, 60s, 90s..., reset on pass):
+#    Verified from bin/examshell (self.cooldown_step = 30) and README.md Part 4.
+# 4. Sandbox Per-Test Timeout (2.0s):
+#    Verified from core/include/moulinette_core.h (SANDBOX_TIMEOUT_SEC = 2U)
+#    and deepthought/grader.py (_run_isolated timeout=2.0).
+# 5. Note on ft_lock Timers (5m, 35m, 37m in docs/exqm.txt):
+#    Those are workstation screen-lock / logout timers, NOT exam durations.
+# ==============================================================================
+
+exam_durations:
+  standard_exam_seconds: 14400
+  final_exam_seconds: 28800
+  min_allowed_seconds: 1
+  max_allowed_seconds: 86400
+
+cooldown_policy:
+  step_seconds: 30
+  reset_on_level_pass: true
+
+sandbox_timeouts:
+  per_test_seconds: 2.0
+  socket_test_seconds: 5.0
+  build_and_norm_seconds: 10.0
+
+workstation_lock_timers_not_exam_durations:
+  ft_lock_default_minutes: 5
+  ft_lock_warning_minutes: 35
+  ft_lock_logout_minutes: 37

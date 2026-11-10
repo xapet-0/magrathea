@@ -1,0 +1,9 @@
+# Examples for ft_print_comb (from official subject specification)
+
+$>./a.out | cat -e
+012, 013, 014, 015, 016, 017, 018, 019, 023, ..., 789$>
+• 987is not included because789already covers that combination.
+• 999is not included because the digit9appears more than once.
+• The function should be prototyped as follows:
+void ft_print_comb(void);
+Did you check with your neighbor on the right?

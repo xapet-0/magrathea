@@ -1,0 +1,14 @@
+# Examples for ifs_surgeon (from official subject specification)
+
+Examples:
+$> sh ifs_surgeon.sh "a:b:c" | cat -e
+a$
+b$
+c$
+$> sh ifs_surgeon.sh "marvin:42:1337" | cat -e
+marvin$
+42$
+1337$
+$> sh ifs_surgeon.sh "one:two" | cat -e
+one$
+two$

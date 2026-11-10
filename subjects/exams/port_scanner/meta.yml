@@ -1,0 +1,19 @@
+id: port_scanner
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 300
+expected_files:
+- port_scanner.sh
+allowed_functions:
+- ss
+- netstat
+- awk
+- sed
+- sort
+- printf
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh port_scanner.sh [args...]

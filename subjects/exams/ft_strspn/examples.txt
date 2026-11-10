@@ -1,0 +1,4 @@
+# Examples for ft_strspn (from official subject specification)
+
+Examples:
+    ft_strspn("abc123","abc") -> 3

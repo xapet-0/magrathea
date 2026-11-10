@@ -1,0 +1,107 @@
+mode: c_program
+fixed_tests:
+- name: pool_rush02_T01
+  description: '42'
+  args:
+  - '42'
+  expected: 'forty two
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_rush02_T02
+  description: '0'
+  args:
+  - '0'
+  expected: 'zero
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_rush02_T03
+  description: '100000'
+  args:
+  - '100000'
+  expected: 'one hundred thousand
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_rush02_T04
+  description: negative_error
+  args:
+  - '-42'
+  expected: 'Error
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_one
+  args:
+  - '1'
+  tier: baseline
+  stdout: 'one
+
+    '
+- name: test_06_ten
+  args:
+  - '10'
+  tier: baseline
+  stdout: 'ten
+
+    '
+- name: test_07_nineteen
+  args:
+  - '19'
+  tier: baseline
+  stdout: 'nineteen
+
+    '
+- name: test_08_ninety_nine
+  args:
+  - '99'
+  tier: baseline
+  stdout: 'ninety nine
+
+    '
+- name: test_09_one_hundred
+  args:
+  - '100'
+  tier: edge
+  stdout: 'one hundred
+
+    '
+- name: test_10_no_args_error
+  args: []
+  tier: edge
+  stdout: 'Error
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval rush02
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_fixture_01
+  origin: subject_folder/srcs/main.c
+  input: srcs/main.c
+  expected: '/* **************************************************************************
+    */
+
+    /*                                                                            *'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval rush02
+  perturbed_input:
+  - rush02_near_arg_1
+  - rush02_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_fixture_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/srcs/main.c)
+  original_input: srcs/main.c
+  perturbed_input: trcs/main.c

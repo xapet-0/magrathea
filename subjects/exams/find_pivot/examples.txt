@@ -1,0 +1,6 @@
+# Examples for find_pivot (from official subject specification)
+
+Examples:
+    find_pivot(a, 6) -> 3
+    find_pivot(a, 3) -> -1
+    find_pivot(a, 3) -> 0

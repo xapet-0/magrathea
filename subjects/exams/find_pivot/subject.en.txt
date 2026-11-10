@@ -1,0 +1,19 @@
+Assignment name  : find_pivot
+Expected files   : find_pivot.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that returns the pivot index of an integer array of size n
+(where the sum of elements strictly to the left equals the sum of elements
+strictly to the right), or -1 if no such index exists.
+
+Prototype:
+int	find_pivot(int *arr, int n);
+
+Your function must be declared as follows:
+    int find_pivot(int *arr, int n);
+
+Examples:
+    find_pivot(a, 6) -> 3
+    find_pivot(a, 3) -> -1
+    find_pivot(a, 3) -> 0

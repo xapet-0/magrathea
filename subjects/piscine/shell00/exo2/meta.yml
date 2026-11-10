@@ -1,0 +1,13 @@
+id: exo2
+type: shell
+module: Shell 00
+xp: 140
+expected_files:
+- exo2.tar
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: sh exo2.sh [args...]

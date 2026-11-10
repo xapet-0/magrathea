@@ -1,0 +1,69 @@
+fixed_tests:
+- call: t_btree l={"L",0,0}; t_btree r={"R",0,0}; t_btree root={"C",&l,&r}; btree_apply_suffix(&root,dt_print);
+    printf("\n");
+  name: pool_btree_apply_suffix_T01
+  stdout: 'LRC
+
+    '
+- call: btree_apply_suffix(NULL,dt_print); printf("NULL_OK\n");
+  name: btree_apply_suffix_null_tree
+  stdout: 'NULL_OK
+
+    '
+- call: t_btree root={"root",0,0}; btree_apply_suffix(&root,dt_print); printf("\n");
+  name: btree_apply_suffix_single_node
+  stdout: 'root
+
+    '
+- call: t_btree ll={"1",0,0}; t_btree lr={"2",0,0}; t_btree l={"3",&ll,&lr}; t_btree
+    r={"4",0,0}; t_btree root={"5",&l,&r}; btree_apply_suffix(&root,dt_print); printf("\n");
+  name: btree_apply_suffix_three_level_full
+  stdout: '12345
+
+    '
+- name: test_05_unbalanced_left
+  call: t_btree ll={"LL",0,0}; t_btree l={"L",&ll,0}; t_btree root={"C",&l,0}; btree_apply_suffix(&root,dt_print);
+    printf("\n");
+  tier: edge
+  stdout: 'LLLC
+
+    '
+- name: test_06_unbalanced_right
+  call: t_btree rr={"RR",0,0}; t_btree r={"R",0,&rr}; t_btree root={"C",0,&r}; btree_apply_suffix(&root,dt_print);
+    printf("\n");
+  tier: edge
+  stdout: 'RRRC
+
+    '
+- name: test_07_left_child_only
+  call: t_btree l={"L",0,0}; t_btree root={"C",&l,0}; btree_apply_suffix(&root,dt_print);
+    printf("\n");
+  tier: baseline
+  stdout: 'LC
+
+    '
+- name: test_08_right_child_only
+  call: t_btree r={"R",0,0}; t_btree root={"C",0,&r}; btree_apply_suffix(&root,dt_print);
+    printf("\n");
+  tier: baseline
+  stdout: 'RC
+
+    '
+- name: test_09_full_seven_nodes
+  call: t_btree n1={"1",0,0},n2={"2",0,0},n4={"4",0,0},n5={"5",0,0},n3={"3",&n1,&n2},n6={"6",&n4,&n5},n7={"7",&n3,&n6};
+    btree_apply_suffix(&n7,dt_print); printf("\n");
+  tier: stress
+  stdout: '1234567
+
+    '
+- name: test_10_zigzag_tree
+  call: t_btree d={"D",0,0},c={"C",&d,0},b={"B",0,&c},a={"A",&b,0}; btree_apply_suffix(&a,dt_print);
+    printf("\n");
+  tier: edge
+  stdout: 'DCBA
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

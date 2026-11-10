@@ -1,0 +1,309 @@
+mode: c_program
+fixed_tests:
+- name: can_str_maxlenoc_T01
+  description: three_strs
+  args:
+  - ab
+  - bac
+  - abacabccabcb
+  expected: 'a
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_str_maxlenoc_T02
+  description: two_strs
+  args:
+  - xabcy
+  - zabcw
+  expected: 'abc
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_str_maxlenoc_T03
+  description: single_str
+  args:
+  - hello
+  expected: 'hello
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_str_maxlenoc_T04
+  description: no_args
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - bonjour
+  - salut
+  - bonjour
+  - bonjour
+  expected: 'u
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - xoxAoxo
+  - xoxAox
+  - oxAox
+  - oxo
+  - A
+  - ooxAoxx
+  - oxooxo
+  - Axo
+  expected: '
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args:
+  - bosdsdfnjodur
+  - atehhellosd
+  - afkuonjosurafg
+  - headfgllosf
+  - fghellosag
+  - afdfbosnjourafg
+  expected: 'os
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: '0
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./str_maxlenoc ab bac abacabccabcb
+  args: &id001
+  - ab
+  - bac
+  - abacabccabcb
+  expected: 'a
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./str_maxlenoc bonjour salut bonjour bonjour
+  args: &id002
+  - bonjour
+  - salut
+  - bonjour
+  - bonjour
+  expected: 'u
+
+    '
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./str_maxlenoc xoxAoxo xoxAox  oxAox oxo  A ooxAoxx oxooxo Axo | cat -e
+  args: &id003
+  - xoxAoxo
+  - xoxAox
+  - oxAox
+  - oxo
+  - A
+  - ooxAoxx
+  - oxooxo
+  - Axo
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./str_maxlenoc bosdsdfnjodur atehhellosd afkuonjosurafg headfgllosf fghellosag
+    afdfbosnjourafg
+  args: &id004
+  - bosdsdfnjodur
+  - atehhellosd
+  - afkuonjosurafg
+  - headfgllosf
+  - fghellosag
+  - afdfbosnjourafg
+  expected: 'os
+
+    '
+  cat_e: false
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./str_maxlenoc | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_str_maxlenoc_T05
+  origin: subject_folder/examples.txt
+  input: ./str_maxlenoc ab bac abacabccabcb
+  expected: a
+- id: can_str_maxlenoc_T06
+  origin: subject_folder/examples.txt
+  input: ./str_maxlenoc bonjour salut bonjour bonjour
+  expected: u
+- id: can_str_maxlenoc_T07
+  origin: subject_folder/examples.txt
+  input: ./str_maxlenoc xoxAoxo xoxAox  oxAox oxo  A ooxAoxx oxooxo Axo \| cat -e
+  expected: $
+- id: can_str_maxlenoc_T08
+  origin: subject_folder/examples.txt
+  input: ./str_maxlenoc bosdsdfnjodur atehhellosd afkuonjosurafg headfgllosf fghellosag
+    afdfbosnjourafg
+  expected: os
+- id: can_str_maxlenoc_T09
+  origin: subject_folder/examples.txt
+  input: ./str_maxlenoc \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - bb
+  - cac
+  - bbacabccabcb
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  ab  '
+  - bac
+  - abacabccabcb
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - conjour
+  - talut
+  - conjour
+  - conjour
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  bonjour  '
+  - salut
+  - bonjour
+  - bonjour
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - yoxAoxo
+  - yoxAox
+  - pxAox
+  - pxo
+  - B
+  - poxAoxx
+  - pxooxo
+  - Bxo
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  xoxAoxo  '
+  - xoxAox
+  - oxAox
+  - oxo
+  - A
+  - ooxAoxx
+  - oxooxo
+  - Axo
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - cosdsdfnjodur
+  - btehhellosd
+  - bfkuonjosurafg
+  - ieadfgllosf
+  - gghellosag
+  - bfdfbosnjourafg
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  bosdsdfnjodur  '
+  - atehhellosd
+  - afkuonjosurafg
+  - headfgllosf
+  - fghellosag
+  - afdfbosnjourafg
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_str_maxlenoc_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./str_maxlenoc ab bac abacabccabcb
+  perturbed_input: ./ttr_maxlenoc ab bac abacabccabcb
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_str_maxlenoc_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./str_maxlenoc bonjour salut bonjour bonjour
+  perturbed_input: ./ttr_maxlenoc bonjour salut bonjour bon
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `str_maxlenoc`
+  input: "str_maxlenoc(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `str_maxlenoc`
+  input: str_maxlenoc("   word   ") and str_maxlenoc("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `str_maxlenoc`
+  input: str_maxlenoc("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `str_maxlenoc`
+  input: Execute str_maxlenoc with no arguments and with 3 arguments
+  expected: Print newline only

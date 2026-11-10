@@ -1,0 +1,134 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `can_split`
+  input: can_split(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `can_split`
+  input: Input with no valid solution or containing duplicate values in can_split
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `can_split`
+  input: Run can_split with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `can_split`
+  input: Inspect sequence of traversed or printed nodes in can_split
+  expected: Exact match with standard traversal order required in subject
+fixed_tests:
+- name: test_01_n2
+  expr: can_split(&n2)
+  setup:
+  - struct s_node n1={1,0,0}, n2={2,&n1,0}
+  stdout: '1
+
+    '
+- name: test_02_n3
+  expr: can_split(&n3)
+  setup:
+  - struct s_node n1={1,0,0}, n2={2,0,0}, n3={3,&n1,&n2}
+  stdout: '0
+
+    '
+- name: test_03_n4
+  expr: can_split(&n4)
+  setup:
+  - struct s_node n1={1,0,0}, n2={2,0,0}, n3={3,&n1,0}, n4={4,&n3,&n2}
+  stdout: '1
+
+    '
+- name: test_04_NULL
+  expr: can_split(NULL)
+  stdout: '0
+
+    '
+- name: test_05_single_node
+  setup:
+  - struct s_node n1={1,0,0};
+  expr: can_split(&n1)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_06_four_node_chain
+  setup:
+  - struct s_node n1={1,0,0}, n2={2,&n1,0}, n3={3,&n2,0}, n4={4,&n3,0};
+  expr: can_split(&n4)
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_07_six_nodes_balanced_3_3
+  setup:
+  - struct s_node a1={1,0,0},a2={2,0,0},l={3,&a1,&a2},b1={4,0,0},r={5,&b1,0},root={6,&l,&r};
+  expr: can_split(&root)
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_08_six_nodes_no_3_subtree
+  setup:
+  - struct s_node a1={1,0,0},a2={2,0,0},a3={3,0,0},l={4,&a1,&a2},r={5,&a3,0},root={6,&l,&r};
+    (void)root;
+  expr: can_split(&l)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_five_nodes_odd_total
+  setup:
+  - struct s_node n1={1,0,0},n2={2,0,0},n3={3,&n1,&n2},n4={4,0,0},n5={5,&n3,&n4};
+  expr: can_split(&n5)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_eight_nodes_split_4_4
+  setup:
+  - struct s_node n1={1,0,0},n2={2,&n1,0},n3={3,&n2,0},n4={4,&n3,0},n5={5,&n4,0},n6={6,&n5,0},n7={7,&n6,0},n8={8,&n7,0};
+  expr: can_split(&n8)
+  tier: stress
+  stdout: '1
+
+    '
+folder_examples:
+- expected: Zero assertion failures (exit code 0)
+  id: can_can_split_T05
+  input: Compiled and run with can_split_MAIN.c
+  origin: subject_folder/can_split_MAIN.c
+- expected: "struct s_node \n{\n    int value;\n    struct s_node *left;\n    struct\
+    \ s_node *right;\n};\n\nint count(struct s_node *node)\n{\n\tif (!node)\n\t\t\
+    return 0;\n\tint n = 1 + cou"
+  id: folder_fixture_02
+  input: can_split_MAIN.c
+  origin: subject_folder/can_split_MAIN.c
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval can_split
+  perturbed_input:
+  - can_split_near_arg_1
+  - can_split_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_can_split_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: Compiled and run with can_split_MAIN.c
+  perturbed_input: Dompiled and run with can_split_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/can_split_MAIN.c)
+- derived_from: folder_fixture_02
+  id: near_folder_02_boundary_neighbor
+  original_input: can_split_MAIN.c
+  perturbed_input: dan_split_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/can_split_MAIN.c)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval can_split
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

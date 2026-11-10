@@ -1,0 +1,148 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_strdup_T01
+  description: 'Functional verification of input: `char *s = ft_strdup("Piscine");
+    if (s) { prin`'
+  call: char *s = ft_strdup("Piscine"); if (s) { printf("%s\n", s); free(s); }
+  stdout: 'Piscine
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_strdup_T02
+  description: empty_string
+  call: char *s = ft_strdup(""); printf("[%s]\n", s); free(s)
+  stdout: '[]
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_strdup_T03
+  description: sentence
+  call: char *s = ft_strdup("1337 School"); printf("%s\n", s); free(s)
+  stdout: '1337 School
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_strdup_T04_distinct_ptr
+  description: distinct_heap_pointer
+  call: const char *src = "42_Network"; char *s = ft_strdup((char *)src); printf("%s|%d\n",
+    s, s != src); free(s)
+  stdout: '42_Network|1
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_single_char
+  call: char *s = ft_strdup("X"); printf("%s|%d\n", s, s[1] == 0); free(s)
+  tier: edge
+  stdout: 'X|1
+
+    '
+- name: test_06_mutating_copy_leaves_src
+  call: char src[] = "hello"; char *s = ft_strdup(src); s[0] = 'H'; printf("%s|%s\n",
+    src, s); free(s)
+  tier: edge
+  stdout: 'hello|Hello
+
+    '
+- name: test_07_whitespace_and_tabs
+  call: char *s = ft_strdup(" \t\n 42 "); printf("[%s]\n", s); free(s)
+  tier: baseline
+  stdout: "[ \t\n 42 ]\n"
+- name: test_08_symbols_and_digits
+  call: char *s = ft_strdup("!@#$%^&*()_0123456789"); printf("%s\n", s); free(s)
+  tier: baseline
+  stdout: '!@#$%^&*()_0123456789
+
+    '
+- name: test_09_two_dups_distinct
+  call: char *a = ft_strdup("dup"); char *b = ft_strdup("dup"); printf("%d:%s:%s\n",
+    a != b, a, b); free(a); free(b)
+  tier: edge
+  stdout: '1:dup:dup
+
+    '
+- name: test_10_long_string
+  call: char *s = ft_strdup("abcdefghijklmnopqrstuvwxyz0123456789"); printf("%s\n",
+    s); free(s)
+  tier: stress
+  stdout: 'abcdefghijklmnopqrstuvwxyz0123456789
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strdup
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_strdup_T05
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strdup_T06
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "   "
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strdup_T07
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "Papache est un sabre" "a" "o"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strdup_T08
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "FOR PONY"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strdup_T09
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "a" "b"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strdup_T10
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "3:21 Ba  tOut  moUn ki Ka di KE m'en Ka fe fot"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strdup_T11
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "zaz" "art" "zul"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strdup_T12
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "this        ...       is sparta, then again, maybe    not"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strdup_T13
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "jacob" "a" "b" "c" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strdup_T14
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "L'eSPrit nE peUt plUs pRogResSer s'Il staGne et sI peRsIsTent
+    VAnIte et auto-justification."
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strdup_T15
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "ZoZ eT Dovid oiME le METol." "o" "a"
+  expected: Matches 42 reference standard output and exit code
+- id: can_ft_strdup_T16
+  origin: subject_folder/42ExamPractice/ft_strdup/tester.sh
+  input: ./ft_strdup "AkjhZ zLKIJz , 23y "
+  expected: Matches 42 reference standard output and exit code
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strdup
+  perturbed_input:
+  - ft_strdup_near_arg_1
+  - ft_strdup_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_strdup_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strdup/tester.sh)
+  original_input: ./ft_strdup "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  perturbed_input: ./gt_strdup "wNcOre Un ExEmPle Pas Facil
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_ft_strdup_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strdup/tester.sh)
+  original_input: ./ft_strdup "   "
+  perturbed_input: ./gt_strdup "   "

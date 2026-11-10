@@ -1,0 +1,14 @@
+id: ft_split
+type: c_function
+module: C 07
+xp: 220
+expected_files:
+- ft_split.c
+allowed_functions:
+- malloc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: char **ft_split(char *str, char *charset);

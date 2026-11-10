@@ -1,0 +1,5 @@
+Examples:
+  count_words_exam("  hello   world 42 ") -> 3
+  count_words_exam("") -> 0
+    count_words_exam("   	  ") -> 0
+    count_words_exam("one") -> 1

@@ -1,0 +1,65 @@
+mode: c_function
+fixed_tests:
+- name: exam_ft_atoi_base_T01
+  call: printf("%d:%d\n", ft_atoi_base("2a", 16), ft_atoi_base("-101010", 2))
+  stdout: '42:-42
+
+    '
+- name: exam_ft_atoi_base_T02_int_min_and_empty
+  call: printf("%d:%d:%d\n", ft_atoi_base("-80000000", 16), ft_atoi_base("", 10),
+    ft_atoi_base("   ", 16))
+  stdout: '-2147483648:0:0
+
+    '
+- name: ft_atoi_base_hex_uppercase_and_max
+  call: printf("%d:%d\n", ft_atoi_base("7fffffff", 16), ft_atoi_base("+4A", 16))
+  stdout: '2147483647:74
+
+    '
+- name: ft_atoi_base_invalid_mid_char_and_base4
+  call: printf("%d:%d\n", ft_atoi_base("123z45", 10), ft_atoi_base("321", 4))
+  stdout: '123:57
+
+    '
+- name: can_ft_atoi_base_T07_invalid_bases
+  tier: edge_case
+  description: Invalid bases (< 2 or > 16) must return 0 without out-of-bounds stack
+    read
+  expr: ft_atoi_base("123", 0) + ft_atoi_base("123", 1) + ft_atoi_base("123", 17)
+    + ft_atoi_base("123", -4)
+  stdout: '0
+
+    '
+- name: test_06_base_8_octal
+  expr: ft_atoi_base("777", 8)
+  tier: baseline
+  stdout: '511
+
+    '
+- name: test_07_base_3_negative
+  expr: ft_atoi_base("  -210", 3)
+  tier: edge
+  stdout: '-21
+
+    '
+- name: test_08_base_13_mixed_case
+  expr: ft_atoi_base("aBc", 13)
+  tier: baseline
+  stdout: '1845
+
+    '
+- name: test_09_zero_in_all_bases
+  expr: ft_atoi_base("0", 2) + ft_atoi_base("-0", 16)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_base_15_with_tabs
+  expr: ft_atoi_base("\t\n -eE", 15)
+  tier: stress
+  stdout: '-224
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

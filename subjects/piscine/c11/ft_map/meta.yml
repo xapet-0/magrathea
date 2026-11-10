@@ -1,0 +1,14 @@
+id: ft_map
+type: c_function
+module: C 11
+xp: 270
+expected_files:
+- ft_map.c
+allowed_functions:
+- malloc
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int *ft_map(int *tab, int length, int (*f)(int));

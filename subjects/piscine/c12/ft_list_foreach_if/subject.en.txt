@@ -1,0 +1,31 @@
+Assignment name  : ft_list_foreach_if
+Expected files   : ft_list_foreach_if.c ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_list_foreach_if
+Turn-in directory: ex10/
+Expected files   : ft_list_foreach_if.c, ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create the function ft_list_foreach_if, which applies the function given as an
+argument to some of the list’s elements.
+• Only apply the function to the elements whencmp with data_ref returns 0.
+• f should be applied in the same order as the list.
+• Here is how it should be prototyped:
+void ft_list_foreach_if(t_list *begin_list, void (*f)(void *), void
+*data_ref, int (*cmp)());
+• Functions pointed to byf and by cmp will be used as follows:
+(*f)(list_ptr->data);
+(*cmp)(list_ptr->data, data_ref);
+For example, the function cmp could be ft_strcmp...
+
+Prototype:
+    void ft_list_foreach_if(t_list *begin_list, void (*f)(void *), void *data_ref, int (*cmp)());
+
+For example, the function cmp could be ft_strcmp...
+
+Prototype:
+    void ft_list_foreach_if(t_list *begin_list, void (*f)(void *), void *data_ref, int (*cmp)());

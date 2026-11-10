@@ -1,0 +1,18 @@
+id: env_expander
+type: shell
+module: Piscine Exams 00–Final
+xp: 300
+expected_files:
+- env_expander.sh
+allowed_functions:
+- env
+- sed
+- awk
+- envsubst
+- sh
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh env_expander.sh [args...]

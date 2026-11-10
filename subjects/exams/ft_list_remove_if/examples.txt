@@ -1,0 +1,9 @@
+# Examples for ft_list_remove_if (from official subject specification)
+
+$>cat ft_list.h
+typedef struct      s_list
+{
+    struct s_list   *next;
+    void            *data;
+}                   t_list;
+$>

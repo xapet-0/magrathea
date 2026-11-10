@@ -1,0 +1,3 @@
+[cur_fix_loop_T01] Input: printf("%s\n", str)  ==>  Expected: ####### to 1337\n
+[cur_fix_loop_T02] Input: printf("%s\n", str)  ==>  Expected: XXXdef\n
+[cur_fix_loop_T03] Input: Dynamic generation rule via basic_test()  ==>  Expected: Deterministic output validated by Deepthought oracle

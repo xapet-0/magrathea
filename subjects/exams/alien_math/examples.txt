@@ -1,0 +1,7 @@
+Examples:
+$> FT_NBR1="1" FT_NBR2="1" sh alien_math.sh | cat -e
+2$
+$> FT_NBR1="40" FT_NBR2="2" sh alien_math.sh | cat -e
+42$
+$> FT_NBR1="1300" FT_NBR2="37" sh alien_math.sh | cat -e
+1337$

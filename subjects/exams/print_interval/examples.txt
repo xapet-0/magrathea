@@ -1,0 +1,7 @@
+Examples:
+$> ./print_interval "abcdef" | cat -e
+abc5e3$
+$> ./print_interval "welcome to 42 school" | cat -e
+wel5o35 t5345 s5ho5l$
+$> ./print_interval | cat -e
+$

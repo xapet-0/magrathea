@@ -1,0 +1,20 @@
+Assignment name  : ft_magic
+Expected files   : ft_magic
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine Shell 00 (v5.0 PDF)
+Exercise         : Exercise 09 — Illusions, not tricks, Michael...
+Turn-in directory: ex09/
+Files to turn in : ft_magic
+Allowed functions: None (file -m magic format)
+Toolchain Gate   : file -m ft_magic verification
+--------------------------------------------------------------------------------
+
+• Create a magic file named ft_magic that is properly formatted to enable the
+  file command to detect files of type "42 file", defined as those containing the
+  string "42" at the 42nd byte (byte offset 41, 0-indexed).
+• Rule format:
+  41 string 42 42 file
+
+[pool_ft_magic_T01] Input: `sh ft_magic.sh` (standard shell environment)  ==>  Expected: *(none)*

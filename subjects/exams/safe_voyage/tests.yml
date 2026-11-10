@@ -1,0 +1,69 @@
+fixed_tests:
+- name: test_01_tmp
+  args:
+  - /tmp
+  stdout: '/tmp
+
+    '
+- name: test_02_nonexistent_dir_42
+  args:
+  - /nonexistent_dir_42
+  stdout: ''
+  expect_empty: true
+  exit_code: 1
+- name: test_03_var
+  args:
+  - /var
+  stdout: '/var
+
+    '
+- name: test_04_root_dir
+  args:
+  - /
+  stdout: '/
+
+    '
+- name: test_05_usr_dir
+  args:
+  - /usr
+  tier: baseline
+  stdout: '/usr
+
+    '
+- name: test_06_etc_dir
+  args:
+  - /etc
+  tier: baseline
+  stdout: '/etc
+
+    '
+- name: test_07_missing_nested_path
+  args:
+  - /tmp/definitely_missing_1337_dir/sub
+  stdout: ''
+  exit_code: 1
+  tier: edge
+- name: test_08_bin_dir
+  args:
+  - /bin
+  tier: edge
+  stdout: '/usr/bin
+
+    '
+- name: test_09_var_tmp_dir
+  args:
+  - /var/tmp
+  tier: baseline
+  stdout: '/var/tmp
+
+    '
+- name: test_10_missing_root_path
+  args:
+  - /no_such_voyage_path_999
+  stdout: ''
+  exit_code: 1
+  tier: stress
+subject_id: safe_voyage
+subject_examples: []
+folder_examples: []
+near_examples: []

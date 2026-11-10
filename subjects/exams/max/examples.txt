@@ -1,0 +1,46 @@
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : int a[]={1,7,3}; printf("%d\n",max(a,3))
+    Expected Output   : '7\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: empty_array [Test description: "empty_array"]
+    Call / Invocation : printf("%d\n", max(NULL, 0))
+    Expected Output   : '0\n'
+  [Edge Case 2] Name: all_negative [Test description: "all_negative"]
+    Call / Invocation : int a[]={-10,-3,-42}; printf("%d\n", max(a, 3))
+    Expected Output   : '-3\n'
+  [Edge Case 3] Name: single_element [Test description: "single_element"]
+    Call / Invocation : int a[]={1337}; printf("%d\n", max(a, 1))
+    Expected Output   : '1337\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: case_max_edges
+    C Source Driver:
+    int main(void)
+    {
+        int a[] = {-9, -3, -12}; int b[] = {42}; int c[] = {1, 99, 3, 99, -1};
+        if (max(a, 3) != -3 || max(b, 1) != 42 || max(c, 5) != 99 || max(c, 0) != 0)
+        {
+            fprintf(stderr, "DT_FUNCTION=max\nDT_CASE=negative/single/zero length\nDT_EXPECTED=-3,42,99,0\nDT_GOT=mismatch\nDT_HINT=Handle len==0 and arrays containing only negative values.\n");
+            return (1);
+        }
+        return (0);
+    }
+
+>>> DEDICATED _MAIN.c TEST DRIVERS (Nigal / Samuel Karani / Official):
+  File: 2-1-max_MAIN.c
+    #include <stdio.h>
+    
+    int max(int *tab, unsigned int len);
+    
+    int	main(void)
+    {
+    	int nums01[] = {-2, -3, -776, -9};
+    	printf("%d\n", max(nums01, 4));
+    	int nums02[] = {-2, 101, 23};
+    	printf("%d\n", max(nums02, 3));
+    	int nums03[] = {-2, 101, 23, 200, -2000, 4000, 3999, 89};
+    	printf("%d\n", max(nums03, 8));
+    	return (0);
+    }

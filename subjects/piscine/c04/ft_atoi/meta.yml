@@ -1,0 +1,13 @@
+id: ft_atoi
+type: c_function
+module: C 04
+xp: 170
+expected_files:
+- ft_atoi.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: int ft_atoi(char *str);

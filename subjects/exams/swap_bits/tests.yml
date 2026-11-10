@@ -1,0 +1,124 @@
+mode: c_function
+fixed_tests:
+- name: can_swap_bits_T01
+  description: 'Functional verification of input: `swap_bits(0xF0)`'
+  expr: swap_bits(0xF0)
+  stdout: '15
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_swap_bits_T02
+  description: zero_byte
+  expr: swap_bits(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_swap_bits_T03
+  description: 0x41_to_0x14
+  expr: swap_bits(0x41)
+  stdout: '20
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_swap_bits_T04
+  description: 0x12_to_0x21
+  expr: swap_bits(0x12)
+  stdout: '33
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_255_all_ones
+  expr: swap_bits(0xFF)
+  tier: edge
+  stdout: '255
+
+    '
+- name: test_06_low_nibble_only
+  expr: swap_bits(0x0F)
+  tier: edge
+  stdout: '240
+
+    '
+- name: test_07_symmetric_nibbles
+  expr: swap_bits(0xAA)
+  tier: edge
+  stdout: '170
+
+    '
+- name: test_08_1_to_16
+  expr: swap_bits(0x01)
+  tier: baseline
+  stdout: '16
+
+    '
+- name: test_09_16_to_1
+  expr: swap_bits(0x10)
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_10_involution_property
+  expr: swap_bits(swap_bits(0x3C))
+  tier: stress
+  stdout: '60
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval swap_bits
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_swap_bits_T06
+  origin: subject_folder/42ExamPractice/swap_bits/tester.sh
+  input: ./swap_bits "0"
+  expected: Matches 42 reference standard output and exit code
+- id: can_swap_bits_T07
+  origin: subject_folder/42ExamPractice/swap_bits/tester.sh
+  input: ./swap_bits "P"
+  expected: Matches 42 reference standard output and exit code
+- id: can_swap_bits_T08
+  origin: subject_folder/42ExamPractice/swap_bits/tester.sh
+  input: ./swap_bits "a"
+  expected: Matches 42 reference standard output and exit code
+- id: can_swap_bits_T10
+  origin: subject_folder/2-0-swap_bits_MAIN.c
+  input: Compiled and run with 2-0-swap_bits_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_05
+  origin: subject_folder/2-0-swap_bits_MAIN-02.c
+  input: 2-0-swap_bits_MAIN-02.c
+  expected: "#include <unistd.h>\n#include <stdio.h>\n#include <ctype.h>\n\nunsigned\
+    \ char   swap_bits(unsigned char c);\nint asciiToBinary(int input);\n\nint\tmain(void)\n\
+    {\n\tchar\tc;\n"
+- id: folder_fixture_06
+  origin: subject_folder/2-0-swap_bits_MAIN.c
+  input: 2-0-swap_bits_MAIN.c
+  expected: "#include <stdio.h>\n\nunsigned char swap_bits(unsigned char c);\n\nint\
+    \ main(void)\n{\n\tchar letter_t;\n\tchar letter_G;\n\tletter_t = 't';\n\tletter_G\
+    \ = 'G';\n\n\tprintf(\"lett"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval swap_bits
+  perturbed_input:
+  - swap_bits_near_arg_1
+  - swap_bits_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_swap_bits_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/swap_bits/tester.sh)
+  original_input: ./swap_bits "0"
+  perturbed_input: ./twap_bits "0"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_swap_bits_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/swap_bits/tester.sh)
+  original_input: ./swap_bits "P"
+  perturbed_input: ./twap_bits "P"

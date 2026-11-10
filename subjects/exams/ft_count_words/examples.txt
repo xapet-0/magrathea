@@ -1,0 +1,4 @@
+Examples:
+  ft_count_words("one two   three") -> 3
+  ft_count_words("") -> 0
+    ft_count_words("   ") -> 0

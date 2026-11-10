@@ -1,0 +1,3 @@
+Examples:
+  ABCDEF, 2 -> BDF; Hello, 2 -> el.
+  Allowed functions: write.

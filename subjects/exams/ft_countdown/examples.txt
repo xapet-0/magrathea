@@ -1,0 +1,3 @@
+Examples:
+$> ./ft_countdown | cat -e
+9876543210$

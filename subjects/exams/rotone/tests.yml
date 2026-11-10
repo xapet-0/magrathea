@@ -1,0 +1,222 @@
+mode: c_program
+fixed_tests:
+- name: can_rotone_T01
+  description: 'Functional verification of input: `[''abc XYZ'']`'
+  args:
+  - abc XYZ
+  expected: 'bcd YZA
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_rotone_T02
+  description: case_wrap
+  args:
+  - zZ aA
+  expected: 'aA bB
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_rotone_T03
+  description: case_symbols
+  args:
+  - Hello-World!
+  expected: 'Ifmmp-Xpsme!
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_rotone_T04
+  description: case_bad_argc
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - abc
+  expected: 'bcd
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - Les stagiaires du staff ne sentent pas toujours tres bon.
+  expected: 'Mft tubhjbjsft ev tubgg of tfoufou qbt upvkpvst usft cpo.
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - 'AkjhZ zLKIJz , 23y '
+  expected: "BlkiA aMLJKa , 23z \n"
+- name: subj_ex_05
+  tier: subject_example
+  args:
+  - ''
+  expected: '
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./rotone "abc"
+  args: &id001
+  - abc
+  expected: 'bcd
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./rotone "Les stagiaires du staff ne sentent pas toujours tres bon." |
+    cat -e
+  args: &id002
+  - Les stagiaires du staff ne sentent pas toujours tres bon.
+  expected: 'Mft tubhjbjsft ev tubgg of tfoufou qbt upvkpvst usft cpo.
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./rotone "AkjhZ zLKIJz , 23y " | cat -e
+  args: &id003
+  - 'AkjhZ zLKIJz , 23y '
+  expected: "BlkiA aMLJKa , 23z \n"
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./rotone | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./rotone "" | cat -e
+  args:
+  - ''
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_rotone_T05
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rotone_T06
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "   "
+  expected: Matches 42 reference standard output and exit code
+- id: can_rotone_T07
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "Papache est un sabre" "a" "o"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rotone_T08
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "FOR PONY"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rotone_T09
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "a" "b"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rotone_T10
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "3:21 Ba  tOut  moUn ki Ka di KE m'en Ka fe fot"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rotone_T11
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "zaz" "art" "zul"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rotone_T12
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "this        ...       is sparta, then again, maybe    not"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rotone_T13
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "jacob" "a" "b" "c" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rotone_T14
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "L'eSPrit nE peUt plUs pRogResSer s'Il staGne et sI peRsIsTent VAnIte
+    et auto-justification."
+  expected: Matches 42 reference standard output and exit code
+- id: can_rotone_T15
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "ZoZ eT Dovid oiME le METol." "o" "a"
+  expected: Matches 42 reference standard output and exit code
+- id: can_rotone_T16
+  origin: subject_folder/42ExamPractice/rotone/tester.sh
+  input: ./rotone "AkjhZ zLKIJz , 23y "
+  expected: Matches 42 reference standard output and exit code
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - bbc
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  abc  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - Mes stagiaires du staff ne sentent pas toujours tres bon.
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  Les stagiaires du staff ne sentent pas toujours tres bon.  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - 'BkjhZ zLKIJz , 23y '
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  AkjhZ zLKIJz , 23y   '
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./rotone | cat -e
+  perturbed_input:
+  - rotone_near_arg_1
+  - rotone_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_rotone_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rotone/tester.sh)
+  original_input: ./rotone "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  perturbed_input: ./sotone "wNcOre Un ExEmPle Pas Facilw a
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_rotone_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rotone/tester.sh)
+  original_input: ./rotone "   "
+  perturbed_input: ./sotone "   "

@@ -1,0 +1,22 @@
+Assignment name  : capitalize
+Expected files   : capitalize.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes one string argument and capitalizes the first letter
+of each word while lowercasing the remaining letters of each word, followed by a
+newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./capitalize "hello WORLD 42school" | cat -e
+Hello World 42school$
+$> ./capitalize "" | cat -e
+$
+$> ./capitalize "pISCINE" | cat -e
+Piscine$
+$> ./capitalize "  aBC	dEF  " | cat -e
+  Abc	Def  $

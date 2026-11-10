@@ -1,0 +1,21 @@
+Assignment name  : print_groups.sh
+Turn-in directory: ex00/
+Expected files   : print_groups.sh
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Exam
+• During the week, you will be able to sign up for Friday’s exam in the agenda, don’t
+forget!
+• You must also register for the Exam00 project.
+• Double-check that you are registered for both the exam event and the project!
+• Triple-check that you are definitely registered for both the exam event and the
+project, yes, both!
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> FT_USER="root" sh print_groups.sh | cat -e
+root

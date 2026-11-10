@@ -1,0 +1,13 @@
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+expected_files:
+- ft_mul.c
+id: ft_mul
+module: "Piscine Exams 00\u2013Final"
+norminette: false
+prototype: void ft_mul(int a, int *ptr);
+type: c_function
+xp: 280

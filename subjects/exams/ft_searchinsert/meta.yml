@@ -1,0 +1,14 @@
+id: ft_searchinsert
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- ft_searchinsert.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void ft_searchinsert(int *arr, int n, int target);

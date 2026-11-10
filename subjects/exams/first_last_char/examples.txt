@@ -1,0 +1,5 @@
+Examples:
+$> ./first_last_char Hello | cat -e
+Ho$
+$> ./first_last_char a | cat -e
+aa$

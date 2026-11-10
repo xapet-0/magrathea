@@ -1,0 +1,14 @@
+id: ft_print_numbers
+type: c_function
+module: C 00
+xp: 120
+expected_files:
+- ft_print_numbers.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void ft_print_numbers(void);

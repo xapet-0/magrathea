@@ -1,0 +1,15 @@
+Assignment name  : stderr_trap
+Expected files   : stderr_trap.sh
+Allowed commands : sh, printf, echo
+--------------------------------------------------------------------------------
+
+Write a shell script that redirects error messages appropriately and prints the
+expected diagnostic output.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh stderr_trap.sh | cat -e
+captured$

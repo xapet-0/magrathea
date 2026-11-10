@@ -1,0 +1,33 @@
+name: piscine_reloaded
+display_name: 42 C Piscine Reloaded
+pool_group: piscine
+rank_order: 10
+prerequisites: []
+duration_seconds: 14400
+levels:
+- level: 0
+  points: 25
+  candidates:
+  - only_a
+  - only_z
+  - ft_print_numbers
+  - ft_strlen
+  - ft_swap
+- level: 1
+  points: 25
+  candidates:
+  - ft_putstr
+  - ft_strcmp
+  - ft_strdup
+  - ft_range
+- level: 2
+  points: 25
+  candidates:
+  - ft_atoi
+  - ft_split
+  - ft_list_size
+- level: 3
+  points: 25
+  candidates:
+  - ft_list_foreach
+  - sort_list

@@ -1,0 +1,2 @@
+[cpp_cpp_module_01_T01] Input: `cpp_module_01()` (zero / void parameter call)  ==>  Expected: *(none)*
+[cpp_cpp_module_01_T02] Input: Harness evaluation: int main() Warlock richard("Richard", "the Titled"); Dummy bob; Fwoosh* fwoosh = new Fwoosh(); richard.learnSpell(fwoosh...  ==>  Expected: Richard: This looks like another boring day.\nRichard: I am Richard, the Titled!\nTarget Practice Dummy has been fwooshed!\nRichard: My job here is done!

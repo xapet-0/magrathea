@@ -1,0 +1,6 @@
+# Examples for count_alen (from official subject specification)
+
+Examples:
+    count_alen("1337_school") -> 11
+    count_alen("hello_a_world") -> 6
+    count_alen("abc") -> 0

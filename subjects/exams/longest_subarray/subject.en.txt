@@ -1,0 +1,22 @@
+Assignment name  : longest_subarray
+Expected files   : longest_subarray.c
+Allowed functions: malloc
+--------------------------------------------------------------------------------
+
+Write a function that takes a string of digits and returns a newly allocated
+substring representing the longest contiguous subarray containing an equal
+number of odd and even digits.
+
+Prototype:
+char	*longest_subarray(char *arr);
+
+Your function must be declared as follows:
+    char *longest_subarray(char *arr);
+
+Examples:
+    char *s = longest_subarray("134"); printf("%s\n", s); free(s)
+    Output: 34
+    char *s = longest_subarray("454"); printf("%s\n", s); free(s)
+    Output: 45
+    char *s = longest_subarray("13579"); printf("%s\n", s); free(s)
+    Output:

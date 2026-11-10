@@ -1,0 +1,160 @@
+mode: c_program
+fixed_tests:
+- name: cur_mult_complex_T01
+  description: 'Functional verification of input: `[''3'', ''2'', ''4'', ''-1'']`'
+  args:
+  - '3'
+  - '2'
+  - '4'
+  - '-1'
+  expected: "\n a = 3 + 2i\n b = 4 + -1i\n product = 14 + 5i"
+  category: Edge Case
+  tier: baseline
+- name: cur_mult_complex_T02
+  description: 'Functional verification of input: `[''1'', ''2'', ''3'', ''4'']`'
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  expected: "\n a = 1 + 2i\n b = 3 + 4i\n product = -5 + 10i"
+  category: Functional
+  tier: baseline
+- name: cur_mult_complex_T03
+  description: Standard baseline execution and behavior check for `mult_complex`
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_mult_complex_T04
+  description: edge_empty_str
+  args:
+  - ''
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_mult_complex_T05
+  description: edge_whitespace
+  args:
+  - "   \t  "
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: "\n a = 1 + 2i\n b = 3 + 4i\n product = -5 + 10i"
+- name: test_07_arg_auto
+  args:
+  - '0'
+  - '0'
+  - '0'
+  - '0'
+  tier: baseline
+  stdout: "\n a = 0 + 0i\n b = 0 + 0i\n product = 0 + 0i"
+- name: test_08_arg_auto
+  args:
+  - '-1'
+  - '5'
+  - '10'
+  - '20'
+  tier: baseline
+  stdout: "\n a = -1 + 5i\n b = 10 + 20i\n product = -110 + 30i"
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - '100'
+  - '200'
+  tier: baseline
+  stdout: "\n a = 42 + 1337i\n b = 100 + 200i\n product = -263200 + 142100i"
+- name: test_10_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval mult_complex
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_mult_complex_T06
+  origin: subject_folder/deepthought/corrections/exams/mult_complex/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_mult_complex_T07
+  origin: subject_folder/deepthought/corrections/exams/mult_complex/generator.py
+  input: Dynamic generation rule via basic_test1()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_mult_complex_T08
+  origin: subject_folder/deepthought/corrections/exams/mult_complex/generator.py
+  input: Dynamic generation rule via basic_test2()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_mult_complex_T09
+  origin: subject_folder/deepthought/corrections/exams/mult_complex/generator.py
+  input: Dynamic generation rule via basic_test3()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_mult_complex_T10
+  origin: subject_folder/deepthought/corrections/exams/mult_complex/generator.py
+  input: Dynamic generation rule via basic_test4()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_mult_complex_T11
+  origin: subject_folder/deepthought/corrections/exams/mult_complex/generator.py
+  input: Dynamic generation rule via basic_test5()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval mult_complex
+  perturbed_input:
+  - mult_complex_near_arg_1
+  - mult_complex_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_mult_complex_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/mult_complex/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_mult_complex_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/mult_complex/generator.py)
+  original_input: Dynamic generation rule via basic_test1()
+  perturbed_input: Eynamic generation rule via basic_test1(
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `mult_complex`
+  input: mult_complex(INT_MIN), mult_complex(0), mult_complex(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `mult_complex`
+  input: Run mult_complex with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `mult_complex`
+  input: mult_complex(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `mult_complex`
+  input: Call mult_complex on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out

@@ -1,0 +1,83 @@
+fixed_tests:
+- call: int arr[] = {1, 3, 5, 6}; ft_searchinsert(arr, 4, 5)
+  name: found_5
+  stdout: '2'
+  tier: baseline
+- call: int arr[] = {1, 3, 5, 6}; ft_searchinsert(arr, 4, 2)
+  name: insert_2
+  stdout: '1'
+  tier: baseline
+- call: int arr[] = {1, 3, 5, 6}; ft_searchinsert(arr, 4, 7)
+  name: insert_7_end
+  stdout: '4'
+  tier: baseline
+- call: int arr[] = {1, 3, 5, 6}; ft_searchinsert(arr, 4, 0)
+  name: insert_0_start
+  stdout: '0'
+  tier: baseline
+- name: test_05_found_first
+  call: int arr[] = {1, 3, 5, 6}; ft_searchinsert(arr, 4, 1)
+  tier: edge
+  stdout: '0'
+- name: test_06_found_last
+  call: int arr[] = {1, 3, 5, 6}; ft_searchinsert(arr, 4, 6)
+  tier: edge
+  stdout: '3'
+- name: test_07_single_element_before_equal_after
+  call: int arr[] = {10}; ft_searchinsert(arr, 1, 5); ft_searchinsert(arr, 1, 10);
+    ft_searchinsert(arr, 1, 15)
+  tier: edge
+  stdout: '001'
+- name: test_08_negative_numbers
+  call: int arr[] = {-10, -5, 0, 5, 10}; ft_searchinsert(arr, 5, -7); ft_searchinsert(arr,
+    5, 0)
+  tier: baseline
+  stdout: '12'
+- name: test_09_insert_between_last_two
+  call: int arr[] = {2, 4, 6, 8, 10}; ft_searchinsert(arr, 5, 9)
+  tier: baseline
+  stdout: '4'
+- name: test_10_empty_array
+  call: int arr[] = {1}; ft_searchinsert(arr, 0, 42)
+  tier: stress
+  stdout: '0'
+subject_id: ft_searchinsert
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_searchinsert
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: e1337_ft_searchinsert_T05
+  origin: subject_folder/examples.txt
+  input: int arr[] = {1, 3, 5, 6};
+  expected: 'ft_searchinsert(arr, 4, 5);\n// writes: 2\n\nft_searchinsert(arr, 4,
+    2);\n// writes: 1\n\nft_searchinsert(arr, 4, 7);\n// writes: 4\n\nft_searchinsert(arr,
+    4, 0);\n// writes: 0'
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- call: int arr[] = {1, 3, 5, 6}; ft_searchinsert(arr,\
+    \ 4, 5)\n  name: found_5\n  stdout: '2'\n- call: int arr[] = {1, 3, 5, 6}; ft_searchinsert(arr,\
+    \ 4"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_searchinsert
+  perturbed_input:
+  - ft_searchinsert_near_arg_1
+  - ft_searchinsert_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_ft_searchinsert_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: int arr[] = {1, 3, 5, 6};
+  perturbed_input: jnt arr[] = {1, 3, 5, 6};
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

@@ -1,0 +1,16 @@
+# Examples for ft_rev_params (from official subject specification)
+
+Examples:
+$> ./ft_rev_params "one" "two" "three" | cat -e
+three$
+two$
+one$
+$> ./ft_rev_params "42" | cat -e
+42$
+$> ./ft_rev_params | cat -e
+$
+$> ./ft_rev_params "a" "b" "c" "d" | cat -e
+d$
+c$
+b$
+a$

@@ -1,0 +1,14 @@
+id: sastantua
+type: c_function
+module: Rush 00–02 & BSQ
+xp: 490
+expected_files:
+- sastantua.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void sastantua(int size);

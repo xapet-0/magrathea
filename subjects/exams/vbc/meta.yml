@@ -1,0 +1,21 @@
+id: vbc
+type: c_program
+module: Exam Rank 04
+xp: 585
+expected_files:
+- '*.c'
+- '*.h'
+allowed_functions:
+- malloc
+- calloc
+- realloc
+- free
+- printf
+- isdigit
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

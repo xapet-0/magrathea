@@ -1,0 +1,9 @@
+# Examples for glob_shield (from official subject specification)
+
+Examples:
+$> sh glob_shield.sh "a * b   c" | cat -e
+a * b   c$
+$> sh glob_shield.sh "Hello    *    World?" | cat -e
+Hello    *    World?$
+$> sh glob_shield.sh "1337   42" | cat -e
+1337   42$

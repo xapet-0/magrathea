@@ -1,0 +1,21 @@
+Assignment name  : base16
+Expected files   : base16.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a non-negative decimal integer in argv[1] and prints
+its hexadecimal representation in lowercase, followed by a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./base16 "255" | cat -e
+ff$
+$> ./base16 "42" | cat -e
+2a$
+$> ./base16 "0" | cat -e
+0$
+$> ./base16 "16" | cat -e
+10$

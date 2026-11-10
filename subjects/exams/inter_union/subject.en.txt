@@ -1,0 +1,21 @@
+Assignment name  : inter_union
+Expected files   : inter_union.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes two strings and displays the characters common to
+both strings without duplicates, followed by a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./inter_union "abc" "bcd" | cat -e
+bc$
+$> ./inter_union "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" | cat -e
+padinto$
+$> ./inter_union "abc" "xyz" | cat -e
+$
+$> ./inter_union | cat -e
+$

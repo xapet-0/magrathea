@@ -1,0 +1,22 @@
+Assignment name  : ft_interval
+Expected files   : ft_interval.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Write a program that takes a string and replaces each character at a non-zero
+index divisible by both 3 and 5 with '5', at an index divisible by 3 with '5',
+and at an index divisible by 5 with '3', followed by a newline.
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./ft_interval "abcdef" | cat -e
+abc5e3$
+$> ./ft_interval "ab" | cat -e
+ab$
+$> ./ft_interval "" | cat -e
+$
+$> ./ft_interval | cat -e
+$

@@ -1,0 +1,145 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_strstr_T01
+  description: 'Functional verification of input: `printf("%s\n", ft_strstr("Hello
+    World", "Worl`'
+  call: printf("%s\n", ft_strstr("Hello World", "World"))
+  stdout: 'World
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_strstr_T02
+  description: empty_needle
+  call: printf("%s\n", ft_strstr("1337", ""))
+  stdout: '1337
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_strstr_T03
+  description: not_found
+  call: printf("%d\n", ft_strstr("1337", "42") == NULL)
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_strstr_T04
+  description: repeated_prefix
+  call: printf("%s\n", ft_strstr("aaab", "aab"))
+  stdout: 'aab
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_needle_at_start
+  call: printf("%s\n", ft_strstr("abcdef", "abc"))
+  tier: baseline
+  stdout: 'abcdef
+
+    '
+- name: test_06_needle_equals_haystack
+  call: printf("%s\n", ft_strstr("42school", "42school"))
+  tier: baseline
+  stdout: '42school
+
+    '
+- name: test_07_needle_longer_than_haystack
+  call: printf("%d\n", ft_strstr("ab", "abcdef") == NULL)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_both_empty
+  call: char s[] = ""; printf("%d\n", ft_strstr(s, "") == s)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_empty_haystack_nonempty_needle
+  call: printf("%d\n", ft_strstr("", "a") == NULL)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_10_overlapping_prefix_backtrack
+  call: printf("%s\n", ft_strstr("mississippi", "issip"))
+  tier: stress
+  stdout: 'issippi
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strstr
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_ft_strstr_T06
+  origin: subject_folder/mini-moulinette/ex04/ft_strstr.c
+  input: 'Input: 42 1337 Network 2021 piscine Benguerir Khouribga'
+  expected: 'Expected: piscine Benguerir Khouribga'
+- id: cur_ft_strstr_T07
+  origin: subject_folder/mini-moulinette/ex04/ft_strstr.c
+  input: 'Input: piscine Benguerir Khouribga'
+  expected: 'Expected: piscine Benguerir Khouribga'
+- id: cur_ft_strstr_T08
+  origin: subject_folder/mini-moulinette/ex04/ft_strstr.c
+  input: 'Input: The quick brown fox jumps over the lazy dog'
+  expected: 'Expected: dog'
+- id: cur_ft_strstr_T09
+  origin: subject_folder/mini-moulinette/ex04/ft_strstr.c
+  input: 'Input: 42 1337 Network 2021 piscine Benguerir Khouribga'
+  expected: 'Expected: 42 1337 Network 2021 piscine Benguerir Khouribga'
+- id: cur_ft_strstr_T10
+  origin: subject_folder/mini-moulinette/ex04/ft_strstr.c
+  input: 'Input: 42 1337 Network 2021 piscine Benguerir Khouribga'
+  expected: 'Expected:'
+- id: cur_ft_strstr_T11
+  origin: subject_folder/mini-moulinette/ex04/ft_strstr.c
+  input: 'Input: -62,47 +62,47'
+  expected: 'Expected:'
+- id: cur_ft_strstr_T12
+  origin: subject_folder/deepthought/corrections/exams/ft_strstr/generator.py
+  input: Dynamic generation rule via random_string()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strstr_T13
+  origin: subject_folder/deepthought/corrections/exams/ft_strstr/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strstr_T14
+  origin: subject_folder/deepthought/corrections/exams/ft_strstr/generator.py
+  input: Dynamic generation rule via full_string_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strstr_T15
+  origin: subject_folder/deepthought/corrections/exams/ft_strstr/generator.py
+  input: Dynamic generation rule via no_occurrence_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strstr_T16
+  origin: subject_folder/deepthought/corrections/exams/ft_strstr/generator.py
+  input: Dynamic generation rule via empty_string_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_strstr_T17
+  origin: subject_folder/deepthought/corrections/exams/ft_strstr/generator.py
+  input: Dynamic generation rule via edge_case_empty_to_find()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strstr
+  perturbed_input:
+  - ft_strstr_near_arg_1
+  - ft_strstr_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ft_strstr_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex04/ft_strstr.c)
+  original_input: 'Input: 42 1337 Network 2021 piscine Benguerir Khouribga'
+  perturbed_input: 'Jnput: 42 1337 Network 2021 piscine Beng'
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ft_strstr_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex04/ft_strstr.c)
+  original_input: 'Input: piscine Benguerir Khouribga'
+  perturbed_input: 'Jnput: piscine Benguerir Khouribga'

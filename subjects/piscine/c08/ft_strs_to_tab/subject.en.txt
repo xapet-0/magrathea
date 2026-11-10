@@ -1,0 +1,35 @@
+Assignment name  : ft_strs_to_tab
+Turn-in directory: ex04/
+Expected files   : ft_strs_to_tab.c
+Allowed functions: malloc, free
+--------------------------------------------------------------------------------
+
+• Create a function that takes an array of strings as an argument and the size of this
+array.
+• Here’s how it should be prototyped:
+struct s_stock_str *ft_strs_to_tab( int ac, char **av);
+• It will transform each element ofav into a structure.
+• The structure will be defined in theft_stock_str.h file that we will provide, like
+this:
+typedef struct s_stock_str
+{
+int size;
+char *str;
+char *copy;
+} t_stock_str;
+◦ size being the length of the string;
+◦ str being the string;
+◦ copy being a copy of the string;
+• It should keep the order ofav.
+• The returned array should be allocated in memory and its last element’sstr set to
+0, this will mark the end of the array.
+• It should return a NULL pointer if an error occurs.
+• We’ll test your function with ourft_show_tab (next exercise). Make it work ac-
+cording to this!
+
+Prototype:
+    struct s_stock_str *ft_strs_to_tab(int ac, char **av);
+
+Examples:
+$> ./ft_strs_to_tab | cat -e
+$

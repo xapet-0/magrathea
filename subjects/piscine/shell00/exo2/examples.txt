@@ -1,0 +1,1 @@
+[pool_exo2_T01] Input: tar -tf exo2.tar \| sort \| tr '\n' ' '  ==>  Expected: *(none)*

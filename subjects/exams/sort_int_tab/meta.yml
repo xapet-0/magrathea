@@ -1,0 +1,13 @@
+id: sort_int_tab
+type: c_function
+module: Exam Rank 02
+xp: 420
+expected_files:
+- sort_int_tab.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void sort_int_tab(int *tab, unsigned int size);

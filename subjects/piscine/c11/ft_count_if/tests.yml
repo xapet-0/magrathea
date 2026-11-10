@@ -1,0 +1,61 @@
+fixed_tests:
+- call: char *a[]={"a","bb","c"}; printf("%d\n",ft_count_if(a,3,dt_is_short));
+  name: pool_ft_count_if_T01
+  stdout: '2
+
+    '
+- call: char *a[]={"hello","world","1337"}; printf("%d\n",ft_count_if(a,3,dt_is_short));
+  name: pool_ft_count_if_T02
+  stdout: '0
+
+    '
+- call: char *a[]={"a","b"}; printf("%d\n",ft_count_if(a,0,dt_is_short));
+  name: ft_count_if_zero_length
+  stdout: '0
+
+    '
+- call: char *a[]={"x","y","z"}; printf("%d\n",ft_count_if(a,3,dt_is_short));
+  name: ft_count_if_all_match
+  stdout: '3
+
+    '
+- name: test_05_single_match
+  call: char *a[]={"a"}; printf("%d\n",ft_count_if(a,1,dt_is_short));
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_06_single_no_match
+  call: char *a[]={"long"}; printf("%d\n",ft_count_if(a,1,dt_is_short));
+  tier: baseline
+  stdout: '0
+
+    '
+- name: test_07_empty_strings_count_as_short
+  call: char *a[]={"","ab","","cd",""}; printf("%d\n",ft_count_if(a,5,dt_is_short));
+  tier: edge
+  stdout: '3
+
+    '
+- name: test_08_is_empty_predicate
+  call: char *a[]={"","a","","b"}; printf("%d\n",ft_count_if(a,4,dt_is_empty));
+  tier: baseline
+  stdout: '2
+
+    '
+- name: test_09_partial_length_slice
+  call: char *a[]={"a","b","c","d"}; printf("%d\n",ft_count_if(a,2,dt_is_short));
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_10_six_mixed_elements
+  call: char *a[]={"1","22","3","44","5","66"}; printf("%d\n",ft_count_if(a,6,dt_is_short));
+  tier: stress
+  stdout: '3
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,147 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `height_tree`
+  input: height_tree(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `height_tree`
+  input: Input with no valid solution or containing duplicate values in height_tree
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `height_tree`
+  input: Run height_tree with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `height_tree`
+  input: Inspect sequence of traversed or printed nodes in height_tree
+  expected: Exact match with standard traversal order required in subject
+fixed_tests:
+- name: test_01_NULL
+  expr: height_tree(NULL)
+  stdout: '-1
+
+    '
+- name: test_02_r
+  expr: height_tree(&r)
+  setup:
+  - struct s_node *n[] = {0}; struct s_node r = {1, n};
+  stdout: '0
+
+    '
+- name: test_03_r
+  expr: height_tree(&r)
+  setup:
+  - struct s_node *z[] = {0}; struct s_node c1 = {2, z}; struct s_node *rn[] = {&c1,
+    0}; struct s_node r = {1, rn};
+  stdout: '1
+
+    '
+- name: test_04_r
+  expr: height_tree(&r)
+  setup:
+  - struct s_node *z[] = {0}; struct s_node c2 = {3, z}; struct s_node *c1n[] = {&c2,
+    0}; struct s_node c1 = {2, c1n}; struct s_node *rn[] = {&c1, 0}; struct s_node
+    r = {1, rn};
+  stdout: '2
+
+    '
+- name: test_05_two_children_same_depth
+  setup:
+  - struct s_node *z[] = {0}; struct s_node c1 = {2, z}, c2 = {3, z}; struct s_node
+    *rn[] = {&c1, &c2, 0}; struct s_node r = {1, rn};
+  expr: height_tree(&r)
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_06_second_branch_deeper
+  setup:
+  - struct s_node *z[] = {0}; struct s_node gc = {4, z}, c1 = {2, z}; struct s_node
+    *c2n[] = {&gc, 0}; struct s_node c2 = {3, c2n}; struct s_node *rn[] = {&c1, &c2,
+    0}; struct s_node r = {1, rn};
+  expr: height_tree(&r)
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_07_three_children_flat
+  setup:
+  - struct s_node *z[] = {0}; struct s_node c1={2,z}, c2={3,z}, c3={4,z}; struct s_node
+    *rn[] = {&c1, &c2, &c3, 0}; struct s_node r = {1, rn};
+  expr: height_tree(&r)
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_08_depth_3_chain
+  setup:
+  - struct s_node *z[] = {0}; struct s_node n4={4,z}; struct s_node *n3c[]={&n4,0};
+    struct s_node n3={3,n3c}; struct s_node *n2c[]={&n3,0}; struct s_node n2={2,n2c};
+    struct s_node *n1c[]={&n2,0}; struct s_node n1={1,n1c};
+  expr: height_tree(&n1)
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_09_middle_child_deepest
+  setup:
+  - struct s_node *z[] = {0}; struct s_node d={5,z}; struct s_node *cn[]={&d,0}; struct
+    s_node b={3,cn}, a={2,z}, c={4,z}; struct s_node *rn[]={&a,&b,&c,0}; struct s_node
+    r={1,rn};
+  expr: height_tree(&r)
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_10_depth_4_chain
+  setup:
+  - struct s_node *z[]={0}; struct s_node n5={5,z}; struct s_node *c4[]={&n5,0}; struct
+    s_node n4={4,c4}; struct s_node *c3[]={&n4,0}; struct s_node n3={3,c3}; struct
+    s_node *c2[]={&n3,0}; struct s_node n2={2,c2}; struct s_node *c1[]={&n2,0}; struct
+    s_node n1={1,c1};
+  expr: height_tree(&n1)
+  tier: stress
+  stdout: '4
+
+    '
+folder_examples:
+- expected: Zero assertion failures (exit code 0)
+  id: can_height_tree_T05
+  input: Compiled and run with height_tree_MAIN.c
+  origin: subject_folder/height_tree_MAIN.c
+- expected: "struct s_node {\n\t\tint           value;\n\t\tstruct s_node **nodes;\n\
+    \t};\n\nint height_tree(struct s_node *root)\n{\n\tif (!root)\n\t\treturn -1;\n\
+    \tif (!(root->nodes)[0])\n\t\tr"
+  id: folder_fixture_02
+  input: height_tree_MAIN.c
+  origin: subject_folder/height_tree_MAIN.c
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval height_tree
+  perturbed_input:
+  - height_tree_near_arg_1
+  - height_tree_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_height_tree_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: Compiled and run with height_tree_MAIN.c
+  perturbed_input: Dompiled and run with height_tree_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/height_tree_MAIN.c)
+- derived_from: folder_fixture_02
+  id: near_folder_02_boundary_neighbor
+  original_input: height_tree_MAIN.c
+  perturbed_input: ieight_tree_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/height_tree_MAIN.c)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval height_tree
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

@@ -1,0 +1,12 @@
+id: diff
+type: shell
+module: Shell 00
+xp: 130
+expected_files:
+- b
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true

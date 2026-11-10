@@ -1,0 +1,23 @@
+Assignment name  : find_sh.sh
+Expected files   : find_sh.sh
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine Shell 01 (v8.1 PDF)
+Exercise         : Exercise 02 — find_sh.sh
+Turn-in directory: ex02/
+Files to turn in : find_sh.sh
+Allowed functions: None (POSIX /bin/sh + find + basename / sed)
+Toolchain Gate   : shnorm_v42 + /bin/sh
+--------------------------------------------------------------------------------
+
+• Write a command line that searches for all file names that end with ".sh"
+  (without quotation marks) in the current directory and all its subdirectories.
+• It should display only the file names without the .sh extension.
+
+Example of output:
+$> ./find_sh.sh | cat -e
+file1$
+file2$
+find_sh$
+$>

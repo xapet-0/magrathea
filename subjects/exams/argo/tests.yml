@@ -1,0 +1,73 @@
+mode: c_program
+fixed_tests:
+- name: test_01_no_args
+  args: []
+  stdin: '42'
+  expected_stdout: '42
+
+    '
+- name: test_02_no_args
+  args: []
+  stdin: '-1337'
+  expected_stdout: '-1337
+
+    '
+- name: test_03_no_args
+  args: []
+  stdin: '"hello \"world\""'
+  expected_stdout: '"hello \"world\""
+
+    '
+- name: test_04_no_args
+  args: []
+  stdin: '{"a": 1, "b": {"c": "42"}}'
+  expected_stdout: '{"a":1,"b":{"c":"42"}}
+
+    '
+- name: test_05_no_args
+  args: []
+  stdin: '{"empty":{}}'
+  expected_stdout: '{"empty":{}}
+
+    '
+- name: test_06_no_args
+  args: []
+  stdin: '{"unclosed": 42'
+  expected_stdout: 'Unexpected end of input
+
+    '
+  expected_returncode: 1
+- name: test_07_no_args
+  args: []
+  stdin: '{"bad": @}'
+  expected_stdout: 'Unexpected token ''@''
+
+    '
+  expected_returncode: 1
+- name: test_08_arg_auto
+  args: []
+  tier: baseline
+  stdout: 'Unexpected end of input
+
+    '
+  expected_returncode: 1
+- name: test_09_arg_auto
+  args:
+  - extra
+  tier: baseline
+  stdout: 'Unexpected end of input
+
+    '
+  expected_returncode: 1
+- name: test_10_arg_auto
+  args:
+  - a
+  - b
+  tier: baseline
+  stdout: 'Unexpected end of input
+
+    '
+  expected_returncode: 1
+subject_examples: []
+folder_examples: []
+near_examples: []

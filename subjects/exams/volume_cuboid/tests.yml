@@ -1,0 +1,145 @@
+mode: c_function
+fixed_tests:
+- name: cur_volume_cuboid_T01
+  description: 'Functional verification of input: `volume_cuboid(2,3,7)`'
+  expr: volume_cuboid(2,3,7)
+  stdout: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_volume_cuboid_T02
+  description: 'Functional verification of input: `volume_cuboid(2,0,7)`'
+  expr: volume_cuboid(2,0,7)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_volume_cuboid_T03
+  description: edge_volume_cuboid_zero
+  expr: volume_cuboid(2, 0, 4)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_volume_cuboid_T04
+  description: edge_volume_cuboid_negative
+  expr: volume_cuboid(2, -3, 4)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_unit_cuboid
+  expr: volume_cuboid(1, 1, 1)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_first_zero
+  expr: volume_cuboid(0, 5, 6)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_third_zero
+  expr: volume_cuboid(4, 5, 0)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_first_negative
+  expr: volume_cuboid(-2, 3, 4)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_third_negative
+  expr: volume_cuboid(2, 3, -4)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_10_ten_twenty_thirty
+  expr: volume_cuboid(10, 20, 30)
+  tier: stress
+  stdout: '6000
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval volume_cuboid
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_volume_cuboid_T05
+  origin: subject_folder/deepthought/corrections/exams/volume_cuboid/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_volume_cuboid_T06
+  origin: subject_folder/deepthought/corrections/exams/volume_cuboid/generator.py
+  input: Dynamic generation rule via decimal_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_volume_cuboid_T07
+  origin: subject_folder/deepthought/corrections/exams/volume_cuboid/generator.py
+  input: Dynamic generation rule via zero_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_volume_cuboid_T08
+  origin: subject_folder/deepthought/corrections/exams/volume_cuboid/generator.py
+  input: Dynamic generation rule via large_radius_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_volume_cuboid_T09
+  origin: subject_folder/deepthought/corrections/exams/volume_cuboid/generator.py
+  input: Dynamic generation rule via negative_radius_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_volume_cuboid_T10
+  origin: subject_folder/deepthought/corrections/exams/volume_cuboid/generator.py
+  input: Dynamic generation rule via negative_positive_radius_test_1()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_volume_cuboid_T11
+  origin: subject_folder/deepthought/corrections/exams/volume_cuboid/generator.py
+  input: Dynamic generation rule via negative_positive_radius_test_2()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval volume_cuboid
+  perturbed_input:
+  - volume_cuboid_near_arg_1
+  - volume_cuboid_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_volume_cuboid_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/volume_cuboid/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_volume_cuboid_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/volume_cuboid/generator.py)
+  original_input: Dynamic generation rule via decimal_test()
+  perturbed_input: Eynamic generation rule via decimal_test
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `volume_cuboid`
+  input: volume_cuboid(INT_MIN), volume_cuboid(0), volume_cuboid(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `volume_cuboid`
+  input: Run volume_cuboid with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `volume_cuboid`
+  input: volume_cuboid(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `volume_cuboid`
+  input: Call volume_cuboid on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out

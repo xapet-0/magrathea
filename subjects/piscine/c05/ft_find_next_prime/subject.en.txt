@@ -1,0 +1,25 @@
+Assignment name  : ft_find_next_prime
+Expected files   : ft_find_next_prime.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 05 (Official PDF)
+Exercise         : ft_find_next_prime
+Turn-in directory: ex07/
+Expected files   : ft_find_next_prime.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a function that returns the next prime number greater than or equal to the
+given number.
+• The function should be prototyped as follows:
+int ft_find_next_prime(int nb);
+
+Your function must be declared as follows:
+    int ft_find_next_prime(int nb);
+
+Examples:
+    ft_find_next_prime(-10) -> 2
+    ft_find_next_prime(14) -> 17
+    ft_find_next_prime(0) -> 2
+    ft_find_next_prime(2) -> 2

@@ -1,0 +1,188 @@
+fixed_tests:
+- name: faya_match
+  args:
+  - faya
+  - fgvvfdxcacpolhyghbreda
+  stdout: 'faya
+
+    '
+  tier: baseline
+- name: faya_fail
+  args:
+  - faya
+  - fgvvfdxcacpolhyghbred
+  stdout: '
+
+    '
+  tier: baseline
+- name: quarante_deux
+  args:
+  - quarante deux
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+  stdout: 'quarante deux
+
+    '
+  tier: baseline
+- name: no_args
+  args: []
+  stdout: '
+
+    '
+  tier: baseline
+- name: test_05_arg_auto
+  args:
+  - ''
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_06_arg_auto
+  args:
+  - '42'
+  - '1337'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_07_arg_auto
+  args:
+  - pad
+  - test
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '!@#$'
+  - '%^&*'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - abc
+  - abcdef
+  tier: baseline
+  stdout: 'abc
+
+    '
+- name: test_10_arg_auto
+  args:
+  - same
+  - same
+  tier: baseline
+  stdout: 'same
+
+    '
+subject_id: wdmatch_2
+mode: c_program
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./wdmatch_2 "faya" "fgvvfdxcacpolhyghbreda" | cat -e
+  args: &id001
+  - faya
+  - fgvvfdxcacpolhyghbreda
+  expected: 'faya
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./wdmatch_2 "faya" "fgvvfdxcacpolhyghbred" | cat -e
+  args: &id002
+  - faya
+  - fgvvfdxcacpolhyghbred
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./wdmatch_2 "quarante deux" "qfqfsudf arzgsayns tsregfdgs sjytdekuoixq
+    " | cat -e
+  args: &id003
+  - quarante deux
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+  expected: 'quarante deux
+
+    '
+  cat_e: true
+folder_examples:
+- id: e1337_wdmatch_2_T05
+  origin: subject_folder/examples.txt
+  input: ./wdmatch_2 "faya" "fgvvfdxcacpolhyghbreda" \| cat -e
+  expected: faya$
+- id: e1337_wdmatch_2_T06
+  origin: subject_folder/examples.txt
+  input: ./wdmatch_2 "faya" "fgvvfdxcacpolhyghbred" \| cat -e
+  expected: $
+- id: e1337_wdmatch_2_T07
+  origin: subject_folder/examples.txt
+  input: ./wdmatch_2 "quarante deux" "qfqfsudf arzgsayns tsregfdgs sjytdekuoixq "
+    \| cat -e
+  expected: quarante deux$
+- id: folder_fixture_04
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- name: faya_match\n  args:\n  - faya\n  - fgvvfdxcacpolhyghbreda\n\
+    \  stdout: 'faya\n\n    '\n- name: faya_fail\n  args:\n  - faya\n  - fgvvfdxcacpolhyghbred\n"
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - gaya
+  - ggvvfdxcacpolhyghbreda
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  faya  '
+  - fgvvfdxcacpolhyghbreda
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - gaya
+  - ggvvfdxcacpolhyghbred
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  faya  '
+  - fgvvfdxcacpolhyghbred
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - ruarante deux
+  - 'rfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  quarante deux  '
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_wdmatch_2_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./wdmatch_2 "faya" "fgvvfdxcacpolhyghbreda" \| cat -e
+  perturbed_input: ./xdmatch_2 "faya" "fgvvfdxcacpolhyghbre
+- id: near_folder_02_boundary_neighbor
+  derived_from: e1337_wdmatch_2_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./wdmatch_2 "faya" "fgvvfdxcacpolhyghbred" \| cat -e
+  perturbed_input: ./xdmatch_2 "faya" "fgvvfdxcacpolhyghbre

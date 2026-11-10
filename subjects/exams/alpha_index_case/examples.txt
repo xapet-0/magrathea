@@ -1,0 +1,7 @@
+Examples:
+$> ./alpha_index_case "abcd" | cat -e
+aBcD$
+$> ./alpha_index_case | cat -e
+$
+$> ./alpha_index_case "a1b2c" | cat -e
+a1B2c$

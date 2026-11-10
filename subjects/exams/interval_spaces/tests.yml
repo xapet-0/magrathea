@@ -1,0 +1,197 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `interval_spaces`
+  input: "interval_spaces(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `interval_spaces`
+  input: interval_spaces("   word   ") and interval_spaces("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `interval_spaces`
+  input: interval_spaces("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `interval_spaces`
+  input: Execute interval_spaces with no arguments and with 3 arguments
+  expected: Print newline only
+fixed_tests:
+- args:
+  - abc
+  category: Functional
+  description: abc
+  expected: 'a   b   c
+
+    '
+  name: cur_interval_spaces_T01
+  stdout: 'a   b   c
+
+    '
+  tier: baseline
+- args:
+  - x
+  category: Edge Case
+  description: single
+  expected: 'x
+
+    '
+  name: cur_interval_spaces_T02
+  stdout: 'x
+
+    '
+  tier: baseline
+- args:
+  - ''
+  category: Edge Case
+  description: empty
+  expected: '
+
+    '
+  name: cur_interval_spaces_T03
+  stdout: '
+
+    '
+  tier: baseline
+- args: []
+  category: Functional
+  description: no_args
+  expected: '
+
+    '
+  name: cur_interval_spaces_T04
+  stdout: '
+
+    '
+  tier: baseline
+- args:
+  - dubO a POIL
+  - ok
+  expected: '
+
+    '
+  name: subj_ex_02
+  stdout: '
+
+    '
+  tier: subject_example
+- name: test_06_arg_auto
+  args:
+  - ''
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '42'
+  - '1337'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - pad
+  - test
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '!@#$'
+  - '%^&*'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_10_arg_auto
+  args:
+  - abc
+  - abcdef
+  tier: baseline
+  stdout: '
+
+    '
+folder_examples:
+- expected: a   b   c\n
+  id: cur_interval_spaces_T01
+  input: '[''abc'']'
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: x\n
+  id: cur_interval_spaces_T02
+  input: '[''x'']'
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: '`\n` (Empty argument outputs single newline)'
+  id: cur_interval_spaces_T03
+  input: '['''']'
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_lexical_shift
+  original_input: &id001
+  - abc
+  perturbed_input:
+  - bbc
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_01
+  id: near_subj_01_whitespace_envelope
+  original_input: *id001
+  perturbed_input:
+  - '  abc  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_02
+  id: near_subj_02_lexical_shift
+  original_input: &id002
+  - dubO a POIL
+  - ok
+  perturbed_input:
+  - eubO a POIL
+  - pk
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_02
+  id: near_subj_02_whitespace_envelope
+  original_input: *id002
+  perturbed_input:
+  - '  dubO a POIL  '
+  - ok
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: cur_interval_spaces_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: '[''abc'']'
+  perturbed_input: '[''bbc'']'
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+- derived_from: cur_interval_spaces_T02
+  id: near_folder_02_boundary_neighbor
+  original_input: '[''x'']'
+  perturbed_input: '[''y'']'
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: *id001
+  cat_e: true
+  command: ./interval_spaces "abc" | cat -e
+  expected: 'a   b   c
+
+    '
+  id: subj_ex_01
+  origin: subject.en.txt
+- args: *id002
+  cat_e: true
+  command: ./interval_spaces "dubO a POIL" "ok" | cat -e
+  expected: '
+
+    ==========================================================================================
+
+    '
+  id: subj_ex_02
+  origin: subject.en.txt

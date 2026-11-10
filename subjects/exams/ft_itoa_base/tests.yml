@@ -1,0 +1,154 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_itoa_base_T01
+  description: hex_uppercase
+  call: printf("%s\n", ft_itoa_base(255, 16))
+  stdout: 'FF
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_itoa_base_T02
+  description: negative_decimal
+  call: printf("%s\n", ft_itoa_base(-42, 10))
+  stdout: '-42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_itoa_base_T03
+  description: binary
+  call: printf("%s\n", ft_itoa_base(5, 2))
+  stdout: '101
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_itoa_base_T04
+  description: zero
+  call: printf("%s\n", ft_itoa_base(0, 10))
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_itoa_base_T05
+  description: int_max
+  call: printf("%s\n", ft_itoa_base(2147483647, 10))
+  stdout: '2147483647
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_itoa_base_T06
+  description: int_min
+  call: printf("%s\n", ft_itoa_base(-2147483648, 10))
+  stdout: '-2147483648
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_itoa_base_T07
+  description: int_min_base2
+  call: printf("%s\n", ft_itoa_base(-2147483648, 2))
+  stdout: '10000000000000000000000000000000
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_08_neg_hex_ignored_sign
+  call: printf("%s\n", ft_itoa_base(-255, 16))
+  tier: edge
+  stdout: 'FF
+
+    '
+- name: test_09_base_8
+  call: printf("%s\n", ft_itoa_base(64, 8))
+  tier: baseline
+  stdout: '100
+
+    '
+- name: test_10_base_4_and_16
+  call: printf("%s|%s\n", ft_itoa_base(15, 4), ft_itoa_base(42, 16))
+  tier: stress
+  stdout: '33|2A
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_itoa_base
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_itoa_base_T09
+  origin: subject_folder/5-2-ft_itoa_base_MAIN.c
+  input: Compiled and run with 5-2-ft_itoa_base_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: can_ft_itoa_base_T10
+  origin: subject_folder/5-2-ft_itoa_base02_MAIN.c
+  input: Compiled and run with 5-2-ft_itoa_base02_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_03
+  origin: subject_folder/5-2-ft_itoa_base02_MAIN.c
+  input: 5-2-ft_itoa_base02_MAIN.c
+  expected: '#include <stdio.h>
+
+    #include <stdlib.h>
+
+
+    /*
+
+    ** Usage: a.out 23435453 16
+
+    **        a.out 23435453 2
+
+    **        a.out 23435453 10
+
+    **        a.out 23435453 8
+
+    */
+
+
+    int'
+- id: folder_fixture_04
+  origin: subject_folder/5-2-ft_itoa_base_MAIN.c
+  input: 5-2-ft_itoa_base_MAIN.c
+  expected: '#include <stdio.h>
+
+    #include <stdlib.h>
+
+
+    /*
+
+    ** Usage: a.out 23435453 16
+
+    **        a.out 23435453 2
+
+    **        a.out 23435453 10
+
+    **        a.out 23435453 8
+
+    */
+
+
+    int'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_itoa_base
+  perturbed_input:
+  - ft_itoa_base_near_arg_1
+  - ft_itoa_base_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_itoa_base_T09
+  strategy: Neighbouring perturbation of folder example (subject_folder/5-2-ft_itoa_base_MAIN.c)
+  original_input: Compiled and run with 5-2-ft_itoa_base_MAIN.c
+  perturbed_input: Dompiled and run with 5-2-ft_itoa_base_M
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_ft_itoa_base_T10
+  strategy: Neighbouring perturbation of folder example (subject_folder/5-2-ft_itoa_base02_MAIN.c)
+  original_input: Compiled and run with 5-2-ft_itoa_base02_MAIN.c
+  perturbed_input: Dompiled and run with 5-2-ft_itoa_base02

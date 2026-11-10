@@ -1,0 +1,1698 @@
+#!/usr/bin/env python3
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    sh_norminette.py                                   :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: 1337/42 Sh-Norm Engine <norm@1337.ma>      +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2026/10/14 12:00:00 by Sh-Norm           #+#    #+#              #
+#    Updated: 2026/10/14 12:05:00 by Sh-Norm          ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+"""
+sh_norminette — The Official 42/1337 Shell Norm Linter (Sh-Norm v4.2)
+
+Built upon the 5 Authoritative International Shell & Unix Standards:
+  1. IEEE Std 1003.1-2024 (POSIX.1-2024 Chapter 2: Shell Command Language)
+  2. IEEE Std 1003.1-2024 (POSIX.1-2024 Chapter 12: Utility Syntax Guidelines)
+  3. Dr. David A. Wheeler — Filenames and Pathnames in Shell
+  4. Google Shell Style Guide (SRE Specification Rules 1-1 to 10-3)
+  5. ShellCheck Static Analysis Rulebook (SC1000 - SC2315) & 42 Norm v4.1
+
+Usage:
+  python3 sh_norminette.py [options] <file_or_dir> ...
+  python3 sh_norminette.py --explain <ERROR_CODE>
+  python3 sh_norminette.py --list-rules
+  python3 sh_norminette.py --generate-header <file.sh>
+"""
+
+import argparse
+from dataclasses import dataclass
+import pathlib
+import re
+import sys
+from typing import Dict, List, Optional, Tuple
+
+
+# ============================================================================ #
+# 1. RULE REGISTRY & PEDAGOGICAL DOCUMENTATION (EN + AR/DARIJA)
+# ============================================================================ #
+
+
+@dataclass(frozen=True)
+class RuleSpec:
+  code: str
+  chapter: str
+  standard_ref: str
+  summary: str
+  explanation: str
+  bad_example: str
+  good_example: str
+
+
+RULES_DB: Dict[str, RuleSpec] = {
+    # Chapter I: Interpreter, Shebang & Layout
+    "MISSING_SHEBANG": RuleSpec(
+        code="MISSING_SHEBANG",
+        chapter="SH-I.1",
+        standard_ref="POSIX.1-2024 Sec 2.1 / ShellCheck SC2148, SC1128",
+        summary=(
+            "First line must be #!/bin/sh (or #!/bin/bash) at line 1, col 1"
+        ),
+        explanation="The first line of the script (line 1, column 1 with no leading whitespace) must be #!/bin/sh (or #!/bin/bash) so the operating system kernel identifies the standard command interpreter.",
+        bad_example="echo 'hello'",
+        good_example="#!/bin/sh\nprintf 'hello\\n'",
+    ),
+    "SHEBANG_FORMAT": RuleSpec(
+        code="SHEBANG_FORMAT",
+        chapter="SH-I.1",
+        standard_ref="ShellCheck SC1114, SC1115, SC2096",
+        summary=(
+            "Invalid shebang format (no leading spaces, max 1 option allowed)"
+        ),
+        explanation="No whitespace is permitted before or between '#' and '!', and at most one interpreter option is allowed on the shebang line.",
+        bad_example="  #! /bin/sh -e -u",
+        good_example="#!/bin/sh",
+    ),
+    "MISSING_STRICT_MODE": RuleSpec(
+        code="MISSING_STRICT_MODE",
+        chapter="SH-I.2",
+        standard_ref="Wheeler Standard / Google Shell Guide 10-1",
+        summary=(
+            "Multi-line script missing defensive 'set -eu' or safe IFS setup"
+        ),
+        explanation="In multi-line scripts, enable 'set -eu' and restrict IFS to safe whitespace to protect against silent unbound variables or unchecked errors.",
+        bad_example="#!/bin/sh\ncp -- \"$1\" \"$2\"",
+        good_example=(
+            "#!/bin/sh\nset -eu\nIFS=\"$(printf '\\n\\t')\"\ncp -- \"$1\" \"$2\""
+        ),
+    ),
+    "FORBIDDEN_SUID": RuleSpec(
+        code="FORBIDDEN_SUID",
+        chapter="SH-I.4",
+        standard_ref="Google Shell Style Guide Rule 2-3",
+        summary="Setting SUID/SGID permissions on shell scripts is forbidden",
+        explanation="SUID/SGID permissions (e.g., chmod u+s or 4755) are strictly prohibited on shell scripts due to inherent TOCTOU race condition vulnerabilities.",
+        bad_example="chmod u+s script.sh",
+        good_example="chmod 755 script.sh",
+    ),
+    # Chapter II: Naming Conventions
+    "FILENAME_CASE": RuleSpec(
+        code="FILENAME_CASE",
+        chapter="SH-II.3",
+        standard_ref="POSIX Ch. 12.2 Guideline 2 / Google Rule 4-3",
+        summary="Script filename must use lower_snake_case",
+        explanation="Shell script filenames must use lowercase letters, digits, and underscores only, and end with the .sh extension.",
+        bad_example="MyScript-Test.sh",
+        good_example="my_script_test.sh",
+    ),
+    "EXPORT_CONST_CASE": RuleSpec(
+        code="EXPORT_CONST_CASE",
+        chapter="SH-II.1",
+        standard_ref="Google Shell Style Guide Rule 4-1 & 4-2",
+        summary=(
+            "Exported and readonly constants must use UPPER_SNAKE_CASE"
+        ),
+        explanation="All exported environment variables (export) and constants (readonly) must use UPPER_SNAKE_CASE.",
+        bad_example="readonly max_size=42\nexport ft_user='marvin'",
+        good_example="readonly MAX_SIZE=42\nexport FT_USER='marvin'",
+    ),
+    "LOCAL_VAR_CASE": RuleSpec(
+        code="LOCAL_VAR_CASE",
+        chapter="SH-II.2",
+        standard_ref="Google Shell Style Guide Rule 4-5",
+        summary=(
+            "Local variable inside function must use lower_snake_case"
+        ),
+        explanation="Local variables inside functions and loops must use lower_snake_case to distinguish them from environment variables.",
+        bad_example="my_func() {\n    TOTAL_COUNT=0\n}",
+        good_example="my_func() {\n    total_count=0\n}",
+    ),
+    "RESERVED_VAR_MISUSE": RuleSpec(
+        code="RESERVED_VAR_MISUSE",
+        chapter="SH-II.1",
+        standard_ref="POSIX.1-2024 Sec 2.5.3 / ShellCheck SC2123",
+        summary=(
+            "Overwriting reserved POSIX variable (PATH, HOME, USER, PWD, SHELL)"
+            " as ordinary variable"
+        ),
+        explanation="Never overwrite standard POSIX reserved system variables (PATH, HOME, USER, PWD, SHELL) as ordinary variables, which corrupts the execution environment.",
+        bad_example="PATH='/tmp/my_file.txt'\ncat -- \"$PATH\"",
+        good_example="file_path='/tmp/my_file.txt'\ncat -- \"$file_path\"",
+    ),
+    "FUNC_NAME_CASE": RuleSpec(
+        code="FUNC_NAME_CASE",
+        chapter="SH-II.3",
+        standard_ref="POSIX Ch. 12.2 / Google Shell Style Guide Rule 4-6",
+        summary="Function name must be lower_snake_case",
+        explanation="Function names must be written in lower_snake_case without uppercase characters or dashes.",
+        bad_example="CountLines() {\n    return 0\n}",
+        good_example="count_lines() {\n    return 0\n}",
+    ),
+    # Chapter III: Formatting & 42 Limits
+    "LINE_TOO_LONG": RuleSpec(
+        code="LINE_TOO_LONG",
+        chapter="SH-III.1",
+        standard_ref="42 Norm v4.1 / Google Shell Style Guide Advise 6-1",
+        summary="Line exceeds maximum width of 80 columns",
+        explanation="Lines must not exceed 80 characters. Use '\\' to wrap long pipelines or store long paths in variables.",
+        bad_example="printf '%s\\n' \"$FT_LINE\" | grep -v '^#' | awk 'NR % 2 == 0' | cut -d ':' -f 1 | rev | sort -r",
+        good_example=(
+            "printf '%s\\n' \"$FT_LINE\" \\\n    | grep -v '^#' \\\n    | cut"
+            " -d ':' -f 1"
+        ),
+    ),
+    "TRAILING_WHITESPACE": RuleSpec(
+        code="TRAILING_WHITESPACE",
+        chapter="SH-III.1",
+        standard_ref="42 Norm v4.1 / ShellCheck SC1101",
+        summary="Trailing whitespace at end of line",
+        explanation=(
+            "Trailing whitespace at the end of lines is forbidden. Trailing spaces"
+            " after a backslash ('\\') silently break shell line continuation"
+            " (ShellCheck SC1101), and trailing whitespace clutters git diffs."
+        ),
+        bad_example="printf 'hello\\n'   ",
+        good_example="printf 'hello\\n'",
+    ),
+    "BAD_INDENTATION": RuleSpec(
+        code="BAD_INDENTATION",
+        chapter="SH-III.2",
+        standard_ref="Google Shell Style Guide Rule 6-1",
+        summary=(
+            "Indentation must use multiples of 4 spaces (no mixed tabs/spaces)"
+        ),
+        explanation="Indentation must strictly consist of multiples of 4 spaces. Mixing tabs and spaces is strictly prohibited.",
+        bad_example="if [ -f \"$1\" ]; then\n  printf 'ok\\n'\nfi",
+        good_example="if [ -f \"$1\" ]; then\n    printf 'ok\\n'\nfi",
+    ),
+    "ASSIGN_SPACE": RuleSpec(
+        code="ASSIGN_SPACE",
+        chapter="SH-III.2",
+        standard_ref="POSIX.1-2024 Sec 2.9.1 / ShellCheck SC1068, SC2290",
+        summary="Spaces around '=' in variable assignment are forbidden",
+        explanation="In shell syntax, spaces around '=' (such as x = 5) cause the shell to interpret 'x' as a command name rather than performing assignment.",
+        bad_example="count = 42",
+        good_example="count=42",
+    ),
+    "BRACKET_SPACE": RuleSpec(
+        code="BRACKET_SPACE",
+        chapter="SH-III.2",
+        standard_ref="POSIX test utility / ShellCheck SC1035, SC1069, SC1020",
+        summary="Missing mandatory space inside '[' or ']'",
+        explanation="The '[' utility is a command in POSIX (synonymous with test); spaces are mandatory immediately after '[' and before ']'.",
+        bad_example="if [\"$a\" = \"$b\"]; then",
+        good_example="if [ \"$a\" = \"$b\" ]; then",
+    ),
+    "USELESS_SEMICOLON": RuleSpec(
+        code="USELESS_SEMICOLON",
+        chapter="SH-III.3",
+        standard_ref="Google Shell Style Guide Rule 6-2",
+        summary="Unnecessary semicolon ';' at end of line",
+        explanation="Semicolons at the end of lines are redundant in shell; use semicolons only before 'then' or 'do' on the same line.",
+        bad_example="name='marvin';\nprintf '%s\\n' \"$name\";",
+        good_example="name='marvin'\nprintf '%s\\n' \"$name\"",
+    ),
+    "FUNC_TOO_LONG": RuleSpec(
+        code="FUNC_TOO_LONG",
+        chapter="SH-III.4",
+        standard_ref="42 Norm v4.1 Section IV",
+        summary="Function body exceeds 25 lines maximum limit",
+        explanation="Functions must not exceed 25 lines. Decompose large functions into smaller modular helpers performing a single responsibility.",
+        bad_example="big_func() {\n    # 30 lines of code...\n}",
+        good_example="helper_func() {\n    # 10 lines\n}\nbig_func() {\n    helper_func\n}",
+    ),
+    "TOO_MANY_FUNCS": RuleSpec(
+        code="TOO_MANY_FUNCS",
+        chapter="SH-III.4",
+        standard_ref="42 Norm v4.1 Section IV",
+        summary="File contains more than 5 helper functions (+ main)",
+        explanation=(
+            "A single shell script must contain at most 5 helper functions in"
+            " addition to the main entry point (matching 42 Norm limits). Refactor"
+            " excess utilities into a modular sourced library file."
+        ),
+        bad_example="# 7 functions in one file",
+        good_example="# Split helper functions into a sourced library file",
+    ),
+    # Chapter IV: Quoting & Word Expansion
+    "UNQUOTED_VAR": RuleSpec(
+        code="UNQUOTED_VAR",
+        chapter="SH-IV.1",
+        standard_ref="POSIX.1-2024 Sec 2.6.5 / Wheeler / ShellCheck SC2086",
+        summary=(
+            "Unquoted variable expansion undergoes field splitting and globbing"
+        ),
+        explanation="Unquoted variable expansions undergo word splitting and pathname expansion (globbing). Always double-quote variables as \"$var\"",
+        bad_example="cp -- $src_file $dst_file",
+        good_example="cp -- \"$src_file\" \"$dst_file\"",
+    ),
+    "UNQUOTED_CMD_SUB": RuleSpec(
+        code="UNQUOTED_CMD_SUB",
+        chapter="SH-IV.1",
+        standard_ref="POSIX.1-2024 Sec 2.6.3 / ShellCheck SC2046",
+        summary="Unquoted command substitution $(...) undergoes word splitting",
+        explanation="Command substitutions must be enclosed in double quotes \"$(cmd)\" to prevent field splitting on whitespace.",
+        bad_example="rm -- $(find . -name '*.tmp')",
+        good_example="find . -name '*.tmp' -exec rm -- {} +",
+    ),
+    "UNBRACED_CONCAT": RuleSpec(
+        code="UNBRACED_CONCAT",
+        chapter="SH-IV.2",
+        standard_ref="Google Shell Style Guide Rule 6-12 / ShellCheck SC2250",
+        summary=(
+            "Use braces \"${var}\" when concatenating variables with strings"
+        ),
+        explanation="When concatenating variable expansions with adjacent text or underscores, enclose the variable in braces: \"${prefix}_file\"",
+        bad_example="file_name=\"$prefix_report.txt\"",
+        good_example="file_name=\"${prefix}_report.txt\"",
+    ),
+    "POSITIONAL_NO_BRACES": RuleSpec(
+        code="POSITIONAL_NO_BRACES",
+        chapter="SH-IV.2",
+        standard_ref="POSIX.1-2024 Sec 2.5.1 / ShellCheck SC1037",
+        summary=(
+            "Positional parameters >= 10 must use braces (e.g. \"${10}\")"
+        ),
+        explanation="Positional parameters greater than or equal to 10 must use braces, e.g., \"${10}\", otherwise \"$10\" expands to \"$1\" followed by literal '0'.",
+        bad_example="printf '%s\\n' \"$10\"",
+        good_example="printf '%s\\n' \"${10}\"",
+    ),
+    "UNQUOTED_AT_STAR": RuleSpec(
+        code="UNQUOTED_AT_STAR",
+        chapter="SH-IV.4",
+        standard_ref="POSIX.1-2024 Sec 2.5.2 / Google Rule 6-11 / SC2048",
+        summary="$@ and $* must always be double-quoted (prefer \"$@\")",
+        explanation="Never leave $@ or $* unquoted. Always use \"$@\" to preserve individual arguments with spaces intact.",
+        bad_example="for arg in $@; do",
+        good_example="for arg in \"$@\"; do",
+    ),
+    # Chapter V: Pathnames & Glob Security
+    "BARE_GLOB_DANGER": RuleSpec(
+        code="BARE_GLOB_DANGER",
+        chapter="SH-V.1",
+        standard_ref="David A. Wheeler / Google Rule 7-6 / ShellCheck SC2035",
+        summary=(
+            "Never start a filename glob with bare '*' or '?'; prefix with './'"
+        ),
+        explanation="Leading wildcard patterns (like rm * or *.c) can interpret filenames starting with '-' as command flags. Always prefix paths with './*'.",
+        bad_example="for f in *.sh; do\n    chmod 755 \"$f\"\ndone",
+        good_example=(
+            "for f in ./*.sh; do\n    [ -e \"$f\" ] || continue\n    chmod 755"
+            " -- \"$f\"\ndone"
+        ),
+    ),
+    "MISSING_GLOB_GUARD": RuleSpec(
+        code="MISSING_GLOB_GUARD",
+        chapter="SH-V.2",
+        standard_ref="David A. Wheeler Safe Glob Template",
+        summary=(
+            "for-loop over './*' glob must guard against empty directory with"
+            " '[ -e \"$var\" ] || continue'"
+        ),
+        explanation="In POSIX shell, if a glob pattern matches no files, it expands to the literal pattern './*'. Always guard loops with [ -e \"$f\" ] || continue.",
+        bad_example="for f in ./*; do\n    cat -- \"$f\"\ndone",
+        good_example=(
+            "for f in ./*; do\n    [ -e \"$f\" ] || continue\n    cat --"
+            " \"$f\"\ndone"
+        ),
+    ),
+    "FRAGILE_LS_FIND_LOOP": RuleSpec(
+        code="FRAGILE_LS_FIND_LOOP",
+        chapter="SH-V.4",
+        standard_ref="David A. Wheeler / ShellCheck SC2044, SC2045",
+        summary="Never iterate over $(ls) or $(find) output in a for-loop",
+        explanation="Never parse 'for f in $(ls)'. Filenames containing spaces, tabs, or newlines will be broken. Use 'for f in ./*' or 'find ... -exec {} +'.",
+        bad_example="for f in $(ls); do printf '%s\\n' \"$f\"; done",
+        good_example=(
+            "for f in ./*; do\n    [ -e \"$f\" ] || continue\n    printf"
+            " '%s\\n' \"$f\"\ndone"
+        ),
+    ),
+    "LS_PIPE_ABUSE": RuleSpec(
+        code="LS_PIPE_ABUSE",
+        chapter="SH-V.4",
+        standard_ref="ShellCheck SC2010, SC2012",
+        summary="Do not pipe 'ls' into grep or wc (except specific exam exercise)",
+        explanation="The 'ls' utility is designed for human terminal display, not programmatic parsing. Use 'find' or globs instead of 'ls | grep'.",
+        bad_example="ls | grep '.sh'",
+        good_example="find . -maxdepth 1 -name '*.sh'",
+    ),
+    "RELATIVE_PATH_ENV": RuleSpec(
+        code="RELATIVE_PATH_ENV",
+        chapter="SH-V.5",
+        standard_ref="Google Shell Style Guide Rule 7-1",
+        summary=(
+            "Relative paths (./ or ../) are forbidden in PATH /"
+            " LD_LIBRARY_PATH"
+        ),
+        explanation="Never include relative paths (like './bin' or '.') in PATH, as directory changes (cd) alter path resolution and create privilege escalation vulnerabilities.",
+        bad_example="export PATH=\"./bin:$PATH\"",
+        good_example="abs_bin=\"$(pwd -P)/bin\"\nexport PATH=\"${abs_bin}:$PATH\"",
+    ),
+    # Chapter VI: Pipelines, Redirections & Subshells
+    "PIPE_CONTINUATION_STYLE": RuleSpec(
+        code="PIPE_CONTINUATION_STYLE",
+        chapter="SH-VI.1",
+        standard_ref="Google Shell Style Guide Rule 6-4 / ShellCheck SC1133",
+        summary=(
+            "Multiline pipelines must break with '\\' at line end and '|' at"
+            " start of next indented line"
+        ),
+        explanation="For multi-line pipelines, place '\\' at the end of the line and indent the continuation line starting with '| cmd'.",
+        bad_example="grep -v '^#' /etc/passwd |\n    cut -d ':' -f 1",
+        good_example="grep -v '^#' /etc/passwd \\\n    | cut -d ':' -f 1",
+    ),
+    "PIPE_WHILE_SUBSHELL": RuleSpec(
+        code="PIPE_WHILE_SUBSHELL",
+        chapter="SH-VI.2",
+        standard_ref="POSIX.1-2024 Sec 2.12 / Google Rule 7-3 / SC2030",
+        summary=(
+            "Piping into 'while read' runs the loop in a subshell (variable"
+            " changes will be lost)"
+        ),
+        explanation="In POSIX shell, pipelines run commands in subshells. Variables modified inside 'cmd | while read' lose their values once the loop exits. Use redirection '< file' instead.",
+        bad_example="cat file | while IFS= read -r l; do c=$((c+1)); done",
+        good_example="while IFS= read -r l; do\n    c=$((c + 1))\ndone < file",
+    ),
+    "WRONG_REDIRECT_ORDER": RuleSpec(
+        code="WRONG_REDIRECT_ORDER",
+        chapter="SH-VI.3",
+        standard_ref="POSIX.1-2024 Sec 2.7 / ShellCheck SC2069",
+        summary="To redirect both stdout and stderr, use '> file 2>&1' (not '2>&1 > file')",
+        explanation="Redirection order matters. Write '> file 2>&1' (redirect stdout to file first, then duplicate stderr to stdout). Reversing it redirects stderr to the old stdout location.",
+        bad_example="my_cmd 2>&1 > out.log",
+        good_example="my_cmd > out.log 2>&1",
+    ),
+    "SAME_FILE_RW_PIPE": RuleSpec(
+        code="SAME_FILE_RW_PIPE",
+        chapter="SH-VI.3",
+        standard_ref="POSIX.1-2024 Sec 2.7 / ShellCheck SC2094",
+        summary="Reading and writing the same file in one pipeline truncates it",
+        explanation="Writing 'sort data.txt > data.txt' truncates data.txt before sort can read it, destroying the file. Write to a temporary file first.",
+        bad_example="sort data.txt > data.txt",
+        good_example="sort data.txt > data.txt.tmp && mv -- data.txt.tmp data.txt",
+    ),
+    # Chapter VII: Conditionals, Tests & Loops
+    "MISPLACED_THEN_DO": RuleSpec(
+        code="MISPLACED_THEN_DO",
+        chapter="SH-VII.1",
+        standard_ref="Google Shell Style Guide Rule 6-5",
+        summary="Put '; then' and '; do' on the same line as if/elif/while/for",
+        explanation="According to Google Shell Style and 42 Sh-Norm, '; then' and '; do' belong on the same line as 'if', 'while', and 'for', while 'else', 'fi', and 'done' must occupy their own lines.",
+        bad_example="if [ \"$a\" = \"$b\" ]\nthen\n    printf 'ok\\n'\nfi",
+        good_example="if [ \"$a\" = \"$b\" ]; then\n    printf 'ok\\n'\nfi",
+    ),
+    "INDIRECT_EXIT_CHECK": RuleSpec(
+        code="INDIRECT_EXIT_CHECK",
+        chapter="SH-VII.2",
+        standard_ref="ShellCheck SC2181 / Google Rule 8-1",
+        summary="Check command exit status directly with 'if cmd; then' instead of '$?'",
+        explanation=(
+            "Checking '$?' on a separate line is fragile because any intermediate"
+            " statement or subshell overwrites the exit status (ShellCheck SC2181)."
+            " Test command success directly using 'if cmd; then' or 'cmd || exit 1'."
+        ),
+        bad_example="grep -q '42' file.txt\nif [ $? -eq 0 ]; then",
+        good_example="if grep -q '42' file.txt; then",
+    ),
+    "NON_POSIX_TEST": RuleSpec(
+        code="NON_POSIX_TEST",
+        chapter="SH-VII.3",
+        standard_ref="POSIX test / ShellCheck SC2039, SC2166, SC3010",
+        summary=(
+            "Non-POSIX test construct ('[[ ]]', '==', or '-a'/'-o' inside '[ ]')"
+        ),
+        explanation="In a standard #!/bin/sh script, bashisms like '[[ ]]', '==', '-a', and '-o' inside '[ ]' are forbidden. Use '=' for string equality and '[ a ] && [ b ]' for logical conjunction.",
+        bad_example="if [ \"$a\" == \"1\" -a \"$b\" == \"2\" ]; then",
+        good_example="if [ \"$a\" = \"1\" ] && [ \"$b\" = \"2\" ]; then",
+    ),
+    "LEGACY_X_TEST": RuleSpec(
+        code="LEGACY_X_TEST",
+        chapter="SH-VII.3",
+        standard_ref="Google Shell Style Guide Rule 7-5 / ShellCheck SC2268",
+        summary="Avoid legacy x\"$var\" = x\"val\" trick; use explicit -z, -n, or = ",
+        explanation="The legacy workaround [ x\"$var\" = x\"\" ] is obsolete. Use modern POSIX standard tests [ -z \"$var\" ] or [ \"$var\" = \"val\" ].",
+        bad_example="if [ x\"$var\" = x\"42\" ]; then",
+        good_example="if [ \"$var\" = \"42\" ]; then",
+    ),
+    "CASE_MISSING_DEFAULT": RuleSpec(
+        code="CASE_MISSING_DEFAULT",
+        chapter="SH-VII.4",
+        standard_ref="ShellCheck SC2249 / Google Rule 6-6",
+        summary="case statement is missing a default '*) ' branch",
+        explanation=(
+            "Every case statement must include a default wildcard pattern ('*)')"
+            " to handle unexpected inputs and prevent unintended fallthrough"
+            " without an explicit failure or fallback handler."
+        ),
+        bad_example="case \"$1\" in\n    start) run ;;\nesac",
+        good_example="case \"$1\" in\n    start) run ;;\n    *) exit 1 ;;\nesac",
+    ),
+    "UNSAFE_READ": RuleSpec(
+        code="UNSAFE_READ",
+        chapter="SH-VII.5",
+        standard_ref="POSIX.1-2024 Sec 2.6.5 / Wheeler / ShellCheck SC2162",
+        summary="Use 'read -r' (preferably 'IFS= read -r') so backslashes are not mangled",
+        explanation="Calling 'read' without '-r' strips backslashes and corrupts input. The standard POSIX pattern is 'IFS= read -r line'.",
+        bad_example="while read line; do",
+        good_example="while IFS= read -r line; do",
+    ),
+    # Chapter VIII: Functions & Scope
+    "NON_POSIX_FUNC_KW": RuleSpec(
+        code="NON_POSIX_FUNC_KW",
+        chapter="SH-VIII.1",
+        standard_ref="POSIX.1-2024 Sec 2.9.5 / ShellCheck SC2112",
+        summary="Do not use non-standard 'function' keyword in POSIX sh; use 'name() {'",
+        explanation="The 'function' keyword is non-standard in POSIX shell. Declare functions as 'my_func() {' without the function keyword or leading spaces.",
+        bad_example="function my_func() {",
+        good_example="my_func() {",
+    ),
+    "MASKED_RETURN_VAL": RuleSpec(
+        code="MASKED_RETURN_VAL",
+        chapter="SH-VIII.2",
+        standard_ref="Google Shell Style Guide Rule 4-10 / ShellCheck SC2155",
+        summary=(
+            "Declare and assign separately: 'export/readonly/local var=$(cmd)'"
+            " masks exit status"
+        ),
+        explanation="Combining export, readonly, or local with command substitution $(cmd) masks the command exit code with the success status of the declaration. Declare first, assign later.",
+        bad_example="export RESULT=\"$(failing_cmd)\"",
+        good_example="RESULT=\"$(failing_cmd)\"\nexport RESULT",
+    ),
+    # Chapter IX: Forbidden Constructs (-42 Instant Errors)
+    "PRINTF_VAR_FORMAT": RuleSpec(
+        code="PRINTF_VAR_FORMAT",
+        chapter="SH-IX.1",
+        standard_ref="ShellCheck SC2059 / CERT Secure Coding",
+        summary=(
+            "Never put variables in printf format string; use printf '%s\\n'"
+            " \"$var\""
+        ),
+        explanation="Security risk: passing user input as the printf format string (printf \"$var\") can trigger format string injection if the variable contains '%'. Use printf '%s\\n' \"$var\"",
+        bad_example="printf \"$FT_LINE\\n\"",
+        good_example="printf '%s\\n' \"$FT_LINE\"",
+    ),
+    "NON_PORTABLE_ECHO": RuleSpec(
+        code="NON_PORTABLE_ECHO",
+        chapter="SH-IX.2",
+        standard_ref="POSIX echo / ShellCheck SC2028, SC3037",
+        summary=(
+            "Do not use non-portable 'echo -n' or 'echo -e'; use 'printf' instead"
+        ),
+        explanation="According to POSIX.1-2024, 'echo -n' and 'echo -e' are non-portable across macOS, BSD, and Linux. Always use 'printf \"%s\" \"$var\"'",
+        bad_example="echo -n \"$FT_LINE\"",
+        good_example="printf '%s' \"$FT_LINE\"",
+    ),
+    "LEGACY_BACKTICKS": RuleSpec(
+        code="LEGACY_BACKTICKS",
+        chapter="SH-IX.3",
+        standard_ref="Google Shell Style Guide Rule 7-2 / ShellCheck SC2006",
+        summary="Legacy backticks `...` are forbidden; use $(...) instead",
+        explanation="Backtick command substitution (`...`) is obsolete, does not support clean nesting, and impairs readability. Always use \"$(...)\"",
+        bad_example="now=`date +%Y`",
+        good_example="now=\"$(date +%Y)\"",
+    ),
+    "LEGACY_ARITHMETIC": RuleSpec(
+        code="LEGACY_ARITHMETIC",
+        chapter="SH-IX.4",
+        standard_ref="Google Shell Style Guide Rule 7-8 / ShellCheck SC2003, SC2219",
+        summary="Legacy 'expr', 'let', or '$[...]' is forbidden; use '$((...))'",
+        explanation="The external 'expr' command is deprecated and slow. Use POSIX arithmetic expansion '$((a + b))'.",
+        bad_example="sum=$(expr $a + $b)",
+        good_example="sum=$((a + b))",
+    ),
+    "USELESS_CAT": RuleSpec(
+        code="USELESS_CAT",
+        chapter="SH-IX.5",
+        standard_ref="ShellCheck SC2002 (UUOC)",
+        summary="Useless use of cat (UUOC): pass file directly or use '< file'",
+        explanation="Do not spawn a 'cat' process merely to feed a file into commands that accept filenames directly (grep, awk, cut) or use input redirection '< file'.",
+        bad_example="cat /etc/passwd | grep -v '^#'",
+        good_example="grep -v '^#' /etc/passwd",
+    ),
+    "DEPRECATED_GREP": RuleSpec(
+        code="DEPRECATED_GREP",
+        chapter="SH-IX.6",
+        standard_ref="POSIX.1-2024 / ShellCheck SC2196, SC2197",
+        summary="egrep and fgrep are deprecated; use 'grep -E' and 'grep -F'",
+        explanation="The legacy commands 'egrep' and 'fgrep' are officially deprecated by POSIX. Use 'grep -E' and 'grep -F'.",
+        bad_example="egrep '^(root|daemon)' /etc/passwd",
+        good_example="grep -E '^(root|daemon)' /etc/passwd",
+    ),
+    "NON_STANDARD_WHICH": RuleSpec(
+        code="NON_STANDARD_WHICH",
+        chapter="SH-IX.7",
+        standard_ref="POSIX.1-2024 / ShellCheck SC2230",
+        summary="'which' is non-standard; use POSIX builtin 'command -v'",
+        explanation="The 'which' utility is non-standard and varies across Unix platforms. Use the POSIX built-in 'command -v'.",
+        bad_example="which git",
+        good_example="command -v git",
+    ),
+    "UNCHECKED_CD": RuleSpec(
+        code="UNCHECKED_CD",
+        chapter="SH-IX.8",
+        standard_ref="ShellCheck SC2164 / Google Advise 8-1",
+        summary="Use 'cd ... || exit' (or 'if cd ...') in case cd fails",
+        explanation=(
+            "Changing directory with 'cd' can fail if the destination does not exist"
+            " or lacks execute permissions. Always check with 'cd ... || exit 1'"
+            " to avoid executing subsequent commands in the wrong working directory."
+        ),
+        bad_example="cd \"$target_dir\"\nrm -rf ./*",
+        good_example="cd -P -- \"$target_dir\" || exit 1\nrm -rf ./*",
+    ),
+    "UNQUOTED_TR_RANGE": RuleSpec(
+        code="UNQUOTED_TR_RANGE",
+        chapter="SH-IX.9",
+        standard_ref="POSIX tr / ShellCheck SC2021, SC2060",
+        summary=(
+            "Do not use unquoted '[a-z]' in tr; use \"'a-z'\" or"
+            " \"'[:lower:]'\""
+        ),
+        explanation="Do not write unquoted character ranges like tr [a-z] [A-Z], as the shell expands them as glob patterns if matching files exist. Use tr 'a-z' 'A-Z' or tr '[:lower:]' '[:upper:]'.",
+        bad_example="tr [a-z] [A-Z]",
+        good_example="tr 'a-z' 'A-Z'",
+    ),
+}
+
+
+# ============================================================================ #
+# 2. DIAGNOSTIC MODEL & RECURSIVE POSIX QUOTING LEXER
+# ============================================================================ #
+
+
+@dataclass
+class NormError:
+  rule_code: str
+  line: int
+  col: int
+  message: str
+
+  def format_42(self, color: bool = True) -> str:
+    err_tag = "\033[1;31mError\033[0m" if color else "Error"
+    code_str = f"{self.rule_code:<24}"
+    loc_str = f"(line: {self.line:>3}, col: {self.col:>3}):"
+    return f"{err_tag}: {code_str} {loc_str}\t{self.message}"
+
+
+def strip_quotes_and_comments(line: str) -> Tuple[str, str]:
+  """
+    Replaces the interior of single-quoted and double-quoted strings with spaces
+    for structural syntax scanning, while also returning the line with only
+    comments removed.
+    """
+  out_structural = []
+  out_no_comment = []
+  i = 0
+  n = len(line)
+  in_single = False
+  in_double = False
+
+  while i < n:
+    ch = line[i]
+    if ch == "\\" and not in_single and i + 1 < n:
+      out_structural.append("  ")
+      out_no_comment.append(line[i : i + 2])
+      i += 2
+      continue
+    if ch == "'" and not in_double:
+      in_single = not in_single
+      out_structural.append("'")
+      out_no_comment.append(ch)
+      i += 1
+      continue
+    if ch == '"' and not in_single:
+      in_double = not in_double
+      out_structural.append('"')
+      out_no_comment.append(ch)
+      i += 1
+      continue
+    if (
+        ch == "#"
+        and not in_single
+        and not in_double
+        and (i == 0 or line[i - 1] in " \t;|&()")
+    ):
+      break
+    if in_single or in_double:
+      out_structural.append(" ")
+      out_no_comment.append(ch)
+    else:
+      out_structural.append(ch)
+      out_no_comment.append(ch)
+    i += 1
+
+  return "".join(out_structural), "".join(out_no_comment)
+
+
+def find_unquoted_expansions(line_no_comment: str) -> List[Tuple[int, str, str]]:
+  """
+    Implements POSIX.1-2024 Section 2.2.3 & 2.3 recursive quoting context stack:
+    Inside `"$( ... )"`, the `$(` starts a new nested command context with its
+    own independent double/single quoting state until the matching `)`.
+    Returns list of (1-based column, kind, token).
+    """
+  findings: List[Tuple[int, str, str]] = []
+  i = 0
+  n = len(line_no_comment)
+
+  # Stack of contexts: each item is a dict {"type": "ROOT"|"CMD_SUB"|"ARITH", "in_double": bool, "in_single": bool}
+  ctx_stack = [{"type": "ROOT", "in_double": False, "in_single": False}]
+
+  while i < n:
+    ctx = ctx_stack[-1]
+    ch = line_no_comment[i]
+
+    if ch == "\\" and not ctx["in_single"] and i + 1 < n:
+      i += 2
+      continue
+
+    if ch == "'" and not ctx["in_double"]:
+      ctx["in_single"] = not ctx["in_single"]
+      i += 1
+      continue
+
+    if ch == '"' and not ctx["in_single"]:
+      ctx["in_double"] = not ctx["in_double"]
+      i += 1
+      continue
+
+    if not ctx["in_single"]:
+      # Check positional >= 10 without braces (both quoted and unquoted)
+      pos_match = re.match(r"^\$([1-9][0-9]+)", line_no_comment[i:])
+      if pos_match:
+        findings.append((i + 1, "POSITIONAL_NO_BRACES", pos_match.group(0)))
+
+      # Arithmetic expansion $(( ... ))
+      if line_no_comment.startswith("$((", i):
+        ctx_stack.append(
+            {"type": "ARITH", "in_double": False, "in_single": False}
+        )
+        i += 3
+        continue
+
+      if (
+          ctx["type"] == "ARITH"
+          and not ctx["in_double"]
+          and line_no_comment.startswith("))", i)
+      ):
+        ctx_stack.pop()
+        i += 2
+        continue
+
+      # Command substitution $( ... )
+      if line_no_comment.startswith("$(", i) and not line_no_comment.startswith(
+          "$((", i
+      ):
+        if not ctx["in_double"] and ctx["type"] != "ARITH":
+          findings.append((i + 1, "UNQUOTED_CMD_SUB", "$(...)"))
+        # Push a fresh command context (POSIX 2.2.3: double quotes outside $(...) do not quote inside $(...))
+        ctx_stack.append(
+            {"type": "CMD_SUB", "in_double": False, "in_single": False}
+        )
+        i += 2
+        continue
+
+      if (
+          ctx["type"] == "CMD_SUB"
+          and not ctx["in_double"]
+          and ch == ")"
+      ):
+        ctx_stack.pop()
+        i += 1
+        continue
+
+      # If we are currently UNQUOTED and not inside $((...)):
+      if not ctx["in_double"] and ctx["type"] != "ARITH":
+        if line_no_comment.startswith("$@", i) or line_no_comment.startswith(
+            "$*", i
+        ):
+          findings.append((i + 1, "UNQUOTED_AT_STAR", line_no_comment[i : i + 2]))
+          i += 2
+          continue
+
+        var_match = re.match(
+            r"^(\$\{[A-Za-z_][A-Za-z0-9_]*[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*)",
+            line_no_comment[i:],
+        )
+        if var_match:
+          token = var_match.group(0)
+          findings.append((i + 1, "UNQUOTED_VAR", token))
+          i += len(token)
+          continue
+
+        spec_match = re.match(r"^\$[0-9]", line_no_comment[i:])
+        if spec_match:
+          findings.append((i + 1, "UNQUOTED_VAR", spec_match.group(0)))
+          i += 2
+          continue
+
+    i += 1
+
+  return findings
+
+
+# ============================================================================ #
+# 3. CORE SH-NORM v4.2 LINTER ENGINE
+# ============================================================================ #
+
+
+class ShNormLinter:
+
+  def __init__(self, oneliner_mode: bool = False):
+    self.oneliner_mode = oneliner_mode
+
+  def check_file(self, filepath: pathlib.Path) -> List[NormError]:
+    errors: List[NormError] = []
+
+    # 1. Check filename convention (SH-II.3)
+    fname = filepath.name
+    if fname != "MAC.sh" and not re.match(r"^[a-z0-9_]+(\.sh)?$", fname):
+      errors.append(
+          NormError(
+              "FILENAME_CASE",
+              1,
+              1,
+              f"Filename '{fname}' must be lower_snake_case [SH-II.3]",
+          )
+      )
+
+    try:
+      raw_text = filepath.read_text(encoding="utf-8")
+    except Exception as exc:
+      errors.append(
+          NormError("FILE_READ_ERROR", 1, 1, f"Cannot read file: {exc}")
+      )
+      return errors
+
+    lines = raw_text.splitlines()
+    if not lines:
+      errors.append(
+          NormError("MISSING_SHEBANG", 1, 1, "Empty file: missing #!/bin/sh")
+      )
+      return errors
+
+    # 2. Check Shebang (SH-I.1)
+    first_line = lines[0]
+    if not self.oneliner_mode:
+      if not first_line.startswith("#!"):
+        if first_line.lstrip().startswith("#!"):
+          errors.append(
+              NormError(
+                  "SHEBANG_FORMAT",
+                  1,
+                  1,
+                  "Leading whitespace before '#!' is forbidden [SH-I.1 /"
+                  " SC1114]",
+              )
+          )
+        else:
+          errors.append(
+              NormError(
+                  "MISSING_SHEBANG",
+                  1,
+                  1,
+                  "First line must be '#!/bin/sh' or '#!/bin/bash' [SH-I.1 /"
+                  " SC2148]",
+              )
+          )
+      else:
+        if not re.match(r"^#!/bin/(sh|bash)(\s+-[a-zA-Z]+)?$", first_line):
+          errors.append(
+              NormError(
+                  "SHEBANG_FORMAT",
+                  1,
+                  1,
+                  f"Invalid shebang '{first_line}'; use '#!/bin/sh' [SH-I.1 /"
+                  " SC2096]",
+              )
+          )
+
+    # Track multi-line state
+    in_heredoc = False
+    heredoc_delim = ""
+    heredoc_tab_strip = False
+    logical_commands_count = 0
+    prev_continued = False
+    has_set_eu = False
+    in_function = False
+    func_name = ""
+    func_start_line = 0
+    func_body_lines = 0
+    helper_func_count = 0
+
+    in_case = False
+    case_start_line = 0
+    case_has_default = False
+
+    pending_for_glob_guard = False
+    for_glob_var = ""
+
+    for idx, line in enumerate(lines, start=1):
+      # Track heredoc state (SH-IV / POSIX Heredocs)
+      if in_heredoc:
+        is_closing = (
+            (heredoc_tab_strip and line.lstrip("\t").rstrip("\r\n") == heredoc_delim)
+            or (line.strip() == heredoc_delim)
+        )
+        if is_closing:
+          in_heredoc = False
+          heredoc_delim = ""
+          heredoc_tab_strip = False
+        continue
+
+      # 3. Line length <= 80 columns (SH-III.1)
+      if len(line) > 80:
+        errors.append(
+            NormError(
+                "LINE_TOO_LONG",
+                idx,
+                81,
+                f"Line is {len(line)} chars (max 80 allowed) [SH-III.1]",
+            )
+        )
+
+      # 4. Trailing whitespace & space after backslash (SH-III.1 / SC1101)
+      if line.endswith(" ") or line.endswith("\t"):
+        if re.search(r"\\[ \t]+$", line):
+          errors.append(
+              NormError(
+                  "TRAILING_WHITESPACE",
+                  idx,
+                  len(line),
+                  "Trailing space after '\\' breaks line continuation [SH-III.1"
+                  " / SC1101]",
+              )
+          )
+        else:
+          errors.append(
+              NormError(
+                  "TRAILING_WHITESPACE",
+                  idx,
+                  len(line),
+                  "Trailing whitespace at end of line [SH-III.1]",
+              )
+          )
+
+      # Skip comments and empty lines
+      stripped_raw = line.strip()
+      if not stripped_raw or stripped_raw.startswith("#"):
+        prev_continued = False
+        continue
+
+      if not prev_continued:
+        logical_commands_count += 1
+      prev_continued = stripped_raw.endswith("\\")
+
+      # 5. Indentation check (SH-III.2)
+      leading_ws = line[: len(line) - len(line.lstrip())]
+      if "\t" in leading_ws:
+        errors.append(
+            NormError(
+                "BAD_INDENTATION",
+                idx,
+                1,
+                "Tabs are forbidden for indentation; use 4 spaces [SH-III.2 /"
+                " Google 6-1]",
+            )
+        )
+      elif len(leading_ws) % 4 != 0:
+        errors.append(
+            NormError(
+                "BAD_INDENTATION",
+                idx,
+                1,
+                f"Indentation of {len(leading_ws)} spaces is not a multiple of"
+                " 4 [SH-III.2]",
+            )
+        )
+
+      structural, no_comment = strip_quotes_and_comments(line)
+      struct_strip = structural.strip()
+      nocom_strip = no_comment.strip()
+
+      # Detect heredoc opener on non-heredoc line (e.g. cat << 'EOF' or cmd <<-EOF)
+      hd_match = re.search(
+          r"<<-?\s*(?:\"([^\"]+)\"|'([^']+)'|\\?([a-zA-Z_0-9]+))",
+          no_comment,
+      )
+      if hd_match:
+        in_heredoc = True
+        heredoc_delim = hd_match.group(1) or hd_match.group(2) or hd_match.group(3)
+        heredoc_tab_strip = "<<-" in no_comment
+
+      # Check strict mode presence
+      if re.search(r"\bset\s+-[a-zA-Z]*[eu]", struct_strip):
+        has_set_eu = True
+
+      # 6. Check pending glob guard inside `for f in ./*` (SH-V.2)
+      if pending_for_glob_guard:
+        if not (
+            re.search(r"\[\s+-[efL]\s+", nocom_strip)
+            and "continue" in nocom_strip
+        ):
+          errors.append(
+              NormError(
+                  "MISSING_GLOB_GUARD",
+                  idx,
+                  1,
+                  f"Loop over './*' must start with '[ -e \"${for_glob_var}\" ]"
+                  " || continue' [SH-V.2 / Wheeler]",
+              )
+          )
+        pending_for_glob_guard = False
+
+      # 7. Function tracking & limits (SH-III.4, SH-II.3, SH-VIII.1)
+      if re.match(r"^function\s+", struct_strip):
+        errors.append(
+            NormError(
+                "NON_POSIX_FUNC_KW",
+                idx,
+                1,
+                "Keyword 'function' is non-POSIX; use 'name() {' [SH-VIII.1 /"
+                " SC2112]",
+            )
+        )
+
+      func_decl = re.match(
+          r"^([A-Za-z_][A-Za-z0-9_]*)(\s*)\(\)\s*(\{?)", struct_strip
+      )
+      if func_decl:
+        fname_decl = func_decl.group(1)
+        space_before_paren = func_decl.group(2)
+        has_open_brace = func_decl.group(3)
+        if not re.match(r"^[a-z0-9_]+$", fname_decl):
+          errors.append(
+              NormError(
+                  "FUNC_NAME_CASE",
+                  idx,
+                  1,
+                  f"Function '{fname_decl}' must be lower_snake_case"
+                  " [SH-II.3 / Google 4-6]",
+              )
+          )
+        if space_before_paren:
+          errors.append(
+              NormError(
+                  "NON_POSIX_FUNC_KW",
+                  idx,
+                  len(fname_decl) + 1,
+                  "No space allowed between function name and '()' [Google"
+                  " 4-7]",
+              )
+          )
+        if not has_open_brace:
+          errors.append(
+              NormError(
+                  "NON_POSIX_FUNC_KW",
+                  idx,
+                  len(nocom_strip),
+                  "Opening '{' must be on the same line as 'name()' [Google"
+                  " 4-8]",
+              )
+          )
+        in_function = True
+        func_name = fname_decl
+        func_start_line = idx
+        func_body_lines = 0
+        if fname_decl != "main":
+          helper_func_count += 1
+          if helper_func_count > 5:
+            errors.append(
+                NormError(
+                    "TOO_MANY_FUNCS",
+                    idx,
+                    1,
+                    "More than 5 helper functions in a single file [SH-III.4 /"
+                    " 42 Norm]",
+                )
+            )
+        continue
+
+      if in_function:
+        if struct_strip == "}":
+          if func_body_lines > 25:
+            errors.append(
+                NormError(
+                    "FUNC_TOO_LONG",
+                    func_start_line,
+                    1,
+                    f"Function '{func_name}' has {func_body_lines} lines (max"
+                    " 25 allowed) [SH-III.4 / 42 Norm]",
+                )
+            )
+          in_function = False
+          func_name = ""
+          continue
+        else:
+          func_body_lines += 1
+
+      # 8. Check `case` default branch (SH-VII.4 / SC2249)
+      if re.match(r"^case\s+.*\s+in$", struct_strip):
+        in_case = True
+        case_start_line = idx
+        case_has_default = False
+      elif in_case:
+        if re.match(r"^\*\)", struct_strip):
+          case_has_default = True
+        elif struct_strip == "esac":
+          if not case_has_default:
+            errors.append(
+                NormError(
+                    "CASE_MISSING_DEFAULT",
+                    case_start_line,
+                    1,
+                    "case statement is missing default '*) ' branch [SH-VII.4 /"
+                    " SC2249]",
+                )
+            )
+          in_case = False
+
+      # 9. Check assignment spacing & naming (SH-III.2, SH-II.1, SH-II.2, SH-VIII.2)
+      bad_assign = re.match(
+          r"^(?:export\s+|readonly\s+|local\s+)?([A-Za-z_][A-Za-z0-9_]*)\s+=\s*(.*)$",
+          struct_strip,
+      )
+      if bad_assign and bad_assign.group(1) not in (
+          "if",
+          "while",
+          "until",
+          "test",
+          "echo",
+          "printf",
+          "awk",
+      ):
+        errors.append(
+            NormError(
+                "ASSIGN_SPACE",
+                idx,
+                line.find("="),
+                "Forbidden space around '=' in variable assignment [SH-III.2 /"
+                " SC1068]",
+            )
+        )
+
+      # Check masked return values: export/readonly/local var=$(...) (SC2155)
+      if re.match(
+          r"^(export|readonly|local)\s+[A-Za-z_][A-Za-z0-9_]*=.*\$\(",
+          nocom_strip,
+      ):
+        errors.append(
+            NormError(
+                "MASKED_RETURN_VAL",
+                idx,
+                1,
+                "Declare and assign separately to avoid masking '$?' exit"
+                " status [SH-VIII.2 / SC2155]",
+            )
+        )
+
+      # Check export/readonly casing (SH-II.1)
+      exp_match = re.match(
+          r"^(export|readonly)\s+([A-Za-z_][A-Za-z0-9_]*)", nocom_strip
+      )
+      if exp_match:
+        var_ident = exp_match.group(2)
+        if not re.match(r"^[A-Z][A-Z0-9_]*$", var_ident):
+          errors.append(
+              NormError(
+                  "EXPORT_CONST_CASE",
+                  idx,
+                  1,
+                  f"{exp_match.group(1)} variable '{var_ident}' must be"
+                  " UPPER_SNAKE_CASE [SH-II.1 / Google 4-1]",
+              )
+          )
+
+      # Check ordinary variable assignments
+      assign_match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", nocom_strip)
+      if assign_match:
+        lhs = assign_match.group(1)
+        rhs = assign_match.group(2)
+        if lhs in ("HOME", "USER", "PWD", "SHELL", "LINENO"):
+          errors.append(
+              NormError(
+                  "RESERVED_VAR_MISUSE",
+                  idx,
+                  1,
+                  f"Do not overwrite reserved POSIX variable '{lhs}' [SH-II.1"
+                  " / SC2123]",
+              )
+          )
+        if lhs in ("PATH", "LD_LIBRARY_PATH") and re.search(
+            r"(^|:)\.\.?(/|$)", rhs.strip("\"'")
+        ):
+          errors.append(
+              NormError(
+                  "RELATIVE_PATH_ENV",
+                  idx,
+                  1,
+                  f"Relative path in '{lhs}' is a security risk [SH-V.5 /"
+                  " Google 7-1]",
+              )
+          )
+        if in_function and lhs != "IFS" and re.match(r"^[A-Z][A-Z0-9_]*$", lhs):
+          errors.append(
+              NormError(
+                  "LOCAL_VAR_CASE",
+                  idx,
+                  1,
+                  f"Local variable '{lhs}' inside function '{func_name}' must"
+                  " be lower_snake_case [SH-II.2 / Google 4-5]",
+              )
+          )
+
+      # 10. Check bracket spacing (SH-III.2 / SC1035, SC1069, SC1020)
+      if re.search(r"(^|[;&|(\s])\[[^\s\[]", struct_strip) or re.search(
+          r"[^\s\]]\]($|[;&|)\s])", struct_strip
+      ):
+        errors.append(
+            NormError(
+                "BRACKET_SPACE",
+                idx,
+                max(1, line.find("[")),
+                "Missing mandatory space inside '[' or ']' test brackets"
+                " [SH-III.2 / SC1035]",
+            )
+        )
+
+      # 11. Check useless trailing semicolon (SH-III.3)
+      if (
+          struct_strip.endswith(";")
+          and not struct_strip.endswith("\\;")
+          and not struct_strip.endswith(";;")
+      ):
+        errors.append(
+            NormError(
+                "USELESS_SEMICOLON",
+                idx,
+                len(line.rstrip()),
+                "Unnecessary semicolon ';' at end of line [SH-III.3 / Google"
+                " 6-2]",
+            )
+        )
+
+      # 12. Check misplaced `then` / `do` (SH-VII.1 / Google 6-5)
+      if struct_strip in ("then", "do"):
+        errors.append(
+            NormError(
+                "MISPLACED_THEN_DO",
+                idx,
+                len(leading_ws) + 1,
+                f"Put '; {struct_strip}' on the same line as"
+                " if/elif/while/for [SH-VII.1 / Google 6-5]",
+            )
+        )
+      if re.match(r"^(if|elif|while|for)\b", struct_strip) and not (
+          struct_strip.endswith("; then")
+          or struct_strip.endswith("; do")
+          or struct_strip.endswith("\\")
+      ):
+        errors.append(
+            NormError(
+                "MISPLACED_THEN_DO",
+                idx,
+                1,
+                "Control statement must end with '; then' or '; do' on the"
+                " same line [SH-VII.1 / Google 6-5]",
+            )
+        )
+
+      # 13. Check Non-POSIX test operators (SH-VII.3 / SC2039, SC2166, SC3010)
+      if "[[" in struct_strip or "]]" in struct_strip:
+        errors.append(
+            NormError(
+                "NON_POSIX_TEST",
+                idx,
+                max(1, line.find("[[")),
+                "'[[ ]]' is undefined in POSIX sh; use '[ ]' [SH-VII.3 /"
+                " SC3010]",
+            )
+        )
+      if re.search(r"\[\s*.*\s+(==|-a|-o)\s+.*\s*\]", struct_strip):
+        errors.append(
+            NormError(
+                "NON_POSIX_TEST",
+                idx,
+                max(1, line.find("[")),
+                "Operators '==', '-a', '-o' inside '[ ]' are non-POSIX; use"
+                " '=' and '&&'/'||' [SH-VII.3 / SC2166]",
+            )
+        )
+      if re.search(r'\[\s*x"\$', nocom_strip) or re.search(
+          r"\[\s*x\$", nocom_strip
+      ):
+        errors.append(
+            NormError(
+                "LEGACY_X_TEST",
+                idx,
+                max(1, line.find("x")),
+                "Legacy 'x\"$var\"' comparison is forbidden; use -z, -n, or"
+                " '\"$var\" = ...' [SH-VII.3 / SC2268]",
+            )
+        )
+
+      # 14. Check indirect `$?` check (SH-VII.2 / SC2181)
+      if re.search(r"\[\s*\"\$\?\"\s+-(eq|ne)\s+0\s*\]", nocom_strip) or re.search(
+          r"\[\s*\$\?\s+-(eq|ne)\s+0\s*\]", nocom_strip
+      ):
+        errors.append(
+            NormError(
+                "INDIRECT_EXIT_CHECK",
+                idx,
+                max(1, line.find("$?")),
+                "Check command exit status directly with 'if cmd; then'"
+                " instead of '$?' [SH-VII.2 / SC2181]",
+            )
+        )
+
+      # 15. Check Quoting & Word Expansion (SH-IV.1 - SH-IV.4)
+      for col, kind, token in find_unquoted_expansions(no_comment):
+        if kind == "UNQUOTED_VAR":
+          errors.append(
+              NormError(
+                  "UNQUOTED_VAR",
+                  idx,
+                  col,
+                  f"Unquoted variable '{token}' must be double-quoted"
+                  f' "{token}" [SH-IV.1 / SC2086]',
+              )
+          )
+        elif kind == "UNQUOTED_CMD_SUB":
+          errors.append(
+              NormError(
+                  "UNQUOTED_CMD_SUB",
+                  idx,
+                  col,
+                  'Unquoted command substitution $(...) must be'
+                  ' double-quoted "$(...)" [SH-IV.1 / SC2046]',
+              )
+          )
+        elif kind == "UNQUOTED_AT_STAR":
+          errors.append(
+              NormError(
+                  "UNQUOTED_AT_STAR",
+                  idx,
+                  col,
+                  f"Special parameter '{token}' must be double-quoted"
+                  ' "$@" [SH-IV.4 / SC2048]',
+              )
+          )
+        elif kind == "POSITIONAL_NO_BRACES":
+          errors.append(
+              NormError(
+                  "POSITIONAL_NO_BRACES",
+                  idx,
+                  col,
+                  f"Positional parameter '{token}' >= 10 requires braces"
+                  f' "${{{token[1:]}}}" [SH-IV.2 / SC1037]',
+              )
+          )
+
+      # 16. Check Pathname & Glob Security (SH-V.1 - SH-V.4)
+      if re.search(r"\bfor\s+[A-Za-z_][A-Za-z0-9_]*\s+in\s+\*", struct_strip) or re.search(
+          r"\b(rm|cat|cp|mv|chmod|chown|ls)\s+(-[a-zA-Z]+\s+)*\*", struct_strip
+      ):
+        errors.append(
+            NormError(
+                "BARE_GLOB_DANGER",
+                idx,
+                max(1, line.find("*")),
+                "Bare glob '*' can expand to '-rf' option; prefix with './*'"
+                " [SH-V.1 / Wheeler / SC2035]",
+            )
+        )
+
+      for_glob_match = re.match(
+          r"^for\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\s+\./\*", struct_strip
+      )
+      if for_glob_match:
+        pending_for_glob_guard = True
+        for_glob_var = for_glob_match.group(1)
+
+      if re.search(
+          r"\bfor\s+[A-Za-z_][A-Za-z0-9_]*\s+in\s+\"?\$\((ls|find)\b",
+          nocom_strip,
+      ):
+        errors.append(
+            NormError(
+                "FRAGILE_LS_FIND_LOOP",
+                idx,
+                1,
+                "Never loop over $(ls) or $(find) output; use './*' or 'find"
+                " -exec {} +' [SH-V.4 / SC2044, SC2045]",
+            )
+        )
+
+      if re.search(r"\bls\b.*\|\s*grep\b", struct_strip):
+        errors.append(
+            NormError(
+                "LS_PIPE_ABUSE",
+                idx,
+                max(1, line.find("ls")),
+                "Do not pipe 'ls' into 'grep'; use 'find' or globs [SH-V.4 /"
+                " SC2010]",
+            )
+        )
+
+      # 17. Check Pipelines, Redirections & Subshells (SH-VI.1 - SH-VI.3)
+      if struct_strip.endswith("|"):
+        errors.append(
+            NormError(
+                "PIPE_CONTINUATION_STYLE",
+                idx,
+                len(line.rstrip()),
+                "Break multiline pipes with '\\' at line end and '|' at start"
+                " of next line [SH-VI.1 / Google 6-4]",
+            )
+        )
+
+      if re.search(r"\|\s*while\s+.*\bread\b", struct_strip):
+        errors.append(
+            NormError(
+                "PIPE_WHILE_SUBSHELL",
+                idx,
+                max(1, line.find("|")),
+                "Piping into 'while read' runs in a subshell; redirect '< file'"
+                " after 'done' [SH-VI.2 / Google 7-3 / SC2030]",
+            )
+        )
+
+      if re.search(r"2>&1\s+>\s*[^&]", struct_strip):
+        errors.append(
+            NormError(
+                "WRONG_REDIRECT_ORDER",
+                idx,
+                max(1, line.find("2>&1")),
+                "Redirect stdout before stderr: use '> file 2>&1', not '2>&1 >"
+                " file' [SH-VI.3 / SC2069]",
+            )
+        )
+
+      rw_match = re.search(
+          r"\b(?:cat|sort|grep|sed|awk|cut|tr)\s+(?:-[a-zA-Z0-9]+\s+)*([A-Za-z0-9_./-]+)\s*.*>\s*\1(\s|$)",
+          nocom_strip,
+      )
+      if rw_match:
+        errors.append(
+            NormError(
+                "SAME_FILE_RW_PIPE",
+                idx,
+                max(1, line.find(">")),
+                f"Reading and writing '{rw_match.group(1)}' in the same command"
+                " truncates it [SH-VI.3 / SC2094]",
+            )
+        )
+
+      # 18. Check Unsafe `read` without `-r` (SH-VII.5 / SC2162)
+      if re.search(r"\bread\b", struct_strip) and not re.search(
+          r"\bread\s+-[a-zA-Z]*r", struct_strip
+      ):
+        errors.append(
+            NormError(
+                "UNSAFE_READ",
+                idx,
+                max(1, line.find("read")),
+                "'read' without '-r' mangles backslashes; use 'IFS= read -r'"
+                " [SH-VII.5 / SC2162]",
+            )
+        )
+
+      # 19. Check Forbidden Constructs (Chapter IX: SH-IX.1 - SH-IX.9)
+      if re.search(r'\bprintf\s+"[^"]*\$(?:[A-Za-z_{]|[0-9])', nocom_strip) or re.search(
+          r"\bprintf\s+\$", nocom_strip
+      ):
+        errors.append(
+            NormError(
+                "PRINTF_VAR_FORMAT",
+                idx,
+                max(1, line.find("printf")),
+                "Never put variables inside printf format string; use printf"
+                " '%s\\n' \"$var\" [SH-IX.1 / SC2059]",
+            )
+        )
+
+      if re.search(r"\becho\s+-[neE]+\b", struct_strip):
+        errors.append(
+            NormError(
+                "NON_PORTABLE_ECHO",
+                idx,
+                max(1, line.find("echo")),
+                "Non-portable 'echo -n/-e' is forbidden; use 'printf' [SH-IX.2"
+                " / SC2028]",
+            )
+        )
+
+      if "`" in struct_strip:
+        errors.append(
+            NormError(
+                "LEGACY_BACKTICKS",
+                idx,
+                max(1, line.find("`")),
+                "Backticks `...` are forbidden; use '$(...)' [SH-IX.3 / SC2006]",
+            )
+        )
+
+      if re.search(r"\b(expr|let)\b", struct_strip):
+        errors.append(
+            NormError(
+                "LEGACY_ARITHMETIC",
+                idx,
+                1,
+                "Legacy 'expr'/'let' is forbidden; use '$((...))' [SH-IX.4 /"
+                " SC2003]",
+            )
+        )
+
+      if re.search(r"^(\|\s*)?cat\s+[^-|>]+?\s*(\||\\$)", struct_strip):
+        errors.append(
+            NormError(
+                "USELESS_CAT",
+                idx,
+                max(1, line.find("cat")),
+                "Useless use of cat (UUOC): pass file directly to command or"
+                " use '< file' [SH-IX.5 / SC2002]",
+            )
+        )
+
+      if re.search(r"\b(egrep|fgrep)\b", struct_strip):
+        errors.append(
+            NormError(
+                "DEPRECATED_GREP",
+                idx,
+                1,
+                "egrep/fgrep are deprecated; use 'grep -E' or 'grep -F'"
+                " [SH-IX.6 / SC2196]",
+            )
+        )
+
+      if re.search(r"\bwhich\b", struct_strip):
+        errors.append(
+            NormError(
+                "NON_STANDARD_WHICH",
+                idx,
+                max(1, line.find("which")),
+                "'which' is non-standard; use 'command -v' [SH-IX.7 / SC2230]",
+            )
+        )
+
+      if re.match(r"^cd(\s|$)", struct_strip) and not (
+          "||" in struct_strip or "&&" in struct_strip
+      ):
+        errors.append(
+            NormError(
+                "UNCHECKED_CD",
+                idx,
+                1,
+                "Unchecked 'cd' command; use 'cd -P -- \"$dir\" || exit 1'"
+                " [SH-IX.8 / SC2164]",
+            )
+        )
+
+      if re.search(r"\btr\s+.*\[[a-zA-Z0-9]+-[a-zA-Z0-9]+\]", struct_strip):
+        errors.append(
+            NormError(
+                "UNQUOTED_TR_RANGE",
+                idx,
+                max(1, line.find("tr")),
+                "Unquoted '[a-z]' in tr; use \"'a-z'\" or \"'[:lower:]'\""
+                " [SH-IX.9 / SC2021]",
+            )
+        )
+
+      if re.search(r"\bchmod\s+([ugoa]*\+[st]|[246][0-7]{3})\b", struct_strip):
+        errors.append(
+            NormError(
+                "FORBIDDEN_SUID",
+                idx,
+                max(1, line.find("chmod")),
+                "SUID/SGID permissions on shell scripts are forbidden [SH-I.4 /"
+                " Google 2-3]",
+            )
+        )
+
+    # Check if multi-command script (>5 logical commands) has `set -eu`
+    if (
+        not self.oneliner_mode
+        and logical_commands_count > 5
+        and not has_set_eu
+    ):
+      errors.append(
+          NormError(
+              "MISSING_STRICT_MODE",
+              2,
+              1,
+              "Multi-line script (>5 commands) is missing 'set -eu' defensive"
+              " header [SH-I.2 / Wheeler]",
+          )
+      )
+
+    return errors
+
+
+# ============================================================================ #
+# 4. CLI INTERFACE & 42 HEADER GENERATOR
+# ============================================================================ #
+
+
+def generate_42_sh_header(filename: str) -> str:
+  fn_padded = f"{filename:<51}"[:51]
+  return (
+      "#!/bin/sh\n"
+      "# **************************************************************************** #\n"
+      "#                                                                              #\n"
+      "#                                                         :::      ::::::::    #\n"
+      f"#    {fn_padded}:+:      :+:    :+:    #\n"
+      "#                                                     +:+ +:+         +:+      #\n"
+      "#    By: marvin <marvin@1337.ma>                    +#+  +:+       +#+         #\n"
+      "#                                                 +#+#+#+#+#+   +#+            #\n"
+      "#    Created: 2026/10/14 12:00:00 by marvin            #+#    #+#              #\n"
+      "#    Updated: 2026/10/14 12:00:00 by marvin           ###   ########.fr        #\n"
+      "#                                                                              #\n"
+      "# **************************************************************************** #\n"
+  )
+
+
+def print_rule_explanation(code: str) -> int:
+  code_up = code.upper()
+  if code_up not in RULES_DB:
+    print(f"Unknown rule code: '{code}'. Run with --list-rules to see all codes.")
+    return 1
+  spec = RULES_DB[code_up]
+  print("=" * 76)
+  print(f"Rule Code    : {spec.code} ({spec.chapter})")
+  print(f"Standard Ref : {spec.standard_ref}")
+  print(f"Summary      : {spec.summary}")
+  print(f"Explanation  : {spec.explanation}")
+  print("-" * 76)
+  print("❌ BAD (Violates Sh-Norm):")
+  for l in spec.bad_example.splitlines():
+    print(f"    {l}")
+  print("\n✅ GOOD (Sh-Norm v4.2 Compliant):")
+  for l in spec.good_example.splitlines():
+    print(f"    {l}")
+  print("=" * 76)
+  return 0
+
+
+def collect_target_files(paths: List[str]) -> List[pathlib.Path]:
+  targets: List[pathlib.Path] = []
+  for p_str in paths:
+    p = pathlib.Path(p_str)
+    if p.is_file():
+      targets.append(p)
+    elif p.is_dir():
+      for child in sorted(p.rglob("*.sh")):
+        if child.is_file():
+          targets.append(child)
+    else:
+      print(f"Error: '{p_str}' no such file or directory", file=sys.stderr)
+  return targets
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+  parser = argparse.ArgumentParser(
+      prog="sh_norminette",
+      description="The Official 42/1337 Shell Norm Linter (Sh-Norm v4.2)",
+  )
+  parser.add_argument(
+      "targets",
+      nargs="*",
+      help="Shell script files (.sh) or directories to inspect",
+  )
+  parser.add_argument(
+      "-1",
+      "--oneliner",
+      action="store_true",
+      help="One-liner Piscine exercise mode (relaxes set -eu requirement)",
+  )
+  parser.add_argument(
+      "--no-color",
+      action="store_true",
+      help="Disable ANSI color codes in output",
+  )
+  parser.add_argument(
+      "-e",
+      "--explain",
+      metavar="RULE_CODE",
+      help="Explain a specific Sh-Norm error code in English & Darija",
+  )
+  parser.add_argument(
+      "-l",
+      "--list-rules",
+      action="store_true",
+      help="List all 37 Sh-Norm v4.2 rules and their standard references",
+  )
+  parser.add_argument(
+      "--generate-header",
+      metavar="FILENAME",
+      help="Print a 42-compliant Shell header for FILENAME",
+  )
+
+  args = parser.parse_args(argv)
+
+  if args.list_rules:
+    print(f"{'RULE CODE':<24} {'CHAPTER':<9} {'STANDARD REFERENCE'}")
+    print("-" * 76)
+    for code, spec in RULES_DB.items():
+      print(f"{code:<24} {spec.chapter:<9} {spec.standard_ref}")
+    return 0
+
+  if args.explain:
+    return print_rule_explanation(args.explain)
+
+  if args.generate_header:
+    print(generate_42_sh_header(args.generate_header), end="")
+    return 0
+
+  if not args.targets:
+    args.targets = ["."]
+
+  files = collect_target_files(args.targets)
+  if not files:
+    print("sh_norminette: no .sh files found to check.", file=sys.stderr)
+    return 1
+
+  linter = ShNormLinter(oneliner_mode=args.oneliner)
+  use_color = not args.no_color and sys.stdout.isatty()
+  any_error = False
+
+  for fpath in files:
+    errs = linter.check_file(fpath)
+    if not errs:
+      ok_str = "\033[1;32mOK!\033[0m" if use_color else "OK!"
+      print(f"{fpath}: {ok_str}")
+    else:
+      any_error = True
+      err_str = "\033[1;31mError!\033[0m" if use_color else "Error!"
+      print(f"{fpath}: {err_str}")
+      for e in errs:
+        print(e.format_42(color=use_color))
+
+  return 1 if any_error else 0
+
+
+if __name__ == "__main__":
+  sys.exit(main())

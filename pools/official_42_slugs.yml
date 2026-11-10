@@ -1,0 +1,35 @@
+piscine:
+  c-piscine-shell-00: shell00
+  c-piscine-shell-01: shell01
+  c-piscine-c-00: c00
+  c-piscine-c-01: c01
+  c-piscine-c-02: c02
+  c-piscine-c-03: c03
+  c-piscine-c-04: c04
+  c-piscine-c-05: c05
+  c-piscine-c-06: c06
+  c-piscine-c-07: c07
+  c-piscine-c-08: c08
+  c-piscine-c-09: c09
+  c-piscine-c-10: c10
+  c-piscine-c-11: c11
+  c-piscine-c-12: c12
+  c-piscine-c-13: c13
+  c-piscine-reloaded: piscine_reloaded
+  c-piscine-day-09: day09
+exams:
+  1337_exam_00: 1337_classic_exam00
+  1337_exam_01: 1337_classic_exam01
+  1337_exam_02: 1337_classic_exam02
+  1337_exam_final: 1337_classic_examfinal
+  c-piscine-exam-00: 1337_classic_exam00
+  c-piscine-exam-01: 1337_classic_exam01
+  c-piscine-exam-02: 1337_classic_exam02
+  c-piscine-final-exam: 1337_classic_examfinal
+  c-piscine-exam-2026: new_2026_exam
+  exam-rank-02: classic_42_full
+  exam-rank-03: cursus_rank03_06
+  exam-rank-04: cursus_rank03_06
+  exam-rank-05: cursus_rank03_06
+  exam-rank-06: cursus_rank03_06
+

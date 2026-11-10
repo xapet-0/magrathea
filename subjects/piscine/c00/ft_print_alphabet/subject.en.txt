@@ -1,0 +1,29 @@
+Assignment name  : ft_print_alphabet
+Expected files   : ft_print_alphabet.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 00 (Official PDF)
+Exercise         : ft_print_alphabet
+Turn-in directory: ex01/
+Expected files   : ft_print_alphabet.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+• Create a function that displays the alphabet in lowercase, on a single line, in as-
+cending order, starting from the letter ’a’.
+• The function should be prototyped as follows:
+void ft_print_alphabet(void);
+Don’t hesitate to randomly ask someone in your cluster if you have a
+question.
+
+Your function must be declared as follows:
+    void ft_print_alphabet(void);
+
+Examples:
+    ft_print_alphabet()
+    Output: abcdefghijklmnopqrstuvwxyz
+    ft_print_alphabet(); write(1, "\n", 1)
+    Output: abcdefghijklmnopqrstuvwxyz
+    ft_print_alphabet(); ft_print_alphabet(); write(1, "\n", 1)
+    Output: abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz

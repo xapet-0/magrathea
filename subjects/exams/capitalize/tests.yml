@@ -1,0 +1,189 @@
+fixed_tests:
+- name: basic
+  args:
+  - hello WORLD 42school
+  stdout: 'Hello World 42school
+
+    '
+  tier: baseline
+- name: empty
+  args:
+  - ''
+  stdout: '
+
+    '
+  tier: baseline
+- name: single_word
+  args:
+  - pISCINE
+  stdout: 'Piscine
+
+    '
+  tier: baseline
+- name: tabs_and_spaces
+  args:
+  - "  aBC\tdEF  "
+  stdout: "  Abc\tDef  \n"
+  tier: baseline
+- name: no_args
+  args: []
+  stdout: '
+
+    '
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: "   \n"
+- name: test_08_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '1337
+
+    '
+- name: test_09_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '42_network
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: '!@#$%^&*()
+
+    '
+subject_id: capitalize
+mode: c_program
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./capitalize "hello WORLD 42school" | cat -e
+  args: &id001
+  - hello WORLD 42school
+  expected: 'Hello World 42school
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./capitalize "" | cat -e
+  args: &id002
+  - ''
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./capitalize "pISCINE" | cat -e
+  args: &id003
+  - pISCINE
+  expected: 'Piscine
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: "./capitalize \"  aBC\tdEF  \" | cat -e"
+  args: &id004
+  - "  aBC\tdEF  "
+  expected: "  Abc\tDef  \n"
+  cat_e: true
+folder_examples:
+- id: e1337_capitalize_T06
+  origin: subject_folder/examples.txt
+  input: ./capitalize "hello WORLD 42school" \| cat -e
+  expected: Hello World 42school$
+- id: e1337_capitalize_T07
+  origin: subject_folder/examples.txt
+  input: ./capitalize "" \| cat -e
+  expected: $
+- id: e1337_capitalize_T08
+  origin: subject_folder/examples.txt
+  input: ./capitalize "pISCINE" \| cat -e
+  expected: Piscine$
+- id: e1337_capitalize_T09
+  origin: subject_folder/examples.txt
+  input: "./capitalize \"  aBC\tdEF  \" \\| cat -e"
+  expected: "Abc\tDef  $"
+- id: folder_fixture_05
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- name: basic\n  args:\n  - hello WORLD 42school\n  stdout:\
+    \ 'Hello World 42school\n\n    '\n- name: empty\n  args:\n  - ''\n  stdout: '\n\
+    \n    '\n- name: singl"
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - iello WORLD 42school
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  hello WORLD 42school  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - ' '
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '    '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - qISCINE
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  pISCINE  '
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - "  bBC\tdEF  "
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - "    aBC\tdEF    "
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_capitalize_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./capitalize "hello WORLD 42school" \| cat -e
+  perturbed_input: ./dapitalize "hello WORLD 42school" \| c
+- id: near_folder_02_boundary_neighbor
+  derived_from: e1337_capitalize_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./capitalize "" \| cat -e
+  perturbed_input: ./dapitalize "" \| cat -e

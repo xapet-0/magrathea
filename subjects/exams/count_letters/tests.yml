@@ -1,0 +1,99 @@
+fixed_tests:
+- name: test_01_Hello_1337
+  expr: count_letters("Hello 1337!")
+  stdout: '5
+
+    '
+  tier: baseline
+- name: test_02_12345
+  expr: count_letters("12345")
+  stdout: '0
+
+    '
+  tier: baseline
+- name: test_03_expr
+  expr: count_letters("")
+  stdout: '0
+
+    '
+  tier: baseline
+- name: test_04_abcXYZ
+  expr: count_letters("abcXYZ")
+  stdout: '6
+
+    '
+  tier: baseline
+- name: test_05_a_b_c
+  expr: count_letters("  a b c  ")
+  stdout: '3
+
+    '
+  tier: baseline
+- name: test_06_single_letter
+  expr: count_letters("Z")
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_only_symbols
+  expr: count_letters("!@#$%^&*()_+-=")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_boundary_chars
+  expr: count_letters("@AZ[`az{")
+  tier: edge
+  stdout: '4
+
+    '
+- name: test_09_alphanumeric_mix
+  expr: count_letters("42piscine1337")
+  tier: baseline
+  stdout: '7
+
+    '
+- name: test_10_full_alphabet
+  expr: count_letters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+  tier: stress
+  stdout: '52
+
+    '
+subject_id: count_letters
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval count_letters
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: e1337_count_letters_T06
+  origin: subject_folder/examples.txt
+  input: count_letters("Hello 1337!") -> 5
+  expected: count_letters("12345") -> 0\n    count_letters("") -> 0
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "fixed_tests:\n- expr: count_letters(\"Hello 1337!\")\n  stdout: '5\n\n\
+    \    '\n- expr: count_letters(\"12345\")\n  stdout: '0\n\n    '\n- expr: count_letters(\"\
+    \")\n  stdout: '0\n"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval count_letters
+  perturbed_input:
+  - count_letters_near_arg_1
+  - count_letters_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_count_letters_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: count_letters("Hello 1337!") -> 5
+  perturbed_input: dount_letters("Hello 1337!") -> 5
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

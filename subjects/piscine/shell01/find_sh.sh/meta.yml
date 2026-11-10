@@ -1,0 +1,13 @@
+id: find_sh.sh
+type: shell
+module: Shell 01
+xp: 160
+expected_files:
+- find_sh.sh
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: sh find_sh.sh.sh [args...]

@@ -1,0 +1,22 @@
+Assignment name  : z
+Expected files   : z
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine Shell 00 (Official PDF)
+Exercise         : z
+Turn-in directory: ex00/
+Expected files   : z
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create a file called z that returns "Z", followed by a new line, whenever the cat
+command is used on it.
+?>cat z
+Z
+?>
+Google is your friend.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.

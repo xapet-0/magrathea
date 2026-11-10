@@ -1,0 +1,145 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty tree (NULL), single node, and linear skewed tree in `convert_bst`
+  input: convert_bst(NULL) and linear tree of depth 30
+  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
+- name: edge_02_B
+  code: '[B]'
+  title: No valid solution or duplicate/zero values in `convert_bst`
+  input: Input with no valid solution or containing duplicate values in convert_bst
+  expected: Do not emit corrupted output or duplicate equivalent solutions
+- name: edge_03_M
+  code: '[M]'
+  title: Deallocation of auxiliary structures under leak checks in `convert_bst`
+  input: Run convert_bst with DT_CHECK_LEAKS=1
+  expected: 0 bytes leaked and structural integrity of left/right child pointers
+- name: edge_04_D
+  code: '[D]'
+  title: Output order verification (Lexicographical / Infix Order) in `convert_bst`
+  input: Inspect sequence of traversed or printed nodes in convert_bst
+  expected: Exact match with standard traversal order required in subject
+fixed_tests:
+- name: test_01_NULL
+  expr: convert_bst(NULL) == NULL
+  stdout: '1
+
+    '
+- name: test_02_expr
+  expr: h->value == 1 && h->right->value == 2 && h->left->value == 3
+  setup:
+  - struct s_node a={1,0,0}, c={3,0,0}, b={2,&a,&c}
+  - struct s_node *h = convert_bst(&b)
+  stdout: '1
+
+    '
+- name: test_03_expr
+  expr: h == &a && h->left == &a && h->right == &a
+  setup:
+  - struct s_node a={42,0,0}
+  - struct s_node *h = convert_bst(&a)
+  stdout: '1
+
+    '
+- name: test_04_expr
+  expr: h->value == 10 && h->right->value == 20
+  setup:
+  - struct s_node a={10,0,0}, b={20,&a,0}
+  - struct s_node *h = convert_bst(&b)
+  stdout: '1
+
+    '
+- name: test_05_right_child_only
+  setup:
+  - struct s_node b={20,0,0}, a={10,0,&b};
+  - struct s_node *h = convert_bst(&a);
+  expr: h->value == 10 && h->right->value == 20 && h->left->value == 20
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_left_skewed_3
+  setup:
+  - struct s_node a={1,0,0}, b={2,&a,0}, c={3,&b,0};
+  - struct s_node *h = convert_bst(&c);
+  expr: h->value == 1 && h->right->value == 2 && h->right->right->value == 3 && h->left->value
+    == 3
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_right_skewed_3
+  setup:
+  - struct s_node c={3,0,0}, b={2,0,&c}, a={1,0,&b};
+  - struct s_node *h = convert_bst(&a);
+  expr: h->value == 1 && h->right->value == 2 && h->right->right->value == 3 && h->left->value
+    == 3
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_08_negative_values
+  setup:
+  - struct s_node a={-10,0,0}, c={5,0,0}, b={0,&a,&c};
+  - struct s_node *h = convert_bst(&b);
+  expr: h->value == -10 && h->right->value == 0 && h->right->right->value == 5 &&
+    h->left->value == 5
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_09_five_nodes
+  setup:
+  - struct s_node n1={1,0,0}, n3={3,0,0}, n2={2,&n1,&n3}, n5={5,0,0}, n4={4,&n2,&n5};
+  - struct s_node *h = convert_bst(&n4);
+  call: for(int i=0;i<5;i++){printf("%d,",h->value);h=h->right;} printf("\n");
+  tier: baseline
+  stdout: '1,2,3,4,5,
+
+    '
+- name: test_10_seven_nodes_full_bst
+  setup:
+  - struct s_node n1={1,0,0},n3={3,0,0},n5={5,0,0},n7={7,0,0},n2={2,&n1,&n3},n6={6,&n5,&n7},n4={4,&n2,&n6};
+  - struct s_node *h = convert_bst(&n4);
+  call: for(int i=0;i<7;i++){printf("%d,",h->value);h=h->right;} printf("%d\n",h->left->value);
+  tier: stress
+  stdout: '1,2,3,4,5,6,7,7
+
+    '
+folder_examples:
+- expected: Zero assertion failures (exit code 0)
+  id: can_convert_bst_T05
+  input: Compiled and run with convert_bst_MAIN.c
+  origin: subject_folder/convert_bst_MAIN.c
+- expected: "struct s_node {\n    int           value;\n    struct s_node *right;\n\
+    \    struct s_node *left;\n};\n\nstruct s_node *min(struct s_node *bst)\n{\n\t\
+    while (bst && bst->lef"
+  id: folder_fixture_02
+  input: convert_bst_MAIN.c
+  origin: subject_folder/convert_bst_MAIN.c
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval convert_bst
+  perturbed_input:
+  - convert_bst_near_arg_1
+  - convert_bst_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: can_convert_bst_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: Compiled and run with convert_bst_MAIN.c
+  perturbed_input: Dompiled and run with convert_bst_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/convert_bst_MAIN.c)
+- derived_from: folder_fixture_02
+  id: near_folder_02_boundary_neighbor
+  original_input: convert_bst_MAIN.c
+  perturbed_input: donvert_bst_MAIN.c
+  strategy: Neighbouring perturbation of folder example (subject_folder/convert_bst_MAIN.c)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval convert_bst
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

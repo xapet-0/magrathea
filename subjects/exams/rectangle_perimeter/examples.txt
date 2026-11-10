@@ -1,0 +1,6 @@
+[cur_rectangle_perimeter_T01] Input: rectangle_perimeter(5, 10)  ==>  Expected: 30\n
+[cur_rectangle_perimeter_T02] Input: rectangle_perimeter(3, 4)  ==>  Expected: 14\n
+[cur_rectangle_perimeter_T03] Input: Dynamic generation rule via basic_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_rectangle_perimeter_T04] Input: Dynamic generation rule via decimal_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_rectangle_perimeter_T05] Input: Dynamic generation rule via zero_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+[cur_rectangle_perimeter_T06] Input: Dynamic generation rule via large_radius_test()  ==>  Expected: Deterministic output validated by Deepthought oracle

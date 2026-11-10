@@ -1,0 +1,129 @@
+fixed_tests:
+- name: test_01_stdin
+  stdin: 'marvin:x:1000:1000::/home/marvin:/bin/sh
+
+    '
+  stdout: 'marvin
+
+    '
+- name: test_02_stdin
+  stdin: '# comment
+
+    root:x:0:0::/root:/bin/sh
+
+    daemon:x:1:1::/:/sbin/nologin
+
+    '
+  stdout: 'root
+
+    daemon
+
+    '
+- name: test_03_stdin
+  stdin: 'student:x:42:42::/home/student:/bin/zsh
+
+    '
+  stdout: 'student
+
+    '
+- name: test_04_multi_users
+  stdin: '# header
+
+    bocal:x:1337:1337::/home/bocal:/bin/sh
+
+    nobody:x:65534:65534::/nonexistent:/usr/sbin/nologin
+
+    '
+  stdout: 'bocal
+
+    nobody
+
+    '
+- name: test_05_only_comments
+  stdin: '# comment 1
+
+    # comment 2
+
+    '
+  stdout: ''
+  tier: edge
+- name: test_06_interleaved_comments
+  stdin: 'u1:x:1:1::/:/sh
+
+    # mid comment
+
+    u2:x:2:2::/:/sh
+
+    '
+  tier: edge
+  stdout: 'u1
+
+    u2
+
+    '
+- name: test_07_four_users
+  stdin: 'a:x:1
+
+    b:x:2
+
+    c:x:3
+
+    d:x:4
+
+    '
+  tier: baseline
+  stdout: 'a
+
+    b
+
+    c
+
+    d
+
+    '
+- name: test_08_numeric_logins
+  stdin: '42:x:42
+
+    1337:x:1337
+
+    '
+  tier: baseline
+  stdout: '42
+
+    1337
+
+    '
+- name: test_09_underscore_login
+  stdin: 'ft_student:!:1000:1000:Student:/home/ft:/bin/bash
+
+    '
+  tier: edge
+  stdout: 'ft_student
+
+    '
+- name: test_10_five_entries_mixed
+  stdin: '# top
+
+    alpha:x:1
+
+    # mid
+
+    beta:x:2
+
+    gamma:x:3
+
+    # end
+
+    '
+  tier: stress
+  stdout: 'alpha
+
+    beta
+
+    gamma
+
+    '
+subject_id: login_cut
+subject_examples: []
+folder_examples: []
+near_examples: []

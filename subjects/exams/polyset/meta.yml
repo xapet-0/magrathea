@@ -1,0 +1,17 @@
+id: polyset
+type: c_program
+module: Exam Rank 05
+xp: 635
+expected_files:
+- polyset.c
+allowed_functions:
+- write
+- malloc
+- free
+- printf
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

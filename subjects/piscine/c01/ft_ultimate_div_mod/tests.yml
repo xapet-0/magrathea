@@ -1,0 +1,115 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_ultimate_div_mod_T01
+  description: 'Functional verification of input: `int a = 10, b = 3; ft_ultimate_div_mod(&a,
+    &b`'
+  call: int a = 10, b = 3; ft_ultimate_div_mod(&a, &b); printf("%d %d\n", a, b)
+  stdout: '3 1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_ultimate_div_mod_T02
+  description: exact_div
+  call: int a = 42, b = 7; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n", a, b)
+  stdout: '6,0
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_ultimate_div_mod_T03
+  description: negative_dividend
+  call: int a = -17, b = 5; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n", a, b)
+  stdout: '-3,-2
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_ultimate_div_mod_T04_zero_dividend
+  description: zero_dividend
+  call: int a = 0, b = 9; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n", a, b)
+  stdout: '0,0
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_pos_by_neg
+  call: int a = 17, b = -5; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n", a, b)
+  tier: edge
+  stdout: '-3,2
+
+    '
+- name: test_06_neg_by_neg
+  call: int a = -17, b = -5; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n", a, b)
+  tier: edge
+  stdout: '3,-2
+
+    '
+- name: test_07_dividend_smaller
+  call: int a = 3, b = 10; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n", a, b)
+  tier: edge
+  stdout: '0,3
+
+    '
+- name: test_08_divide_by_one
+  call: int a = 1337, b = 1; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n", a, b)
+  tier: baseline
+  stdout: '1337,0
+
+    '
+- name: test_09_int_max
+  call: int a = 2147483647, b = 10; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n",
+    a, b)
+  tier: stress
+  stdout: '214748364,7
+
+    '
+- name: test_10_int_min
+  call: int a = -2147483648, b = 10; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n",
+    a, b)
+  tier: stress
+  stdout: '-214748364,-8
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_ultimate_div_mod
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_ultimate_div_mod_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: int a = 10, b = 3; ft_ultimate_div_mod(&a, &b); printf("%d %d\n", a, b)
+  expected: 3 1\n
+- id: pool_ft_ultimate_div_mod_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: int a = 42, b = 7; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n", a, b)
+  expected: 6,0\n
+- id: pool_ft_ultimate_div_mod_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: int a = -17, b = 5; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n", a, b)
+  expected: -3,-2\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_ultimate_div_mod
+  perturbed_input:
+  - ft_ultimate_div_mod_near_arg_1
+  - ft_ultimate_div_mod_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_ultimate_div_mod_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: int a = 10, b = 3; ft_ultimate_div_mod(&a, &b); printf("%d %d\n",
+    a, b)
+  perturbed_input: jnt a = 10, b = 3; ft_ultimate_div_mod(&
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_ultimate_div_mod_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: int a = 42, b = 7; ft_ultimate_div_mod(&a, &b); printf("%d,%d\n",
+    a, b)
+  perturbed_input: jnt a = 42, b = 7; ft_ultimate_div_mod(&

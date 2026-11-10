@@ -1,0 +1,14 @@
+id: interval_space
+type: c_program
+module: Piscine Exams 00–Final
+xp: 295
+expected_files:
+- interval_space.c
+allowed_functions:
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

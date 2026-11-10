@@ -1,0 +1,5 @@
+# Examples for comma_dot (from official subject specification)
+
+Examples:
+$> printf "alpha\nbeta\ngamma\n" | ./comma_dot.sh | cat -e
+alpha, beta, gamma.$>

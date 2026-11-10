@@ -1,0 +1,25 @@
+allowed_functions:
+- printf
+- scanf
+- write
+- malloc
+- free
+- exit
+- sqrt
+- cos
+- sin
+- fscanf
+- sqrtf
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+expected_files:
+- '*.c'
+- '*.h'
+id: tsp
+module: Exam Rank 03
+norminette: false
+prototype: int main(int argc, char **argv);
+type: c_program
+xp: 525

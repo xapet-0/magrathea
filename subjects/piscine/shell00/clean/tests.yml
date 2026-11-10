@@ -1,0 +1,43 @@
+mode: shell
+fixed_tests:
+- name: pool_clean_T01
+  description: basic_clean
+  args: []
+  input: '`sh clean.sh` (standard shell environment)'
+  expected: '*(none)*'
+  category: Functional
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: sh clean | cat -e
+  args: &id001
+  - clean
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: folder_fixture_01
+  origin: subject_folder/clean
+  input: clean
+  expected: find . -type f \( -name "#*#" -o -name "*~" \) -delete -print
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - dlean
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  clean  '
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_fixture_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/clean)
+  original_input: clean
+  perturbed_input: dlean

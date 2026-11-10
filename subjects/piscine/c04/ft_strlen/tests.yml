@@ -1,0 +1,99 @@
+subject_id: ft_strlen
+fixed_tests:
+- name: test_01_Hello
+  expr: ft_strlen("Hello")
+  stdout: '5
+
+    '
+  tier: baseline
+- name: test_02_expr
+  expr: ft_strlen("")
+  stdout: '0
+
+    '
+  tier: baseline
+- name: single_char
+  expr: ft_strlen("a")
+  stdout: '1
+
+    '
+  tier: baseline
+- name: spaces_and_tabs
+  expr: ft_strlen("  1337  42 ")
+  stdout: '11
+
+    '
+  tier: baseline
+- name: test_05_digits_10
+  expr: ft_strlen("0123456789")
+  tier: baseline
+  stdout: '10
+
+    '
+- name: test_06_control_chars
+  expr: ft_strlen("a\nb\tc\r")
+  tier: edge
+  stdout: '6
+
+    '
+- name: test_07_symbols
+  expr: ft_strlen("!@#$%^&*()")
+  tier: baseline
+  stdout: '10
+
+    '
+- name: test_08_alphabet_26
+  expr: ft_strlen("abcdefghijklmnopqrstuvwxyz")
+  tier: baseline
+  stdout: '26
+
+    '
+- name: test_09_embedded_nul
+  setup:
+  - char s[] = {'4', '2', 0, '9', 0};
+  expr: ft_strlen(s)
+  tier: edge
+  stdout: '2
+
+    '
+- name: test_10_long_50
+  expr: ft_strlen("01234567890123456789012345678901234567890123456789")
+  tier: stress
+  stdout: '50
+
+    '
+oracle_tests:
+- name: ft_strlen_oracle_stress
+  source: "int main(void)\n{\n    char longbuf[128];\n    int i;\n    const char *cases[]\
+    \ = {\"\", \"Hello\", \"1337\", \"with spaces\", \"!@#$%^&*()\", longbuf, 0};\n\
+    \    for (i = 0; i < 127; ++i)\n        longbuf[i] = (char)('a' + (i % 26));\n\
+    \    longbuf[127] = '\\0';\n    for (i = 0; cases[i]; ++i)\n    {\n        if\
+    \ (ft_strlen((char *)cases[i]) != (int)strlen(cases[i]))\n        {\n        \
+    \    fprintf(stderr, \"ft_strlen mismatch on case %d\\n\", i);\n            return\
+    \ (1);\n        }\n    }\n    return (0);\n}\n"
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strlen
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: ft_strlen baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strlen
+  perturbed_input:
+  - ft_strlen_near_arg_1
+  - ft_strlen_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ft_strlen baseline folder fixture
+  perturbed_input: gt_strlen baseline folder fixture

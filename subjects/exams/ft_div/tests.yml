@@ -1,0 +1,118 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_div_T01
+  description: 'Functional verification of input: `ft_div(20,5)`'
+  expr: ft_div(20,5)
+  stdout: '4
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_div_T02
+  description: 'Functional verification of input: `ft_div(7,0)`'
+  expr: ft_div(7,0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_div_T03
+  description: edge_ft_div_zero_divisor
+  expr: ft_div(42, 0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_div_T04
+  description: edge_ft_div_negative
+  expr: ft_div(-84, 2)
+  stdout: '-42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_zero_numerator
+  expr: ft_div(0, 5)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_06_zero_div_zero
+  expr: ft_div(0, 0)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_both_negative
+  expr: ft_div(-42, -7)
+  tier: baseline
+  stdout: '6
+
+    '
+- name: test_08_positive_div_negative
+  expr: ft_div(42, -7)
+  tier: baseline
+  stdout: '-6
+
+    '
+- name: test_09_truncation_toward_zero
+  expr: ft_div(10, 3)
+  tier: edge
+  stdout: '3
+
+    '
+- name: test_10_div_by_one
+  expr: ft_div(1337, 1)
+  tier: stress
+  stdout: '1337
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_div
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_ft_div_T05
+  origin: subject_folder/deepthought/corrections/exams/ft_div/generator.py
+  input: Dynamic generation rule via random_int()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_div_T06
+  origin: subject_folder/deepthought/corrections/exams/ft_div/generator.py
+  input: Dynamic generation rule via random_positive_int()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_div_T07
+  origin: subject_folder/deepthought/corrections/exams/ft_div/generator.py
+  input: Dynamic generation rule via basic_division()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_div_T08
+  origin: subject_folder/deepthought/corrections/exams/ft_div/generator.py
+  input: Dynamic generation rule via edge_case_large_divisor()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_div
+  perturbed_input:
+  - ft_div_near_arg_1
+  - ft_div_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ft_div_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ft_div/generator.py)
+  original_input: Dynamic generation rule via random_int()
+  perturbed_input: Eynamic generation rule via random_int()
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ft_div_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/ft_div/generator.py)
+  original_input: Dynamic generation rule via random_positive_int()
+  perturbed_input: Eynamic generation rule via random_posit
+edge_cases:
+- name: edge_01_S
+  code: '[S]'
+  title: Division by zero guard
+  input: ft_div(10, 0)
+  expected: 0 or error handling

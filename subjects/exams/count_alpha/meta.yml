@@ -1,0 +1,15 @@
+id: count_alpha
+type: c_program
+module: Piscine Exams 00–Final
+xp: 295
+expected_files:
+- count_alpha.c
+allowed_functions:
+- write
+- printf
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

@@ -1,0 +1,30 @@
+Assignment name  : ft_print_program_name
+Expected files   : ft_print_program_name.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 06 (Official PDF)
+Exercise         : ft_print_program_name
+Turn-in directory: ex00/
+Expected files   : ft_print_program_name.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+• Since this is a program, your .c file must contain amain function.
+• Write a program that displays its own name, followed by a new line.
+• Example:
+$>./a.out | cat -e
+./a.out$
+$>
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> ./ft_print_program_name | cat -e
+$
+$> ./ft_print_program_name "unused" | cat -e
+$
+$> ./ft_print_program_name | cat -e
+$

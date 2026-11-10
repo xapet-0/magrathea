@@ -1,0 +1,22 @@
+Assignment name  : count_files.sh
+Turn-in directory: ex02/
+Expected files   : count_files.sh
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+find_sh.sh
+Turn-in directory: ex02/
+Files to turn in:find_sh.sh
+Allowed functions:None
+• Write a command line that searches for all files ending with .sh in the current
+directory and all subdirectories.
+• The output should display only the file names without the .sh extension.
+• Example output:
+$>./find_sh.sh | cat -e
+find_sh$
+file1$
+file2$
+file3$
+$>
+Don’t blindly trust sources—always test, verify, and validate your
+results yourself!

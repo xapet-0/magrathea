@@ -1,0 +1,9 @@
+# Examples for epur_str_sh (from official subject specification)
+
+Examples:
+$> FT_LINE="   hello    world   " sh epur_str_sh.sh | cat -e
+hello world$
+$> FT_LINE="1337   42   piscine" sh epur_str_sh.sh | cat -e
+1337 42 piscine$
+$> FT_LINE="single" sh epur_str_sh.sh | cat -e
+single$

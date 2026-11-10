@@ -1,0 +1,72 @@
+fixed_tests:
+- call: t_list c={"b",0}; t_list b={"c",&c}; t_list a={"a",&b}; t_list *l=&a; ft_list_sort(&l,dt_cmp);
+    while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  name: pool_ft_list_sort_T01
+  stdout: 'abc
+
+    '
+- call: t_list c={"3",0}; t_list b={"2",&c}; t_list a={"1",&b}; t_list *l=&a; ft_list_sort(&l,dt_cmp);
+    while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  name: ft_list_sort_already_sorted
+  stdout: '123
+
+    '
+- call: t_list c={"1",0}; t_list b={"2",&c}; t_list a={"3",&b}; t_list *l=&a; ft_list_sort(&l,dt_cmp);
+    while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  name: ft_list_sort_reversed
+  stdout: '123
+
+    '
+- call: t_list c={"2",0}; t_list b={"1",&c}; t_list a={"2",&b}; t_list *l=&a; ft_list_sort(&l,dt_cmp);
+    while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  name: ft_list_sort_duplicates
+  stdout: '122
+
+    '
+- name: test_05_null_and_single
+  call: t_list *empty=NULL; ft_list_sort(&empty,dt_cmp); t_list a={"x",0}; t_list
+    *s=&a; ft_list_sort(&s,dt_cmp); printf("%d:%s\n",empty==NULL,(char*)s->data);
+  tier: edge
+  stdout: '1:x
+
+    '
+- name: test_06_two_elements_swapped
+  call: t_list b={"a",0},a={"b",&b}; t_list *l=&a; ft_list_sort(&l,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: baseline
+  stdout: 'ab
+
+    '
+- name: test_07_all_identical
+  call: t_list c={"7",0},b={"7",&c},a={"7",&b}; t_list *l=&a; ft_list_sort(&l,dt_cmp);
+    while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  tier: edge
+  stdout: '777
+
+    '
+- name: test_08_with_empty_string
+  call: t_list c={"a",0},b={"",&c},a={"z",&b}; t_list *l=&a; ft_list_sort(&l,dt_cmp);
+    while(l){printf("[%s]",(char*)l->data);l=l->next;} printf("\n");
+  tier: edge
+  stdout: '[][a][z]
+
+    '
+- name: test_09_five_elements
+  call: t_list e={"c",0},d={"a",&e},c={"e",&d},b={"b",&c},a={"d",&b}; t_list *l=&a;
+    ft_list_sort(&l,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  tier: baseline
+  stdout: 'abcde
+
+    '
+- name: test_10_six_elements_with_dups
+  call: t_list n6={"1",0},n5={"3",&n6},n4={"2",&n5},n3={"3",&n4},n2={"1",&n3},n1={"2",&n2};
+    t_list *l=&n1; ft_list_sort(&l,dt_cmp); while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: stress
+  stdout: '112233
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

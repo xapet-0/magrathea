@@ -1,0 +1,9 @@
+Examples:
+$> ./ft_interval "abcdef" | cat -e
+abc5e3$
+$> ./ft_interval "ab" | cat -e
+ab$
+$> ./ft_interval "" | cat -e
+$
+$> ./ft_interval | cat -e
+$

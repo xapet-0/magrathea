@@ -1,0 +1,271 @@
+mode: c_program
+fixed_tests:
+- name: can_last_word_T01
+  description: 'Functional verification of input: `[''hello world  '']`'
+  args:
+  - 'hello world  '
+  expected: 'world
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_last_word_T02
+  description: leading_and_tabs
+  args:
+  - "\t one two\tthree   "
+  expected: 'three
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_last_word_T03
+  description: wrong_arg_count
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_last_word_T04
+  description: only_spaces
+  args:
+  - '     '
+  expected: '
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_last_word_T05
+  description: case_level2_last_word_tabs_and_spaces
+  args:
+  - "\t\talpha beta\tgamma\t  "
+  expected: 'gamma
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_last_word_T06
+  description: case_level2_last_word_single_word
+  args:
+  - hello
+  expected: 'hello
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_last_word_T07
+  description: case_level2_last_word_no_word
+  args:
+  - "    \t  "
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - FOR PONY
+  expected: 'PONY
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - this        ...       is sparta, then again, maybe    not
+  expected: 'not
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - '   '
+  expected: '
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args:
+  - a
+  - b
+  expected: '
+
+    '
+- name: subj_ex_05
+  tier: subject_example
+  args:
+  - '  lorem,ipsum  '
+  expected: 'lorem,ipsum
+
+    '
+- name: near_ex_too_many_args
+  tier: near_example
+  args:
+  - near_arg_1
+  - near_arg_2
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./last_word "FOR PONY" | cat -e
+  args: &id001
+  - FOR PONY
+  expected: 'PONY
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./last_word "this        ...       is sparta, then again, maybe    not"
+    | cat -e
+  args: &id002
+  - this        ...       is sparta, then again, maybe    not
+  expected: 'not
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./last_word "   " | cat -e
+  args: &id003
+  - '   '
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./last_word "a" "b" | cat -e
+  args: &id004
+  - a
+  - b
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./last_word "  lorem,ipsum  " | cat -e
+  args:
+  - '  lorem,ipsum  '
+  expected: 'lorem,ipsum
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_last_word_T08
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_last_word_T09
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "   "
+  expected: Matches 42 reference standard output and exit code
+- id: can_last_word_T10
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "Papache est un sabre" "a" "o"
+  expected: Matches 42 reference standard output and exit code
+- id: can_last_word_T11
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "FOR PONY"
+  expected: Matches 42 reference standard output and exit code
+- id: can_last_word_T12
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "a" "b"
+  expected: Matches 42 reference standard output and exit code
+- id: can_last_word_T13
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "3:21 Ba  tOut  moUn ki Ka di KE m'en Ka fe fot"
+  expected: Matches 42 reference standard output and exit code
+- id: can_last_word_T14
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "zaz" "art" "zul"
+  expected: Matches 42 reference standard output and exit code
+- id: can_last_word_T15
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "this        ...       is sparta, then again, maybe    not"
+  expected: Matches 42 reference standard output and exit code
+- id: can_last_word_T16
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "jacob" "a" "b" "c" "e"
+  expected: Matches 42 reference standard output and exit code
+- id: can_last_word_T17
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "L'eSPrit nE peUt plUs pRogResSer s'Il staGne et sI peRsIsTent
+    VAnIte et auto-justification."
+  expected: Matches 42 reference standard output and exit code
+- id: can_last_word_T18
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "ZoZ eT Dovid oiME le METol." "o" "a"
+  expected: Matches 42 reference standard output and exit code
+- id: can_last_word_T19
+  origin: subject_folder/42ExamPractice/last_word/tester.sh
+  input: ./last_word "AkjhZ zLKIJz , 23y "
+  expected: Matches 42 reference standard output and exit code
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - GOR PONY
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  FOR PONY  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - uhis        ...       is sparta, then again, maybe    not
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  this        ...       is sparta, then again, maybe    not  '
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - '   !'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '       '
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - b
+  - c
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  a  '
+  - b
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_last_word_T08
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/last_word/tester.sh)
+  original_input: ./last_word "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
+  perturbed_input: ./mast_word "wNcOre Un ExEmPle Pas Facil
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_last_word_T09
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/last_word/tester.sh)
+  original_input: ./last_word "   "
+  perturbed_input: ./mast_word "   "

@@ -1,0 +1,234 @@
+mode: c_function
+fixed_tests:
+- name: cur_fix_parser_T01
+  description: 'Functional verification of input: `is_valid_expression("5+3*2")`'
+  expr: is_valid_expression("5+3*2")
+  stdout: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_fix_parser_T02
+  description: 'Functional verification of input: `is_valid_expression("10 / 2")`'
+  expr: is_valid_expression("10 / 2")
+  stdout: '1
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_fix_parser_T03
+  description: 'Functional verification of input: `is_valid_expression("7 + * 3")`'
+  expr: is_valid_expression("7 + * 3")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_fix_parser_T04
+  description: 'Functional verification of input: `is_valid_expression("abc")`'
+  expr: is_valid_expression("abc")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_fix_parser_T05
+  description: 'Functional verification of input: `is_valid_expression("")`'
+  expr: is_valid_expression("")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_06_single_number
+  expr: is_valid_expression("42")
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_trailing_operator
+  expr: is_valid_expression("5 + 3 -")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_leading_operator
+  expr: is_valid_expression("* 5 + 3")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_09_all_four_ops
+  expr: is_valid_expression("1 + 2 - 3 * 4 / 5")
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_10_spaces_only
+  expr: is_valid_expression("   ")
+  tier: edge
+  stdout: '0
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./validator "5+3*2" --> true (1)
+  args: &id001
+  - 5+3*2
+  - -->
+  - 'true'
+  - (1)
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./validator "10 / 2" --> true (1)
+  args: &id002
+  - 10 / 2
+  - -->
+  - 'true'
+  - (1)
+  expected: ''
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./validator "7 + * 3" --> false (0)
+  args: &id003
+  - 7 + * 3
+  - -->
+  - 'false'
+  - (0)
+  expected: ''
+  cat_e: false
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./validator "abc"     --> false (0)
+  args: &id004
+  - abc
+  - -->
+  - 'false'
+  - (0)
+  expected: ''
+  cat_e: false
+folder_examples:
+- id: cur_fix_parser_T06
+  origin: subject_folder/deepthought/corrections/exams/fix_parser/generator.py
+  input: Dynamic generation rule via valid_expression_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_fix_parser_T07
+  origin: subject_folder/deepthought/corrections/exams/fix_parser/generator.py
+  input: Dynamic generation rule via invalid_expression_test()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_fix_parser_T08
+  origin: subject_folder/deepthought/corrections/exams/fix_parser/generator.py
+  input: Dynamic generation rule via edge_case_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - 5+3*2!
+  - -->!
+  - urue
+  - (1)!
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  5+3*2  '
+  - -->
+  - 'true'
+  - (1)
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - 10 / 2!
+  - -->!
+  - urue
+  - (1)!
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  10 / 2  '
+  - -->
+  - 'true'
+  - (1)
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - 7 + * 3!
+  - -->!
+  - galse
+  - (0)!
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  7 + * 3  '
+  - -->
+  - 'false'
+  - (0)
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - bbc
+  - -->!
+  - galse
+  - (0)!
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  abc  '
+  - -->
+  - 'false'
+  - (0)
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_fix_parser_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/fix_parser/generator.py)
+  original_input: Dynamic generation rule via valid_expression_test()
+  perturbed_input: Eynamic generation rule via valid_expres
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_fix_parser_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/fix_parser/generator.py)
+  original_input: Dynamic generation rule via invalid_expression_test()
+  perturbed_input: Eynamic generation rule via invalid_expr
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty array (size = 0), single element, and NULL pointer in `fix_parser`
+  input: fix_parser(tab, 0) and fix_parser(NULL, 0)
+  expected: Safe return without memory violation
+- name: edge_02_B
+  code: '[B]'
+  title: Array with duplicate elements and all elements identical in `fix_parser`
+  input: fix_parser([5, 5, 5, 5], 4)
+  expected: Preserve stable sort or return correct count
+- name: edge_03_B
+  code: '[B]'
+  title: Array already sorted in reverse order in `fix_parser`
+  input: fix_parser([9, 8, 7, 6, 5], 5)
+  expected: Properly sort array with no missing elements
+- name: edge_04_T
+  code: '[T]'
+  title: Performance verification on large array in `fix_parser`
+  input: Run fix_parser on array of 10,000 elements
+  expected: Complete within timeout limit

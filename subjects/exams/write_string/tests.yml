@@ -1,0 +1,133 @@
+mode: c_function
+fixed_tests:
+- name: cur_write_string_T01
+  description: 'Functional verification of input: `write_string("Hello 1337"); write(1,
+    "\n", 1)`'
+  call: write_string("Hello 1337"); write(1, "\n", 1)
+  stdout: 'Hello 1337
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_write_string_T02
+  description: 'Functional verification of input: `write_string(""); write(1, "\n",
+    1)`'
+  call: write_string(""); write(1, "\n", 1)
+  stdout: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_write_string_T03
+  description: 'Functional verification of input: `write_string("42"); write(1, "\n",
+    1)`'
+  call: write_string("42"); write(1, "\n", 1)
+  stdout: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_write_string_T04
+  description: 'Functional verification of input: `write_string("a b c"); write(1,
+    "\n", 1)`'
+  call: write_string("a b c"); write(1, "\n", 1)
+  stdout: 'a b c
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_single_char
+  call: write_string("X"); write(1, "\n", 1)
+  tier: edge
+  stdout: 'X
+
+    '
+- name: test_06_spaces_only
+  call: write_string("   "); write(1, "|\n", 2)
+  tier: edge
+  stdout: '   |
+
+    '
+- name: test_07_tabs_and_newlines
+  call: write_string("1337\t42\n")
+  tier: edge
+  stdout: "1337\t42\n"
+- name: test_08_symbols
+  call: write_string("!@#$%^&*()"); write(1, "\n", 1)
+  tier: baseline
+  stdout: '!@#$%^&*()
+
+    '
+- name: test_09_two_calls
+  call: write_string("foo_"); write_string("bar"); write(1, "\n", 1)
+  tier: baseline
+  stdout: 'foo_bar
+
+    '
+- name: test_10_alphabet
+  call: write_string("abcdefghijklmnopqrstuvwxyz"); write(1, "\n", 1)
+  tier: stress
+  stdout: 'abcdefghijklmnopqrstuvwxyz
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval write_string
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_write_string_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: write_string("Hello 1337"); write(1, "\n", 1)
+  expected: Hello 1337\n
+- id: cur_write_string_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: write_string(""); write(1, "\n", 1)
+  expected: \n
+- id: cur_write_string_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: write_string("42"); write(1, "\n", 1)
+  expected: 42\n
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval write_string
+  perturbed_input:
+  - write_string_near_arg_1
+  - write_string_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_write_string_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: write_string("Hello 1337"); write(1, "\n", 1)
+  perturbed_input: xrite_string("Hello 1337"); write(1, "\n
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_write_string_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: write_string(""); write(1, "\n", 1)
+  perturbed_input: xrite_string(""); write(1, "\n", 1)
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `write_string`
+  input: "write_string(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `write_string`
+  input: write_string("   word   ") and write_string("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `write_string`
+  input: write_string("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `write_string`
+  input: Execute write_string with no arguments and with 3 arguments
+  expected: Print newline only

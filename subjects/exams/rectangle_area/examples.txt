@@ -1,0 +1,6 @@
+# Examples for rectangle_area (from official subject specification)
+
+Example:
+
+    $> rectangle_area(1, 3) = 3
+    $> rectangle_area(12, 3) = 36

@@ -1,0 +1,5 @@
+# Examples for btree_create_node (from official subject specification)
+
+Examples:
+    t_btree *n=btree_create_node("x"); printf("%s:%d:%d\n",(char*)n->item,n->left==0,n->right==0)
+    Output: x:1:1

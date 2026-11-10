@@ -1,0 +1,5 @@
+# Examples for ft_strlowcase (from official subject specification)
+
+Examples:
+    char s[] = "HELLO"; ft_strlowcase(s); printf("%s\n", s)
+    Output: hello

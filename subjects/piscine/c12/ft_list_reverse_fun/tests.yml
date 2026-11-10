@@ -1,0 +1,68 @@
+fixed_tests:
+- call: t_list c={"c",0}; t_list b={"b",&c}; t_list a={"a",&b}; ft_list_reverse_fun(&a);
+    t_list *l=&a; while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  name: pool_ft_list_reverse_fun_T01
+  stdout: 'cba
+
+    '
+- call: ft_list_reverse_fun(NULL); printf("NULL_OK\n");
+  name: ft_list_reverse_fun_null
+  stdout: 'NULL_OK
+
+    '
+- call: t_list a={"only",0}; ft_list_reverse_fun(&a); printf("%s\n",(char*)a.data);
+  name: ft_list_reverse_fun_single
+  stdout: 'only
+
+    '
+- call: t_list d={"4",0}; t_list c={"3",&d}; t_list b={"2",&c}; t_list a={"1",&b};
+    ft_list_reverse_fun(&a); t_list *l=&a; while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  name: ft_list_reverse_fun_four_nodes
+  stdout: '4321
+
+    '
+- name: test_05_two_nodes
+  call: t_list b={"2",0},a={"1",&b}; ft_list_reverse_fun(&a); printf("%s%s\n",(char*)a.data,(char*)b.data);
+  tier: baseline
+  stdout: '21
+
+    '
+- name: test_06_five_nodes
+  call: t_list e={"5",0},d={"4",&e},c={"3",&d},b={"2",&c},a={"1",&b}; ft_list_reverse_fun(&a);
+    t_list *l=&a; while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  tier: baseline
+  stdout: '54321
+
+    '
+- name: test_07_node_links_unchanged
+  call: t_list b={"B",0},a={"A",&b}; ft_list_reverse_fun(&a); printf("%d:%s:%s\n",a.next==&b,(char*)a.data,(char*)b.data);
+  tier: edge
+  stdout: '1:B:A
+
+    '
+- name: test_08_double_reverse_restores
+  call: t_list c={"c",0},b={"b",&c},a={"a",&b}; ft_list_reverse_fun(&a); ft_list_reverse_fun(&a);
+    t_list *l=&a; while(l){printf("%s",(char*)l->data);l=l->next;} printf("\n");
+  tier: stress
+  stdout: 'abc
+
+    '
+- name: test_09_six_nodes_even
+  call: t_list n6={"6",0},n5={"5",&n6},n4={"4",&n5},n3={"3",&n4},n2={"2",&n3},n1={"1",&n2};
+    ft_list_reverse_fun(&n1); t_list *l=&n1; while(l){printf("%s",(char*)l->data);l=l->next;}
+    printf("\n");
+  tier: stress
+  stdout: '654321
+
+    '
+- name: test_10_with_null_data
+  call: t_list b={"nonnull",0},a={NULL,&b}; ft_list_reverse_fun(&a); printf("%s:%d\n",(char*)a.data,b.data==NULL);
+  tier: edge
+  stdout: 'nonnull:1
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,13 @@
+id: parse_int_base
+type: c_function
+module: Piscine Exams 00–Final
+xp: 290
+expected_files:
+- parse_int_base.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int parse_int_base(const char *str, int base);

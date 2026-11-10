@@ -1,0 +1,60 @@
+fixed_tests:
+- call: char *s = ft_strjoin("Hello ", "1337"); printf("%s\n", s); free(s);
+  name: cur_ft_strjoin_T01
+  stdout: 'Hello 1337
+
+    '
+- call: char *s = ft_strjoin("", "42"); printf("%s\n", s); free(s);
+  name: ft_strjoin_empty_first
+  stdout: '42
+
+    '
+- call: char *s = ft_strjoin("School", ""); printf("%s\n", s); free(s);
+  name: ft_strjoin_empty_second
+  stdout: 'School
+
+    '
+- call: char *s = ft_strjoin("", ""); printf("%s|empty\n", s); free(s);
+  name: ft_strjoin_both_empty
+  stdout: '|empty
+
+    '
+- call: char *s1 = ft_strjoin(NULL, "a"); char *s2 = ft_strjoin("a", NULL); printf("%d:%d\n",
+    s1==NULL, s2==NULL);
+  name: ft_strjoin_null_pointer
+  stdout: '1:1
+
+    '
+- name: test_06_single_chars
+  call: char *s = ft_strjoin("4", "2"); printf("%s\n", s); free(s);
+  tier: baseline
+  stdout: '42
+
+    '
+- name: test_07_spaces_and_tabs
+  call: char *s = ft_strjoin("  hello\t", "world  "); printf("[%s]\n", s); free(s);
+  tier: edge
+  stdout: "[  hello\tworld  ]\n"
+- name: test_08_both_null
+  call: char *s = ft_strjoin(NULL, NULL); printf("%d\n", s == NULL);
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_symbols_and_digits
+  call: char *s = ft_strjoin("012345", "!@#$%^"); printf("%s\n", s); free(s);
+  tier: baseline
+  stdout: '012345!@#$%^
+
+    '
+- name: test_10_nested_strjoin
+  call: char *p1 = ft_strjoin("1337", "_"); char *p2 = ft_strjoin(p1, "42"); printf("%s\n",
+    p2); free(p1); free(p2);
+  tier: stress
+  stdout: '1337_42
+
+    '
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

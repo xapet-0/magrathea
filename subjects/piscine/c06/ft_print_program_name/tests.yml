@@ -1,0 +1,170 @@
+mode: c_program
+fixed_tests:
+- name: pool_ft_print_program_name_T01
+  description: Default binary name ./user_exe
+  args: []
+  expected: './user_exe
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_print_program_name_T02_custom_argv0
+  description: Custom binary name ./ft_prog_42 via argv[0]
+  argv0: ./ft_prog_42
+  args:
+  - unused
+  expected: './ft_prog_42
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_print_program_name_T03
+  description: edge_empty_str
+  args:
+  - ''
+  expected: './user_exe
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: pool_ft_print_program_name_T04_multi_args
+  description: Multiple arguments ignored when printing argv[0]
+  argv0: ./marvin_bin
+  args:
+  - a
+  - b
+  - c
+  expected: './marvin_bin
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_flag_like_args
+  args:
+  - -a
+  - -b
+  - --help
+  tier: baseline
+  stdout: './user_exe
+
+    '
+- name: test_06_custom_argv0_runner
+  argv0: ./my_custom_prog
+  args: []
+  tier: edge
+  stdout: './my_custom_prog
+
+    '
+- name: test_07_custom_argv0_with_args
+  argv0: ./piscine_c06
+  args:
+  - '1337'
+  - '42'
+  tier: edge
+  stdout: './piscine_c06
+
+    '
+- name: test_08_spaces_in_args
+  args:
+  - hello world
+  - foo bar
+  tier: baseline
+  stdout: './user_exe
+
+    '
+- name: test_09_numeric_args
+  args:
+  - '0'
+  - '-1'
+  - '2147483647'
+  tier: baseline
+  stdout: './user_exe
+
+    '
+- name: test_10_custom_argv0_dot_slash
+  argv0: ./42_checker
+  args:
+  - x
+  tier: stress
+  stdout: './42_checker
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./a.out | cat -e
+  args: []
+  expected: './a.out
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./ft_print_program_name | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./ft_print_program_name "unused" | cat -e
+  args: &id001
+  - unused
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./ft_print_program_name | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: pool_ft_print_program_name_T05
+  origin: subject_folder/mini-moulinette/ex00/ft_print_program_name.c
+  input: 'Input:'
+  expected: 'Expected:'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./a.out | cat -e
+  perturbed_input:
+  - ft_print_program_name_near_arg_1
+  - ft_print_program_name_near_arg_2
+- id: near_subj_02_arity_perturbation
+  derived_from: subj_ex_02
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./ft_print_program_name | cat -e
+  perturbed_input:
+  - ft_print_program_name_near_arg_1
+  - ft_print_program_name_near_arg_2
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - vnused
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  unused  '
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./ft_print_program_name | cat -e
+  perturbed_input:
+  - ft_print_program_name_near_arg_1
+  - ft_print_program_name_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_print_program_name_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex00/ft_print_program_name.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'

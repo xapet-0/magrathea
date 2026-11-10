@@ -1,0 +1,110 @@
+subject_id: add_binary
+fixed_tests:
+- name: test_01_s_n_s_free_s
+  setup:
+  - char *s = add_binary("11", "1")
+  call: printf("%s\n", s); free(s)
+  stdout: '100
+
+    '
+  tier: baseline
+- name: test_02_s_n_s_free_s
+  setup:
+  - char *s = add_binary("1010", "1011")
+  call: printf("%s\n", s); free(s)
+  stdout: '10101
+
+    '
+  tier: baseline
+- name: test_03_s_n_s_free_s
+  setup:
+  - char *s = add_binary("0", "0")
+  call: printf("%s\n", s); free(s)
+  stdout: '0
+
+    '
+  tier: baseline
+- name: test_04_s_n_s_free_s
+  setup:
+  - char *s = add_binary("1111", "1")
+  call: printf("%s\n", s); free(s)
+  stdout: '10000
+
+    '
+  tier: baseline
+- name: test_05_s_n_s_free_s
+  setup:
+  - char *s = add_binary("101010", "0")
+  call: printf("%s\n", s); free(s)
+  stdout: '101010
+
+    '
+  tier: baseline
+- name: folder_ex_01
+  tier: folder_example
+  expr: add_binary("11", "1")
+  fmt: '%s'
+  stdout: '100
+
+    '
+- name: folder_ex_02
+  tier: folder_example
+  expr: add_binary("1010", "1011")
+  fmt: '%s'
+  stdout: '10101
+
+    '
+- name: folder_ex_03
+  tier: folder_example
+  expr: add_binary("0", "0")
+  fmt: '%s'
+  stdout: '0
+
+    '
+oracle_tests:
+- name: oracle_add_binary_edges
+  source: "\nint main(void)\n{\n    char *r1 = add_binary(\"11\", \"1\");\n    char\
+    \ *r2 = add_binary(\"1010\", \"1011\");\n    char *r3 = add_binary(\"0\", \"0\"\
+    );\n    char *r4 = add_binary(\"11111111\", \"1\");\n    if (!r1 || strcmp(r1,\
+    \ \"100\") != 0) return (1);\n    if (!r2 || strcmp(r2, \"10101\") != 0) return\
+    \ (1);\n    if (!r3 || strcmp(r3, \"0\") != 0) return (1);\n    if (!r4 || strcmp(r4,\
+    \ \"100000000\") != 0) return (1);\n    free(r1); free(r2); free(r3); free(r4);\n\
+    \    return (0);\n}\n"
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval add_binary
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: e1337_add_binary_T07
+  origin: subject_folder/examples.txt
+  input: add_binary("11", "1")      -> "100"
+  expected: add_binary("1010", "1011") -> "10101"\n  add_binary("0", "0")       ->
+    "0"
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "subject_id: add_binary\nfixed_tests:\n- setup:\n  - char *s = add_binary(\"\
+    11\", \"1\")\n  call: printf(\"%s\\n\", s); free(s)\n  stdout: '100\n\n    '\n\
+    - setup:\n  - char *s ="
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval add_binary
+  perturbed_input:
+  - add_binary_near_arg_1
+  - add_binary_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_add_binary_T07
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: add_binary("11", "1")      -> "100"
+  perturbed_input: bdd_binary("11", "1")      -> "100"
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

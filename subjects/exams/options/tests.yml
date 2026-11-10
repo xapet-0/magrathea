@@ -1,0 +1,196 @@
+mode: c_program
+fixed_tests:
+- name: can_options_T01
+  description: no_args
+  args: []
+  expected: 'options: abcdefghijklmnopqrstuvwxyz
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_options_T02
+  description: help_flag
+  args:
+  - -h
+  expected: 'options: abcdefghijklmnopqrstuvwxyz
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_options_T03
+  description: invalid_opt
+  args:
+  - -A
+  expected: 'Invalid Option
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_options_T04
+  description: abc_bits
+  args:
+  - -abc
+  expected: '00000000 00000000 00000000 00000111
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - -abc
+  - -ijk
+  expected: '00000000 00000000 00000111 00000111
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - -z
+  expected: '00000010 00000000 00000000 00000000
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args:
+  - -abc
+  - -hijk
+  expected: 'options: abcdefghijklmnopqrstuvwxyz
+
+    '
+- name: subj_ex_05
+  tier: subject_example
+  args:
+  - -%
+  expected: 'Invalid Option
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./options
+  args: []
+  expected: 'options: abcdefghijklmnopqrstuvwxyz
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./options -abc -ijk
+  args: &id001
+  - -abc
+  - -ijk
+  expected: '00000000 00000000 00000111 00000111
+
+    '
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./options -z
+  args: &id002
+  - -z
+  expected: '00000010 00000000 00000000 00000000
+
+    '
+  cat_e: false
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./options -abc -hijk
+  args: &id003
+  - -abc
+  - -hijk
+  expected: 'options: abcdefghijklmnopqrstuvwxyz
+
+    '
+  cat_e: false
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./options -%
+  args:
+  - -%
+  expected: 'Invalid Option
+
+    '
+  cat_e: false
+folder_examples:
+- id: can_options_T05
+  origin: subject_folder/examples.txt
+  input: ./options
+  expected: 'options: abcdefghijklmnopqrstuvwxyz'
+- id: can_options_T06
+  origin: subject_folder/examples.txt
+  input: ./options -abc -ijk
+  expected: 00000000 00000000 00000111 00000111
+- id: can_options_T07
+  origin: subject_folder/examples.txt
+  input: ./options -z
+  expected: 00000010 00000000 00000000 00000000
+- id: can_options_T08
+  origin: subject_folder/examples.txt
+  input: ./options -abc -hijk
+  expected: 'options: abcdefghijklmnopqrstuvwxyz'
+- id: can_options_T09
+  origin: subject_folder/examples.txt
+  input: ./options -%
+  expected: Invalid Option
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./options
+  perturbed_input:
+  - options_near_arg_1
+  - options_near_arg_2
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - -bbc
+  - -jjk
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  -abc  '
+  - -ijk
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - -z!
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  -z  '
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - -bbc
+  - -iijk
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  -abc  '
+  - -hijk
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_options_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./options
+  perturbed_input: ./pptions
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_options_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ./options -abc -ijk
+  perturbed_input: ./pptions -abc -ijk

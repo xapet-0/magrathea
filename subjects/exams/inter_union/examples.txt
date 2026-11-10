@@ -1,0 +1,9 @@
+Examples:
+$> ./inter_union "abc" "bcd" | cat -e
+bc$
+$> ./inter_union "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" | cat -e
+padinto$
+$> ./inter_union "abc" "xyz" | cat -e
+$
+$> ./inter_union | cat -e
+$

@@ -1,0 +1,19 @@
+Assignment name  : black_hole
+Expected files   : black_hole.sh
+Allowed commands : printf, echo, ls
+--------------------------------------------------------------------------------
+
+Write a shell script that redirects error output to /dev/null (the system
+black hole) and prints OK followed by a newline on standard output.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh black_hole.sh | cat -e
+OK$
+$> sh black_hole.sh "ignored_err" | cat -e
+OK$
+$> sh black_hole.sh "a" "b" | cat -e
+OK$

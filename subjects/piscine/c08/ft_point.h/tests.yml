@@ -1,0 +1,35 @@
+mode: c_header
+fixed_tests:
+- name: pool_ft_point-h_T01
+  description: Subject specification baseline compliance & execution driver
+  args: []
+  input: Harness driver specified in subject.en.txt
+  expected: Compilation succeeds cleanly; exits with code 0
+  category: Compilation / Functional
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_point.h
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_point-h_T01
+  origin: subject_folder/subject.en.txt (verification driver)
+  input: Harness driver specified in subject.en.txt
+  expected: Compilation succeeds cleanly; exits with code 0
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_point.h
+  perturbed_input:
+  - ft_point.h_near_arg_1
+  - ft_point.h_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_point-h_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/subject.en.txt
+    (verification driver))
+  original_input: Harness driver specified in subject.en.txt
+  perturbed_input: Iarness driver specified in subject.en.t

@@ -1,0 +1,7 @@
+# Examples for where_is_cmd (from official subject specification)
+
+Examples:
+$> sh where_is_cmd.sh "sh" | cat -e
+/bin/sh$
+$> sh where_is_cmd.sh "ls" | cat -e
+$

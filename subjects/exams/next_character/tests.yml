@@ -1,0 +1,233 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and non-printable characters in `next_character`
+  input: "next_character(\"\") and next_character(\"\t\n\x01\x1F\")"
+  expected: Preserve non-alphabetic characters unmodified
+- name: edge_02_B
+  code: '[B]'
+  title: Argument count verification (argc != 2) in `next_character`
+  input: Execute next_character with 0 arguments and with > 1 argument
+  expected: Print newline only
+- name: edge_03_D
+  code: '[D]'
+  title: Idempotence and involution property check for `next_character`
+  input: 'Apply transformation twice: next_character(next_character(s))'
+  expected: Valid transformation output matching mathematical cipher cycle
+- name: edge_04_B
+  code: '[B]'
+  title: Boundary alphabetic letters ('a', 'z', 'A', 'Z') in `next_character`
+  input: next_character("a z A Z")
+  expected: Accurate wraparound without overflowing outside alphabet bounds
+fixed_tests:
+- name: test_01_a
+  args:
+  - a
+  stdout: 'b
+
+    '
+  tier: baseline
+- name: test_02_z
+  args:
+  - z
+  stdout: 'a
+
+    '
+  tier: baseline
+- name: test_03_no_args
+  args: []
+  stdout: '
+
+    '
+  tier: baseline
+- args:
+  - '9'
+  name: edge_next_digit
+  stdout: ':
+
+    '
+  tier: baseline
+- args:
+  - A
+  expected: 'B
+
+    '
+  name: subj_ex_01
+  stdout: 'B
+
+    '
+  tier: subject_example
+- args:
+  - ''
+  expected: '
+
+    '
+  name: subj_ex_04
+  stdout: '
+
+    '
+  tier: subject_example
+- name: test_07_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: '!
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '2
+
+    '
+- name: test_10_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '5
+
+    '
+folder_examples:
+- expected: Deterministic output validated by Deepthought oracle
+  id: e1337_next_character_T05
+  input: Dynamic generation rule via basic_test()
+  origin: subject_folder/deepthought/corrections/exams/next_character/generator.py
+- expected: Deterministic output validated by Deepthought oracle
+  id: e1337_next_character_T06
+  input: Dynamic generation rule via basic_test1()
+  origin: subject_folder/deepthought/corrections/exams/next_character/generator.py
+- expected: Deterministic output validated by Deepthought oracle
+  id: e1337_next_character_T07
+  input: Dynamic generation rule via random_character()
+  origin: subject_folder/deepthought/corrections/exams/next_character/generator.py
+- expected: Deterministic output validated by Deepthought oracle
+  id: e1337_next_character_T08
+  input: Dynamic generation rule via empty_test()
+  origin: subject_folder/deepthought/corrections/exams/next_character/generator.py
+- expected: Deterministic output validated by Deepthought oracle
+  id: e1337_next_character_T09
+  input: Dynamic generation rule via multiple_arguments_test()
+  origin: subject_folder/deepthought/corrections/exams/next_character/generator.py
+- expected: B$
+  id: e1337_next_character_T10
+  input: ./next_character 'A' \| cat -e
+  origin: subject_folder/examples.txt
+- expected: a$
+  id: e1337_next_character_T11
+  input: ./next_character 'z' \| cat -e
+  origin: subject_folder/examples.txt
+- expected: $
+  id: e1337_next_character_T12
+  input: ./next_character \| cat -e
+  origin: subject_folder/examples.txt
+- expected: Clean execution
+  id: e1337_next_character_T13
+  input: ./next_character "" \| cat -e
+  origin: subject_folder/examples.txt
+- expected: "fixed_tests:\n- args:\n  - a\n  stdout: 'b\n\n    '\n- args:\n  - z\n\
+    \  stdout: 'a\n\n    '\n- args: []\n  stdout: '\n\n    '\n- name: edge_next_digit\n\
+    \  args:\n  - '9'\n  stdout:"
+  id: folder_fixture_10
+  input: tests.yml
+  origin: subject_folder/tests.yml
+mode: c_program
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_lexical_shift
+  original_input: &id001
+  - A
+  perturbed_input:
+  - B
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_01
+  id: near_subj_01_whitespace_envelope
+  original_input: *id001
+  perturbed_input:
+  - '  A  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_02
+  id: near_subj_02_lexical_shift
+  original_input: &id002
+  - z
+  perturbed_input:
+  - z!
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_02
+  id: near_subj_02_whitespace_envelope
+  original_input: *id002
+  perturbed_input:
+  - '  z  '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: subj_ex_03
+  id: near_subj_03_arity_perturbation
+  original_input: ./next_character | cat -e
+  perturbed_input:
+  - next_character_near_arg_1
+  - next_character_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: subj_ex_04
+  id: near_subj_04_lexical_shift
+  original_input: &id003
+  - ''
+  perturbed_input:
+  - ' '
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+- derived_from: subj_ex_04
+  id: near_subj_04_whitespace_envelope
+  original_input: *id003
+  perturbed_input:
+  - '    '
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+- derived_from: e1337_next_character_T05
+  id: near_folder_01_boundary_neighbor
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/next_character/generator.py)
+- derived_from: e1337_next_character_T06
+  id: near_folder_02_boundary_neighbor
+  original_input: Dynamic generation rule via basic_test1()
+  perturbed_input: Eynamic generation rule via basic_test1(
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/next_character/generator.py)
+subject_examples:
+- args: *id001
+  cat_e: true
+  command: ./next_character 'A' | cat -e
+  expected: 'B
+
+    '
+  id: subj_ex_01
+  origin: subject.en.txt
+- args: *id002
+  cat_e: true
+  command: ./next_character 'z' | cat -e
+  expected: 'a
+
+    '
+  id: subj_ex_02
+  origin: subject.en.txt
+- args: []
+  cat_e: true
+  command: ./next_character | cat -e
+  expected: '
+
+    '
+  id: subj_ex_03
+  origin: subject.en.txt
+- args: *id003
+  cat_e: true
+  command: ./next_character "" | cat -e
+  expected: ''
+  id: subj_ex_04
+  origin: subject.en.txt
+subject_id: next_character

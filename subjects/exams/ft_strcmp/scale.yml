@@ -1,0 +1,26 @@
+project: ft_strcmp
+scale_version: 1337HUB-v4.2
+stop_on_first_failure: true
+zero_tolerance_gates:
+- segfault
+- memory_leak
+- norme_error
+- forbidden_function
+sections:
+- id: preliminaries
+  title: 'Step 1: Preliminaries & Vogsphere Integrity Check'
+  points: 20
+  checks:
+  - Clone official Vogsphere repository into an empty folder.
+  - Verify no malicious shell aliases or unauthorized files exist.
+  - Run norminette / shnorm and verify clean compilation with -Wall -Wextra -Werror.
+- id: explain_before_checking
+  title: 'Step 2: Conceptual Defense (Explain Before Checking)'
+  points: 30
+  checks:
+  - Student explains data structures and control flow before executing tests.
+- id: live_mutation
+  title: 'Step 3: Live Mutation & Edge-Case Verification'
+  points: 50
+  checks:
+  - Inject a live boundary modification on the spot and verify deterministic behavior.

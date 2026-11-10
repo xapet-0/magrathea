@@ -1,0 +1,35 @@
+mode: c_header
+fixed_tests:
+- name: nominal_contract_check
+  args: []
+  expected: 'OK
+
+    '
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./ft.h | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: ft.h baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: ./ft.h | cat -e
+  perturbed_input:
+  - ft.h_near_arg_1
+  - ft.h_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ft.h baseline folder fixture
+  perturbed_input: gt.h baseline folder fixture

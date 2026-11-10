@@ -1,0 +1,14 @@
+id: rtfm_ls
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 300
+expected_files:
+- rtfm_ls.sh
+allowed_functions:
+- ls
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh rtfm_ls.sh [args...]

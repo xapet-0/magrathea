@@ -1,0 +1,252 @@
+mode: c_program
+fixed_tests:
+- name: can_pgcd_T01
+  description: 'Functional verification of input: `[''42'', ''21'']`'
+  args:
+  - '42'
+  - '21'
+  expected: '21
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_pgcd_T02
+  description: case_coprime
+  args:
+  - '13'
+  - '17'
+  expected: '1
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_pgcd_T03
+  description: case_equal
+  args:
+  - '42'
+  - '42'
+  expected: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_pgcd_T04
+  description: case_bad_argc
+  args:
+  - '42'
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: subj_ex_01
+  tier: subject_example
+  args:
+  - '42'
+  - '10'
+  expected: '2
+
+    '
+- name: subj_ex_02
+  tier: subject_example
+  args:
+  - '42'
+  - '12'
+  expected: '6
+
+    '
+- name: subj_ex_03
+  tier: subject_example
+  args:
+  - '14'
+  - '77'
+  expected: '7
+
+    '
+- name: subj_ex_04
+  tier: subject_example
+  args:
+  - '17'
+  - '3'
+  expected: '1
+
+    '
+- name: subj_ex_05
+  tier: subject_example
+  args: []
+  expected: '
+
+    '
+- name: near_ex_one_arg_only
+  tier: near_example
+  args:
+  - only_one_near_arg
+  expected: '
+
+    '
+- name: near_ex_three_args
+  tier: near_example
+  args:
+  - a
+  - b
+  - c
+  expected: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./pgcd 42 10 | cat -e
+  args: &id001
+  - '42'
+  - '10'
+  expected: '2
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./pgcd 42 12 | cat -e
+  args: &id002
+  - '42'
+  - '12'
+  expected: '6
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./pgcd 14 77 | cat -e
+  args: &id003
+  - '14'
+  - '77'
+  expected: '7
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./pgcd 17 3 | cat -e
+  args: &id004
+  - '17'
+  - '3'
+  expected: '1
+
+    '
+  cat_e: true
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: ./pgcd | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true
+folder_examples:
+- id: can_pgcd_T05
+  origin: subject_folder/42ExamPractice/pgcd/tester.sh
+  input: ./pgcd "98"
+  expected: Matches 42 reference standard output and exit code
+- id: can_pgcd_T06
+  origin: subject_folder/42ExamPractice/pgcd/tester.sh
+  input: ./pgcd "42" "12"
+  expected: Matches 42 reference standard output and exit code
+- id: can_pgcd_T07
+  origin: subject_folder/42ExamPractice/pgcd/tester.sh
+  input: ./pgcd "2" "8"
+  expected: Matches 42 reference standard output and exit code
+- id: can_pgcd_T08
+  origin: subject_folder/42ExamPractice/pgcd/tester.sh
+  input: ./pgcd "42" "10"
+  expected: Matches 42 reference standard output and exit code
+- id: can_pgcd_T09
+  origin: subject_folder/examples.txt
+  input: ./pgcd 42 10 \| cat -e
+  expected: 2$
+- id: can_pgcd_T10
+  origin: subject_folder/examples.txt
+  input: ./pgcd 42 12 \| cat -e
+  expected: 6$
+- id: can_pgcd_T11
+  origin: subject_folder/examples.txt
+  input: ./pgcd 14 77 \| cat -e
+  expected: 7$
+- id: can_pgcd_T12
+  origin: subject_folder/examples.txt
+  input: ./pgcd 17 3 \| cat -e
+  expected: 1$
+- id: can_pgcd_T13
+  origin: subject_folder/examples.txt
+  input: ./pgcd \| cat -e
+  expected: $
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '43'
+  - '11'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  42  '
+  - '10'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - '43'
+  - '13'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  42  '
+  - '12'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - '15'
+  - '78'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  14  '
+  - '77'
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - '18'
+  - '4'
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  17  '
+  - '3'
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_pgcd_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/pgcd/tester.sh)
+  original_input: ./pgcd "98"
+  perturbed_input: ./qgcd "98"
+- id: near_folder_02_boundary_neighbor
+  derived_from: can_pgcd_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/pgcd/tester.sh)
+  original_input: ./pgcd "42" "12"
+  perturbed_input: ./qgcd "42" "12"

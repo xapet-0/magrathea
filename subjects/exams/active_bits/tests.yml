@@ -1,0 +1,120 @@
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Bitwise boundary values (0x00, 0xFF, 0x80, 0x01) in `active_bits`
+  input: active_bits(0x00), active_bits(0xFF), active_bits(0x80)
+  expected: Accurate bit manipulation using unsigned byte representations
+- name: edge_02_B
+  code: '[B]'
+  title: Zero length buffer and NULL pointer guard in `active_bits`
+  input: active_bits(NULL, 0)
+  expected: Safe return without SIGSEGV
+- name: edge_03_D
+  code: '[D]'
+  title: Inverse bitwise operation property verification in `active_bits`
+  input: 'Apply reverse or swap twice: active_bits(active_bits(x))'
+  expected: Restores original value
+- name: edge_04_B
+  code: '[B]'
+  title: Hexadecimal formatting and padding in `active_bits`
+  input: active_bits(15) and active_bits(16)
+  expected: Canonical hex output matching 42 specifications
+fixed_tests:
+- name: test_01_folder_example_42
+  expr: active_bits(42)
+  stdout: '3
+
+    '
+  tier: folder_example
+- name: test_02_0
+  expr: active_bits(0)
+  stdout: '0
+
+    '
+  tier: baseline
+- name: test_03_1
+  expr: active_bits(1)
+  stdout: '1
+
+    '
+  tier: baseline
+- name: test_04_7
+  expr: active_bits(7)
+  stdout: '3
+
+    '
+  tier: baseline
+- name: test_05_255
+  expr: active_bits(255)
+  stdout: '8
+
+    '
+  tier: baseline
+- name: test_06_1024
+  expr: active_bits(1024)
+  stdout: '1
+
+    '
+  tier: baseline
+- name: test_07_int_max
+  expr: active_bits(2147483647)
+  tier: edge
+  stdout: '31
+
+    '
+- name: test_08_int_min
+  expr: active_bits(-2147483648)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_09_neg_one
+  expr: active_bits(-1)
+  tier: edge
+  stdout: '32
+
+    '
+- name: test_10_alternating_bits
+  expr: active_bits(0x55555555)
+  tier: stress
+  stdout: '16
+
+    '
+folder_examples:
+- expected: active_bits(0)  -> 0\n  active_bits(7)  -> 3   (7 in binary is 111)
+  id: e1337_active_bits_T07
+  input: active_bits(42) -> 3   (42 in binary is 101010)
+  origin: subject_folder/examples.txt
+- expected: "subject_id: active_bits\nfixed_tests:\n- expr: active_bits(42)\n  stdout:\
+    \ '3\n\n    '\n- expr: active_bits(0)\n  stdout: '0\n\n    '\n- expr: active_bits(1)\n\
+    \  stdout: '1\n"
+  id: folder_fixture_02
+  input: tests.yml
+  origin: subject_folder/tests.yml
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval active_bits
+  perturbed_input:
+  - active_bits_near_arg_1
+  - active_bits_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: e1337_active_bits_T07
+  id: near_folder_01_boundary_neighbor
+  original_input: active_bits(42) -> 3   (42 in binary is 101010)
+  perturbed_input: 'bctive_bits(42) -> 3   (42 in binary is '
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+- derived_from: folder_fixture_02
+  id: near_folder_02_boundary_neighbor
+  original_input: tests.yml
+  perturbed_input: uests.yml
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval active_bits
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+subject_id: active_bits

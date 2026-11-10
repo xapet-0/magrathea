@@ -1,0 +1,7 @@
+Examples:
+$> printf "Hello $FT_VAR\n" | FT_VAR="1337" sh env_expander.sh | cat -e
+Hello 1337$
+$> printf "Welcome to $FT_VAR!\n" | FT_VAR="42_School" sh env_expander.sh | cat -e
+Welcome to 42_School!$
+$> printf "$FT_VAR\n" | FT_VAR="OK" sh env_expander.sh | cat -e
+OK$

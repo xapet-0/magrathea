@@ -1,0 +1,50 @@
+Assignment name  : ft_isdigit
+Expected files   : ft_isdigit.c
+Allowed functions:
+Version          : 1
+--------------------------------------------------------------------------------
+
+Write a function that checks if a character is a digit (1-9).
+
+    With: 
+        - code ASCII of 1 is 49
+        - code ASCII of 9 is 57
+
+Your function must be declared as follows:
+
+int ft_isdigit(int c);
+
+>>> STANDARD TEST CASES (Happy Path & Functional Tests):
+  [Standard Test 1] Name: test
+    Call / Invocation : ft_isdigit('5')
+    Expected Output   : '1\n'
+  [Standard Test 2] Name: test
+    Call / Invocation : ft_isdigit('a')
+    Expected Output   : '0\n'
+
+>>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
+  [Edge Case 1] Name: edge_ft_isdigit_zero [Test description: "edge_ft_isdigit_zero"]
+    Call / Invocation : ft_isdigit('0')
+    Expected Output   : '1\n'
+  [Edge Case 2] Name: edge_ft_isdigit_a [Test description: "edge_ft_isdigit_a"]
+    Call / Invocation : ft_isdigit('a')
+    Expected Output   : '0\n'
+  [Edge Case 3] Name: edge_ft_isdigit_before_zero [Test description: "edge_ft_isdigit_before_zero"]
+    Call / Invocation : ft_isdigit('/')
+    Expected Output   : '0\n'
+  [Edge Case 4] Name: edge_ft_isdigit_after_nine [Test description: "edge_ft_isdigit_after_nine"]
+    Call / Invocation : ft_isdigit(':')
+    Expected Output   : '0\n'
+
+>>> ORACLE REGRESSION TEST SUITES (Deepthought / Moulinette Harness):
+  [Oracle Test 1] Name: edge_ft_isdigit_oracle
+    C Source Driver:
+    int ft_isdigit(int c);
+    int main(void)
+    {
+        if (ft_isdigit('0') == 0) return (1);
+        if (ft_isdigit('9') == 0) return (1);
+        if (ft_isdigit('/') != 0) return (1);
+        if (ft_isdigit(':') != 0) return (1);
+        return (0);
+    }

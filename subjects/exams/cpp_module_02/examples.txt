@@ -1,0 +1,2 @@
+[cpp_cpp_module_02_T01] Input: `cpp_module_02()` (zero / void parameter call)  ==>  Expected: *(none)*
+[cpp_cpp_module_02_T02] Input: Harness evaluation: int main() Warlock richard("Richard", "foo"); richard.setTitle("Hello, I'm Richard the Warlock!"); BrickWall model1; Pol...  ==>  Expected: Richard: This looks like another boring day.\nRichard: I am Richard, Hello, I'm Richard the Warlock!!\nInconspicuous Red-brick Wall has been turned into a critter!\nInconspicuous Red-brick Wall has been burnt to a crisp!\nRichard: My job here is done!

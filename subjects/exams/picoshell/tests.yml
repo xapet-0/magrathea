@@ -1,0 +1,149 @@
+edge_cases:
+- name: edge_01_P
+  code: '[P]'
+  title: File descriptor leak audit in `picoshell`
+  input: Run picoshell and check open file descriptors in /proc/self/fd
+  expected: Only stdin, stdout, stderr remain open
+- name: edge_02_P
+  code: '[P]'
+  title: Child process reaping and zombie prevention in `picoshell`
+  input: Spawn multiple processes in picoshell and verify with waitpid
+  expected: No zombie processes remain in process table
+- name: edge_03_B
+  code: '[B]'
+  title: Command-line arguments contract enforcement in `picoshell`
+  input: Invoke picoshell with invalid argument counts
+  expected: Emit exact error string to stderr and exit with non-zero status
+- name: edge_04_M
+  code: '[M]'
+  title: Stream buffer cleanup on EOF in `picoshell`
+  input: Stream large input to picoshell until EOF
+  expected: 0 bytes leaked
+fixed_tests:
+- name: test_01_cmds
+  call: picoshell(cmds)
+  setup:
+  - char *c1[] = {"echo", "hello 1337", NULL}; char *c2[] = {"tr", "a-z", "A-Z", NULL};
+    char **cmds[] = {c1, c2, NULL};
+  stdout: 'HELLO 1337
+
+    '
+- name: test_02_cmds
+  call: picoshell(cmds)
+  setup:
+  - char *c1[] = {"echo", "42", NULL}; char **cmds[] = {c1, NULL};
+  stdout: '42
+
+    '
+- name: test_03_cmds_printf_n
+  call: picoshell(cmds); printf("\n")
+  setup:
+  - char *c1[] = {"printf", "b\na\nc\n", NULL}; char *c2[] = {"sort", NULL}; char
+    *c3[] = {"tr", "-d", "\n", NULL}; char **cmds[] = {c1, c2, c3, NULL};
+  stdout: 'abc
+
+    '
+- name: test_04_cmds
+  expr: picoshell(cmds)
+  setup:
+  - char **cmds[] = {NULL};
+  stdout: '0
+
+    '
+- name: test_05_two_stage_wc
+  setup:
+  - char *c1[] = {"printf", "one two three\n", NULL}; char *c2[] = {"wc", "-w", NULL};
+    char *c3[] = {"tr", "-d", " ", NULL}; char **cmds[] = {c1, c2, c3, NULL};
+  call: picoshell(cmds)
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_06_return_value_zero_on_ok
+  setup:
+  - char *c1[] = {"true", NULL}; char **cmds[] = {c1, NULL};
+  expr: picoshell(cmds)
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_grep_filter_pipeline
+  setup:
+  - char *c1[] = {"printf", "apple\nbanana\napricot\n", NULL}; char *c2[] = {"grep",
+    "^a", NULL}; char **cmds[] = {c1, c2, NULL};
+  call: picoshell(cmds)
+  tier: baseline
+  stdout: 'apple
+
+    apricot
+
+    '
+- name: test_08_head_and_tail_pipeline
+  setup:
+  - char *c1[] = {"printf", "1\n2\n3\n4\n", NULL}; char *c2[] = {"head", "-n", "3",
+    NULL}; char *c3[] = {"tail", "-n", "1", NULL}; char **cmds[] = {c1, c2, c3, NULL};
+  call: picoshell(cmds)
+  tier: baseline
+  stdout: '3
+
+    '
+- name: test_09_rev_twice_identity
+  setup:
+  - char *c1[] = {"echo", "magrathea", NULL}; char *c2[] = {"rev", NULL}; char *c3[]
+    = {"rev", NULL}; char **cmds[] = {c1, c2, c3, NULL};
+  call: picoshell(cmds)
+  tier: edge
+  stdout: 'magrathea
+
+    '
+- name: test_10_four_stage_pipeline
+  setup:
+  - char *c1[] = {"printf", "c\nb\na\nb\n", NULL}; char *c2[] = {"sort", NULL}; char
+    *c3[] = {"uniq", NULL}; char *c4[] = {"tr", "\n", ":", NULL}; char **cmds[] =
+    {c1, c2, c3, c4, NULL};
+  call: picoshell(cmds); printf("\n")
+  tier: stress
+  stdout: 'a:b:c:
+
+    '
+folder_examples:
+- expected: HELLO 1337\n
+  id: cur_picoshell_T01
+  input: picoshell(cmds)
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: 42\n
+  id: cur_picoshell_T02
+  input: picoshell(cmds)
+  origin: subject_folder/tests.yml (fixed_tests)
+- expected: abc\n
+  id: cur_picoshell_T03
+  input: picoshell(cmds); printf("\n")
+  origin: subject_folder/tests.yml (fixed_tests)
+mode: c_function
+near_examples:
+- derived_from: subj_ex_01
+  id: near_subj_01_arity_perturbation
+  original_input: eval picoshell
+  perturbed_input:
+  - picoshell_near_arg_1
+  - picoshell_near_arg_2
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+- derived_from: cur_picoshell_T01
+  id: near_folder_01_boundary_neighbor
+  original_input: picoshell(cmds)
+  perturbed_input: qicoshell(cmds)
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+- derived_from: cur_picoshell_T02
+  id: near_folder_02_boundary_neighbor
+  original_input: picoshell(cmds)
+  perturbed_input: qicoshell(cmds)
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+subject_examples:
+- args: []
+  cat_e: false
+  command: eval picoshell
+  expected: Conform to subject.en.txt prototype and output specification
+  id: subj_ex_01
+  origin: subject.en.txt (contract specification)

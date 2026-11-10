@@ -1,0 +1,3 @@
+Examples:
+$> ./add_chelou.sh | cat -e
+$

@@ -1,0 +1,89 @@
+subject_id: ft_putstr
+fixed_tests:
+- name: test_01_Hello_World
+  call: ft_putstr("Hello World")
+  stdout: Hello World
+  tier: baseline
+- name: empty_string
+  call: ft_putstr(""); write(1, "\n", 1)
+  stdout: '
+
+    '
+  tier: baseline
+- name: single_char
+  call: ft_putstr("Z"); write(1, "\n", 1)
+  stdout: 'Z
+
+    '
+  tier: baseline
+- name: with_spaces
+  call: ft_putstr("1337 Benguerir"); write(1, "\n", 1)
+  stdout: '1337 Benguerir
+
+    '
+  tier: baseline
+- name: test_05_tabs_and_newlines
+  call: ft_putstr("a\tb\nc\n")
+  tier: edge
+  stdout: "a\tb\nc\n"
+- name: test_06_digits
+  call: ft_putstr("0123456789\n")
+  tier: baseline
+  stdout: '0123456789
+
+    '
+- name: test_07_punctuation
+  call: ft_putstr("!@#$%^&*()_+-=\n")
+  tier: edge
+  stdout: '!@#$%^&*()_+-=
+
+    '
+- name: test_08_embedded_nul
+  call: char s[] = {'4', '2', 0, 'X', 0}; ft_putstr(s); write(1, "\n", 1)
+  tier: edge
+  stdout: '42
+
+    '
+- name: test_09_alphabet
+  call: ft_putstr("abcdefghijklmnopqrstuvwxyz\n")
+  tier: baseline
+  stdout: 'abcdefghijklmnopqrstuvwxyz
+
+    '
+- name: test_10_multiple_calls
+  call: ft_putstr("Hello "); ft_putstr("42!"); write(1, "\n", 1)
+  tier: stress
+  stdout: 'Hello 42!
+
+    '
+oracle_tests:
+- name: ft_putstr_oracle_stress
+  source: "int main(void)\n{\n    ft_putstr(\"\");\n    ft_putstr(\"hello\");\n  \
+    \  ft_putstr(\" world\");\n    return (0);\n}\n"
+  stdout: hello world
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_putstr
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: folder_ex_01
+  origin: subject_folder/examples.txt
+  input: ft_putstr baseline folder fixture
+  expected: Matches reference correction
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_putstr
+  perturbed_input:
+  - ft_putstr_near_arg_1
+  - ft_putstr_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: ft_putstr baseline folder fixture
+  perturbed_input: gt_putstr baseline folder fixture

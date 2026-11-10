@@ -1,0 +1,191 @@
+mode: c_program
+fixed_tests:
+- name: cur_is_palindrome_T01
+  description: 'Functional verification of input: `[''zaz'']`'
+  args:
+  - zaz
+  expected: 'zaz
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_palindrome_T02
+  description: 'Functional verification of input: `[''radar'']`'
+  args:
+  - radar
+  expected: 'radar
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_palindrome_T03
+  description: 'Functional verification of input: `[''aaabb'']`'
+  args:
+  - aaabb
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_is_palindrome_T04
+  description: Standard baseline execution and behavior check for `is_palindrome`
+  args: []
+  expected: '
+
+    '
+  category: Functional
+  tier: baseline
+- name: test_05_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_06_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: "   \n"
+- name: test_07_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_08_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_09_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: '
+
+    '
+- name: test_10_arg_auto
+  args:
+  - a b c d e
+  tier: baseline
+  stdout: '
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./is_palindrome "aaabb" | cat -e
+  args: &id001
+  - aaabb
+  expected: ''
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: $
+  args: []
+  expected: ''
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./is_palindrome "zaz" | cat -e
+  args: &id002
+  - zaz
+  expected: ''
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: zaz$
+  args: []
+  expected: ''
+  cat_e: false
+folder_examples:
+- id: cur_is_palindrome_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''zaz'']'
+  expected: zaz\n
+- id: cur_is_palindrome_T02
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''radar'']'
+  expected: radar\n
+- id: cur_is_palindrome_T03
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: '[''aaabb'']'
+  expected: '`\n` (Clean newline termination)'
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - baabb
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  aaabb  '
+- id: near_subj_02_arity_perturbation
+  derived_from: subj_ex_02
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: $
+  perturbed_input:
+  - is_palindrome_near_arg_1
+  - is_palindrome_near_arg_2
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - zbz
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  zaz  '
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: zaz$
+  perturbed_input:
+  - is_palindrome_near_arg_1
+  - is_palindrome_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_is_palindrome_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''zaz'']'
+  perturbed_input: '[''zbz'']'
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_is_palindrome_T02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: '[''radar'']'
+  perturbed_input: '[''sadar'']'
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `is_palindrome`
+  input: "is_palindrome(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `is_palindrome`
+  input: is_palindrome("   word   ") and is_palindrome("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `is_palindrome`
+  input: is_palindrome("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `is_palindrome`
+  input: Execute is_palindrome with no arguments and with 3 arguments
+  expected: Print newline only

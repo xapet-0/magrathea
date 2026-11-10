@@ -1,0 +1,205 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_abs_T01
+  description: 'Functional verification of input: `ft_abs(-42)`'
+  expr: ft_abs(-42)
+  stdout: '42
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_abs_T02
+  description: 'Functional verification of input: `ft_abs(17)`'
+  expr: ft_abs(17)
+  stdout: '17
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_ft_abs_T03
+  description: edge_ft_abs_zero
+  expr: ft_abs(0)
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_ft_abs_T04
+  description: edge_ft_abs_positive
+  expr: ft_abs(42)
+  stdout: '42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_neg_one
+  expr: ft_abs(-1)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_06_pos_one
+  expr: ft_abs(1)
+  tier: edge
+  stdout: '1
+
+    '
+- name: test_07_neg_1337
+  expr: ft_abs(-1337)
+  tier: baseline
+  stdout: '1337
+
+    '
+- name: test_08_pos_1337
+  expr: ft_abs(1337)
+  tier: baseline
+  stdout: '1337
+
+    '
+- name: test_09_int_max
+  expr: ft_abs(2147483647)
+  tier: edge
+  stdout: '2147483647
+
+    '
+- name: test_10_neg_100000
+  expr: ft_abs(-100000)
+  tier: stress
+  stdout: '100000
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./ft_abs(-42)  → 42
+  args: &id001
+  - →
+  - '42'
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./ft_abs(0)    → 0
+  args: &id002
+  - →
+  - '0'
+  expected: ''
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./ft_abs(99)   → 99
+  args: &id003
+  - →
+  - '99'
+  expected: ''
+  cat_e: false
+folder_examples:
+- id: cur_ft_abs_T05
+  origin: subject_folder/mini-moulinette/ex02/ft_abs.c
+  input: 'Input: 5'
+  expected: 'Expected: 5'
+- id: cur_ft_abs_T06
+  origin: subject_folder/mini-moulinette/ex02/ft_abs.c
+  input: 'Input: -5'
+  expected: 'Expected: 5'
+- id: cur_ft_abs_T07
+  origin: subject_folder/mini-moulinette/ex02/ft_abs.c
+  input: 'Input: 0'
+  expected: 'Expected: 0'
+- id: cur_ft_abs_T08
+  origin: subject_folder/deepthought/corrections/exams/ft_abs/generator.py
+  input: Dynamic generation rule via test_positive_number()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_abs_T09
+  origin: subject_folder/deepthought/corrections/exams/ft_abs/generator.py
+  input: Dynamic generation rule via test_negative_number()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_abs_T10
+  origin: subject_folder/deepthought/corrections/exams/ft_abs/generator.py
+  input: Dynamic generation rule via test_zero()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_abs_T11
+  origin: subject_folder/deepthought/corrections/exams/ft_abs/generator.py
+  input: Dynamic generation rule via test_large_positive()
+  expected: Deterministic output validated by Deepthought oracle
+- id: cur_ft_abs_T12
+  origin: subject_folder/deepthought/corrections/exams/ft_abs/generator.py
+  input: Dynamic generation rule via test_large_negative()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - →!
+  - '43'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  →  '
+  - '42'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - →!
+  - '1'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  →  '
+  - '0'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - →!
+  - '100'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  →  '
+  - '99'
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_ft_abs_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_abs.c)
+  original_input: 'Input: 5'
+  perturbed_input: 'Jnput: 5'
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_ft_abs_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_abs.c)
+  original_input: 'Input: -5'
+  perturbed_input: 'Jnput: -5'
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `ft_abs`
+  input: ft_abs(INT_MIN), ft_abs(0), ft_abs(1)
+  expected: Correct mathematical result without signed overflow UB
+- name: edge_02_S
+  code: '[S]'
+  title: Arithmetic overflow and infinite recursion protection in `ft_abs`
+  input: Run ft_abs with large inputs
+  expected: Safe return or termination without stack overflow
+- name: edge_03_B
+  code: '[B]'
+  title: Zero factorial and power edge cases in `ft_abs`
+  input: ft_abs(0)
+  expected: Canonical mathematical result for 0
+- name: edge_04_T
+  code: '[T]'
+  title: Time complexity guard against exponential runtime in `ft_abs`
+  input: Call ft_abs on large prime or composite integer
+  expected: Execute within 0.5s limit without timing out

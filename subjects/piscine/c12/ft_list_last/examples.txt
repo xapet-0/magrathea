@@ -1,0 +1,5 @@
+# Examples for ft_list_last (from official subject specification)
+
+Examples:
+    t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%s\n",(char*)ft_list_last(&a)->data)
+    Output: b

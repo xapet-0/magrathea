@@ -1,0 +1,82 @@
+Assignment name  : bsq
+Expected files   : Makefile *.c *.h
+Allowed functions: open, close, read, write, malloc, free, exit
+--------------------------------------------------------------------------------
+
+Module           : C Piscine Final Project — BSQ (v8.3 PDF)
+Exercise         : BSQ — Biggest Square Dynamic Programming Solver
+Turn-in directory: Repository Root
+Files to turn in : Makefile and all the necessary *.c and *.h files
+Allowed functions: open, close, read, write, malloc, free, exit
+Toolchain Gate   : norminette + make all/clean/fclean/re (No Relink) + STDERR FD 2 check
+--------------------------------------------------------------------------------
+
+• Find the largest possible square on a map while avoiding obstacles, replacing
+  "empty" characters with "full" characters.
+• First line of the map: <number_of_lines><empty_char><obstacle_char><full_char>
+  (three distinct printable characters).
+• Tie-breaking rule: choose the square closest to the top of the map, then the
+  one closest to the left.
+• Must handle 1 to N map files passed as arguments (separated by an empty line when
+  argc > 2), or read from STDIN when no arguments are passed.
+• On invalid file or map, print "map error\n" on STDERR (file descriptor 2) and
+  continue to the next file.
+
+example of how it should work:
+%>cat example_file
+9.ox
+...........................
+....o......................
+............o..............
+...........................
+....o......................
+...............o...........
+...........................
+......o..............o.....
+..o.......o................
+%>./bsq example_file
+.....xxxxxxx...............
+....oxxxxxxx...............
+.....xxxxxxxo..............
+.....xxxxxxx...............
+....oxxxxxxx...............
+.....xxxxxxx...o...........
+.....xxxxxxx...............
+C-Piscine’s final project BSQ
+......o..............o.....
+..o.......o................
+%>
+It is a square indeed. Even though it might not look like that
+visually.
+Appendix
+• Perl map generator
+#!/usr/bin/perl
+use warnings;
+use strict;
+die "Usage: program x y density" unless (scalar(@ARGV) == 3);
+my ($x, $y, $density) = @ARGV;
+print "$y.ox\n";
+for (my $i = 0; $i < $y; $i++) {
+for (my $j = 0; $j < $x; $j++) {
+if (int(rand($y) * 2) < $density) {
+print "o";
+}
+else {
+print ".";
+}
+}
+print "\n";
+}
+• Test your program with many maps of different sizes. Keep various maps available
+for the evaluation.
+Submission and peer-evaluation
+Submit your assignment to your Git repository as usual. Only the work inside your
+repository will be evaluated during the defence. Do not hesitate to double-check the
+names of your files to ensure they are correct.
+You need to submit only the files requested by the subject of this
+project.
+This project will be checked and graded by a program called
+Moulinette. Moulinette is very meticulous and strict in its
+evaluation of your work. It is entirely automated and there is
+no way to negotiate with it. So, to avoid any bad surprises, be as
+thorough as possible.

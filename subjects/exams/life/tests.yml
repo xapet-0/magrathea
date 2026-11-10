@@ -1,0 +1,863 @@
+fixed_tests:
+- args:
+  - '5'
+  - '5'
+  - '0'
+  expected: "     \n OOO \n O O \n OOO \n     \n"
+  name: subj_ex_01
+  stdin: 'sdxddssaaww
+
+    '
+- args:
+  - '10'
+  - '6'
+  - '0'
+  expected: "          \n O   OOO  \n O     O  \n OOO  O   \n  O  OOO  \n        \
+    \  \n"
+  name: subj_ex_02
+  stdin: 'sdxssdswdxdddxsaddawxwdxwaa
+
+    '
+- args:
+  - '3'
+  - '3'
+  - '0'
+  expected: " O \n O \n O \n"
+  name: subj_ex_03
+  stdin: 'dxss
+
+    '
+- args:
+  - '3'
+  - '3'
+  - '1'
+  expected: "   \nOOO\n   \n"
+  name: subj_ex_04
+  stdin: 'dxss
+
+    '
+- args:
+  - '3'
+  - '3'
+  - '2'
+  expected: " O \n O \n O \n"
+  name: subj_ex_05
+  stdin: 'dxss
+
+    '
+- name: test_06_arg_auto
+  args:
+  - '1'
+  - '2'
+  - '3'
+  tier: baseline
+  stdout: " \n \n"
+- name: test_07_arg_auto
+  args:
+  - a
+  - b
+  - c
+  tier: baseline
+  stdout: ''
+- name: test_08_arg_auto
+  args:
+  - '10'
+  - '20'
+  - '30'
+  tier: baseline
+  stdout: "          \n          \n          \n          \n          \n          \n\
+    \          \n          \n          \n          \n          \n          \n    \
+    \      \n          \n          \n          \n          \n          \n        \
+    \  \n          \n"
+- name: test_09_arg_auto
+  args:
+  - '42'
+  - '1337'
+  - school
+  tier: baseline
+  stdout: "                                          \n                          \
+    \                \n                                          \n              \
+    \                            \n                                          \n  \
+    \                                        \n                                  \
+    \        \n                                          \n                      \
+    \                    \n                                          \n          \
+    \                                \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n                                          \n                        \
+    \                  \n                                          \n            \
+    \                              \n                                          \n\
+    \                                          \n                                \
+    \          \n                                          \n                    \
+    \                      \n                                          \n        \
+    \                                  \n                                        \
+    \  \n                                          \n                            \
+    \              \n                                          \n                \
+    \                          \n                                          \n    \
+    \                                      \n                                    \
+    \      \n"
+- name: test_10_arg_auto
+  args:
+  - one
+  - two
+  - ''
+  tier: baseline
+  stdout: ''
+mode: c_program
+subject_examples: []
+folder_examples: []
+near_examples: []

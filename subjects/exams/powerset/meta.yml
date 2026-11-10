@@ -1,0 +1,22 @@
+allowed_functions:
+- atoi
+- printf
+- write
+- malloc
+- calloc
+- realloc
+- free
+- putchar
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+expected_files:
+- '*.c'
+- '*.h'
+id: powerset
+module: Exam Rank 03
+norminette: false
+prototype: int main(int argc, char **argv);
+type: c_program
+xp: 525

@@ -1,0 +1,16 @@
+id: rev_wstr
+type: c_program
+module: Exam Rank 02
+xp: 445
+expected_files:
+- rev_wstr.c
+allowed_functions:
+- write
+- malloc
+- free
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

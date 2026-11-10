@@ -1,0 +1,15 @@
+id: ft_list_push_back
+type: c_function
+module: C 12
+xp: 340
+expected_files:
+- ft_list_push_back.c
+- ft_list.h
+allowed_functions:
+- ft_create_elem
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void ft_list_push_back(t_list **begin_list, void *data);

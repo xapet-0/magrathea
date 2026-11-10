@@ -1,0 +1,60 @@
+fixed_tests:
+- call: char s[] = "hello"; ft_strupcase(s); printf("%s\n", s);
+  name: pool_ft_strupcase_T01
+  stdout: 'HELLO
+
+    '
+- call: char s[] = ""; ft_strupcase(s); printf("%s|empty\n", s);
+  name: ft_strupcase_empty
+  stdout: '|empty
+
+    '
+- call: char s[] = "Hello, 42 World!"; ft_strupcase(s); printf("%s\n", s);
+  name: ft_strupcase_mixed_and_symbols
+  stdout: 'HELLO, 42 WORLD!
+
+    '
+- call: char s[] = "ALL CAPS"; ft_strupcase(s); printf("%s\n", s);
+  name: ft_strupcase_already_uppercase
+  stdout: 'ALL CAPS
+
+    '
+- name: test_05_single_a_and_z
+  call: char s1[] = "a"; char s2[] = "z"; printf("%s:%s\n", ft_strupcase(s1), ft_strupcase(s2));
+  tier: baseline
+  stdout: 'A:Z
+
+    '
+- name: test_06_ascii_boundaries
+  call: char s[] = "@AZ[`az{"; printf("%s\n", ft_strupcase(s));
+  tier: edge
+  stdout: '@AZ[`AZ{
+
+    '
+- name: test_07_digits_only
+  call: char s[] = "0123456789"; printf("%s\n", ft_strupcase(s));
+  tier: baseline
+  stdout: '0123456789
+
+    '
+- name: test_08_return_pointer_identity
+  call: char s[] = "piscine"; char *r = ft_strupcase(s); printf("%d:%s\n", r == s,
+    r);
+  tier: edge
+  stdout: '1:PISCINE
+
+    '
+- name: test_09_full_lowercase_alphabet
+  call: char s[] = "abcdefghijklmnopqrstuvwxyz"; printf("%s\n", ft_strupcase(s));
+  tier: stress
+  stdout: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ
+
+    '
+- name: test_10_whitespace_and_symbols
+  call: char s[] = " \t\n!ab#cd$ef% "; printf("%s", ft_strupcase(s));
+  tier: edge
+  stdout: " \t\n!AB#CD$EF% "
+mode: c_function
+subject_examples: []
+folder_examples: []
+near_examples: []

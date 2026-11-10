@@ -1,0 +1,9 @@
+# Examples for upcase_sh (from official subject specification)
+
+Examples:
+$> FT_LINE="hello 42" sh upcase_sh.sh | cat -e
+HELLO 42$
+$> FT_LINE="AbCdEf" sh upcase_sh.sh | cat -e
+ABCDEF$
+$> FT_LINE="1337!" sh upcase_sh.sh | cat -e
+1337!$

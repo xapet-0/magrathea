@@ -1,0 +1,4 @@
+Examples:
+  lengthOfLongestSubstring("abcabcbb") -> 3 ("abc")
+  lengthOfLongestSubstring("bbbbb")    -> 1 ("b")
+  lengthOfLongestSubstring("pwwkew")   -> 3 ("wke")

@@ -1,0 +1,97 @@
+mode: shell
+fixed_tests:
+- name: zombie_hunter_two_entries
+  stdin: 'Z 1042
+
+    S 1001
+
+    '
+  stdout: '1042
+
+    '
+  exit_code: 0
+- name: zombie_hunter_multiple_and_reaped
+  stdin: 'S 2001
+
+    Z 31337
+
+    R 4000
+
+    Z 4242
+
+    '
+  stdout: '31337
+
+    4242
+
+    '
+  exit_code: 0
+- name: zombie_hunter_empty_input
+  stdin: ''
+  stdout: ''
+  exit_code: 0
+- name: zombie_hunter_no_zombies
+  stdin: 'S 1001
+
+    R 1002
+
+    '
+  stdout: ''
+  exit_code: 0
+- name: test_05_stdin_auto
+  stdin: '42
+
+    1337
+
+    '
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+- name: test_06_stdin_auto
+  stdin: 'hello world
+
+    '
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+- name: test_07_stdin_auto
+  stdin: 'a
+
+    b
+
+    c
+
+    '
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+- name: test_08_stdin_auto
+  stdin: '10 20 30 40 50
+
+    '
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+- name: test_09_stdin_auto
+  stdin: 'single_line
+
+    '
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+- name: test_10_stdin_auto
+  stdin: 'foo
+
+    bar
+
+    baz
+
+    qux
+
+    '
+  tier: baseline
+  stdout: ''
+  expect_empty: true
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,12 @@
+Assignment name  : quote_trap
+Expected files   : quote_trap.sh
+Allowed commands : printf
+--------------------------------------------------------------------------------
+Write a shell script that displays the exact literal string "$FT_VAR" followed
+by " = " and then the actual value of the environment variable FT_VAR, ending
+with a newline.
+
+Examples:
+$> export FT_VAR="42_Piscine"
+$> ./quote_trap.sh | cat -e
+$FT_VAR = 42_Piscine$

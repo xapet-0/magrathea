@@ -1,0 +1,63 @@
+mode: c_function
+fixed_tests:
+- name: cur_ft_bubblesort_T01
+  call: int a[]={5,1,4,2}; ft_bubblesort(a,4); printf("%d,%d,%d,%d\n",a[0],a[1],a[2],a[3])
+  stdout: '1,2,4,5
+
+    '
+- name: ft_bubblesort_already_sorted
+  call: int a[]={1,2,3,4}; ft_bubblesort(a,4); printf("%d,%d,%d,%d\n",a[0],a[1],a[2],a[3])
+  stdout: '1,2,3,4
+
+    '
+- name: ft_bubblesort_reverse_duplicates
+  call: int a[]={9,4,4,1,-2}; ft_bubblesort(a,5); printf("%d,%d,%d,%d,%d\n",a[0],a[1],a[2],a[3],a[4])
+  stdout: '-2,1,4,4,9
+
+    '
+- name: ft_bubblesort_single_and_two
+  call: int a[]={42}; ft_bubblesort(a,1); int b[]={2,1}; ft_bubblesort(b,2); printf("%d:%d,%d\n",a[0],b[0],b[1])
+  stdout: '42:1,2
+
+    '
+- name: test_05_all_equal
+  call: int a[]={7,7,7,7}; ft_bubblesort(a,4); printf("%d,%d,%d,%d\n",a[0],a[1],a[2],a[3])
+  tier: edge
+  stdout: '7,7,7,7
+
+    '
+- name: test_06_all_negative
+  call: int a[]={-1,-99,-5,-42}; ft_bubblesort(a,4); printf("%d,%d,%d,%d\n",a[0],a[1],a[2],a[3])
+  tier: baseline
+  stdout: '-99,-42,-5,-1
+
+    '
+- name: test_07_int_limits
+  call: int a[]={2147483647, 0, -2147483648}; ft_bubblesort(a,3); printf("%d,%d,%d\n",a[0],a[1],a[2])
+  tier: edge
+  stdout: '-2147483648,0,2147483647
+
+    '
+- name: test_08_zero_length
+  call: int a[]={3,1}; ft_bubblesort(a,0); printf("%d,%d\n",a[0],a[1])
+  tier: edge
+  stdout: '3,1
+
+    '
+- name: test_09_six_elements
+  call: int a[]={10,-10,5,-5,0,1}; ft_bubblesort(a,6); for(int i=0;i<6;i++) printf("%d,",a[i]);
+    printf("\n")
+  tier: baseline
+  stdout: '-10,-5,0,1,5,10,
+
+    '
+- name: test_10_eight_reverse
+  call: int a[]={8,7,6,5,4,3,2,1}; ft_bubblesort(a,8); for(int i=0;i<8;i++) printf("%d,",a[i]);
+    printf("\n")
+  tier: stress
+  stdout: '1,2,3,4,5,6,7,8,
+
+    '
+subject_examples: []
+folder_examples: []
+near_examples: []

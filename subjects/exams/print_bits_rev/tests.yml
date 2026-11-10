@@ -1,0 +1,101 @@
+subject_id: print_bits_rev
+fixed_tests:
+- name: test_01_2_printf_n
+  call: print_bits_rev(2); printf("\n")
+  stdout: '01000000
+
+    '
+  tier: baseline
+- name: test_02_0_printf_n
+  call: print_bits_rev(0); printf("\n")
+  stdout: '00000000
+
+    '
+  tier: baseline
+- name: test_03_255_printf_n
+  call: print_bits_rev(255); printf("\n")
+  stdout: '11111111
+
+    '
+  tier: baseline
+- name: test_04_1_printf_n
+  call: print_bits_rev(1); printf("\n")
+  stdout: '10000000
+
+    '
+  tier: baseline
+- name: test_05_42_printf_n
+  call: print_bits_rev(42); printf("\n")
+  stdout: '01010100
+
+    '
+  tier: baseline
+- name: test_06_128_printf_n
+  call: print_bits_rev(128); printf("\n")
+  tier: edge
+  stdout: '00000001
+
+    '
+- name: test_07_85_alternating
+  call: print_bits_rev(85); printf("\n")
+  tier: edge
+  stdout: '10101010
+
+    '
+- name: test_08_170_alternating
+  call: print_bits_rev(170); printf("\n")
+  tier: edge
+  stdout: '01010101
+
+    '
+- name: test_09_15_low_nibble
+  call: print_bits_rev(15); printf("\n")
+  tier: baseline
+  stdout: '11110000
+
+    '
+- name: test_10_240_high_nibble
+  call: print_bits_rev(240); printf("\n")
+  tier: stress
+  stdout: '00001111
+
+    '
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval print_bits_rev
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: e1337_print_bits_rev_T06
+  origin: subject_folder/examples.txt
+  input: print_bits_rev(2); printf("\n")
+  expected: 'Output: 01000000\n    print_bits_rev(0); printf("\n")\n    Output: 00000000\n    print_bits_rev(255);
+    printf("\n")\n    Output: 11111111\n    print_bits_rev(1); printf("\n")\n    Output:
+    10000000'
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "subject_id: print_bits_rev\nfixed_tests:\n- call: print_bits_rev(2);\
+    \ printf(\"\\n\")\n  stdout: '01000000\n\n    '\n- call: print_bits_rev(0); printf(\"\
+    \\n\")\n  stdout: '00"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval print_bits_rev
+  perturbed_input:
+  - print_bits_rev_near_arg_1
+  - print_bits_rev_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_print_bits_rev_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: print_bits_rev(2); printf("\n")
+  perturbed_input: qrint_bits_rev(2); printf("\n")
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

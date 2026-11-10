@@ -1,0 +1,23 @@
+Assignment name  : ft_list_size
+Expected files   : ft_list_size.c ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Module           : C Piscine C 12 (Official PDF)
+Exercise         : ft_list_size
+Turn-in directory: ex02/
+Expected files   : ft_list_size.c, ft_list.h
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+• Create the function ft_list_size, which returns the number of elements in the
+list.
+• Here is how it should be prototyped:
+int ft_list_size(t_list *begin_list);
+
+Your function must be declared as follows:
+    int ft_list_size(t_list *begin_list);
+
+Examples:
+    t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%d\n",ft_list_size(&a))
+    Output: 2

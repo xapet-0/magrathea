@@ -1,0 +1,6 @@
+# Examples for longest_sequence (from official subject specification)
+
+Examples:
+    longest_sequence(NULL) -> 0
+    longest_sequence(&a) -> 1
+    longest_sequence(&a) -> 3

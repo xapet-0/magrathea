@@ -1,0 +1,13 @@
+id: ft_ultimate_ft
+type: c_function
+module: C 01
+xp: 130
+expected_files:
+- ft_ultimate_ft.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void ft_ultimate_ft(int *********nbr);

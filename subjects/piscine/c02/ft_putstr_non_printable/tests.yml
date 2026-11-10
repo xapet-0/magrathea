@@ -1,0 +1,136 @@
+mode: c_function
+fixed_tests:
+- name: pool_ft_putstr_non_printable_T01
+  description: 'Functional verification of input: `ft_putstr_non_printable("Coucou\ntu
+    vas bien `'
+  expr: ft_putstr_non_printable("Coucou\ntu vas bien ?")
+  stdout: 'Coucou\0atu vas bien ?
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_putstr_non_printable_T02
+  description: case_non_printable_tabs
+  expr: ft_putstr_non_printable("A\tB\nC\177D")
+  stdout: 'A\09B\0aC\7fD
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_putstr_non_printable_T03
+  description: case_non_printable_clean
+  expr: ft_putstr_non_printable("Printable 42!")
+  stdout: 'Printable 42!
+
+    '
+  category: Functional
+  tier: baseline
+- name: pool_ft_putstr_non_printable_T04
+  description: case_putstr_non_printable_edges
+  call: ft_putstr_non_printable(""); write(1, "\|", 1); ft_putstr_non_printable("a\nb");
+    write(1, "\|", 1); ft_putstr_non_printable(" \t "); write(1, "\n", 1)
+  stdout: "|a\\0ab| \\09 \n"
+  category: Edge Case
+  tier: baseline
+- name: test_05_control_chars_1_to_3
+  call: char s[] = {1, 2, 3, 0}; ft_putstr_non_printable(s); write(1, "\n", 1)
+  tier: edge
+  stdout: '\01\02\03
+
+    '
+- name: test_06_del_127
+  call: char s[] = {127, 0}; ft_putstr_non_printable(s); write(1, "\n", 1)
+  tier: edge
+  stdout: '\7f
+
+    '
+- name: test_07_cr_vt_ff
+  call: ft_putstr_non_printable("\r\v\f"); write(1, "\n", 1)
+  tier: baseline
+  stdout: '\0d\0b\0c
+
+    '
+- name: test_08_unit_separator_31
+  call: char s[] = {31, ' ', 126, 0}; ft_putstr_non_printable(s); write(1, "\n", 1)
+  tier: edge
+  stdout: '\1f ~
+
+    '
+- name: test_09_bell_and_backspace
+  call: ft_putstr_non_printable("\a\b"); write(1, "\n", 1)
+  tier: baseline
+  stdout: '\07\08
+
+    '
+- name: test_10_mixed_string
+  call: ft_putstr_non_printable("Line1\nLine2\tEnd\r"); write(1, "\n", 1)
+  tier: stress
+  stdout: 'Line1\0aLine2\09End\0d
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_putstr_non_printable
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_ft_putstr_non_printable_T05
+  origin: subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c
+  input: 'Input: Coucou\ntu vas bien'
+  expected: 'Expected: Coucou\\0atu vas bien'
+- id: pool_ft_putstr_non_printable_T06
+  origin: subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c
+  input: 'Input:'
+  expected: 'Expected:'
+- id: pool_ft_putstr_non_printable_T07
+  origin: subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c
+  input: 'Input: \t01'
+  expected: 'Expected: \\0901'
+- id: pool_ft_putstr_non_printable_T08
+  origin: subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c
+  input: 'Input: \x1F'
+  expected: 'Expected: \\1f'
+- id: pool_ft_putstr_non_printable_T09
+  origin: subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c
+  input: 'Input: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  expected: 'Expected: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+- id: pool_ft_putstr_non_printable_T10
+  origin: subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c
+  input: 'Input: 0123456789'
+  expected: 'Expected: 0123456789'
+- id: pool_ft_putstr_non_printable_T11
+  origin: subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c
+  input: 'Input: This is a long string. It has more than 16 bytes.'
+  expected: 'Expected: This is a long string. It has more than 16 bytes.'
+- id: pool_ft_putstr_non_printable_T12
+  origin: subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c
+  input: 'Input: Some\nrandom\ttext\x0Fwith\nnon-printable\rcharacters'
+  expected: 'Expected: Some\\0arandom\\09text\\0fwith\\0anon-printable\\0dcharacters'
+- id: pool_ft_putstr_non_printable_T13
+  origin: subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c
+  input: 'Input: Hello, world!'
+  expected: 'Expected: Hello, world!'
+- id: pool_ft_putstr_non_printable_T14
+  origin: subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c
+  input: 'Input: 0123456789ABCDEF'
+  expected: 'Expected: 0123456789ABCDEF'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_putstr_non_printable
+  perturbed_input:
+  - ft_putstr_non_printable_near_arg_1
+  - ft_putstr_non_printable_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_ft_putstr_non_printable_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c)
+  original_input: 'Input: Coucou\ntu vas bien'
+  perturbed_input: 'Jnput: Coucou\ntu vas bien'
+- id: near_folder_02_boundary_neighbor
+  derived_from: pool_ft_putstr_non_printable_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex11/ft_putstr_non_printable.c)
+  original_input: 'Input:'
+  perturbed_input: 'Jnput:'

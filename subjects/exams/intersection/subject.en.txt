@@ -1,0 +1,21 @@
+Assignment name  : intersection
+Expected files   : intersection.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function that returns a pointer to the first node where two singly
+linked lists intersect (by node address), or NULL if they do not intersect.
+
+Prototype:
+void	*intersection(struct s_node *lst1, struct s_node *lst2);
+
+Required structure / declarations:
+struct s_node { void *content; struct s_node *next; };
+
+Your function must be declared as follows:
+    void *intersection(struct s_node *lst1, struct s_node *lst2);
+
+Examples:
+    intersection(&a, &b) == &c -> 1
+    intersection(&a, &b) == NULL -> 1
+    intersection(NULL, NULL) == NULL -> 1

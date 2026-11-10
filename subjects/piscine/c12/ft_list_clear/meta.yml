@@ -1,0 +1,15 @@
+id: ft_list_clear
+type: c_function
+module: C 12
+xp: 340
+expected_files:
+- ft_list_clear.c
+- ft_list.h
+allowed_functions:
+- free
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void ft_list_clear(t_list *begin_list, void (*free_fct)(void *));

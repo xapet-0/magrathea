@@ -1,0 +1,19 @@
+Assignment name  : colle02
+Expected files   : Makefile *.c *.h
+Allowed functions: read, write, malloc, free
+--------------------------------------------------------------------------------
+
+# Colle-02 — Rush Detector from STDIN
+
+Expected files: Makefile, *.c, *.h
+Allowed functions: read, write, malloc, free
+
+Requirements:
+    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+
+Examples:
+$> printf "o---o\n|   |\no---o\n" | ./colle02 | cat -e
+[colle-00] [5] [3]$
+$> printf "invalid\n" | ./colle02 | cat -e
+aucune$

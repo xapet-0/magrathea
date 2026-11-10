@@ -1,0 +1,20 @@
+id: dup_finder
+type: shell
+module: "Piscine Exams 00\u2013Final"
+xp: 300
+expected_files:
+- dup_finder.sh
+allowed_functions:
+- find
+- md5sum
+- cksum
+- sort
+- uniq
+- awk
+- cat
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: sh dup_finder.sh [args...]

@@ -1,0 +1,16 @@
+id: rip
+type: c_program
+module: Exam Rank 03
+xp: 525
+expected_files:
+- '*.c'
+- '*.h'
+allowed_functions:
+- puts
+- write
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int main(int argc, char **argv);

@@ -1,0 +1,112 @@
+mode: c_function
+fixed_tests:
+- name: can_ft_strspn_T01
+  description: 'Functional verification of input: `ft_strspn("abc123","abc")`'
+  expr: ft_strspn("abc123","abc")
+  stdout: '3
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_strspn_T02
+  description: no_accept_match
+  expr: ft_strspn("hello", "xyz")
+  stdout: '0
+
+    '
+  category: Functional
+  tier: baseline
+- name: can_ft_strspn_T03
+  description: all_match
+  expr: ft_strspn("1337", "0123456789")
+  stdout: '4
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_ft_strspn_T04
+  description: empty_accept
+  expr: ft_strspn("hello", "")
+  stdout: '0
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_05_empty_s
+  expr: ft_strspn("", "abc")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_06_both_empty
+  expr: ft_strspn("", "")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_07_first_char_not_in_accept
+  expr: ft_strspn("xabc", "abc")
+  tier: edge
+  stdout: '0
+
+    '
+- name: test_08_repeated_accept_chars
+  expr: ft_strspn("aaabbbccc_end", "cba")
+  tier: baseline
+  stdout: '9
+
+    '
+- name: test_09_single_char_match
+  expr: ft_strspn("abcdef", "a")
+  tier: baseline
+  stdout: '1
+
+    '
+- name: test_10_compare_with_libc
+  expr: ft_strspn("133742_school", "0123456789") == strspn("133742_school", "0123456789")
+  tier: stress
+  stdout: '1
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_strspn
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_ft_strspn_T06
+  origin: subject_folder/ft_strspn_MAIN.c
+  input: Compiled and run with ft_strspn_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_02
+  origin: subject_folder/ft_strspn_MAIN.c
+  input: ft_strspn_MAIN.c
+  expected: "#include <stdio.h>\n#include <string.h>\n\nsize_t ft_strspn(const char\
+    \ *s, const char *accept);\n\nint main(void)\n{\n    printf(\"%zu (expected: %zu)\\\
+    n\", ft_strspn(\"ab"
+- id: folder_fixture_03
+  origin: subject_folder/strspn.man.txt
+  input: strspn.man.txt
+  expected: "STRSPN(3)                BSD Library Functions Manual               \
+    \ STRSPN(3)\n\nNAME\n     strspn, strcspn -- span a string\n\nLIBRARY\n     Standard\
+    \ C Library (lib"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval ft_strspn
+  perturbed_input:
+  - ft_strspn_near_arg_1
+  - ft_strspn_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_ft_strspn_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/ft_strspn_MAIN.c)
+  original_input: Compiled and run with ft_strspn_MAIN.c
+  perturbed_input: Dompiled and run with ft_strspn_MAIN.c
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/ft_strspn_MAIN.c)
+  original_input: ft_strspn_MAIN.c
+  perturbed_input: gt_strspn_MAIN.c

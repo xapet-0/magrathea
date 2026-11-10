@@ -1,0 +1,13 @@
+id: is_power_of_2
+type: c_function
+module: Exam Rank 02
+xp: 430
+expected_files:
+- is_power_of_2.c
+allowed_functions: []
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: int is_power_of_2(unsigned int n);

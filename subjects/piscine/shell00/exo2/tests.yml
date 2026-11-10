@@ -1,0 +1,36 @@
+mode: shell
+fixed_tests:
+- name: pool_exo2_T01
+  description: 'Functional verification of input: `tar -tf exo2.tar \\| sort \\| tr
+    ''\n'' '' ''`'
+  args: []
+  input: tar -tf exo2.tar \| sort \| tr '\n' ' '
+  expected: '*(none)*'
+  category: Functional
+  tier: baseline
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval exo2
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: pool_exo2_T01
+  origin: subject_folder/tests.yml (fixed_tests)
+  input: tar -tf exo2.tar \| sort \| tr '\n' ' '
+  expected: '*(none)*'
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval exo2
+  perturbed_input:
+  - exo2_near_arg_1
+  - exo2_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: pool_exo2_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
+  original_input: tar -tf exo2.tar \| sort \| tr '\n' ' '
+  perturbed_input: uar -tf exo2.tar \| sort \| tr '\n' ' '

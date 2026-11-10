@@ -1,0 +1,9 @@
+Examples:
+$> ./base16 "255" | cat -e
+ff$
+$> ./base16 "42" | cat -e
+2a$
+$> ./base16 "0" | cat -e
+0$
+$> ./base16 "16" | cat -e
+10$

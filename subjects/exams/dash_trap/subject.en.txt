@@ -1,0 +1,21 @@
+Assignment name  : dash_trap
+Expected files   : dash_trap.sh
+Allowed commands : cat
+--------------------------------------------------------------------------------
+
+Write a POSIX shell script that displays the content of the file whose name is
+passed as the first argument (`$1`), even if the filename starts with a `-`
+character (for example: `"-e"` or `"-n"`), using the POSIX `--` end-of-options
+delimiter.
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh dash_trap.sh "-e" | cat -e
+42_secret$
+$> sh dash_trap.sh "-n" | cat -e
+hello_1337$
+$> sh dash_trap.sh "normal.txt" | cat -e
+ok$

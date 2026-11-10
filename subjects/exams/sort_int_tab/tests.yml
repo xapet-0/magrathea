@@ -1,0 +1,113 @@
+mode: c_function
+fixed_tests:
+- name: can_sort_int_tab_T01
+  description: 'Functional verification of input: `int a[]={3,1,2}; sort_int_tab(a,3);
+    printf("%`'
+  call: int a[]={3,1,2}; sort_int_tab(a,3); printf("%d,%d,%d\n",a[0],a[1],a[2])
+  stdout: '1,2,3
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_sort_int_tab_T02
+  description: with_duplicates_and_negatives
+  call: int a[] = {5, -2, 5, 0, -10}; sort_int_tab(a, 5); printf("%d,%d,%d,%d,%d\n",
+    a[0], a[1], a[2], a[3], a[4])
+  stdout: '-10,-2,0,5,5
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_sort_int_tab_T03
+  description: single_element
+  call: int a[] = {42}; sort_int_tab(a, 1); printf("%d\n", a[0])
+  stdout: '42
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: can_sort_int_tab_T04_reverse_even
+  description: reverse_sorted_even_length
+  call: int a[] = {40, 30, 20, 10}; sort_int_tab(a, 4); printf("%d,%d,%d,%d\n", a[0],
+    a[1], a[2], a[3])
+  stdout: '10,20,30,40
+
+    '
+  category: Edge Case
+  tier: edge_case
+- name: test_05_single_element
+  call: int a[] = {42}; sort_int_tab(a, 1); printf("%d\n", a[0])
+  tier: edge
+  stdout: '42
+
+    '
+- name: test_06_already_sorted
+  call: int a[] = {1, 2, 3, 4}; sort_int_tab(a, 4); printf("%d,%d,%d,%d\n", a[0],
+    a[1], a[2], a[3])
+  tier: baseline
+  stdout: '1,2,3,4
+
+    '
+- name: test_07_all_equal
+  call: int a[] = {7, 7, 7, 7}; sort_int_tab(a, 4); printf("%d,%d,%d,%d\n", a[0],
+    a[1], a[2], a[3])
+  tier: edge
+  stdout: '7,7,7,7
+
+    '
+- name: test_08_int_limits
+  call: int a[] = {2147483647, 0, -2147483648}; sort_int_tab(a, 3); printf("%d,%d,%d\n",
+    a[0], a[1], a[2])
+  tier: edge
+  stdout: '-2147483648,0,2147483647
+
+    '
+- name: test_09_two_elements_swapped
+  call: int a[] = {9, -9}; sort_int_tab(a, 2); printf("%d,%d\n", a[0], a[1])
+  tier: baseline
+  stdout: '-9,9
+
+    '
+- name: test_10_seven_elements_with_dups
+  call: int a[] = {4, 2, 4, 1, 3, 2, 1}; sort_int_tab(a, 7); for(int i=0;i<7;i++)
+    printf("%d,", a[i]); printf("\n")
+  tier: stress
+  stdout: '1,1,2,2,3,4,4,
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval sort_int_tab
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: can_sort_int_tab_T05
+  origin: subject_folder/4-3-sort_int_tab_MAIN.c
+  input: Compiled and run with 4-3-sort_int_tab_MAIN.c
+  expected: Zero assertion failures (exit code 0)
+- id: folder_fixture_02
+  origin: subject_folder/4-3-sort_int_tab_MAIN.c
+  input: 4-3-sort_int_tab_MAIN.c
+  expected: "#include <stdio.h>\n\nvoid\tsort_int_tab(int *tab, unsigned int size);\n\
+    \t\nint\t\tmain(void)\n{\n\tint a[6] = {9, 7, 6, 4, 5, 10};\n\tint i = 0;\n\t\
+    int size = 6;\n\n\tsort_int_t"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval sort_int_tab
+  perturbed_input:
+  - sort_int_tab_near_arg_1
+  - sort_int_tab_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: can_sort_int_tab_T05
+  strategy: Neighbouring perturbation of folder example (subject_folder/4-3-sort_int_tab_MAIN.c)
+  original_input: Compiled and run with 4-3-sort_int_tab_MAIN.c
+  perturbed_input: Dompiled and run with 4-3-sort_int_tab_M
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/4-3-sort_int_tab_MAIN.c)
+  original_input: 4-3-sort_int_tab_MAIN.c
+  perturbed_input: 4-3-tort_int_tab_MAIN.c

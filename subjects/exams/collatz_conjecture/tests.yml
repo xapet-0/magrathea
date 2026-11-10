@@ -1,0 +1,99 @@
+subject_id: collatz_conjecture
+fixed_tests:
+- name: test_01_12
+  expr: collatz_conjecture(12)
+  stdout: '9
+
+    '
+  tier: baseline
+- name: test_02_1
+  expr: collatz_conjecture(1)
+  stdout: '0
+
+    '
+  tier: baseline
+- name: test_03_2
+  expr: collatz_conjecture(2)
+  stdout: '1
+
+    '
+  tier: baseline
+- name: test_04_6
+  expr: collatz_conjecture(6)
+  stdout: '8
+
+    '
+  tier: baseline
+- name: test_05_27
+  expr: collatz_conjecture(27)
+  stdout: '111
+
+    '
+  tier: baseline
+- name: test_06_power_of_two_4
+  expr: collatz_conjecture(4)
+  tier: baseline
+  stdout: '2
+
+    '
+- name: test_07_power_of_two_16
+  expr: collatz_conjecture(16)
+  tier: baseline
+  stdout: '4
+
+    '
+- name: test_08_three
+  expr: collatz_conjecture(3)
+  tier: baseline
+  stdout: '7
+
+    '
+- name: test_09_seven
+  expr: collatz_conjecture(7)
+  tier: edge
+  stdout: '16
+
+    '
+- name: test_10_nineteen
+  expr: collatz_conjecture(19)
+  tier: stress
+  stdout: '20
+
+    '
+mode: c_function
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval collatz_conjecture
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: e1337_collatz_conjecture_T06
+  origin: subject_folder/examples.txt
+  input: collatz_conjecture(1)  -> 0
+  expected: collatz_conjecture(12) -> 9
+- id: folder_fixture_02
+  origin: subject_folder/tests.yml
+  input: tests.yml
+  expected: "subject_id: collatz_conjecture\nfixed_tests:\n- expr: collatz_conjecture(12)\n\
+    \  stdout: '9\n\n    '\n- expr: collatz_conjecture(1)\n  stdout: '0\n\n    '\n\
+    - expr: collatz"
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval collatz_conjecture
+  perturbed_input:
+  - collatz_conjecture_near_arg_1
+  - collatz_conjecture_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_collatz_conjecture_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: collatz_conjecture(1)  -> 0
+  perturbed_input: dollatz_conjecture(1)  -> 0
+- id: near_folder_02_boundary_neighbor
+  derived_from: folder_fixture_02
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: tests.yml
+  perturbed_input: uests.yml

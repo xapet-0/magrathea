@@ -1,0 +1,14 @@
+id: takes_place
+type: c_function
+module: Piscine Exams 00–Final
+xp: 280
+expected_files:
+- takes_place.c
+allowed_functions:
+- printf
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: false
+prototype: void takes_place(int hour);

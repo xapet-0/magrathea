@@ -1,0 +1,25 @@
+Assignment name  : ft_putnbr
+Turn-in directory: ex02/
+Expected files   : ft_putnbr.c
+Allowed functions: write
+--------------------------------------------------------------------------------
+
+• Create a function that displays the number passed as a parameter. The function
+must be able to handle all possible values of theint type.
+• The function should be prototyped as follows:
+void ft_putnbr(int nb);
+• Example usage:
+◦ ft_putnbr(42) outputs "42".
+
+Your function must be declared as follows:
+    void ft_putnbr(int nb);
+
+Examples:
+    ft_putnbr(42)
+    Output: 42
+    ft_putnbr(-2147483648)
+    Output: -2147483648
+    ft_putnbr(0)
+    Output: 0
+    ft_putnbr(2147483647)
+    Output: 2147483647

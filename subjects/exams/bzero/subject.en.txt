@@ -1,0 +1,23 @@
+Assignment name  : bzero
+Expected files   : bzero.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Reproduce the behavior of the function bzero (man bzero), which erases the data
+in the n bytes of the memory starting at the location pointed to by s, by
+writing zeros (bytes containing '\0') to that area.
+
+Your function must be declared as follows:
+
+void	bzero(void *s, size_t n);
+
+Your function must be declared as follows:
+    void bzero(void *s, size_t n);
+
+Examples:
+    char buf[6] = "abcde"; bzero(buf + 1, 3); printf("%d,%d,%d,%d,%d\n", buf[0], buf[1], buf[2], buf[3], buf[4])
+    Output: 97,0,0,0,101
+    char buf[4] = "xyz"; bzero(buf, 0); printf("%s\n", buf)
+    Output: xyz
+    char buf[4] = "xyz"; bzero(buf, 4); printf("%d,%d,%d,%d\n", buf[0], buf[1], buf[2], buf[3])
+    Output: 0,0,0,0

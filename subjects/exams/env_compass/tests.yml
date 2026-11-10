@@ -1,0 +1,91 @@
+fixed_tests:
+- name: test_01
+  env:
+    USER: marvin
+    HOME: /home/marvin
+    PWD: /tmp
+  stdout: 'marvin:/home/marvin:/tmp
+
+    '
+- name: test_02
+  env:
+    USER: student
+    HOME: /Users/student
+    PWD: /var
+  stdout: 'student:/Users/student:/var
+
+    '
+- name: test_03
+  env:
+    USER: root
+    HOME: /root
+    PWD: /
+  stdout: 'root:/root:/
+
+    '
+- name: test_04_bocal_env
+  env:
+    USER: bocal
+    HOME: /var/bocal
+    PWD: /opt
+  stdout: 'bocal:/var/bocal:/opt
+
+    '
+- name: test_05_42_user
+  env:
+    USER: xapet
+    HOME: /home/xapet
+    PWD: /tmp
+  tier: baseline
+  stdout: 'xapet:/home/xapet:/tmp
+
+    '
+- name: test_06_deep_paths
+  env:
+    USER: norminette
+    HOME: /var/lib/norm
+    PWD: /usr
+  tier: baseline
+  stdout: 'norminette:/var/lib/norm:/usr
+
+    '
+- name: test_07_short_values
+  env:
+    USER: a
+    HOME: /a
+    PWD: /
+  tier: edge
+  stdout: 'a:/a:/
+
+    '
+- name: test_08_numeric_user
+  env:
+    USER: user1337
+    HOME: /home/user1337
+    PWD: /etc
+  tier: baseline
+  stdout: 'user1337:/home/user1337:/etc
+
+    '
+- name: test_09_underscore_names
+  env:
+    USER: ft_user
+    HOME: /tmp/ft_home
+    PWD: /var/tmp
+  tier: edge
+  stdout: 'ft_user:/tmp/ft_home:/var/tmp
+
+    '
+- name: test_10_long_user
+  env:
+    USER: deepthought_daemon
+    HOME: /opt/deepthought
+    PWD: /tmp
+  tier: stress
+  stdout: 'deepthought_daemon:/opt/deepthought:/tmp
+
+    '
+subject_id: env_compass
+subject_examples: []
+folder_examples: []
+near_examples: []

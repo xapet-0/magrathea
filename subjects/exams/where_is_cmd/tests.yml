@@ -1,0 +1,62 @@
+fixed_tests:
+- name: test_01_sh
+  args:
+  - sh
+  stdout: '/bin/sh
+
+    '
+- name: test_02_ls
+  args:
+  - ls
+  stdout_contains:
+  - ls
+- name: test_03_cat
+  args:
+  - cat
+  stdout_contains:
+  - cat
+- name: test_04_env
+  args:
+  - env
+  stdout_contains:
+  - env
+- name: test_05_printf
+  args:
+  - printf
+  stdout_contains:
+  - printf
+  tier: baseline
+- name: test_06_tr
+  args:
+  - tr
+  stdout_contains:
+  - tr
+  tier: baseline
+- name: test_07_wc
+  args:
+  - wc
+  stdout_contains:
+  - wc
+  tier: baseline
+- name: test_08_sort
+  args:
+  - sort
+  stdout_contains:
+  - sort
+  tier: baseline
+- name: test_09_head
+  args:
+  - head
+  stdout_contains:
+  - head
+  tier: baseline
+- name: test_10_tail
+  args:
+  - tail
+  stdout_contains:
+  - tail
+  tier: stress
+subject_id: where_is_cmd
+subject_examples: []
+folder_examples: []
+near_examples: []

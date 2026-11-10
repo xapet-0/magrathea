@@ -1,0 +1,34 @@
+allowed_functions:
+- new
+- delete
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+expected_files:
+- Warlock.cpp
+- Warlock.hpp
+- ASpell.cpp
+- ASpell.hpp
+- ATarget.cpp
+- ATarget.hpp
+- Fwoosh.cpp
+- Fwoosh.hpp
+- Dummy.cpp
+- Dummy.hpp
+- Fireball.cpp
+- Fireball.hpp
+- Polymorph.cpp
+- Polymorph.hpp
+- BrickWall.cpp
+- BrickWall.hpp
+- SpellBook.cpp
+- SpellBook.hpp
+- TargetGenerator.cpp
+- TargetGenerator.hpp
+id: cpp_module_02
+module: Exam Rank 05
+norminette: false
+prototype: class Cpp_module_02 { ... };
+type: cpp
+xp: 670

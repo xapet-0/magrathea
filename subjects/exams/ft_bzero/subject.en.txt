@@ -1,0 +1,22 @@
+Assignment name  : ft_bzero
+Expected files   : ft_bzero.c
+Allowed functions: None
+--------------------------------------------------------------------------------
+
+Write a function ft_bzero that writes n zeroed bytes to the byte string s. If n
+is zero, ft_bzero() does nothing.
+
+Your function must be declared as follows:
+
+void	ft_bzero(void *s, size_t n);
+
+Your function must be declared as follows:
+    void ft_bzero(void *s, size_t n);
+
+Examples:
+    char buf[6] = "abcde"; ft_bzero(buf, 3); printf("%d,%d,%d,%d\n", buf[0], buf[1], buf[2], buf[3])
+    Output: 0,0,0,100
+    char buf[4] = "xyz"; ft_bzero(buf, 0); printf("%s\n", buf)
+    Output: xyz
+    char buf[4] = "xyz"; ft_bzero(buf + 1, 2); printf("%d,%d,%d\n", buf[0], buf[1], buf[2])
+    Output: 120,0,0

@@ -1,0 +1,127 @@
+mode: c_program
+fixed_tests:
+- name: cur_fix_z_T01
+  description: Standard baseline execution and behavior check for `fix_z`
+  args: []
+  expected: 'z
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_fix_z_T02
+  description: case_fix_z_with_args
+  args:
+  - ignored
+  expected: 'z
+
+    '
+  category: Functional
+  tier: baseline
+- name: cur_fix_z_T03
+  description: edge_empty_str
+  args:
+  - ''
+  expected: 'z
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_fix_z_T04
+  description: edge_whitespace
+  args:
+  - "   \t  "
+  expected: 'z
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: cur_fix_z_T05
+  description: edge_single_char
+  args:
+  - a
+  expected: 'z
+
+    '
+  category: Edge Case
+  tier: baseline
+- name: test_06_arg_auto
+  args:
+  - ''
+  tier: baseline
+  stdout: 'z
+
+    '
+- name: test_07_arg_auto
+  args:
+  - '   '
+  tier: baseline
+  stdout: 'z
+
+    '
+- name: test_08_arg_auto
+  args:
+  - '1337'
+  tier: baseline
+  stdout: 'z
+
+    '
+- name: test_09_arg_auto
+  args:
+  - 42_Network
+  tier: baseline
+  stdout: 'z
+
+    '
+- name: test_10_arg_auto
+  args:
+  - '!@#$%^&*()'
+  tier: baseline
+  stdout: 'z
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval fix_z
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
+folder_examples:
+- id: cur_fix_z_T06
+  origin: subject_folder/deepthought/corrections/exams/fix_z/generator.py
+  input: Dynamic generation rule via basic_test()
+  expected: Deterministic output validated by Deepthought oracle
+near_examples:
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  original_input: eval fix_z
+  perturbed_input:
+  - fix_z_near_arg_1
+  - fix_z_near_arg_2
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_fix_z_T06
+  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/fix_z/generator.py)
+  original_input: Dynamic generation rule via basic_test()
+  perturbed_input: Eynamic generation rule via basic_test()
+edge_cases:
+- name: edge_01_B
+  code: '[B]'
+  title: Empty string and whitespace-only string in `fix_z`
+  input: "fix_z(\"   \t\t   \")"
+  expected: Print newline only with no extra spaces
+- name: edge_02_B
+  code: '[B]'
+  title: Single word surrounded by spaces vs string without spaces in `fix_z`
+  input: fix_z("   word   ") and fix_z("word")
+  expected: Identical output 'word$' for both inputs
+- name: edge_03_B
+  code: '[B]'
+  title: Extended ASCII characters and repetitive tokens in `fix_z`
+  input: fix_z("aaa bbb ccc")
+  expected: Format words with exact single space separation and terminating newline
+- name: edge_04_B
+  code: '[B]'
+  title: Argument count check (argc < 2 or argc > 2) in `fix_z`
+  input: Execute fix_z with no arguments and with 3 arguments
+  expected: Print newline only

@@ -1,0 +1,16 @@
+id: btree_insert_data
+type: c_function
+module: C 13
+xp: 370
+expected_files:
+- btree_insert_data.c
+- ft_btree.h
+allowed_functions:
+- btree_create_node
+compiler_flags:
+- -Wall
+- -Wextra
+- -Werror
+norminette: true
+prototype: void btree_insert_data(t_btree **root, void *item, int (*cmpf)(void *,
+  void *));

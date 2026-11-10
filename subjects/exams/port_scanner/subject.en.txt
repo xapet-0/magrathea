@@ -1,0 +1,15 @@
+Assignment name  : port_scanner
+Expected files   : port_scanner.sh
+Allowed commands : ss, netstat, awk, sed, sort, printf
+--------------------------------------------------------------------------------
+
+Write a shell script that scans or reports listening local TCP ports (printing
+OPEN when verified).
+
+Requirements:
+    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
+    - Do not leave temporary files behind in the working directory.
+
+Examples:
+$> sh port_scanner.sh "80" | cat -e
+80$

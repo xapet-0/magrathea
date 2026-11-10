@@ -1,0 +1,60 @@
+subject_id: only_sh
+fixed_tests:
+- name: test_01_no_args
+  args: []
+  stdout: '"$*''1337''*$?"'
+- name: test_02_ignored
+  args:
+  - ignored
+  stdout: '"$*''1337''*$?"'
+- name: test_03_a_b
+  args:
+  - a
+  - b
+  stdout: '"$*''1337''*$?"'
+- name: test_04_three_args
+  args:
+  - x
+  - y
+  - z
+  stdout: '"$*''1337''*$?"'
+- name: test_05_numeric_arg
+  args:
+  - '42'
+  tier: baseline
+  stdout: '"$*''1337''*$?"'
+- name: test_06_dash_arg
+  args:
+  - -n
+  tier: edge
+  stdout: '"$*''1337''*$?"'
+- name: test_07_empty_arg
+  args:
+  - ''
+  tier: edge
+  stdout: '"$*''1337''*$?"'
+- name: test_08_spaces_arg
+  args:
+  - hello world
+  tier: baseline
+  stdout: '"$*''1337''*$?"'
+- name: test_09_four_args
+  args:
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  tier: baseline
+  stdout: '"$*''1337''*$?"'
+- name: test_10_five_args
+  args:
+  - a
+  - b
+  - c
+  - d
+  - e
+  tier: stress
+  stdout: '"$*''1337''*$?"'
+subject_examples: []
+folder_examples: []
+near_examples: []

@@ -1,0 +1,30 @@
+id: c01
+display_name: 1337 / 42 Piscine — C 01
+exercises:
+- ex: ex00
+  subject_id: piscine/c01/ft_ft
+  xp: 130
+- ex: ex01
+  subject_id: piscine/c01/ft_ultimate_ft
+  xp: 130
+- ex: ex02
+  subject_id: piscine/c01/ft_swap
+  xp: 130
+- ex: ex03
+  subject_id: piscine/c01/ft_div_mod
+  xp: 130
+- ex: ex04
+  subject_id: piscine/c01/ft_ultimate_div_mod
+  xp: 130
+- ex: ex05
+  subject_id: piscine/c01/c01_ft_putstr
+  xp: 130
+- ex: ex06
+  subject_id: piscine/c01/c01_ft_strlen
+  xp: 130
+- ex: ex07
+  subject_id: piscine/c01/ft_rev_int_tab
+  xp: 130
+- ex: ex08
+  subject_id: piscine/c01/ft_sort_int_tab
+  xp: 130

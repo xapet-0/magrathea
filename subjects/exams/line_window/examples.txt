@@ -1,0 +1,7 @@
+# Examples for line_window (from official subject specification)
+
+Examples:
+$> seq 1 10 | FT_LINE1=3 FT_LINE2=5 ./line_window.sh | cat -e
+3$
+4$
+5$
