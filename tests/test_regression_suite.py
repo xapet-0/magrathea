@@ -27,6 +27,7 @@ from __future__ import annotations
 import inspect
 import os
 import signal
+import subprocess
 import sys
 import tempfile
 import typing
@@ -39,9 +40,121 @@ if str(KIT_ROOT) not in sys.path:
 
 import deepthought.compiler_and_symbols as cas
 from deepthought.compiler_and_symbols import check_forbidden_c_includes
-from deepthought.grader import _get_strict_sandbox_flags, classify_process_exit_status, grade_subject
+from deepthought.grader import _get_strict_sandbox_flags, classify_process_exit_status, grade_subject, get_executable_temp_root
 from deepthought.progression import StudentProfile
-from diagnostics.runner import prepare_isolated_build_dir, run_captured_process
+import shutil
+import time
+from dataclasses import dataclass
+from typing import Dict, Sequence
+
+@dataclass
+class CapturedProcess:
+    """Normalized subprocess result distinguishing normal exit from signal and timeout."""
+    command_str: str
+    returncode: int
+    signal_num: int | None
+    timed_out: bool
+    stdout: str
+    stderr: str
+    duration_ms: float
+
+def prepare_isolated_build_dir(kit_root: Path, diag_id: str) -> tuple[Path, Path]:
+    repo_build = (kit_root / "build" / "diagnostics" / diag_id).resolve()
+    if repo_build.exists():
+        shutil.rmtree(repo_build, ignore_errors=True)
+    repo_build.mkdir(parents=True, exist_ok=True)
+    (repo_build / "home").mkdir(parents=True, exist_ok=True)
+    exec_root = get_executable_temp_root(kit_root)
+    try:
+        probe = repo_build / ".exec_probe.sh"
+        probe.write_bytes(b"#!/bin/sh\nexit 0\n")
+        probe.chmod(0o700)
+        r = subprocess.run([str(probe)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1.0)
+        probe.unlink(missing_ok=True)
+        if r.returncode == 0:
+            return repo_build, repo_build
+    except Exception:
+        pass
+    exec_work = (exec_root / f"magrathea_diag_{diag_id}").resolve()
+    if exec_work.exists():
+        shutil.rmtree(exec_work, ignore_errors=True)
+    exec_work.mkdir(parents=True, exist_ok=True)
+    (exec_work / "home").mkdir(parents=True, exist_ok=True)
+    return repo_build, exec_work
+
+def run_captured_process(
+    cmd: Sequence[str],
+    *,
+    cwd: Path,
+    isolated_home: Path,
+    extra_env: Dict[str, str] | None = None,
+    stdin_data: str | None = None,
+    timeout_sec: float = 3.0,
+    max_output_bytes: int = 65536,
+) -> CapturedProcess:
+    env = os.environ.copy()
+    env["HOME"] = str(isolated_home.resolve())
+    env["DT_SKIP_HOME_SYMLINKS"] = "1"
+    env["FT_BC_INTERNAL"] = "1"
+    env["PYTHONPATH"] = str(KIT_ROOT.resolve())
+    env["FT_STUDENT_PROFILE"] = str((isolated_home / ".42_student_profile.json").resolve())
+    if extra_env:
+        env.update(extra_env)
+    cmd_str = " ".join(str(c) for c in cmd)
+    t0 = time.monotonic()
+    proc = subprocess.Popen(
+        [str(c) for c in cmd],
+        cwd=str(cwd),
+        env=env,
+        stdin=subprocess.PIPE if stdin_data is not None else subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        errors="replace",
+        start_new_session=True,
+    )
+    timed_out = False
+    try:
+        out, err = proc.communicate(input=stdin_data, timeout=timeout_sec)
+    except subprocess.TimeoutExpired as exc:
+        timed_out = True
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except OSError:
+            pass
+        out_raw, err_raw = proc.communicate()
+        out_exc = exc.stdout.decode("utf-8", "replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        err_exc = exc.stderr.decode("utf-8", "replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
+        out_raw_str = out_raw.decode("utf-8", "replace") if isinstance(out_raw, bytes) else (out_raw or "")
+        err_raw_str = err_raw.decode("utf-8", "replace") if isinstance(err_raw, bytes) else (err_raw or "")
+        out = out_exc + out_raw_str
+        err = err_exc + err_raw_str
+    finally:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except OSError:
+            pass
+    elapsed_ms = (time.monotonic() - t0) * 1000.0
+    if len(out) > max_output_bytes:
+        out = out[:max_output_bytes] + "\n...[stdout truncated]...\n"
+    if len(err) > max_output_bytes:
+        err = err[:max_output_bytes] + "\n...[stderr truncated]...\n"
+    rc = proc.returncode if proc.returncode is not None else -9
+    sig_num: int | None = None
+    if timed_out:
+        rc = -int(signal.SIGKILL)
+        sig_num = int(signal.SIGKILL)
+    elif rc < 0:
+        sig_num = -rc
+    return CapturedProcess(
+        command_str=cmd_str,
+        returncode=rc,
+        signal_num=sig_num,
+        timed_out=timed_out,
+        stdout=out,
+        stderr=err,
+        duration_ms=elapsed_ms,
+    )
 
 
 def _norm_header(filename: str = "ft_strdup.c") -> str:
@@ -308,7 +421,7 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
     def test_13(self) -> None:
         """LIVE-009: bin/bc parses mixed hex tokens like F0 and 1A when ibase=16."""
         res = run_captured_process(
-            ["python3", str(KIT_ROOT / "bin/bc")],
+            [sys.executable, str(KIT_ROOT / "bin/bc")],
             cwd=KIT_ROOT,
             isolated_home=self.home,
             stdin_data="ibase=16\nFF\nF0\n1A\n",
@@ -319,7 +432,7 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
     def test_14(self) -> None:
         """LIVE-009: bin/bc maintains full precision at scale=300."""
         res = run_captured_process(
-            ["python3", str(KIT_ROOT / "bin/bc")],
+            [sys.executable, str(KIT_ROOT / "bin/bc")],
             cwd=KIT_ROOT,
             isolated_home=self.home,
             stdin_data="scale=300\n1/3\n",
@@ -331,7 +444,7 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
     def test_15(self) -> None:
         """LIVE-009: (10^320)^1 succeeds without float OverflowError."""
         res = run_captured_process(
-            ["python3", str(KIT_ROOT / "bin/bc")],
+            [sys.executable, str(KIT_ROOT / "bin/bc")],
             cwd=KIT_ROOT,
             isolated_home=self.home,
             stdin_data="(10^320)^1\n",
@@ -343,7 +456,7 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
     def test_16(self) -> None:
         """LIVE-009: bin/bc evaluates POSIX if (cond) stmt."""
         res = run_captured_process(
-            ["python3", str(KIT_ROOT / "bin/bc")],
+            [sys.executable, str(KIT_ROOT / "bin/bc")],
             cwd=KIT_ROOT,
             isolated_home=self.home,
             stdin_data="if (1 == 1) 42\nif (0) 99\n",
@@ -361,7 +474,7 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
             + "\treturn (x);\n}\n",
             encoding="utf-8",
         )
-        r1 = run_captured_process(["python3", str(KIT_ROOT / "bin/norminette"), str(f_brace)], cwd=self.work, isolated_home=self.home)
+        r1 = run_captured_process([sys.executable, str(KIT_ROOT / "bin/norminette"), str(f_brace)], cwd=self.work, isolated_home=self.home)
         self.assertNotIn("TOO_MANY_FUNCS", r1.stdout)
 
         f_bypass = self.work / "bypass.c"
@@ -374,13 +487,13 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
             + "\treturn (x);\n}\n",
             encoding="utf-8",
         )
-        r2 = run_captured_process(["python3", str(KIT_ROOT / "bin/norminette"), str(f_bypass)], cwd=self.work, isolated_home=self.home)
+        r2 = run_captured_process([sys.executable, str(KIT_ROOT / "bin/norminette"), str(f_bypass)], cwd=self.work, isolated_home=self.home)
         self.assertIn("TOO_MANY_LINES", r2.stdout)
 
     def test_18(self) -> None:
         """LIVE-012: ./bin/audit_testers --no-infinite hexdump bsq rush01 sudoku passes 20/20."""
         res = run_captured_process(
-            ["python3", str(KIT_ROOT / "bin/audit_testers"), "--no-infinite", "hexdump", "bsq", "rush01", "sudoku"],
+            [sys.executable, str(KIT_ROOT / "bin/audit_testers"), "--no-infinite", "hexdump", "bsq", "rush01", "sudoku"],
             cwd=KIT_ROOT,
             isolated_home=self.home,
             timeout_sec=60.0,
@@ -391,7 +504,7 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
     def test_19(self) -> None:
         """LIVE-012: ./bin/deepthought shell01 --self-test passes 8/8."""
         res = run_captured_process(
-            ["python3", str(KIT_ROOT / "bin/deepthought"), "shell01", "--self-test"],
+            [sys.executable, str(KIT_ROOT / "bin/deepthought"), "shell01", "--self-test"],
             cwd=KIT_ROOT,
             isolated_home=self.home,
             timeout_sec=30.0,

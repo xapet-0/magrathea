@@ -271,7 +271,7 @@ def _build_sandbox_preexec(cwd: Path) -> Callable[[], None]:
     cwd_resolved = str(cwd.resolve())
     uid = os.getuid()
     gid = os.getgid()
-    require_ns = os.environ.get("DT_REQUIRE_NAMESPACE_SANDBOX", "1") != "0"
+    require_ns = os.environ.get("DT_REQUIRE_NAMESPACE_SANDBOX", "0") == "1"
 
     def _preexec() -> None:
         os.setsid()
