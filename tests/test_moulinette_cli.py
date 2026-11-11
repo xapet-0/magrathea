@@ -9,6 +9,8 @@ Each test pins one defect that was reproduced on the previous version:
 - an option value named 'solution' / 'hint' is not mistaken for the locked command
 - every 'Does not compile (...)' status is reported on the compilation gate
 - the current directory is never graded wholesale
+- the turn-in is laid out as at 42, <module>/<exNN>/<file>, in folders the student makes by hand:
+  grading creates no folder, and a file left in another exNN is not turned in
 
 Run with: python3 tests/test_moulinette_cli.py
 """
@@ -175,6 +177,78 @@ class MoulinetteCliTest(unittest.TestCase):
             proc = self.run_cli(spelling, "--dir", str(turnin), "--xp-ledger", str(ledger))
             self.assertEqual(proc.returncode, 0, spelling)
         self.assertEqual(list(json.loads(ledger.read_text(encoding="utf-8"))["validated_exercises"]), ["piscine/c04/ft_strlen"])
+
+    # ------------------------------------------------------------------ the 42 layout: <module>/<exNN>/<file>
+    def hand_made(self, module: str, ex_code: str, exercise: str) -> Path:
+        """What a student types: mkdir -p <module>/<exNN>, then the file inside."""
+        ex_dir = self.tmp / "repo" / module / ex_code
+        ex_dir.mkdir(parents=True, exist_ok=True)
+        for src in (KIT_ROOT / "corrections" / "piscine" / module / exercise).iterdir():
+            if src.is_file():
+                shutil.copy(src, ex_dir / src.name)
+        return ex_dir
+
+    def test_every_piscine_exercise_has_one_ex_folder(self) -> None:
+        slots = {}
+        for subject_dir in sorted((KIT_ROOT / "subjects" / "piscine").glob("*/*")):
+            if not moul._is_exercise_dir(subject_dir):
+                continue
+            resolved = f"piscine/{subject_dir.parent.name}/{subject_dir.name}"
+            slot = moul.piscine_exercise_slot(resolved)
+            self.assertIsNotNone(slot, resolved)
+            self.assertRegex(slot[1], r"^ex\d{2}$", resolved)
+            self.assertNotIn(slot, slots, f"{resolved} shares {slot} with {slots.get(slot)}")
+            slots[slot] = resolved
+        self.assertEqual(moul.piscine_exercise_slot("piscine/c00/ft_putchar"), ("c00", "ex00"))
+        self.assertIsNone(moul.piscine_exercise_slot("exams/ft_range"))
+
+    def test_hand_made_ex_folder_is_graded_from_the_repo_the_module_and_the_exercise(self) -> None:
+        ex_dir = self.hand_made("c00", "ex01", "ft_print_alphabet")
+        ledger = self.tmp / "ledger.json"
+        for cwd in (ex_dir.parent.parent, ex_dir.parent, ex_dir):
+            proc = self.run_cli("ft_print_alphabet", "--xp-ledger", str(ledger), cwd=cwd)
+            self.assertEqual(proc.returncode, 0, f"{cwd}\n{proc.stdout}{proc.stderr}")
+            self.assertIn("OK :)", proc.stdout)
+
+    def test_file_in_another_ex_folder_is_not_turned_in(self) -> None:
+        wrong = self.hand_made("c00", "ex05", "ft_print_numbers")     # ft_print_numbers belongs in ex03
+        for cwd in (wrong.parent, wrong):
+            proc = self.run_cli("c00/ft_print_numbers", "--xp-ledger", str(self.tmp / "ledger.json"), cwd=cwd)
+            self.assertEqual(proc.returncode, 1, f"{cwd}\n{proc.stdout}{proc.stderr}")
+            self.assertIn("Nothing turned in", proc.stdout)
+            self.assertIn("c00/ex03/", proc.stdout)
+
+    def test_grading_creates_no_folder_and_names_the_one_to_create(self) -> None:
+        module_dir = self.tmp / "repo" / "c00"
+        module_dir.mkdir(parents=True)
+        single = self.run_cli("ft_putchar", "--xp-ledger", str(self.tmp / "ledger.json"), cwd=module_dir)
+        self.assertEqual(single.returncode, 1, single.stdout + single.stderr)
+        self.assertIn(f"{module_dir}/ex00/", single.stdout.replace("~", str(self.home)))
+        self.assertNotIn("init", single.stdout.split("Summary:")[-1])
+        whole = self.run_cli("c00", cwd=module_dir)
+        self.assertEqual(whole.returncode, 1, whole.stdout + whole.stderr)
+        watched_module = self.tmp / "repo" / "c02"
+        self.assertEqual(self.run_cli("c02", cwd=self.tmp / "repo").returncode, 1)
+        self.assertEqual(list(module_dir.iterdir()), [])
+        self.assertFalse(watched_module.exists())
+
+    def test_module_grading_reads_the_module_folder_the_student_stands_in(self) -> None:
+        ex_dir = self.hand_made("c00", "ex01", "ft_print_alphabet")   # no ex00: the folder is still the module
+        for cwd in (ex_dir.parent, ex_dir.parent.parent):
+            proc = self.run_cli("c00", cwd=cwd)
+            rows = {line.split()[0]: line for line in proc.stdout.splitlines() if line.strip().startswith("ex0")}
+            self.assertIn("Nothing turned in", rows["ex00"], proc.stdout)
+            self.assertIn("OK (100)", rows["ex01"], proc.stdout)
+
+    def test_kit_subjects_and_corrections_are_never_the_turnin(self) -> None:
+        workspace_c00 = (KIT_ROOT / "workspace" / "piscine" / "c00").resolve()
+        before = os.getcwd()
+        try:
+            for tree in ("subjects/piscine", "subjects/piscine/c00", "corrections/piscine", "corrections/piscine/c00"):
+                os.chdir(KIT_ROOT / tree)
+                self.assertEqual(moul.find_module_repo("c00"), workspace_c00, tree)
+        finally:
+            os.chdir(before)
 
 
 if __name__ == "__main__":

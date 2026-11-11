@@ -114,7 +114,7 @@ Dual-mode TUI/CLI for browsing the 439-exercise catalog, scaffolding workspaces,
 # List all modules, exam pools, and exercise slugs
 ./bin/moulinette --list
 
-# Grade a specific exercise from workspace/rendu/<exercise>
+# Grade one exercise (Piscine: read from <module>/<exNN>/, see "The 42 way" below)
 ./bin/moulinette ft_split
 
 # Grade a Piscine module or exercise with strict Norminette + Memory Sentinel checks
@@ -124,11 +124,27 @@ Dual-mode TUI/CLI for browsing the 439-exercise catalog, scaffolding workspaces,
 ./bin/moulinette --watch ft_strjoin
 ```
 
+**The 42 way.** Nothing is prepared for you: you read the subject where it is, you create the turn-in folders yourself, and the grader reads exactly what the subject names (`Turn-in directory: ex00/`).
+
+```bash
+ls subjects/piscine/c00/                               # the assignments of the module
+cat subjects/piscine/c00/ft_putchar/subject.en.txt     # the subject
+mkdir -p workspace/piscine/c00/ex00                    # your folders, made by you
+vim workspace/piscine/c00/ex00/ft_putchar.c            # your code
+./bin/moulinette ft_putchar                            # one exercise
+./bin/moulinette c00                                   # the whole module, ex00 upwards
+```
+
+The module folder can live anywhere, like a cloned repository (`~/piscine/c00/ex00/ft_putchar.c`): run the grader from that folder, from one of its `exNN` folders, or from the folder that contains it. From anywhere else it reads `workspace/piscine/<module>/`.
+
+`subject <exercise>` (prints the subject and the turn-in path) and `init <exercise>` (creates the folder with an empty file) are optional shortcuts; grading never depends on them.
+
 Rules the grader applies to what you type:
 
 * **Names are exact.** No partial match, no wildcard, no `..`. `strlen` is not `ft_strlen`.
 * **A shared name is never guessed.** A bare name goes to the Piscine first (`--exam` flips it) and a one-line note lists the namesakes. When two modules have an equal claim (`ft_putnbr` in `c00` and `c04`) the name is refused: write `c04/ft_putnbr`.
-* **Turn-in location.** `--dir <path>`, else the current directory when it holds the expected file, else `workspace/<section>/.../<exercise>/` (created by `init <exercise>`). The current directory is never graded wholesale.
+* **Turn-in location.** `--dir <path>`, else the exercise folder you stand in, else `<module>/<exNN>/` for the Piscine and `workspace/exams/<exercise>/` for exam exercises. A file left in another `exNN` is not turned in. The current directory is never graded wholesale.
+* **Your folders are yours.** Grading and `watch` create no folder. "Nothing turned in" names the folder and the file that were expected.
 * **XP is earned once per exercise** in `workspace/xp_ledger.json`. An alternative `--xp-ledger`, `--self-test` and `--json` never credit the student profile.
 * **The full trace of the last grading** is kept in `workspace/traces/`; inside the TUI, `trace` opens it in `$PAGER` (the full-screen view has no scrollback).
 * **Reference solutions and hints stay locked.** Read the subject, read the trace.
