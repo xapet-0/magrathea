@@ -13,6 +13,7 @@ import os
 import random
 import re
 import select
+import selectors
 import shlex
 import shutil
 import signal
@@ -31,7 +32,7 @@ if str(KIT_ROOT) not in sys.path:
 
 import yaml
 from deepthought.catalog import validate_duration_seconds
-from deepthought.grader import GradeReport, grade_subject
+from deepthought.grader import GradeReport, _build_sandbox_preexec, grade_subject
 from deepthought.progression import load_student_profile
 from deepthought.ui_theme import (
     ANSI_ESCAPE_RE,
@@ -690,6 +691,88 @@ def render_five_gate_scorecard(report: GradeReport, theme: ThemeEngine, norm_ena
             desc_s = theme.c(g_desc, "muted")
         lines.append(f"    {badge} {theme.c(g_id, 'accent', 'bold')}: {desc_s}")
     return "\n".join(lines)
+
+
+MAX_RUN_OUTPUT_BYTES = 256 * 1024
+RUN_PREVIEW_CHARS = 4096
+RUN_COMPILE_TIMEOUT_S = 10.0
+
+
+def _run_bounded_subprocess(
+    cmd: Sequence[str],
+    cwd: Path | str,
+    timeout: float = 2.0,
+    max_bytes: int = MAX_RUN_OUTPUT_BYTES,
+) -> tuple[int, str, str, bool, bool]:
+    """Run student-controlled code (or the compiler on it) with a timeout and a cap on captured output.
+
+    Returns (returncode, stdout, stderr, timed_out, truncated).
+
+    The child starts through the grader's sandbox preexec (deepthought.grader._build_sandbox_preexec):
+    its own session / process group, so everything it forked is killed with it, the same rlimits
+    the grader applies (RLIMIT_AS = 512 MB, ...), and reference material masked where namespaces
+    are available. stdin is /dev/null so it can never consume examshell's own input; stdout and
+    stderr are each capped at max_bytes (the group is killed as soon as one exceeds the cap) and
+    decoded as UTF-8 with replacement, so binary output cannot raise.
+    Raises OSError / ValueError / subprocess.SubprocessError if the process cannot be started.
+    """
+    bufs = {"out": bytearray(), "err": bytearray()}
+    timed_out = truncated = False
+    with subprocess.Popen(
+        list(cmd),
+        cwd=cwd,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        preexec_fn=_build_sandbox_preexec(Path(cwd)),  # calls setsid(): pgid == pid
+    ) as proc:
+        deadline = time.monotonic() + timeout
+        sel = selectors.DefaultSelector()
+        sel.register(proc.stdout, selectors.EVENT_READ, "out")
+        sel.register(proc.stderr, selectors.EVENT_READ, "err")
+        exited = False
+        try:
+            while sel.get_map() and not truncated:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    timed_out = True
+                    break
+                events = sel.select(0 if exited else min(0.1, remaining))
+                if not events:
+                    if exited:
+                        break  # program is gone and the pipes are idle (kept open by a stray child)
+                    exited = proc.poll() is not None
+                    continue
+                for key, _ in events:
+                    chunk = os.read(key.fd, 65536)
+                    if not chunk:
+                        sel.unregister(key.fileobj)
+                        continue
+                    buf = bufs[key.data]
+                    room = max_bytes - len(buf)
+                    buf += chunk[:room]
+                    if len(chunk) > room:
+                        truncated = True
+            if not (timed_out or truncated):
+                # Both pipes may be closed while the program is still running (close(1); close(2); for(;;);).
+                try:
+                    proc.wait(timeout=max(0.0, deadline - time.monotonic()))
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+        finally:
+            sel.close()
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)  # also kills children that outlived a normal exit
+            except (ProcessLookupError, PermissionError):
+                pass
+            proc.wait()
+    return (
+        int(proc.returncode),
+        bytes(bufs["out"]).decode("utf-8", errors="replace"),
+        bytes(bufs["err"]).decode("utf-8", errors="replace"),
+        timed_out,
+        truncated,
+    )
 
 
 class ExamShell(cmd.Cmd):
@@ -1439,41 +1522,8 @@ class ExamShell(cmd.Cmd):
                     print(msg)
                 return False
 
-        rem_cd = self._cooldown_remaining()
-        is_prac_cd_bypass = self.practice and (
-            cmd_name in {"cooldown", "remove_grade_time", "force_success", "finish"}
-            or (cmd_name == "grademe" and any(t.lower() in {"--now", "now", "--skip", "skip", "--no-wait"} for t in clean_tokens))
-        )
-        if rem_cd > 0 and not is_prac_cd_bypass:
-            t = self.theme
-            total_pen = max(rem_cd, self.last_penalty_sec or (max(1, self.attempts) * self.cooldown_step))
-            lock_msg = t.c(
-                f"  ❌ [COOLDOWN LOCKED]: Command '{cmd_name}' refused! You pushed a wrong solution (Attempt #{self.attempts}). "
-                f"You MUST wait {self._format_cooldown_human(rem_cd)} until cooldown finishes — no command can run during cooldown!",
-                "err",
-                "bold",
-            )
-            print(lock_msg)
-            if sys.stdin.isatty() and self._viewport_active:
-                while True:
-                    left = self._cooldown_remaining()
-                    if left <= 0:
-                        break
-                    try:
-                        m, s = divmod(left, 60)
-                        pbar = t.progress_bar(total_pen - left, float(total_pen), width=18)
-                        sys.stdout.write(f"\r  {t.warn('⏳ Cooldown Lock:')} {pbar} {t.bold(f'{m:02d}:{s:02d}')} remaining (commands locked until 00:00)   ")
-                        sys.stdout.flush()
-                        time.sleep(1)
-                    except KeyboardInterrupt:
-                        left_now = self._cooldown_remaining()
-                        sys.stdout.write("\n")
-                        print(t.c(f"  ❌ [COOLDOWN LOCKED]: Ctrl+C cannot bypass cooldown! {self._format_cooldown_human(left_now)} remaining.", "err", "bold"))
-                sys.stdout.write("\r" + (" " * 96) + "\r")
-                sys.stdout.flush()
-                print(t.c("  ✓ Cooldown expired! You may now enter commands.", "ok", "bold"))
-            self.last_exit_code = 1
-            return False
+        # The grading cooldown only gates `grademe` (enforced inside do_grademe). Every other
+        # command (status, subject, trace, finish, check, run, ...) stays usable while it runs.
 
         if cmd_name in {"more", "pager"}:
             self.last_exit_code = 0
@@ -2202,40 +2252,77 @@ class ExamShell(cmd.Cmd):
             user_args = shlex.split(arg)
         except ValueError:
             user_args = arg.split()
-        with tempfile.TemporaryDirectory(prefix="exam_run_") as td:
-            work = Path(td)
-            for p in local_dir.iterdir():
-                if p.is_file():
-                    shutil.copy2(p, work / p.name)
-            subj_dir = KIT_ROOT / "subjects" / "exams" / self.current_assignment
-            for hf in subj_dir.glob("*.h"):
-                if not (work / hf.name).exists():
-                    shutil.copy2(hf, work / hf.name)
-            exe = work / "user_run"
-            cmd_comp = ["cc", "-Wall", "-Wextra", "-Werror", *[p.name for p in c_files], "-o", str(exe)]
-            print(t.c(f"$> {' '.join(['cc', '-Wall', '-Wextra', '-Werror', *[p.name for p in c_files], '-o', self.current_assignment])}", "accent"))
-            cproc = subprocess.run(cmd_comp, cwd=work, capture_output=True, text=True)
-            if cproc.returncode != 0:
-                print(t.c("Compilation failed:", "err", "bold"))
-                print(t.c(cproc.stderr.rstrip(), "err"))
-                return
-            quoted = " ".join(shlex.quote(a) for a in user_args)
-            print(t.c(f"$> ./{self.current_assignment} {quoted} | cat -e".rstrip(), "accent"))
-            try:
-                rproc = subprocess.run([str(exe), *user_args], cwd=work, capture_output=True, text=True, timeout=2.0)
-            except subprocess.TimeoutExpired:
-                print(t.c("Timeout (> 2.0s) — check for infinite loops!", "err", "bold"))
-                return
-            cat_e_out = rproc.stdout.replace("\n", "$\n")
-            if cat_e_out.endswith("\n"):
-                cat_e_out = cat_e_out[:-1]
-            if cat_e_out:
-                print(t.c(cat_e_out, "ok"))
-            else:
-                print(t.c("(empty stdout)", "muted"))
-            if rproc.stderr:
-                print(t.c(f"[stderr]: {rproc.stderr.rstrip()}", "warn"))
-            print(t.c(f"[exit code: {rproc.returncode}]", "muted"))
+        def _cat_e(text: str) -> str:
+            rendered = text.replace("\n", "$\n")
+            return rendered[:-1] if rendered.endswith("\n") else rendered
+
+        launch_errors = (OSError, ValueError, subprocess.SubprocessError)
+        try:
+            with tempfile.TemporaryDirectory(prefix="exam_run_") as td:
+                work = Path(td)
+                for p in local_dir.iterdir():
+                    if p.is_file():
+                        shutil.copy2(p, work / p.name)
+                subj_dir = KIT_ROOT / "subjects" / "exams" / self.current_assignment
+                for hf in subj_dir.glob("*.h"):
+                    if not (work / hf.name).exists():
+                        shutil.copy2(hf, work / hf.name)
+                exe = work / "user_run"
+                cmd_comp = ["cc", "-Wall", "-Wextra", "-Werror", *[p.name for p in c_files], "-o", str(exe)]
+                print(t.c(f"$> {' '.join(['cc', '-Wall', '-Wextra', '-Werror', *[p.name for p in c_files], '-o', self.current_assignment])}", "accent"))
+                # The compiler reads student-controlled input (e.g. `#include </dev/zero>`), so it gets the same bounds.
+                try:
+                    comp_rc, _comp_out, comp_err, comp_timed_out, comp_truncated = _run_bounded_subprocess(
+                        cmd_comp, cwd=work, timeout=RUN_COMPILE_TIMEOUT_S
+                    )
+                except launch_errors as exc:
+                    self.last_exit_code = 1
+                    print(t.c(f"[run] Could not launch the compiler: {exc}", "err", "bold"))
+                    return
+                if comp_timed_out or comp_truncated or comp_rc != 0:
+                    self.last_exit_code = 1
+                    print(t.c("Compilation failed:", "err", "bold"))
+                    if comp_timed_out:
+                        print(t.c(f"Compiler timeout (> {RUN_COMPILE_TIMEOUT_S:.0f}s) — compiler killed.", "err", "bold"))
+                    elif comp_truncated:
+                        print(t.c(f"Compiler output limit (> {MAX_RUN_OUTPUT_BYTES // 1024} KB) — compiler killed.", "err", "bold"))
+                    if comp_err.strip():
+                        print(t.c(comp_err.rstrip(), "err"))
+                    return
+                quoted = " ".join(shlex.quote(a) for a in user_args)
+                print(t.c(f"$> ./{self.current_assignment} {quoted} | cat -e".rstrip(), "accent"))
+                try:
+                    run_rc, run_out, run_err, timed_out, truncated = _run_bounded_subprocess(
+                        [str(exe), *user_args], cwd=work, timeout=2.0
+                    )
+                except launch_errors as exc:
+                    self.last_exit_code = 1
+                    print(t.c(f"[run] Could not execute the compiled program: {exc}", "err", "bold"))
+                    return
+                if truncated or timed_out:
+                    # Show the beginning of what was printed before the kill, then the reason.
+                    self.last_exit_code = 1
+                    if run_out:
+                        print(t.c(_cat_e(run_out[:RUN_PREVIEW_CHARS]), "ok"))
+                        if len(run_out) > RUN_PREVIEW_CHARS:
+                            print(t.c(f"[... only the first {RUN_PREVIEW_CHARS} characters of the captured stdout are shown]", "muted"))
+                    if truncated:
+                        print(t.c(f"Output limit (> {MAX_RUN_OUTPUT_BYTES // 1024} KB) — program killed, check for infinite print loops!", "err", "bold"))
+                    else:
+                        print(t.c("Timeout (> 2.0s) — check for infinite loops!", "err", "bold"))
+                    return
+                cat_e_out = _cat_e(run_out)
+                if cat_e_out:
+                    print(t.c(cat_e_out, "ok"))
+                else:
+                    print(t.c("(empty stdout)", "muted"))
+                if run_err:
+                    print(t.c(f"[stderr]: {run_err.rstrip()}", "warn"))
+                print(t.c(f"[exit code: {run_rc}]", "muted"))
+        except KeyboardInterrupt:
+            # The bounded runner has already killed the whole process group on its way out.
+            self.last_exit_code = 130
+            print(t.c("[run] Interrupted (^C) — program killed.", "warn", "bold"))
 
 
     def do_grademe(self, arg: str) -> None:
@@ -2305,6 +2392,7 @@ class ExamShell(cmd.Cmd):
                         if b == 3:  # Ctrl+C
                             raise KeyboardInterrupt
                 except KeyboardInterrupt:
+                    self.last_exit_code = 130
                     left_now = self._cooldown_remaining()
                     print("\n".join(_build_cd_panel(left_now)))
                     print(t.c(f"  [Cooldown] Paused wait ({self._format_cooldown_human(left_now)} left in background).", "warn", "bold"))
@@ -2336,6 +2424,7 @@ class ExamShell(cmd.Cmd):
                         sys.stdout.flush()
                         print(t.c("  ✓ Cooldown complete! Proceeding with official Deepthought grading...", "ok", "bold"))
                     except KeyboardInterrupt:
+                        self.last_exit_code = 130
                         sys.stdout.write("\n")
                         sys.stdout.flush()
                         left_now = self._cooldown_remaining()
@@ -2343,6 +2432,15 @@ class ExamShell(cmd.Cmd):
                         if self.practice:
                             print(t.c("  Tip: Use `check` or `run` right now with 0s wait, or `cooldown reset` / `grademe --now` to skip wait.", "muted"))
                         return
+                else:
+                    # Piped / `-c` execution: never block on the timer and never grade through an active cooldown.
+                    self.last_exit_code = 1
+                    print(t.c(f"  [Cooldown] 'grademe' refused: {self._format_cooldown_human(rem_wait)} left. Other commands still work.", "err", "bold"))
+                    if self.practice:
+                        print(t.c("  Tip: Use `check` or `run` meanwhile, `grademe --wait` to block until it ends, or `grademe --now` to skip it.", "muted"))
+                    else:
+                        print(t.c("  Tip: Use `grademe --wait` to block until the cooldown ends.", "muted"))
+                    return
 
         lvl = self.levels[self.current_idx]
         pts = lvl.get("points", round(100 / max(1, len(self.levels))))
