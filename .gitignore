@@ -28,6 +28,7 @@ workspace/subject/*
 !workspace/subject/.gitkeep
 workspace/traces/
 workspace/*.json
+workspace/.*.lock
 workspace/vogsphere.git/
 
 # Vogsphere Runtime Bare Repositories

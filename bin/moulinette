@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import datetime as dt
+import functools
 import json
 import os
 import re
@@ -22,6 +23,11 @@ try:
 except ImportError:
     readline = None  # type: ignore[assignment]
 
+try:
+    import fcntl
+except ImportError:  # non-POSIX platform: ledger updates are simply not serialised
+    fcntl = None  # type: ignore[assignment]
+
 # Prevent BrokenPipeError tracebacks when piping output (e.g., `./moulinette --list | head`)
 if hasattr(signal, "SIGPIPE"):
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
@@ -38,74 +44,6 @@ import yaml
 from deepthought.grader import GradeReport, grade_subject
 from deepthought.progression import XPTracker, load_student_profile
 from deepthought.ui_theme import PALETTES, ThemeEngine
-
-COOLDOWN_STATE_FILE = KIT_ROOT / "workspace" / ".moulinette_cooldown.json"
-DEFAULT_COOLDOWN_STEP = int(os.environ.get("MOULINETTE_COOLDOWN_STEP", "30"))
-
-
-def _load_moulinette_cooldown() -> dict[str, Any]:
-    if COOLDOWN_STATE_FILE.is_file():
-        try:
-            data = json.loads(COOLDOWN_STATE_FILE.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                data.setdefault("enabled", False)
-                data.setdefault("step_sec", DEFAULT_COOLDOWN_STEP)
-                return data
-        except Exception:
-            pass
-    return {"enabled": False, "step_sec": DEFAULT_COOLDOWN_STEP, "attempts": {}, "next_grademe_ts": 0.0, "last_subject": "", "last_penalty_sec": 0}
-
-
-def _save_moulinette_cooldown(state: dict[str, Any]) -> None:
-    try:
-        COOLDOWN_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        tmp = COOLDOWN_STATE_FILE.with_suffix(".tmp")
-        tmp.write_text(json.dumps(state, indent=2), encoding="utf-8")
-        os.replace(tmp, COOLDOWN_STATE_FILE)
-    except OSError:
-        pass
-
-
-def get_moulinette_cooldown_remaining() -> tuple[int, dict[str, Any]]:
-    st = _load_moulinette_cooldown()
-    if os.environ.get("MOULINETTE_DISABLE_COOLDOWN") == "1":
-        return 0, st
-    force_on = os.environ.get("MOULINETTE_ENABLE_COOLDOWN") == "1"
-    if not st.get("enabled", False) and not force_on:
-        return 0, st
-    rem = float(st.get("next_grademe_ts", 0.0)) - time.time()
-    return max(0, int(round(rem))), st
-
-
-def record_moulinette_attempt_result(rel_subj: str, passed: bool, status_str: str, *, is_self_test: bool = False, is_practice: bool = False) -> int:
-    """Update Moulinette cooldown state after grading ONLY when cooldown is enabled via `cooldown on` / `--cooldown`."""
-    if is_self_test or os.environ.get("MOULINETTE_DISABLE_COOLDOWN") == "1":
-        return 0
-    if "Nothing turned in" in status_str:
-        return 0
-    st = _load_moulinette_cooldown()
-    force_on = os.environ.get("MOULINETTE_ENABLE_COOLDOWN") == "1"
-    if not st.get("enabled", False) and not force_on:
-        return 0
-    step_s = int(st.get("step_sec") or DEFAULT_COOLDOWN_STEP)
-    attempts_map = st.setdefault("attempts", {})
-    if passed:
-        attempts_map[rel_subj] = 0
-        st["next_grademe_ts"] = 0.0
-        st["last_penalty_sec"] = 0
-        st["last_subject"] = rel_subj
-        _save_moulinette_cooldown(st)
-        return 0
-    cur_att = int(attempts_map.get(rel_subj, 0)) + 1
-    attempts_map[rel_subj] = cur_att
-    pen = cur_att * step_s
-    st["next_grademe_ts"] = time.time() + pen
-    st["last_penalty_sec"] = pen
-    st["last_subject"] = rel_subj
-    _save_moulinette_cooldown(st)
-    return pen
-
-
 
 DEFAULT_LOGIN = os.environ.get("USER") or os.environ.get("LOGNAME") or "student"
 _YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
@@ -249,49 +187,149 @@ def get_piscine_modules() -> set[str]:
     return {p.stem for p in piscine_dir.glob("*.yml")}
 
 
-def resolve_piscine_or_exam_subject(subject: str, prefer_exam: bool = False) -> tuple[str, bool]:
-    """Resolve bare exercise names (e.g. 'ft_strlen' or 'c01/ft_strlen') to Piscine first by default, or Exam first when prefer_exam=True."""
-    clean_subj = subject.strip().strip("/")
-    if (KIT_ROOT / "subjects" / clean_subj).exists():
-        is_exam = clean_subj.startswith("exams/")
-        return clean_subj, is_exam
-    if prefer_exam and (KIT_ROOT / "subjects" / "exams" / clean_subj).exists():
-        return f"exams/{clean_subj}", True
-    if (KIT_ROOT / "subjects" / "piscine" / clean_subj).exists():
-        return f"piscine/{clean_subj}" if not clean_subj.startswith("piscine/") else clean_subj, False
+class ExerciseLookupError(Exception):
+    """An exercise name that cannot be honoured as typed. str(exc) is the message shown to the student."""
 
+
+_FORBIDDEN_NAME_CHARS = frozenset("*?[]\\\x00\n\r")
+
+
+def _is_exercise_dir(path: Path) -> bool:
+    """An exercise is a subject directory that carries a meta.yml; module folders, PDFs and stray files are not."""
+    return (path / "meta.yml").is_file()
+
+
+def normalise_exercise_name(subject: str) -> str:
+    """Canonical form of what the student typed: no empty parts, no '.', no '..', no glob characters."""
+    raw = str(subject).strip()
+    parts = [part for part in raw.split("/") if part]
+    if not parts:
+        raise ExerciseLookupError("Empty exercise name.")
+    if any(part in {".", ".."} for part in parts) or any(ch in _FORBIDDEN_NAME_CHARS for ch in raw):
+        raise ExerciseLookupError(f"Invalid exercise name '{raw}'. Names are literal: no '..', no wildcards.")
+    return "/".join(parts)
+
+
+def short_exercise_label(resolved: str) -> str:
+    """'piscine/c01/c01_ft_strlen' -> 'c01/ft_strlen'; 'exams/ft_range' -> 'exams/ft_range'."""
+    parts = Path(resolved).parts
+    if len(parts) == 3 and parts[0] == "piscine":
+        return f"{parts[1]}/{_MODULE_PREFIX_RE.sub('', parts[2])}"
+    return resolved
+
+
+def _piscine_candidates(name: str) -> tuple[list[str], list[str]]:
+    """(exact, prefixed) piscine exercises for a bare name: '<mod>/<name>' and '<mod>/<mod>_<name>'."""
     piscine_root = KIT_ROOT / "subjects" / "piscine"
-    if "/" in clean_subj:
-        mod_part, ex_part = clean_subj.split("/", 1)
-        prefixed_candidate = piscine_root / mod_part / f"{mod_part}_{ex_part}"
-        if prefixed_candidate.exists():
-            return str(prefixed_candidate.relative_to(KIT_ROOT / "subjects")), False
+    exact: list[str] = []
+    prefixed: list[str] = []
+    if piscine_root.is_dir():
+        for mod_dir in sorted(p for p in piscine_root.iterdir() if p.is_dir()):
+            if _is_exercise_dir(mod_dir / name):
+                exact.append(f"piscine/{mod_dir.name}/{name}")
+            elif _is_exercise_dir(mod_dir / f"{mod_dir.name}_{name}"):
+                prefixed.append(f"piscine/{mod_dir.name}/{mod_dir.name}_{name}")
+    return exact, prefixed
 
-    piscine_matches = sorted(piscine_root.glob(f"*/{clean_subj}"))
-    if not piscine_matches:
-        piscine_matches = sorted(piscine_root.glob(f"*/*_{clean_subj}"))
-    if piscine_matches:
-        rel = piscine_matches[0].relative_to(KIT_ROOT / "subjects")
-        return str(rel), False
 
-    if (KIT_ROOT / "subjects" / "exams" / clean_subj).exists():
-        return f"exams/{clean_subj}", True
-    return clean_subj, False
+def resolve_piscine_or_exam_subject(subject: str, prefer_exam: bool = False) -> tuple[str, bool]:
+    """Resolve what the student typed to exactly one exercise.
+
+    Accepted forms: 'piscine/<mod>/<ex>', 'exams/<ex>', '<mod>/<ex>', or a bare '<ex>'.
+    A bare name goes to the Piscine first (Exam first when prefer_exam=True). Names are matched whole:
+    no partial match, no wildcard. Two exercises with an equal claim on a bare name raise
+    ExerciseLookupError instead of one being picked silently. An unknown name is returned unchanged
+    (callers check it with _is_exercise_dir).
+    """
+    clean = normalise_exercise_name(subject)
+    subj_root = KIT_ROOT / "subjects"
+    parts = clean.split("/")
+
+    if parts[0] == "exams" and len(parts) >= 2:
+        return clean, True
+    if parts[0] == "piscine" and len(parts) >= 2:
+        parts = parts[1:]
+        if len(parts) != 2:
+            return clean, False
+    if len(parts) == 2:
+        mod, ex = parts
+        for cand in (ex, f"{mod}_{ex}"):
+            if _is_exercise_dir(subj_root / "piscine" / mod / cand):
+                return f"piscine/{mod}/{cand}", False
+        return clean, False
+    if len(parts) > 2:
+        return clean, False
+
+    has_exam = _is_exercise_dir(subj_root / "exams" / clean)
+    if prefer_exam and has_exam:
+        return f"exams/{clean}", True
+    for tier in _piscine_candidates(clean):
+        if len(tier) == 1:
+            return tier[0], False
+        if len(tier) > 1:
+            choices = ", ".join(short_exercise_label(c) for c in tier)
+            raise ExerciseLookupError(f"'{clean}' is ambiguous: {choices}. Name the module.")
+    if has_exam:
+        return f"exams/{clean}", True
+    return clean, False
+
+
+def find_exercise_namesakes(resolved: str) -> list[str]:
+    """Other exercises that share the bare name of `resolved` (short labels), e.g. c01/ft_strlen, exams/ft_strlen."""
+    leaf = _MODULE_PREFIX_RE.sub("", Path(resolved).name)
+    exact, prefixed = _piscine_candidates(leaf)
+    others = [c for c in (*exact, *prefixed) if c != resolved]
+    if _is_exercise_dir(KIT_ROOT / "subjects" / "exams" / leaf) and resolved != f"exams/{leaf}":
+        others.append(f"exams/{leaf}")
+    return [short_exercise_label(c) for c in others]
+
+
+def resolve_exercise_or_report(target: str, theme: ThemeEngine, prefer_exam: bool = False) -> tuple[str, bool] | None:
+    """Resolve an exercise or print one precise error line and return None."""
+    try:
+        resolved, is_exam = resolve_piscine_or_exam_subject(str(target), prefer_exam=prefer_exam)
+    except ExerciseLookupError as exc:
+        print(theme.c(f"Error: {exc}", "err", "bold"))
+        return None
+    if not _is_exercise_dir(KIT_ROOT / "subjects" / resolved):
+        print(theme.c(f"Error: Unknown exercise '{target}'. Try `./moulinette --list`.", "err", "bold"))
+        return None
+    return resolved, is_exam
+
+
+def expected_turnin_files(resolved_subject: str, slug_leaf: str) -> list[str]:
+    """Files the subject asks for, as declared in meta.yml (falls back to '<name>.c')."""
+    meta = fast_load_yaml(KIT_ROOT / "subjects" / resolved_subject / "meta.yml") if resolved_subject else {}
+    declared = [str(f) for f in (meta.get("expected_files") or []) if str(f).strip()]
+    return declared or [f"{slug_leaf}.c"]
 
 
 def resolve_submission_dir(explicit_dir: str | None, slug_leaf: str, resolved_subject: str = "") -> Path:
+    """Where the turn-in is read from.
+
+    Order: --dir, then the current directory when it visibly holds this exercise, then the kit
+    workspace, then an examshell rendu folder. When nothing is found the answer is the canonical
+    workspace folder (never the current directory as a whole), so 'Nothing turned in' points at
+    the place the student is expected to use.
+    """
     if explicit_dir is not None:
         return Path(explicit_dir).expanduser().resolve()
     cwd = Path.cwd().resolve()
     is_kit_root = (cwd == KIT_ROOT.resolve())
+    names = {f"{slug_leaf}.c", f"{slug_leaf}.sh", f"{slug_leaf}.h"}
+    if resolved_subject:
+        names.update(f for f in expected_turnin_files(resolved_subject, slug_leaf) if "*" not in f)
+
+    def _holds_turnin(directory: Path) -> bool:
+        return any((directory / name).is_file() for name in names)
 
     if not is_kit_root:
-        if (cwd / f"{slug_leaf}.c").exists() or (cwd / f"{slug_leaf}.sh").exists() or (cwd / f"{slug_leaf}.h").exists():
+        if _holds_turnin(cwd):
             return cwd
         if (cwd / slug_leaf).is_dir():
             return (cwd / slug_leaf).resolve()
         for ex_dir in sorted(cwd.glob("ex[0-9][0-9]")):
-            if (ex_dir / f"{slug_leaf}.c").exists() or (ex_dir / f"{slug_leaf}.sh").exists() or (ex_dir / f"{slug_leaf}.h").exists():
+            if _holds_turnin(ex_dir):
                 return ex_dir.resolve()
 
     if resolved_subject:
@@ -303,7 +341,7 @@ def resolve_submission_dir(explicit_dir: str | None, slug_leaf: str, resolved_su
             mod_ws = KIT_ROOT / "workspace" / "piscine" / parts[1]
             if mod_ws.is_dir():
                 for ex_dir in sorted(mod_ws.glob("ex[0-9][0-9]")):
-                    if (ex_dir / f"{slug_leaf}.c").exists() or (ex_dir / f"{slug_leaf}.sh").exists() or (ex_dir / f"{slug_leaf}.h").exists():
+                    if _holds_turnin(ex_dir):
                         return ex_dir.resolve()
 
     exam_rendu = Path.home() / "exam-basedir" / "rendu" / slug_leaf
@@ -313,17 +351,15 @@ def resolve_submission_dir(explicit_dir: str | None, slug_leaf: str, resolved_su
     if ws_rendu.is_dir():
         return ws_rendu.resolve()
 
-    if is_kit_root:
-        target_rel = resolved_subject if resolved_subject else f"rendu/{slug_leaf}"
-        return (KIT_ROOT / "workspace" / target_rel).resolve()
-    return cwd
+    target_rel = resolved_subject if resolved_subject else f"rendu/{slug_leaf}"
+    return (KIT_ROOT / "workspace" / target_rel).resolve()
 
 
 def render_five_gate_scorecard(report: GradeReport, theme: ThemeEngine, is_exam: bool = False, norm_enabled: bool = False) -> str:
     st = report.status
     g1_fail = "Nothing turned in" in st or "main() in function" in st or "Extraneous file" in st
     g2_fail = "Cheating" in st or "Norme error" in st
-    g3_fail = st == "Does not compile" or "Makefile" in st
+    g3_fail = st.startswith("Does not compile") or "Makefile" in st
     g4_fail = any(k in st for k in ("Segmentation fault", "Bus error", "Abort", "Floating point", "Timeout", "Output limit", "Redzone KO", "Leak KO", "Free KO", "Strict KO", "Exit 42", "Exit 43"))
     g5_fail = not report.passed and not (g1_fail or g2_fail or g3_fail or g4_fail)
 
@@ -425,30 +461,72 @@ def resolve_exam_track_name(name: str) -> str | None:
     return None
 
 
+OFFICIAL_EXAM_TRACKS = [
+    "c_piscine_exam_00", "c_piscine_exam_01", "c_piscine_exam_02", "c_piscine_final_exam",
+    "rank02", "rank03", "rank04", "rank05", "rank06",
+]
+
+
+@functools.lru_cache(maxsize=1)
+def catalog_counts() -> tuple[int, int, int, int]:
+    """(piscine modules, piscine exercises, exam tracks shown, exam exercises), counted on disk."""
+    subj = KIT_ROOT / "subjects"
+    mods = len(get_piscine_modules())
+    piscine_exs = sum(1 for _ in (subj / "piscine").glob("*/*/meta.yml")) if (subj / "piscine").is_dir() else 0
+    tracks = sum(1 for t in OFFICIAL_EXAM_TRACKS if (KIT_ROOT / "pools" / "exams" / f"{t}.yml").is_file())
+    exam_exs = sum(1 for _ in (subj / "exams").glob("*/meta.yml")) if (subj / "exams").is_dir() else 0
+    return mods, piscine_exs, tracks, exam_exs
+
+
+def load_validated_exercises() -> set[str]:
+    """Exercises already validated by the student, from the default XP ledger (empty when there is none)."""
+    try:
+        data = json.loads((KIT_ROOT / "workspace" / "xp_ledger.json").read_text(encoding="utf-8"))
+        return set((data.get("validated_exercises") or {}).keys())
+    except (OSError, ValueError, AttributeError):
+        return set()
+
+
+def home_note(*shown_paths: str) -> str:
+    """Explain '~' only when a displayed path actually uses it."""
+    return f"  (~ = {Path.home()})" if any(str(sp).startswith("~") for sp in shown_paths) else ""
+
+
+def clip_cell(text: str, width: int) -> str:
+    return text if len(text) <= width else text[: max(1, width - 1)] + "…"
+
+
 def print_sections_menu(theme: ThemeEngine) -> None:
-    """Render the Spartan 2-section root catalog selector (1: piscine, 2: piscine exam)."""
+    """Render the Spartan 2-section root catalog selector (1: piscine, 2: piscine exam). Fits 80 columns."""
+    mods, piscine_exs, tracks, exam_exs = catalog_counts()
     print(f"{theme.c('===>', 'accent', 'bold')} {theme.c('42 / 1337 catalog sections', 'primary', 'bold')}")
     print("")
     print(theme.c(f"{'#':<3}  {'SECTION':<14}  {'CONTENT':<22}  {'DESCRIPTION'}", "bold"))
-    print(theme.c(f"{'---':<3}  {'--------------':<14}  {'----------------------':<22}  {'------------------------------------------------'}", "muted"))
+    print(theme.c(f"{'---':<3}  {'-' * 14}  {'-' * 22}  {'-' * 34}", "muted"))
     print(
         f"{theme.c('1  ', 'muted')}  "
         f"{theme.c('piscine'.ljust(14), 'accent', 'bold')}  "
-        f"{theme.c('17 modules (136 exs)'.ljust(22), 'secondary')}  "
-        f"{theme.c('C Piscine & Shell (c00..c13, shell00..01, rush)', 'muted')}"
+        f"{theme.c(f'{mods} modules ({piscine_exs} exs)'.ljust(22), 'secondary')}  "
+        f"{theme.c('c00..c13, shell00..01, rush, bsq', 'muted')}"
     )
     print(
         f"{theme.c('2  ', 'muted')}  "
         f"{theme.c('piscine exam'.ljust(14), 'accent', 'bold')}  "
-        f"{theme.c('9 tracks (303 exs)'.ljust(22), 'secondary')}  "
-        f"{theme.c('Piscine Exams (00..Final) & Common Core (02..06)', 'muted')}"
+        f"{theme.c(f'{tracks} tracks ({exam_exs} exs)'.ljust(22), 'secondary')}  "
+        f"{theme.c('exam 00..final, rank 02..06', 'muted')}"
     )
     print("")
-    print(theme.c("tip: type 'piscine' (1) or 'piscine exam' (2) to browse, or <exercise> to grade directly.", "muted"))
+    print(theme.c("tip: 'piscine' (1) or 'exams' (2) to browse, or an exercise name to grade it.", "muted"))
 
 
-def print_catalog_list(target: str | None, theme: ThemeEngine) -> int:
+def print_catalog_list(target: str | None, theme: ThemeEngine, max_rows: int | None = None) -> int:
+    """Print a catalog view. Every line fits 80 columns as long as the kit path does.
+
+    max_rows is the room available on screen: when a table would not fit, the two path lines are left out
+    so that the rows (the names to type) stay visible.
+    """
     piscine_dir = KIT_ROOT / "pools" / "piscine"
+    validated = load_validated_exercises()
     exam_dir = KIT_ROOT / "pools" / "exams"
     piscine_pools = sorted(piscine_dir.glob("*.yml"))
     target_clean = (target or "").strip().lower()
@@ -498,29 +576,28 @@ def print_catalog_list(target: str | None, theme: ThemeEngine) -> int:
                 subj_base = tilde_path(KIT_ROOT / "subjects" / "exams")
                 ws_base = tilde_path(KIT_ROOT / "workspace" / "exams")
                 print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'{exam_file.stem} / level{lvl_num} ({len(cands)} candidates | {pts} pts each)', 'primary', 'bold')}")
-                print(theme.c(f"     subject: {subj_base}/<ex>/subject.en.txt (or 'subject <ex>') | turn-in: {ws_base}/<ex>/", "muted"))
-                print("")
-                print(theme.c(f"{'#':<4}  {'ASSIGNMENT':<24}  {'FILES':<24}  {'ALLOWED':<18}  {'PTS':>3}", "bold"))
-                print(theme.c(f"{'----':<4}  {'------------------------':<24}  {'------------------------':<24}  {'------------------':<18}  {'---':>3}", "muted"))
+                if max_rows is None or len(cands) + 5 <= max_rows:
+                    print(theme.c(f"     subject: {subj_base}/<ex>/subject.en.txt", "muted"))
+                    print(theme.c(f"     turn-in: {ws_base}/<ex>/{home_note(subj_base, ws_base)}", "muted"))
+                print(theme.c(f"{'#':<3}  {'ASSIGNMENT':<24}  {'FILES':<20}  {'ALLOWED':<14}  {'PTS':>3}  {'DONE':<4}", "bold"))
+                print(theme.c(f"{'---':<3}  {'-' * 24}  {'-' * 20}  {'-' * 14}  {'---':>3}  {'----':<4}", "muted"))
                 for idx, ex_id in enumerate(cands, 1):
                     m_path = KIT_ROOT / "subjects" / "exams" / ex_id / "meta.yml"
                     meta = fast_load_yaml(m_path) if m_path.exists() else {}
-                    exp = ", ".join(meta.get("expected_files") or [f"{ex_id}.c"])
-                    if len(exp) > 24:
-                        exp = exp[:23] + "…"
-                    allow = ", ".join(meta.get("allowed_functions") or ["None"])
-                    if len(allow) > 18:
-                        allow = allow[:17] + "…"
-                    disp = ex_id if len(ex_id) <= 24 else ex_id[:23] + "…"
-                    print(f"{theme.c(f'{idx:<4}', 'muted')}  {theme.c(f'{disp:<24}', 'primary', 'bold')}  {theme.c(f'{exp:<24}', 'secondary')}  {theme.c(f'{allow:<18}', 'muted')}  {pts:>3}")
+                    exp = clip_cell(", ".join(meta.get("expected_files") or [f"{ex_id}.c"]), 20)
+                    allow = clip_cell(", ".join(meta.get("allowed_functions") or ["None"]), 14)
+                    disp = clip_cell(str(ex_id), 24)
+                    done = theme.c("OK  ", "ok", "bold") if f"exams/{ex_id}" in validated else theme.c("-   ", "muted")
+                    print(f"{theme.c(f'{idx:<3}', 'muted')}  {theme.c(f'{disp:<24}', 'primary', 'bold')}  {theme.c(f'{exp:<20}', 'secondary')}  {theme.c(f'{allow:<14}', 'muted')}  {pts:>3}  {done}")
                 return 0
 
         # Sub-case 1B: Compact Level Table (1 row per level, matching piscine module table style)
         subj_base = tilde_path(KIT_ROOT / "subjects" / "exams")
         ws_base = tilde_path(KIT_ROOT / "workspace" / "exams")
         print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'exam track: {exam_file.stem} ({title})', 'primary', 'bold')}")
-        print(theme.c(f"     duration: {dur_h:02d}h {dur_m:02d}m | levels: {len(levels)} ({total_candidates} exs) | subject: {subj_base}/<ex>/subject.en.txt | turn-in: {ws_base}/<ex>/", "muted"))
-        print("")
+        print(theme.c(f"     duration: {dur_h:02d}h {dur_m:02d}m | levels: {len(levels)} ({total_candidates} exs)", "muted"))
+        print(theme.c(f"     subject: {subj_base}/<ex>/subject.en.txt", "muted"))
+        print(theme.c(f"     turn-in: {ws_base}/<ex>/{home_note(subj_base, ws_base)}", "muted"))
         print(theme.c(f"{'LEVEL':<8}  {'PTS':>4}  {'COUNT':>5}  {'EXERCISES'}", "bold"))
         print(theme.c(f"{'--------':<8}  {'----':>4}  {'-----':>5}  {'---------------------------------------------------------'}", "muted"))
         for lvl in levels:
@@ -543,10 +620,10 @@ def print_catalog_list(target: str | None, theme: ThemeEngine) -> int:
         subj_mod = tilde_path(KIT_ROOT / "subjects" / "piscine" / target_clean)
         ws_mod = tilde_path(KIT_ROOT / "workspace" / "piscine" / target_clean)
         print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'piscine module: {target_clean} ({title})', 'primary', 'bold')}")
-        print(theme.c(f"     exercises: {len(exs)} | subject: {subj_mod}/<ex>/subject.en.txt | turn-in: {ws_mod}/<ex>/", "muted"))
-        print("")
-        print(theme.c(f"{'EX':<4}  {'ASSIGNMENT':<22}  {'FILES':<24}  {'ALLOWED':<14}  {'XP':>3}", "bold"))
-        print(theme.c(f"{'----':<4}  {'----------------------':<22}  {'------------------------':<24}  {'--------------':<14}  {'---':>3}", "muted"))
+        if max_rows is None or len(exs) + 5 <= max_rows:
+            print(theme.c(f"     subject: {subj_mod}/<ex>/subject.en.txt", "muted"))
+            print(theme.c(f"     turn-in: {ws_mod}/<ex>/{home_note(subj_mod, ws_mod)}", "muted"))
+        rows: list[tuple[str, str, str, str, str, str]] = []
         for idx, ex in enumerate(exs):
             raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
             ex_id = Path(raw_id).name
@@ -554,28 +631,28 @@ def print_catalog_list(target: str | None, theme: ThemeEngine) -> int:
             m_path = KIT_ROOT / "subjects" / "piscine" / target_clean / ex_id / "meta.yml"
             meta = fast_load_yaml(m_path) if m_path.exists() else {}
             clean_leaf = _MODULE_PREFIX_RE.sub("", ex_id)
-            exp = ", ".join(meta.get("expected_files") or [f"{clean_leaf}.c"])
-            if len(exp) > 24:
-                exp = exp[:23] + "…"
-            allow = ", ".join(meta.get("allowed_functions") or ["None"])
-            if len(allow) > 14:
-                allow = allow[:13] + "…"
+            exp = ", ".join(str(f) for f in (meta.get("expected_files") or [f"{clean_leaf}.c"]))
+            allow = ", ".join(str(f) for f in (meta.get("allowed_functions") or ["None"]))
             xp = (ex.get("xp") if isinstance(ex, dict) else None) or meta.get("xp", 100)
-            leaf_disp = clean_leaf if len(clean_leaf) <= 22 else clean_leaf[:21] + "…"
-            print(f"{theme.c(f'{ex_label:<4}', 'muted')}  {theme.c(f'{leaf_disp:<22}', 'primary', 'bold')}  {theme.c(f'{exp:<24}', 'secondary')}  {theme.c(f'{allow:<14}', 'muted')}  {xp:>3}")
+            is_done = f"piscine/{target_clean}/{ex_id}" in validated
+            rows.append((str(ex_label), clean_leaf, exp, allow, str(xp), "OK" if is_done else "-"))
+        name_w = max([10, *(len(r[1]) for r in rows)])
+        files_w = max(12, min(24, 46 - name_w))
+        print(theme.c(f"{'EX':<4}  {'ASSIGNMENT':<{name_w}}  {'FILES':<{files_w}}  {'ALLOWED':<12}  {'XP':>3}  {'DONE':<4}", "bold"))
+        print(theme.c(f"{'----':<4}  {'-' * name_w}  {'-' * files_w}  {'-' * 12}  {'---':>3}  {'----':<4}", "muted"))
+        for ex_label, leaf, exp, allow, xp_s, done_s in rows:
+            done = theme.c(f"{done_s:<4}", "ok", "bold") if done_s == "OK" else theme.c(f"{done_s:<4}", "muted")
+            print(
+                f"{theme.c(f'{ex_label:<4}', 'muted')}  {theme.c(f'{leaf:<{name_w}}', 'primary', 'bold')}  "
+                f"{theme.c(f'{clip_cell(exp, files_w):<{files_w}}', 'secondary')}  {theme.c(f'{clip_cell(allow, 12):<12}', 'muted')}  {xp_s:>3}  {done}"
+            )
         return 0
 
-    OFFICIAL_EXAM_TRACKS = [
-        "c_piscine_exam_00", "c_piscine_exam_01", "c_piscine_exam_02", "c_piscine_final_exam",
-        "rank02", "rank03", "rank04", "rank05", "rank06",
-    ]
     visible_exam_pools = [exam_dir / f"{trk}.yml" for trk in OFFICIAL_EXAM_TRACKS if (exam_dir / f"{trk}.yml").exists()]
 
     # Case 3: Target is "piscine" or "piscines"
     if target_clean in {"piscine", "piscines"}:
-        print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'42 / 1337 c piscine catalog ({len(piscine_pools)} modules | 136 exercises)', 'primary', 'bold')}")
-        print(theme.c(f"     subject: {tilde_path(KIT_ROOT / 'subjects/piscine')}/<mod>/<ex>/subject.en.txt | turn-in: {tilde_path(KIT_ROOT / 'workspace/piscine')}/<mod>/<ex>/", "muted"))
-        print("")
+        print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'42 / 1337 c piscine catalog ({len(piscine_pools)} modules | {catalog_counts()[1]} exercises)', 'primary', 'bold')}")
         print(theme.c(f"{'MODULE':<10}  {'COUNT':>5}  {'EXERCISES'}", "bold"))
         print(theme.c(f"{'----------':<10}  {'-----':>5}  {'---------------------------------------------------------'}", "muted"))
         for p in piscine_pools:
@@ -587,9 +664,7 @@ def print_catalog_list(target: str | None, theme: ThemeEngine) -> int:
 
     # Case 4: Target is "exams", "exam", or "piscine exam"
     if target_clean in {"exam", "exams", "piscine exam", "piscine_exam"}:
-        print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'piscine exam ({len(visible_exam_pools)} tracks | 303 unique exercises)', 'primary', 'bold')}")
-        print(theme.c(f"     subject: {tilde_path(KIT_ROOT / 'subjects/exams')}/<ex>/subject.en.txt | turn-in: {tilde_path(KIT_ROOT / 'workspace/exams')}/<ex>/", "muted"))
-        print("")
+        print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'piscine exam ({len(visible_exam_pools)} tracks | {catalog_counts()[3]} exercises)', 'primary', 'bold')}")
         print(theme.c(f"{'TRACK':<24}  {'DUR':<4}  {'LVL':>3}  {'POOL':>4}  {'NAME'}", "bold"))
         print(theme.c(f"{'------------------------':<24}  {'----':<4}  {'---':>3}  {'----':>4}  {'----------------------------------'}", "muted"))
         for p in visible_exam_pools:
@@ -636,14 +711,11 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
         print(theme.c(f"Grade entire module with: ./moulinette {mod} --dir {base_out}", "primary", "bold"))
         return 0
 
-    resolved, _ = resolve_piscine_or_exam_subject(target, prefer_exam=prefer_exam)
-    subj_dir = KIT_ROOT / "subjects" / resolved
-    if not subj_dir.exists() and (KIT_ROOT / "subjects" / "piscine" / resolved).exists():
-        resolved = f"piscine/{resolved}"
-        subj_dir = KIT_ROOT / "subjects" / resolved
-    if not subj_dir.exists():
-        print(theme.c(f"Error: Unknown exercise '{target}'. Try `./moulinette --list`.", "err", "bold"))
+    found = resolve_exercise_or_report(target, theme, prefer_exam=prefer_exam)
+    if found is None:
         return 1
+    resolved = found[0]
+    subj_dir = KIT_ROOT / "subjects" / resolved
 
     meta = fast_load_yaml(subj_dir / "meta.yml")
     out_dir = Path(dest_override).expanduser().resolve() if dest_override else (KIT_ROOT / "workspace" / resolved)
@@ -697,7 +769,7 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
     print(theme.c("=" * 80, "border"))
     print(theme.c(f"  SCAFFOLDED WORKSPACE READY: {resolved}", "ok", "bold"))
     print(theme.c("-" * 80, "border"))
-    print(f"  Turn-In Folder  : {theme.c(t_out + '/', 'accent', 'bold')}  {theme.c(f'(~ = {Path.home()})', 'muted')}")
+    print(f"  Turn-In Folder  : {theme.c(t_out + '/', 'accent', 'bold')}{theme.c(home_note(t_out), 'muted')}")
     print(f"  Subject File    : {theme.c(t_subj, 'secondary')}")
     print(f"  Expected Files  : {', '.join(exp_files)}")
     print(f"  Allowed Funcs   : {', '.join(allowed) if allowed else 'None'}")
@@ -745,14 +817,10 @@ def handle_subject_inspection(
     if show_hint:
         print(theme.status("error", "Reference solutions and hints are strictly locked. Use 'subject <ex>' and debug from the Deepthought trace."))
         return 2
-    resolved_subj, _ = resolve_piscine_or_exam_subject(str(subject_arg), prefer_exam=prefer_exam)
-    rel_subj = resolved_subj if resolved_subj.startswith(("piscine/", "exams/")) else f"piscine/{resolved_subj}"
-    if not (KIT_ROOT / "subjects" / rel_subj).exists():
-        if (KIT_ROOT / "subjects" / resolved_subj).exists():
-            rel_subj = resolved_subj
-        else:
-            print(theme.c(f"Error: Unknown exercise '{subject_arg}'. Try `./moulinette --list`.", "err", "bold"))
-            return 1
+    found = resolve_exercise_or_report(str(subject_arg), theme, prefer_exam=prefer_exam)
+    if found is None:
+        return 1
+    rel_subj = found[0]
 
     s_file = KIT_ROOT / "subjects" / rel_subj / "subject.en.txt"
     clean_leaf = _MODULE_PREFIX_RE.sub("", Path(rel_subj).name)
@@ -772,8 +840,8 @@ def handle_subject_inspection(
         t_turnin = tilde_path(turnin_dir)
         print(theme.render_subject(s_file.read_text(encoding="utf-8", errors="replace"), subject_id=clean_leaf))
         print(theme.c(f"     subject : {t_subj}", "muted"))
-        print(theme.c(f"     turn-in : {t_turnin}/{primary_f}  (~ = {Path.home()})", "accent"))
-        print(theme.c(f"     submit  : 1) 'init {clean_leaf}'  2) 'vim {t_turnin}/{primary_f}'  3) type '{clean_leaf}' to grade", "muted"))
+        print(theme.c(f"     turn-in : {t_turnin}/{primary_f}{home_note(t_turnin)}", "accent"))
+        print(theme.c(f"     next    : 'init {clean_leaf}', edit the file, then '{clean_leaf}' grades it", "muted"))
     return 0
 
 
@@ -784,6 +852,75 @@ def resolve_module_slug(module_id: str) -> str:
         aliases = fast_load_yaml(alias_file)
         slug = (aliases.get("piscine") or {}).get(slug, slug)
     return slug
+
+
+def print_student_progression(theme: ThemeEngine, xp_ledger: str | None) -> None:
+    """The 'xp' view: profile totals, then what the ledger holds, wrapped to 80 columns."""
+    ledger_p = Path(xp_ledger) if xp_ledger else (KIT_ROOT / "workspace" / "xp_ledger.json")
+    prof = load_student_profile()
+    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold(f'Student Progression ({prof.login})')}")
+    print(f"     Total XP : {getattr(prof, 'total_xp', getattr(prof, 'xp', 0))} XP  |  Level : {prof.level:.2f}")
+    if not ledger_p.is_file():
+        print("     Validated: 0 exercise(s)")
+        return
+    try:
+        ldata = json.loads(ledger_p.read_text(encoding="utf-8"))
+        validated = ldata.get("validated_exercises") or ldata.get("validated_subjects") or {}
+        ordered = sorted(validated, key=lambda k: (validated[k] or {}).get("first_passed_at", 0) if isinstance(validated[k], dict) else 0)
+    except (OSError, ValueError, AttributeError, TypeError):
+        print(theme.c(f"     Validated: ledger unreadable ({tilde_path(ledger_p)})", "warn"))
+        return
+    print(f"     Validated: {len(ordered)} exercise(s)")
+    line = "     Latest   :"
+    for label in (short_exercise_label(k) for k in reversed(ordered[-12:])):
+        if len(line) + len(label) + 2 > 79:
+            break
+        line += f" {label},"
+    if ordered:
+        print(line.rstrip(","))
+
+
+def deepthought_theme_args(theme: ThemeEngine) -> list[str]:
+    """Colour flags for bin/deepthought. 'plain' is our internal no-colour theme, not a palette it accepts."""
+    return ["--no-color"] if theme.name == "plain" else ["--theme", theme.name]
+
+
+@contextlib.contextmanager
+def exclusive_file_lock(target: Path) -> Iterator[None]:
+    """Serialise read-modify-write cycles on `target` across concurrent moulinette runs (advisory lock)."""
+    handle = None
+    if fcntl is not None:
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            handle = open(target.with_name(f".{target.name}.lock"), "a+")
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        except OSError:
+            if handle is not None:
+                handle.close()
+            handle = None
+    try:
+        yield
+    finally:
+        if handle is not None:
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            finally:
+                handle.close()
+
+
+_XP_STATUS_TEXT = {
+    "FIRST_PASS_XP_AWARDED": "first pass",
+    "IDEMPOTENT_ALREADY_VALIDATED": "already validated",
+    "KO_ZERO_XP": "not validated",
+}
+
+
+def trace_archive_path(resolved_subject: str) -> Path:
+    """Where the last full trace of an exercise is kept (the interactive screen cannot scroll back)."""
+    return KIT_ROOT / "workspace" / "traces" / (resolved_subject.replace("/", "__").replace(" ", "_") + ".trace")
+
+
+LAST_TRACE_FILE: Path | None = None
 
 
 def evaluate_exercise_or_module(
@@ -814,7 +951,7 @@ def evaluate_exercise_or_module(
             else:
                 target_dir = ws_mod
             target_dir.mkdir(parents=True, exist_ok=True)
-        cmd = [sys.executable, str(KIT_ROOT / "bin" / "deepthought"), module_arg, "--dir", str(target_dir), "--theme", theme.name]
+        cmd = [sys.executable, str(KIT_ROOT / "bin" / "deepthought"), module_arg, "--dir", str(target_dir), *deepthought_theme_args(theme)]
         if strict_flag:
             cmd.append("--strict")
         return subprocess.call(cmd)
@@ -825,12 +962,20 @@ def evaluate_exercise_or_module(
         clear_viewport()
         return 0
 
-    resolved_subject, default_is_exam = resolve_piscine_or_exam_subject(str(subject_arg), prefer_exam=exam_flag)
+    found = resolve_exercise_or_report(str(subject_arg), theme, prefer_exam=exam_flag)
+    if found is None:
+        return 1
+    resolved_subject, default_is_exam = found
     is_exam = True if exam_flag else default_is_exam
     slug_leaf = _MODULE_PREFIX_RE.sub("", Path(resolved_subject).name)
     submit_dir = resolve_submission_dir(explicit_dir, slug_leaf, resolved_subject=resolved_subject)
+    if "/" not in str(subject_arg).strip().strip("/"):
+        namesakes = find_exercise_namesakes(resolved_subject)
+        if namesakes:
+            print(theme.c(f"note: grading {short_exercise_label(resolved_subject)}. Same name elsewhere: {', '.join(namesakes)}.", "warn"))
 
     def run_single_grade() -> GradeReport | None:
+        global LAST_TRACE_FILE
         try:
             res = grade_subject(
                 KIT_ROOT,
@@ -840,17 +985,27 @@ def evaluate_exercise_or_module(
                 strict=strict_flag or (not is_exam),
                 enforce_norm=norm_flag,
             )
-        except FileNotFoundError:
-            print(theme.c(f"Error: Unknown exercise '{subject_arg}'. Try `./moulinette --list`.", "err", "bold"))
+        except FileNotFoundError as exc:
+            # The exercise itself was validated above, so this is the environment, not the student.
+            if exc.filename is None:
+                print(theme.c(f"Error: cannot grade {slug_leaf}: {exc}", "err", "bold"))
+                return None
+            print(theme.c(f"Error: cannot grade {slug_leaf}: '{exc.filename}' not found on this machine.", "err", "bold"))
+            print(theme.c("       The grader needs it. This is an environment problem, not your code.", "muted"))
+            return None
+        except OSError as exc:
+            print(theme.c(f"Error: cannot grade {slug_leaf}: {exc}", "err", "bold"))
             return None
 
-        rel_subj = resolved_subject if resolved_subject.startswith(("piscine/", "exams/")) else f"piscine/{resolved_subject}"
-        meta_file = KIT_ROOT / "subjects" / rel_subj / "meta.yml"
-        if not meta_file.exists():
-            meta_file = KIT_ROOT / "subjects" / resolved_subject / "meta.yml"
-        meta_data = fast_load_yaml(meta_file)
-        configured_xp = int(meta_data.get("xp", 150))
+        rel_subj = resolved_subject
+        meta_data = fast_load_yaml(KIT_ROOT / "subjects" / rel_subj / "meta.yml")
+        try:
+            configured_xp = int(meta_data.get("xp", 150))
+        except (TypeError, ValueError):
+            configured_xp = 150
 
+        # XP rules: the default ledger is the only one that feeds the student profile. A reference
+        # solution (self-test) or an alternative --xp-ledger is recorded apart and never credits it.
         is_corr_eval = (KIT_ROOT / "corrections").resolve() in [submit_dir.resolve(), *submit_dir.resolve().parents]
         if xp_ledger:
             ledger_path = Path(xp_ledger)
@@ -858,13 +1013,23 @@ def evaluate_exercise_or_module(
             ledger_path = KIT_ROOT / "workspace" / ".selftest_xp_ledger.json"
         else:
             ledger_path = KIT_ROOT / "workspace" / "xp_ledger.json"
-        tracker = XPTracker(ledger_path)
-        xp_res = tracker.record_evaluation(
-            resolved_subject,
-            passed=res.passed,
-            grade=res.grade,
-            configured_xp=configured_xp,
-        )
+        credits_profile = not is_corr_eval and not xp_ledger
+        xp_res = None
+        xp_error = ""
+        try:
+            with exclusive_file_lock(ledger_path):
+                xp_res = XPTracker(ledger_path).record_evaluation(
+                    resolved_subject,
+                    passed=res.passed,
+                    grade=res.grade,
+                    configured_xp=configured_xp,
+                )
+                if xp_res.awarded_xp > 0 and credits_profile:
+                    p_prof = load_student_profile()
+                    p_prof.award_xp(xp_res.awarded_xp)
+                    p_prof.save()
+        except (OSError, ValueError, TypeError, AttributeError) as exc:
+            xp_error = f"{type(exc).__name__}: {exc}"
 
         print(colorize_trace(res.trace, theme))
         print("")
@@ -874,24 +1039,35 @@ def evaluate_exercise_or_module(
             print(summary_block)
         status_colored = theme.c(f"{res.status} ({res.grade}/100)", "ok" if res.passed else "err", "bold")
         print(f"\nSummary: {res.subject_id} -> {status_colored}")
-        print(
-            f"XP Progression: +{xp_res.awarded_xp} XP "
-            f"(Total: {xp_res.total_xp} XP | Level {xp_res.level:.2f}) "
-            f"[{xp_res.status_code}]"
-        )
+        if xp_res is None:
+            print(theme.c(f"XP Progression: not recorded ({xp_error}) [{ledger_path}]", "warn"))
+        elif is_corr_eval:
+            print(theme.c("XP Progression: self-test of the reference solution, student XP unchanged", "muted"))
+        else:
+            note = _XP_STATUS_TEXT.get(xp_res.status_code, str(xp_res.status_code).lower())
+            if xp_ledger:
+                note += ", alternative ledger: student profile unchanged"
+            print(f"XP Progression: +{xp_res.awarded_xp} XP (Total: {xp_res.total_xp} XP | Level {xp_res.level:.2f}) - {note}")
+
         if "Nothing turned in" in res.status:
-            expected_ws = (KIT_ROOT / "workspace" / rel_subj).resolve()
-            t_ws = tilde_path(expected_ws)
-            t_subj = tilde_path(KIT_ROOT / "subjects" / rel_subj / "subject.en.txt")
-            print(theme.c(f"     subject : {t_subj} (type 'subject {slug_leaf}')", "muted"))
-            print(theme.c(f"     turn-in : {t_ws}/{slug_leaf}.c  (~ = {Path.home()})", "accent"))
-            print(theme.c(f"     submit  : 1) type 'init {slug_leaf}'  2) edit '{t_ws}/{slug_leaf}.c'  3) type '{slug_leaf}' to grade", "muted"))
-        if xp_res.awarded_xp > 0 and not is_corr_eval:
-            p_prof = load_student_profile()
-            p_prof.award_xp(xp_res.awarded_xp)
-            p_prof.save()
+            wanted = ", ".join(expected_turnin_files(rel_subj, slug_leaf))
+            print(theme.c(f"     expected : {wanted}", "accent"))
+            print(theme.c(f"     looked in: {tilde_path(submit_dir)}/", "accent"))
+            print(theme.c(f"     next     : 'init {slug_leaf}' creates it, or use --dir <path>", "muted"))
+
+        try:
+            archive = trace_archive_path(resolved_subject)
+            archive.parent.mkdir(parents=True, exist_ok=True)
+            archive.write_text(res.trace, encoding="utf-8")
+            LAST_TRACE_FILE = archive
+            print(theme.c(f"     trace    : {tilde_path(archive)}", "muted"))
+        except OSError:
+            pass
         if trace_out:
-            Path(trace_out).write_text(res.trace, encoding="utf-8")
+            try:
+                Path(trace_out).expanduser().write_text(res.trace, encoding="utf-8")
+            except OSError as exc:
+                print(theme.c(f"Error: --trace-out: cannot write '{trace_out}': {exc.strerror or exc}", "err", "bold"))
         return res
 
     if watch_flag:
@@ -959,6 +1135,8 @@ def setup_readline_completer(piscine_mods: set[str]) -> None:
 def resolve_exercise_in_nav_context(target: str, nav_stack: list[str]) -> str:
     """Resolve an exercise name or 'exNN' code relative to the active navigation stack."""
     clean = target.strip().strip("/")
+    if not clean or any(part in {".", ".."} for part in clean.split("/")):
+        return clean
     if len(nav_stack) >= 2 and nav_stack[0] == "piscine":
         mod = nav_stack[1]
         pool_file = KIT_ROOT / "pools" / "piscine" / f"{mod}.yml"
@@ -972,7 +1150,7 @@ def resolve_exercise_in_nav_context(target: str, nav_stack: list[str]) -> str:
                 if clean.lower() in {ex_code, ex_id.lower(), clean_leaf.lower()}:
                     return f"piscine/{mod}/{ex_id}"
     if nav_stack and nav_stack[0] == "piscine exam":
-        if (KIT_ROOT / "subjects" / "exams" / clean).is_dir():
+        if _is_exercise_dir(KIT_ROOT / "subjects" / "exams" / clean):
             return f"exams/{clean}"
     return clean
 
@@ -985,14 +1163,27 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
     back_stack: list[list[str]] = []
     forward_stack: list[list[str]] = []
 
-    def _render_banner_header() -> None:
+    view = {"is_catalog": False}
+
+    def _screen_rows() -> int:
+        """Rows left for a catalog table once the nav line and the prompt are accounted for."""
+        _, lines = theme.term_size()
+        return max(8, lines - 3)
+
+    def _render_banner_header(full: bool = False) -> None:
+        """The emblem is shown on the home screen only. Every other screen keeps its rows for content:
+        the interactive view has no scrollback, so whatever scrolls off the top is lost."""
+        view["is_catalog"] = False
+        if not full:
+            return
         cols, _ = theme.term_size()
         w = max(40, min(80, cols))
+        mods, piscine_exs, tracks, exam_exs = catalog_counts()
         banner = theme.tool_banner("moulinette", w, tagline="Don't Panic. Deepthought is judging your code.")
         stats = theme.stats_block(
             [
                 "moulinette v0.1.1 - 42 / 1337 Deepthought Grading Engine",
-                "17 piscine modules (136 exs) - 9 exam tracks (303 exs)",
+                f"{mods} piscine modules ({piscine_exs} exs) - {tracks} exam tracks ({exam_exs} exs)",
                 "5-gate pipeline: norminette, symbols, gcc -Werror, canary, diff",
             ],
             width=w,
@@ -1004,57 +1195,40 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
         for s in stats:
             print(s)
         print("")
-        print(theme.status("status", "Enter an exercise (e.g. ft_strlen), section (piscine | piscine exam), 'list', or 'q' to quit."))
-        print(theme.status("status", "More / Pro Flags: back (b), forward (f), --list, --show-subject <ex>, --init <ex>, --watch <ex>"))
+        print(theme.status("status", "Type an exercise (ft_putchar), a section, 'help' for commands, 'q' to quit."))
         print("")
 
     def _render_current_context() -> None:
         clear_viewport()
-        _render_banner_header()
+        _render_banner_header(full=not nav_stack)
+        rows = _screen_rows()
 
         if not nav_stack:
             print_sections_menu(theme)
+        elif nav_stack == ["piscine"]:
+            print_catalog_list("piscine", theme, max_rows=rows)
             print("")
-            return
-
-        if nav_stack == ["piscine"]:
-            print_catalog_list("piscine", theme)
-            print("")
-            print(theme.c("nav: type <module> (e.g. c00) to view exercises, 'grade <module>' to evaluate, or 'back' / 'forward'.", "muted"))
-            print("")
-            return
-
-        if len(nav_stack) == 2 and nav_stack[0] == "piscine":
+            print(theme.c("nav: <module> (c00) opens it | grade <module> evaluates it | back | help", "muted"))
+        elif len(nav_stack) == 2 and nav_stack[0] == "piscine":
             mod_name = nav_stack[1]
-            print_catalog_list(mod_name, theme)
+            print_catalog_list(mod_name, theme, max_rows=rows)
             print("")
-            print(theme.c(f"nav: type <exercise> (or ex00) to grade, 'subject <ex>' to read, 'grade' to evaluate {mod_name}, or 'back' / 'forward'.", "muted"))
+            print(theme.c(f"nav: <exercise> or exNN grades | subject <ex> | init <ex> | grade ({mod_name}) | back", "muted"))
+        elif nav_stack == ["piscine exam"]:
+            print_catalog_list("piscine exam", theme, max_rows=rows)
             print("")
-            return
-
-        if nav_stack == ["piscine exam"]:
-            print_catalog_list("piscine exam", theme)
+            print(theme.c("nav: <track> (rank02) opens it | back | help", "muted"))
+        elif len(nav_stack) == 2 and nav_stack[0] == "piscine exam":
+            print_catalog_list(nav_stack[1], theme, max_rows=rows)
             print("")
-            print(theme.c("nav: type <track> (e.g. c_piscine_exam_00, rank02) to open, or 'back' / 'forward'.", "muted"))
-            print("")
-            return
-
-        if len(nav_stack) == 2 and nav_stack[0] == "piscine exam":
-            trk_name = nav_stack[1]
-            print_catalog_list(trk_name, theme)
-            print("")
-            print(theme.c("nav: type 'level0' (or '0'..'9') to view level exercises, <exercise> to grade, or 'back' / 'forward'.", "muted"))
-            print("")
-            return
-
-        if len(nav_stack) == 3 and nav_stack[0] == "piscine exam":
+            print(theme.c("nav: level<N> or <N> opens a level | <exercise> grades | back | help", "muted"))
+        elif len(nav_stack) == 3 and nav_stack[0] == "piscine exam":
             trk_name, lvl_tag = nav_stack[1], nav_stack[2]
             lvl_num = lvl_tag.replace("level", "").strip()
-            print_catalog_list(f"{trk_name}:{lvl_num}", theme)
+            print_catalog_list(f"{trk_name}:{lvl_num}", theme, max_rows=rows)
             print("")
-            print(theme.c("nav: type <exercise> to grade in exam mode, 'subject <ex>' to read, or 'back' / 'forward'.", "muted"))
-            print("")
-            return
+            print(theme.c("nav: <exercise> grades (exam mode) | subject <ex> | init <ex> | <N> | back", "muted"))
+        view["is_catalog"] = True
 
     def _navigate_to(target_path: list[str]) -> None:
         if target_path != nav_stack:
@@ -1080,6 +1254,35 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
         else:
             print(theme.c("Already at the latest forward view.", "muted"))
 
+    def _guarded(func: Any, *f_args: Any, **f_kwargs: Any) -> Any:
+        """Run one command; a failure ends that command, not the session."""
+        try:
+            return func(*f_args, **f_kwargs)
+        except ExerciseLookupError as exc:
+            print(theme.c(f"Error: {exc}", "err", "bold"))
+        except Exception as exc:  # noqa: BLE001 - the session must survive a faulty command
+            if os.environ.get("MOULINETTE_DEBUG"):
+                raise
+            print(theme.c(f"Internal error: {type(exc).__name__}: {exc}", "err", "bold"))
+            print(theme.c("Session kept alive. Set MOULINETTE_DEBUG=1 for the traceback.", "muted"))
+        return 1
+
+    def _show_last_trace() -> None:
+        if LAST_TRACE_FILE is None or not LAST_TRACE_FILE.is_file():
+            print(theme.c("No trace yet: grade an exercise first.", "warn", "bold"))
+            print("")
+            return
+        pager = shlex.split(os.environ.get("PAGER") or "less -R")
+        if pager and shutil.which(pager[0]):
+            try:
+                subprocess.call([*pager, str(LAST_TRACE_FILE)])
+                _render_current_context()
+                return
+            except OSError:
+                pass
+        print(theme.c(f"No pager available. Read it with: cat {tilde_path(LAST_TRACE_FILE)}", "warn"))
+        print("")
+
     def _current_prompt() -> str:
         if not nav_stack:
             label = "moulinette (grade)> "
@@ -1088,7 +1291,8 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
         return rl_safe_prompt(theme.c(label, "primary", "bold"))
 
     def _on_sigwinch(signum: int, frame: Any) -> None:
-        _render_current_context()
+        if view["is_catalog"]:
+            _render_current_context()
         if readline is not None:
             try:
                 readline.forced_update_display()
@@ -1140,23 +1344,20 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                     clear_viewport()
                     _render_banner_header()
                     ws_tilde = tilde_path(KIT_ROOT / "workspace")
-                    print(theme.status("status", "Sections   : 'piscine' (1), 'piscine exam' (2), <module> (c00), <track> (rank02), 'level0'"))
-                    print(theme.status("status", "Navigation : 'back' (b / ..), 'forward' (f / next), 'home', 'list'"))
-                    print(theme.status("status", "Evaluation : <exercise> (ft_strlen), 'subject <ex>', 'init <ex>', 'watch <ex>', '--strict', q"))
-                    print(theme.status("status", f"Path Guide : '~' means your home folder ({Path.home()}). Turn-in root: {ws_tilde}/"))
-                    print(theme.status("status", f"How to Code: 1) 'init <ex>'  2) 'vim {ws_tilde}/.../<ex>.c'  3) type '<ex>' to grade"))
+                    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold('moulinette commands')}")
+                    print(theme.status("status", "Browse  : piscine | exams | <module> (c00) | <track> (rank02) | level<N>"))
+                    print(theme.status("status", "Move    : back (b, ..) | forward (f) | home | list | clear | q"))
+                    print(theme.status("status", "Work    : subject <ex> | init <ex> | <ex> grades it | watch <ex>"))
+                    print(theme.status("status", "Module  : grade <module>, or 'grade' inside a module"))
+                    print(theme.status("status", "Options : --strict --norm --exam --self-test --dir <path>"))
+                    print(theme.status("status", "Read    : trace (full trace of the last grading) | xp (progression)"))
+                    print(theme.status("status", f"Turn-in : {ws_tilde}/<section>/.../<ex>/{home_note(ws_tilde)}"))
+                    print(theme.status("status", "Names   : exact. 'c01/ft_strlen' names the module when two share a name."))
                     print("")
                     continue
 
-                if low_raw in {"1", "piscine", "piscines", "cd piscine", "use piscine"}:
-                    _navigate_to(["piscine"])
-                    continue
-
-                if low_raw in {"2", "piscine exam", "piscine exams", "piscine_exam", "exam", "exams", "cd exam", "cd exams", "use exam", "use exams"}:
-                    _navigate_to(["piscine exam"])
-                    continue
-
-                # Level selection when inside an exam track (e.g. 'level0', 'level 0', 'lvl0', or '0')
+                # Inside an exam track a number is a level ('level1', 'lvl1' or '1'). This is tested before the
+                # '1' / '2' section shortcuts, which would otherwise make level 1 and level 2 unreachable.
                 if len(nav_stack) >= 2 and nav_stack[0] == "piscine exam":
                     m_lvl = re.match(r"^(?:level\s*|lvl\s*)?(\d+)$", low_raw)
                     if m_lvl:
@@ -1167,6 +1368,17 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                         if lvl_idx in valid_lvls:
                             _navigate_to(["piscine exam", nav_stack[1], f"level{lvl_idx}"])
                             continue
+                        print(theme.c(f"No level {lvl_idx} in {nav_stack[1]}. Levels: {', '.join(str(v) for v in sorted(valid_lvls))}.", "warn", "bold"))
+                        print("")
+                        continue
+
+                if low_raw in {"1", "piscine", "piscines", "cd piscine", "use piscine"}:
+                    _navigate_to(["piscine"])
+                    continue
+
+                if low_raw in {"2", "piscine exam", "piscine exams", "piscine_exam", "exam", "exams", "cd exam", "cd exams", "use exam", "use exams"}:
+                    _navigate_to(["piscine exam"])
+                    continue
 
                 try:
                     tokens = shlex.split(raw)
@@ -1179,7 +1391,8 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                     if len(nav_stack) == 2 and nav_stack[0] == "piscine":
                         clear_viewport()
                         _render_banner_header()
-                        evaluate_exercise_or_module(
+                        _guarded(
+                            evaluate_exercise_or_module,
                             None,
                             nav_stack[1],
                             explicit_dir=args.dir,
@@ -1237,21 +1450,19 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                 if cmd0 in {"xp", "stats", "history"}:
                     clear_viewport()
                     _render_banner_header()
-                    ledger_p = Path(args.xp_ledger) if args.xp_ledger else (KIT_ROOT / "workspace" / "xp_ledger.json")
-                    prof = load_student_profile()
-                    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold(f'Student Progression ({prof.login})')}")
-                    print(f"     Total XP : {getattr(prof, 'total_xp', getattr(prof, 'xp', 0))} XP  |  Level : {prof.level:.2f}")
-                    if ledger_p.is_file():
-                        try:
-                            ldata = json.loads(ledger_p.read_text(encoding="utf-8"))
-                            passed_ex = sorted((ldata.get("validated_exercises") or ldata.get("validated_subjects") or {}).keys())
-                            print(f"     Validated: {len(passed_ex)} exercise(s)" + (f" ({', '.join(passed_ex[-8:])})" if passed_ex else ""))
-                        except Exception:
-                            pass
+                    print_student_progression(theme, args.xp_ledger)
                     print("\n" + theme.c("tip: type 'list', 'back', or 'forward' to navigate.", "muted") + "\n")
                     continue
 
+                if cmd0 in {"trace", "less"}:
+                    _show_last_trace()
+                    continue
+
                 first_arg = tokens[1] if len(tokens) > 1 else None
+                if cmd0 in {"init", "--init", "subject", "--show-subject", "-s"} and len(tokens) > 2:
+                    print(theme.c(f"Usage: {cmd0} <exercise>   (one name; quote it if it contains spaces)", "warn", "bold"))
+                    print("")
+                    continue
                 if cmd0 in {"init", "--init", "subject", "--show-subject", "-s", "watch", "--watch"} and not first_arg:
                     print(theme.c(f"Usage: {cmd0} <exercise>", "warn", "bold"))
                     print("")
@@ -1261,14 +1472,14 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                     ctx_target = resolve_exercise_in_nav_context(first_arg, nav_stack)
                     clear_viewport()
                     _render_banner_header()
-                    scaffold_exercise_workspace(ctx_target, args.dir, theme, prefer_exam=in_exam_section or args.exam)
+                    _guarded(scaffold_exercise_workspace, ctx_target, args.dir, theme, prefer_exam=in_exam_section or args.exam)
                     print("\n" + theme.c("tip: type 'list', 'back', or 'forward' to navigate.", "muted") + "\n")
                     continue
                 if cmd0 in {"subject", "--show-subject", "-s"} and first_arg:
                     ctx_target = resolve_exercise_in_nav_context(first_arg, nav_stack)
                     clear_viewport()
                     _render_banner_header()
-                    handle_subject_inspection(ctx_target, show_subject=True, show_hint=False, theme=theme, prefer_exam=in_exam_section or args.exam)
+                    _guarded(handle_subject_inspection, ctx_target, show_subject=True, show_hint=False, theme=theme, prefer_exam=in_exam_section or args.exam)
                     print("\n" + theme.c("tip: type 'list', 'back', or 'forward' to navigate.", "muted") + "\n")
                     continue
 
@@ -1280,8 +1491,10 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                 repl_dir = args.dir
                 target_tok: str | None = first_arg if cmd0 in {"watch", "--watch"} else None
 
+                # Nothing typed is dropped silently: an unknown option or a second name is an error.
+                parse_error = ""
                 idx_t = 2 if cmd0 in {"watch", "--watch"} else 0
-                while idx_t < len(tokens):
+                while idx_t < len(tokens) and not parse_error:
                     tok = tokens[idx_t]
                     if tok in {"--watch", "-w"}:
                         repl_watch = True
@@ -1293,15 +1506,28 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                         repl_strict = True
                     elif tok == "--self-test":
                         repl_self_test = True
-                    elif tok in {"--dir", "--path"} and idx_t + 1 < len(tokens):
-                        repl_dir = tokens[idx_t + 1]
-                        idx_t += 1
-                    elif not tok.startswith("-") and target_tok is None:
+                    elif tok in {"--dir", "--path"}:
+                        if idx_t + 1 >= len(tokens):
+                            parse_error = f"{tok} needs a directory."
+                        else:
+                            repl_dir = tokens[idx_t + 1]
+                            idx_t += 1
+                    elif tok.startswith("-"):
+                        parse_error = f"Unknown option '{tok}'. Options: --strict --norm --exam --watch --self-test --dir <path>"
+                    elif target_tok is None:
                         target_tok = tok
+                    else:
+                        parse_error = f"Unexpected '{tok}' after '{target_tok}'. One exercise at a time; quote a name that contains spaces."
                     idx_t += 1
-
-                if not target_tok:
+                if not parse_error and not target_tok:
+                    parse_error = "Usage: <exercise> [--strict] [--norm] [--exam] [--watch] [--dir <path>]"
+                if not parse_error and repl_self_test and repl_dir:
+                    parse_error = "--self-test grades the reference solution; it cannot be combined with --dir."
+                if parse_error:
+                    print(theme.c(parse_error, "warn", "bold"))
+                    print("")
                     continue
+                assert target_tok is not None
 
                 exam_trk = resolve_exam_track_name(target_tok)
                 if exam_trk and not explicit_grade_cmd:
@@ -1320,19 +1546,24 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                     if is_mod:
                         clear_viewport()
                         _render_banner_header()
-                        subprocess.call([sys.executable, str(KIT_ROOT / "bin" / "deepthought"), target_tok.lower(), "--self-test", "--theme", theme.name])
+                        subprocess.call([sys.executable, str(KIT_ROOT / "bin" / "deepthought"), target_tok.lower(), "--self-test", *deepthought_theme_args(theme)])
                         print("\n" + theme.c("tip: type 'list', 'back', or 'forward' to navigate.", "muted") + "\n")
                         continue
-                    res_s, _ = resolve_piscine_or_exam_subject(resolved_tok, prefer_exam=repl_exam)
-                    rel_s = res_s if res_s.startswith(("piscine/", "exams/")) else f"piscine/{res_s}"
-                    if (KIT_ROOT / "corrections" / rel_s).is_dir():
-                        repl_dir = str((KIT_ROOT / "corrections" / rel_s).resolve())
-                    elif (KIT_ROOT / "corrections" / res_s).is_dir():
-                        repl_dir = str((KIT_ROOT / "corrections" / res_s).resolve())
+                    found_s = resolve_exercise_or_report(resolved_tok, theme, prefer_exam=repl_exam)
+                    if found_s is None:
+                        print("")
+                        continue
+                    if not (KIT_ROOT / "corrections" / found_s[0]).is_dir():
+                        print(theme.c(f"Error: no reference solution for {short_exercise_label(found_s[0])}.", "err", "bold"))
+                        print("")
+                        continue
+                    resolved_tok = found_s[0]
+                    repl_dir = str((KIT_ROOT / "corrections" / found_s[0]).resolve())
 
                 clear_viewport()
                 _render_banner_header()
-                evaluate_exercise_or_module(
+                _guarded(
+                    evaluate_exercise_or_module,
                     None if is_mod else resolved_tok,
                     target_tok.lower() if is_mod else None,
                     explicit_dir=repl_dir,
@@ -1345,7 +1576,7 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                     xp_ledger=args.xp_ledger,
                     theme=theme,
                 )
-                print("\n" + theme.c("tip: type 'list' to view current section, or 'back' / 'forward' to navigate.", "muted") + "\n")
+                print("\n" + theme.c("tip: 'trace' reads the full trace | 'list' shows the section | 'back' returns", "muted") + "\n")
     finally:
         if prev_winch is not None and hasattr(signal, "SIGWINCH"):
             signal.signal(signal.SIGWINCH, prev_winch)
@@ -1368,16 +1599,26 @@ def main() -> int:
     parser.add_argument("--watch", action="store_true", help="Live watch mode: re-grade automatically on file save")
     parser.add_argument("--list", nargs="?", const="__all__", default=None, help="List Piscine modules, Exam tracks, or exercises in a module/track")
     parser.add_argument("--trace-out", help="Optional path to save Deepthought trace")
-    parser.add_argument("--xp-ledger", default=None, help="Optional path to XP ledger JSON file")
+    parser.add_argument("--xp-ledger", default=None, help="Alternative XP ledger JSON file (kept apart: it never credits the student profile)")
     parser.add_argument("--theme", default="42-cluster", choices=sorted(PALETTES), help="Color palette")
     parser.add_argument("--catalog", action="store_true", help="Display complete Piscine & Exam catalog")
     parser.add_argument("--self-test", action="store_true", help="Grade reference solution in corrections/ to verify environment")
-    parser.add_argument("--json", action="store_true", help="Output grading report in JSON format")
+    parser.add_argument("--json", action="store_true", help="Grade one exercise and print the report as JSON (no XP recorded)")
     parser.add_argument("--no-color", action="store_true", help="Disable ANSI colors")
-    if any(arg.split("=", 1)[0].strip().lower() in {"--solution", "--solve", "solution", "solve", "--hint", "hint"} for arg in sys.argv[1:]):
+    if any(arg.split("=", 1)[0].strip().lower() in {"--solution", "--solve", "--hint"} for arg in sys.argv[1:]):
         print("Error: Reference solutions and hints are strictly locked in Moulinette to preserve the 42 / 1337 peer-learning methodology. Use 'subject <ex>' and debug from the Deepthought trace.")
         return 2
     args = parser.parse_args()
+
+    # Options that cannot be honoured together are refused, not silently dropped.
+    if args.json and (args.watch or args.module):
+        parser.error("--json grades a single exercise once: it cannot be combined with --watch or --module.")
+    if args.self_test and args.dir:
+        parser.error("--self-test grades the reference solution: it cannot be combined with --dir.")
+    if args.trace_out:
+        trace_target = Path(args.trace_out).expanduser()
+        if trace_target.is_dir() or not trace_target.parent.is_dir():
+            parser.error(f"--trace-out: '{args.trace_out}' is not a writable file path.")
 
     use_plain = args.no_color or bool(os.environ.get("NO_COLOR")) or (not sys.stdout.isatty() and os.environ.get("FORCE_COLOR") != "1")
     theme = ThemeEngine("plain" if use_plain else args.theme)
@@ -1427,6 +1668,8 @@ def main() -> int:
 
     # 3. watch <ex>
     if t_low in {"watch", "--watch"}:
+        if args.json:
+            parser.error("--json grades a single exercise once: it cannot be combined with watch.")
         args.watch = True
         subject_arg = extra_tokens[0] if extra_tokens else args.subject
         if not subject_arg:
@@ -1452,17 +1695,7 @@ def main() -> int:
 
     # 5. xp / stats / history
     if t_low in {"xp", "stats", "history"}:
-        ledger_p = Path(args.xp_ledger) if args.xp_ledger else (KIT_ROOT / "workspace" / "xp_ledger.json")
-        prof = load_student_profile()
-        print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold(f'Student Progression ({prof.login})')}")
-        print(f"     Total XP : {getattr(prof, 'total_xp', getattr(prof, 'xp', 0))} XP  |  Level : {prof.level:.2f}")
-        if ledger_p.is_file():
-            try:
-                ldata = json.loads(ledger_p.read_text(encoding="utf-8"))
-                passed_ex = sorted((ldata.get("validated_exercises") or ldata.get("validated_subjects") or {}).keys())
-                print(f"     Validated: {len(passed_ex)} exercise(s)" + (f" ({', '.join(passed_ex[-8:])})" if passed_ex else ""))
-            except Exception:
-                pass
+        print_student_progression(theme, args.xp_ledger)
         return 0
 
     # 6. Section catalogs: 'piscine', 'piscine exam', 'exams'
@@ -1509,23 +1742,47 @@ def main() -> int:
             return interactive_moulinette_repl(args, theme, is_practice)
         parser.error("Provide an exercise name (e.g. `moulinette ft_strlen`), `--subject`, or `--module`.")
 
+    if args.json and module_arg:
+        parser.error("--json grades a single exercise: it cannot be combined with a module.")
+
     effective_dir = args.dir
-    if getattr(args, "self_test", False) and not effective_dir:
+    if args.self_test:
         if module_arg:
-            return subprocess.call([sys.executable, str(KIT_ROOT / "bin" / "deepthought"), module_arg, "--self-test", "--theme", theme.name])
-        if subject_arg:
-            res_s, _ = resolve_piscine_or_exam_subject(str(subject_arg), prefer_exam=args.exam)
-            rel_s = res_s if res_s.startswith(("piscine/", "exams/")) else f"piscine/{res_s}"
-            if (KIT_ROOT / "corrections" / rel_s).is_dir():
-                effective_dir = str((KIT_ROOT / "corrections" / rel_s).resolve())
-            elif (KIT_ROOT / "corrections" / res_s).is_dir():
+            return subprocess.call([sys.executable, str(KIT_ROOT / "bin" / "deepthought"), module_arg, "--self-test", *deepthought_theme_args(theme)])
+        if subject_arg and not args.json:
+            found_s = resolve_exercise_or_report(str(subject_arg), theme, prefer_exam=args.exam)
+            if found_s is None:
+                return 1
+            if not (KIT_ROOT / "corrections" / found_s[0]).is_dir():
+                print(theme.c(f"Error: no reference solution for {short_exercise_label(found_s[0])}.", "err", "bold"))
+                return 1
+            subject_arg = found_s[0]
+            effective_dir = str((KIT_ROOT / "corrections" / found_s[0]).resolve())
+    if args.json and subject_arg:
+        try:
+            res_s, def_ex = resolve_piscine_or_exam_subject(str(subject_arg), prefer_exam=args.exam)
+            if not _is_exercise_dir(KIT_ROOT / "subjects" / res_s):
+                raise ExerciseLookupError(f"Unknown exercise '{subject_arg}'.")
+            if args.self_test:
+                if not (KIT_ROOT / "corrections" / res_s).is_dir():
+                    raise ExerciseLookupError(f"No reference solution for {short_exercise_label(res_s)}.")
                 effective_dir = str((KIT_ROOT / "corrections" / res_s).resolve())
-    if getattr(args, "json", False) and subject_arg and not module_arg:
-        res_s, def_ex = resolve_piscine_or_exam_subject(str(subject_arg), prefer_exam=args.exam)
-        is_ex = True if args.exam else def_ex
-        leaf_s = _MODULE_PREFIX_RE.sub("", Path(res_s).name)
-        sub_d = resolve_submission_dir(effective_dir, leaf_s, resolved_subject=res_s)
-        rep = grade_subject(KIT_ROOT, res_s, sub_d, is_exam=is_ex, strict=args.strict or (not is_ex), enforce_norm=args.norm)
+            is_ex = True if args.exam else def_ex
+            leaf_s = _MODULE_PREFIX_RE.sub("", Path(res_s).name)
+            sub_d = resolve_submission_dir(effective_dir, leaf_s, resolved_subject=res_s)
+            rep = grade_subject(KIT_ROOT, res_s, sub_d, is_exam=is_ex, strict=args.strict or (not is_ex), enforce_norm=args.norm)
+            if args.trace_out:
+                Path(args.trace_out).expanduser().write_text(rep.trace, encoding="utf-8")
+        except ExerciseLookupError as exc:
+            print(json.dumps({"subject": str(subject_arg), "error": str(exc)}, indent=2))
+            return 2
+        except FileNotFoundError as exc:
+            what = f"'{exc.filename}' not found on this machine (environment problem)" if exc.filename else str(exc)
+            print(json.dumps({"subject": str(subject_arg), "error": f"cannot grade: {what}"}, indent=2))
+            return 2
+        except OSError as exc:
+            print(json.dumps({"subject": str(subject_arg), "error": f"cannot grade: {exc}"}, indent=2))
+            return 2
         print(json.dumps({"subject": rep.subject_id, "passed": rep.passed, "grade": rep.grade, "status": rep.status, "reason": rep.reason, "error_info": rep.error_info}, indent=2))
         return 0 if rep.passed else 1
     return evaluate_exercise_or_module(
@@ -1549,4 +1806,7 @@ if __name__ == "__main__":
     except (KeyboardInterrupt, EOFError):
         print("\n[moulinette] Operation cancelled by user.")
         raise SystemExit(130)
+    except ExerciseLookupError as lookup_exc:
+        print(f"Error: {lookup_exc}")
+        raise SystemExit(2)
 

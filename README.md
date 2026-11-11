@@ -124,6 +124,15 @@ Dual-mode TUI/CLI for browsing the 439-exercise catalog, scaffolding workspaces,
 ./bin/moulinette --watch ft_strjoin
 ```
 
+Rules the grader applies to what you type:
+
+* **Names are exact.** No partial match, no wildcard, no `..`. `strlen` is not `ft_strlen`.
+* **A shared name is never guessed.** A bare name goes to the Piscine first (`--exam` flips it) and a one-line note lists the namesakes. When two modules have an equal claim (`ft_putnbr` in `c00` and `c04`) the name is refused: write `c04/ft_putnbr`.
+* **Turn-in location.** `--dir <path>`, else the current directory when it holds the expected file, else `workspace/<section>/.../<exercise>/` (created by `init <exercise>`). The current directory is never graded wholesale.
+* **XP is earned once per exercise** in `workspace/xp_ledger.json`. An alternative `--xp-ledger`, `--self-test` and `--json` never credit the student profile.
+* **The full trace of the last grading** is kept in `workspace/traces/`; inside the TUI, `trace` opens it in `$PAGER` (the full-screen view has no scrollback).
+* **Reference solutions and hints stay locked.** Read the subject, read the trace.
+
 ---
 
 ### 3. `deepthought` — Headless 5-Gate Evaluation Engine
