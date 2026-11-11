@@ -304,13 +304,61 @@ def expected_turnin_files(resolved_subject: str, slug_leaf: str) -> list[str]:
     return declared or [f"{slug_leaf}.c"]
 
 
+def piscine_exercise_slot(resolved_subject: str) -> tuple[str, str] | None:
+    """('c00', 'ex00') for 'piscine/c00/ft_putchar', as numbered in the module pool. None outside the Piscine."""
+    parts = Path(resolved_subject).parts
+    if len(parts) != 3 or parts[0] != "piscine":
+        return None
+    pool = fast_load_yaml(KIT_ROOT / "pools" / "piscine" / f"{parts[1]}.yml")
+    for idx, ex in enumerate(pool.get("exercises") or []):
+        raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
+        if Path(raw_id).name == parts[2]:
+            return parts[1], str(ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}")
+    return None
+
+
+_EX_FOLDER_RE = re.compile(r"^ex\d{2}$")
+
+
+def find_module_repo(mod_slug: str) -> Path:
+    """The student's folder for a Piscine module, laid out as at 42: <module>/exNN/<files>.
+
+    One module, one folder, chosen by where the student stands:
+      1. the current directory, when it is named like the module          (~/piscine/c00)
+      2. its parent, when the student stands in one of its exNN folders   (~/piscine/c00/ex00)
+      3. '<module>/' under the current directory                          (~/piscine)
+      4. a current directory that directly holds exNN folders
+      5. otherwise workspace/piscine/<module>/ of the kit
+    The kit's own subjects/ and corrections/ trees are never a turn-in. Nothing is created here:
+    the folders are the student's to make.
+    """
+    cwd = Path.cwd().resolve()
+    kit = KIT_ROOT.resolve()
+    workspace_repo = kit / "workspace" / "piscine" / mod_slug
+    if cwd == kit or any(tree == cwd or tree in cwd.parents for tree in (kit / "subjects", kit / "corrections", kit / "pools")):
+        return workspace_repo
+    if cwd.name.lower() == mod_slug:
+        return cwd
+    if _EX_FOLDER_RE.match(cwd.name) and cwd.parent.name.lower() == mod_slug:
+        return cwd.parent
+    if (cwd / mod_slug).is_dir():
+        return (cwd / mod_slug).resolve()
+    if cwd.name.lower() not in get_piscine_modules() and any(d.is_dir() for d in cwd.glob("ex[0-9][0-9]")):
+        return cwd
+    return workspace_repo
+
+
 def resolve_submission_dir(explicit_dir: str | None, slug_leaf: str, resolved_subject: str = "") -> Path:
     """Where the turn-in is read from.
 
-    Order: --dir, then the current directory when it visibly holds this exercise, then the kit
-    workspace, then an examshell rendu folder. When nothing is found the answer is the canonical
-    workspace folder (never the current directory as a whole), so 'Nothing turned in' points at
-    the place the student is expected to use.
+    --dir wins. Otherwise, for a Piscine exercise, the 42 layout is the reference: the exercise lives
+    in its own exNN folder of the module folder (c00/ex00/ft_putchar.c), wherever that module folder
+    is (see find_module_repo). A file sitting in another exNN is not the exercise. Folders named after
+    the exercise (the older scaffold) are still read. Exam exercises are read from
+    workspace/exams/<ex>/, then the examshell rendu folders.
+
+    When nothing exists, the answer is the folder the student is expected to create (never the current
+    directory as a whole), so that 'Nothing turned in' names the right place.
     """
     if explicit_dir is not None:
         return Path(explicit_dir).expanduser().resolve()
@@ -323,27 +371,25 @@ def resolve_submission_dir(explicit_dir: str | None, slug_leaf: str, resolved_su
     def _holds_turnin(directory: Path) -> bool:
         return any((directory / name).is_file() for name in names)
 
-    if not is_kit_root:
-        if _holds_turnin(cwd):
+    slot = piscine_exercise_slot(resolved_subject) if resolved_subject else None
+
+    # The student stands inside the exercise folder itself (c00/ex00/). Another exNN is another exercise.
+    if not is_kit_root and _holds_turnin(cwd):
+        if slot is None or cwd.name == slot[1] or not _EX_FOLDER_RE.match(cwd.name):
             return cwd
-        if (cwd / slug_leaf).is_dir():
-            return (cwd / slug_leaf).resolve()
-        for ex_dir in sorted(cwd.glob("ex[0-9][0-9]")):
-            if _holds_turnin(ex_dir):
-                return ex_dir.resolve()
 
-    if resolved_subject:
-        ws_piscine = KIT_ROOT / "workspace" / resolved_subject
-        if ws_piscine.is_dir():
-            return ws_piscine.resolve()
-        parts = Path(resolved_subject).parts
-        if len(parts) >= 3 and parts[0] == "piscine":
-            mod_ws = KIT_ROOT / "workspace" / "piscine" / parts[1]
-            if mod_ws.is_dir():
-                for ex_dir in sorted(mod_ws.glob("ex[0-9][0-9]")):
-                    if _holds_turnin(ex_dir):
-                        return ex_dir.resolve()
+    if slot is not None:
+        mod_slug, ex_code = slot
+        repo = find_module_repo(mod_slug)
+        for sub_name in (ex_code, Path(resolved_subject).name, slug_leaf):
+            if (repo / sub_name).is_dir():
+                return (repo / sub_name).resolve()
+        return (repo / ex_code).resolve()
 
+    if not is_kit_root and (cwd / slug_leaf).is_dir():
+        return (cwd / slug_leaf).resolve()
+    if resolved_subject and (KIT_ROOT / "workspace" / resolved_subject).is_dir():
+        return (KIT_ROOT / "workspace" / resolved_subject).resolve()
     exam_rendu = Path.home() / "exam-basedir" / "rendu" / slug_leaf
     if exam_rendu.is_dir():
         return exam_rendu.resolve()
@@ -618,11 +664,11 @@ def print_catalog_list(target: str | None, theme: ThemeEngine, max_rows: int | N
         title = data.get("display_name") or data.get("title") or target_clean
         exs = data.get("exercises") or []
         subj_mod = tilde_path(KIT_ROOT / "subjects" / "piscine" / target_clean)
-        ws_mod = tilde_path(KIT_ROOT / "workspace" / "piscine" / target_clean)
+        ws_mod = tilde_path(find_module_repo(target_clean))
         print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'piscine module: {target_clean} ({title})', 'primary', 'bold')}")
         if max_rows is None or len(exs) + 5 <= max_rows:
-            print(theme.c(f"     subject: {subj_mod}/<ex>/subject.en.txt", "muted"))
-            print(theme.c(f"     turn-in: {ws_mod}/<ex>/{home_note(subj_mod, ws_mod)}", "muted"))
+            print(theme.c(f"     subject: {subj_mod}/<ASSIGNMENT>/subject.en.txt", "muted"))
+            print(theme.c(f"     turn-in: {ws_mod}/<EX>/<FILES>{home_note(subj_mod, ws_mod)}", "muted"))
         rows: list[tuple[str, str, str, str, str, str]] = []
         for idx, ex in enumerate(exs):
             raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
@@ -693,13 +739,17 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
     if pool_file.exists():
         mod = target.strip().lower()
         data = fast_load_yaml(pool_file)
-        base_out = Path(dest_override).expanduser().resolve() if dest_override else (KIT_ROOT / "workspace" / "piscine" / mod)
+        base_out = Path(dest_override).expanduser().resolve() if dest_override else find_module_repo(mod)
         base_out.mkdir(parents=True, exist_ok=True)
         for idx, ex in enumerate(data.get("exercises") or []):
             raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
             ex_id = Path(raw_id).name
             ex_code = ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}"
-            ex_out = base_out / ex_id
+            slot_dir = base_out / ex_code
+            named_dir = base_out / ex_id
+            # A fresh exercise gets <module>/<exNN>/ (the 42 layout). An older folder named after the
+            # exercise is kept and reached through an exNN link.
+            ex_out = named_dir if (named_dir.is_dir() and not slot_dir.exists()) else slot_dir
             scaffold_exercise_workspace(f"{mod}/{ex_id}", str(ex_out), theme, prefer_exam=prefer_exam)
             ex_code_link = base_out / ex_code
             if not ex_code_link.exists():
@@ -718,7 +768,15 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
     subj_dir = KIT_ROOT / "subjects" / resolved
 
     meta = fast_load_yaml(subj_dir / "meta.yml")
-    out_dir = Path(dest_override).expanduser().resolve() if dest_override else (KIT_ROOT / "workspace" / resolved)
+    slot = piscine_exercise_slot(resolved)
+    if dest_override:
+        out_dir = Path(dest_override).expanduser().resolve()
+    elif slot is not None:
+        # The very folder the grader reads: <module>/<exNN>/ (the 42 layout), or an older folder
+        # named after the exercise when the student already has one.
+        out_dir = resolve_submission_dir(None, _MODULE_PREFIX_RE.sub("", Path(resolved).name), resolved_subject=resolved)
+    else:
+        out_dir = KIT_ROOT / "workspace" / resolved
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if (subj_dir / "subject.en.txt").exists():
@@ -825,8 +883,6 @@ def handle_subject_inspection(
     s_file = KIT_ROOT / "subjects" / rel_subj / "subject.en.txt"
     clean_leaf = _MODULE_PREFIX_RE.sub("", Path(rel_subj).name)
     turnin_dir = resolve_submission_dir(None, clean_leaf, resolved_subject=rel_subj)
-    if turnin_dir == KIT_ROOT.resolve() or turnin_dir == Path.cwd().resolve():
-        turnin_dir = (KIT_ROOT / "workspace" / rel_subj).resolve()
 
     if show_subject:
         if not s_file.is_file():
@@ -841,7 +897,7 @@ def handle_subject_inspection(
         print(theme.render_subject(s_file.read_text(encoding="utf-8", errors="replace"), subject_id=clean_leaf))
         print(theme.c(f"     subject : {t_subj}", "muted"))
         print(theme.c(f"     turn-in : {t_turnin}/{primary_f}{home_note(t_turnin)}", "accent"))
-        print(theme.c(f"     next    : 'init {clean_leaf}', edit the file, then '{clean_leaf}' grades it", "muted"))
+        print(theme.c(f"     grade   : '{clean_leaf}', once that file exists", "muted"))
     return 0
 
 
@@ -941,16 +997,7 @@ def evaluate_exercise_or_module(
         if explicit_dir:
             target_dir = Path(explicit_dir).expanduser().resolve()
         else:
-            mod_slug = resolve_module_slug(module_arg)
-            cwd = Path(".").resolve()
-            ws_mod = (KIT_ROOT / "workspace" / "piscine" / mod_slug).resolve()
-            if cwd != KIT_ROOT.resolve() and (cwd / "ex00").exists():
-                target_dir = cwd
-            elif (cwd / mod_slug).is_dir() and (cwd / mod_slug).resolve() != (KIT_ROOT / "corrections" / "piscine" / mod_slug).resolve():
-                target_dir = (cwd / mod_slug).resolve()
-            else:
-                target_dir = ws_mod
-            target_dir.mkdir(parents=True, exist_ok=True)
+            target_dir = find_module_repo(resolve_module_slug(module_arg))
         cmd = [sys.executable, str(KIT_ROOT / "bin" / "deepthought"), module_arg, "--dir", str(target_dir), *deepthought_theme_args(theme)]
         if strict_flag:
             cmd.append("--strict")
@@ -1052,8 +1099,8 @@ def evaluate_exercise_or_module(
         if "Nothing turned in" in res.status:
             wanted = ", ".join(expected_turnin_files(rel_subj, slug_leaf))
             print(theme.c(f"     expected : {wanted}", "accent"))
-            print(theme.c(f"     looked in: {tilde_path(submit_dir)}/", "accent"))
-            print(theme.c(f"     next     : 'init {slug_leaf}' creates it, or use --dir <path>", "muted"))
+            print(theme.c(f"     in       : {tilde_path(submit_dir)}/", "accent"))
+            print(theme.c("     rule     : the folders are yours to create. Elsewhere: --dir <path>", "muted"))
 
         try:
             archive = trace_archive_path(resolved_subject)
@@ -1071,7 +1118,6 @@ def evaluate_exercise_or_module(
         return res
 
     if watch_flag:
-        submit_dir.mkdir(parents=True, exist_ok=True)
         print(theme.c(f"[Watch Mode] Watching {submit_dir} for changes (Ctrl+C to stop)...", "primary", "bold"))
         last_state: dict[str, tuple[int, int]] | None = None
         try:
@@ -1102,8 +1148,8 @@ def setup_readline_completer(piscine_mods: set[str]) -> None:
         return
     exam_tracks = {p.stem for p in (KIT_ROOT / "pools" / "exams").glob("*.yml")} if (KIT_ROOT / "pools" / "exams").is_dir() else set()
     commands = {
-        "piscine", "piscine_exam", "back", "forward", "list", "subject",
-        "clear", "cls", "help", "quit", "exit",
+        "piscine", "piscine_exam", "back", "forward", "home", "list", "subject",
+        "init", "watch", "grade", "trace", "xp", "clear", "cls", "help", "quit", "exit",
         "--back", "--forward", "--list", "--init", "--show-subject", "--watch", "--strict", "--exam",
     }
     exercises: set[str] = set()
@@ -1213,7 +1259,7 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
             mod_name = nav_stack[1]
             print_catalog_list(mod_name, theme, max_rows=rows)
             print("")
-            print(theme.c(f"nav: <exercise> or exNN grades | subject <ex> | init <ex> | grade ({mod_name}) | back", "muted"))
+            print(theme.c(f"nav: <exercise> or exNN grades | subject <ex> | grade ({mod_name}) | back | help", "muted"))
         elif nav_stack == ["piscine exam"]:
             print_catalog_list("piscine exam", theme, max_rows=rows)
             print("")
@@ -1227,7 +1273,7 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
             lvl_num = lvl_tag.replace("level", "").strip()
             print_catalog_list(f"{trk_name}:{lvl_num}", theme, max_rows=rows)
             print("")
-            print(theme.c("nav: <exercise> grades (exam mode) | subject <ex> | init <ex> | <N> | back", "muted"))
+            print(theme.c("nav: <exercise> grades (exam mode) | subject <ex> | <N> | back | help", "muted"))
         view["is_catalog"] = True
 
     def _navigate_to(target_path: list[str]) -> None:
@@ -1347,11 +1393,14 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                     print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold('moulinette commands')}")
                     print(theme.status("status", "Browse  : piscine | exams | <module> (c00) | <track> (rank02) | level<N>"))
                     print(theme.status("status", "Move    : back (b, ..) | forward (f) | home | list | clear | q"))
-                    print(theme.status("status", "Work    : subject <ex> | init <ex> | <ex> grades it | watch <ex>"))
+                    print(theme.status("status", "42 way  : read the subject file, mkdir <module>/<exNN>, write, grade"))
+                    print(theme.status("status", "Grade   : <ex> grades it | watch <ex> re-grades on save"))
+                    print(theme.status("status", "Shortcut: subject <ex> prints it | init <ex> makes the folder (optional)"))
                     print(theme.status("status", "Module  : grade <module>, or 'grade' inside a module"))
                     print(theme.status("status", "Options : --strict --norm --exam --self-test --dir <path>"))
                     print(theme.status("status", "Read    : trace (full trace of the last grading) | xp (progression)"))
-                    print(theme.status("status", f"Turn-in : {ws_tilde}/<section>/.../<ex>/{home_note(ws_tilde)}"))
+                    print(theme.status("status", f"Subjects: {tilde_path(KIT_ROOT / 'subjects')}/piscine/<module>/<ex>/"))
+                    print(theme.status("status", f"Turn-in : {ws_tilde}/piscine/<module>/<exNN>/{home_note(ws_tilde)}"))
                     print(theme.status("status", "Names   : exact. 'c01/ft_strlen' names the module when two share a name."))
                     print("")
                     continue

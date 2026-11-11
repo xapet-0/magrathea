@@ -317,13 +317,14 @@ def run_grade_module(raw_mod: str, args: argparse.Namespace, theme: ThemeEngine)
             repo_dir = cand_dir
     else:
         cwd = Path.cwd().resolve()
-        if cwd != KIT_ROOT.resolve() and (cwd / "ex00").is_dir():
+        kit = KIT_ROOT.resolve()
+        in_kit_data = any(tree == cwd or tree in cwd.parents for tree in (kit / "subjects", kit / "corrections", kit / "pools"))
+        if cwd != kit and not in_kit_data and (cwd.name.lower() == mod_slug or any(p.is_dir() for p in cwd.glob("ex[0-9][0-9]"))):
             repo_dir = cwd
         else:
             repo_dir = (KIT_ROOT / "workspace" / "piscine" / mod_slug).resolve()
 
-    repo_dir.mkdir(parents=True, exist_ok=True)
-
+    # The module folder is the student's to create: grading an absent one reports "Nothing turned in".
     pool_data = _load_yaml(pool_file)
     title = pool_data.get("display_name") or pool_data.get("title") or mod_slug.upper()
     exercises = pool_data.get("exercises") or []
@@ -441,7 +442,7 @@ def run_grade_module(raw_mod: str, args: argparse.Namespace, theme: ThemeEngine)
         rel_trace = trace_file
     print(theme.c(f"     trace: {rel_trace}", "muted"))
     if practice_passed == 0:
-        print(theme.c(f"     tip:   run './moulinette --init {mod_slug}' to scaffold starter files in {tilde_path(repo_dir)}", "warn"))
+        print(theme.c(f"     turn-in: {tilde_path(repo_dir)}/exNN/<file>  (the folders are yours to create)", "warn"))
     return 0 if official_passed == total_exs and total_exs > 0 else 1
 
 
