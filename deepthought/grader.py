@@ -246,7 +246,25 @@ def _communicate_bounded(
         proc.stdout.close()
     if proc.stderr:
         proc.stderr.close()
-    proc.wait()
+    # EOF on both pipes does not mean the process is gone: it may have closed stdout/stderr and
+    # kept running (close(1); close(2); for(;;);). Keep honouring the deadline instead of blocking.
+    try:
+        proc.wait(timeout=max(0.0, deadline - time.time()))
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except Exception:
+            pass
+        if proc.stdin:
+            try:
+                proc.stdin.close()
+            except Exception:
+                pass
+        try:
+            proc.wait(timeout=1.0)
+        except Exception:
+            pass
+        raise subprocess.TimeoutExpired(proc.args, timeout)
     out = b"".join(stdout_chunks).decode("utf-8", errors="replace")
     err = b"".join(stderr_chunks).decode("utf-8", errors="replace")
     return out, err
