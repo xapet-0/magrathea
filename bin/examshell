@@ -117,12 +117,30 @@ SESSION_STATES = frozenset({
 })
 
 
+# System trees that must never be wiped, even via a subdirectory such as
+# /usr/local (an exact-match check alone would let those through).
+_SYSTEM_DIRS = (
+    Path("/bin"), Path("/sbin"), Path("/usr"), Path("/etc"), Path("/var"),
+    Path("/lib"), Path("/lib64"), Path("/opt"), Path("/dev"), Path("/proc"),
+    Path("/sys"), Path("/root"), Path("/boot"), Path("/run"),
+)
+# User data folders inside $HOME: wiping these would destroy the student's
+# own files, so they are refused even though they are inside $HOME.
+_HOME_DATA_DIRS = (
+    "Documents", "Desktop", "Downloads", "Pictures", "Music", "Videos",
+    "Public", "Templates", ".ssh", ".gnupg", ".config", ".local", ".cache",
+    ".mozilla", ".vscode", ".docker",
+)
+_ASSIGNMENT_SLUG_RE = re.compile(r"^[a-z0-9_]+$")
+
+
 def validate_safe_basedir(basedir: Path | str) -> Path:
     """Validate that an exam-basedir path is safe to initialize or clean.
 
     Rejects empty paths, '.', '..', filesystem root '/', $HOME, KIT_ROOT,
-    ancestors of $HOME or KIT_ROOT, system directories, and symlinks pointing
-    to forbidden paths.
+    ancestors of $HOME or KIT_ROOT, system directories *and anything inside
+    them* (e.g. /usr/local), user data folders inside $HOME (e.g.
+    ~/Documents), and symlinks pointing to forbidden paths.
     """
     raw_str = str(basedir).strip() if basedir is not None else ""
     if not raw_str or raw_str in {".", ".."}:
@@ -138,24 +156,18 @@ def validate_safe_basedir(basedir: Path | str) -> Path:
         Path("/"),
         home_resolved,
         kit_resolved,
-        Path("/bin"),
-        Path("/sbin"),
-        Path("/usr"),
-        Path("/etc"),
-        Path("/var"),
-        Path("/lib"),
-        Path("/lib64"),
-        Path("/opt"),
-        Path("/dev"),
-        Path("/proc"),
-        Path("/sys"),
-        Path("/root"),
-        Path("/boot"),
-        Path("/run"),
         Path("/tmp"),
+        *_SYSTEM_DIRS,
     }
     if resolved in forbidden_exact:
         raise ValueError(f"Unsafe exam-basedir '{resolved}': refusing to use protected directory.")
+    for sys_dir in _SYSTEM_DIRS:
+        if sys_dir in resolved.parents:
+            raise ValueError(f"Unsafe exam-basedir '{resolved}': refusing to use a path inside system directory '{sys_dir}'.")
+    for data_name in _HOME_DATA_DIRS:
+        data_dir = home_resolved / data_name
+        if resolved == data_dir or data_dir in resolved.parents:
+            raise ValueError(f"Unsafe exam-basedir '{resolved}': refusing to use or wipe your '{data_name}' folder. Pick a dedicated folder such as ~/exam-basedir.")
     if resolved in home_resolved.parents or resolved in kit_resolved.parents:
         raise ValueError(f"Unsafe exam-basedir '{resolved}': path is an ancestor of $HOME or repository root.")
     allowed_kit_tmp_roots = (
@@ -791,6 +803,7 @@ class ExamShell(cmd.Cmd):
         clock_fn: Callable[[], dt.datetime] | None = None,
         duration_override: int | None = None,
         defer_init_basedir: bool = False,
+        fresh_confirmed: bool = False,
     ) -> None:
         super().__init__()
         self._custom_clock = clock_fn is not None
@@ -824,6 +837,8 @@ class ExamShell(cmd.Cmd):
         self._footer_notice: str = ""
         self._viewport_active: bool = False
         self._real_stdout = sys.stdout
+        # Non-interactive runs must never wipe an existing basedir silently.
+        self.fresh_confirmed = bool(fresh_confirmed or os.environ.get("EXAMSHELL_ALLOW_WIPE") == "1")
 
         pool_file = Path(self.raw_pool) if Path(self.raw_pool).is_file() else (KIT_ROOT / "pools" / "exams" / f"{self.pool}.yml")
         if not pool_file.exists():
@@ -884,7 +899,13 @@ class ExamShell(cmd.Cmd):
             else:
                 self.start_ts = float(state.get("start_ts", self._now_ts()))
             self.duration_sec = validate_duration_seconds(state.get("duration_sec", self.duration_sec), context="resumed session")
-            self.current_assignment = state.get("current_assignment", "") or self._pick_assignment()
+            saved_assignment = str(state.get("current_assignment", "") or "")
+            if saved_assignment and self._is_valid_assignment_slug(saved_assignment):
+                self.current_assignment = saved_assignment
+            else:
+                if saved_assignment:
+                    print(f"Warning: Ignoring invalid saved assignment {saved_assignment!r} in session file; picking a new one.", file=sys.stderr)
+                self.current_assignment = self._pick_assignment()
             self.history: list[str] = list(state.get("history", []))
             self.cmd_history = list(state.get("cmd_history", []))
             self.level_records: list[dict] = list(state.get("level_records", []))
@@ -1389,9 +1410,29 @@ class ExamShell(cmd.Cmd):
             return "only_z"
         return self.rng.choice(candidates)
 
+    def _is_valid_assignment_slug(self, slug: str) -> bool:
+        """Return True when slug names an actual exam assignment without path traversal."""
+        if not _ASSIGNMENT_SLUG_RE.fullmatch(str(slug or "")):
+            return False
+        if (KIT_ROOT / "subjects" / "exams" / slug).is_dir():
+            return True
+        for lvl in self.levels:
+            raw_list = lvl.get("assignments") or lvl.get("subjects") or lvl.get("exercises") or lvl.get("candidates") or []
+            for cand in raw_list:
+                cand_id = cand["id"] if isinstance(cand, dict) else str(cand)
+                if cand_id == slug:
+                    return True
+        return False
+
     def _provision_subject_files(self, slug: str) -> Path:
+        if not self._is_valid_assignment_slug(slug):
+            raise ValueError(f"Refusing to provision unknown assignment {slug!r}.")
         src_dir = KIT_ROOT / "subjects" / "exams" / slug
         dst_dir = self.subjects_dir / slug
+        subjects_resolved = self.subjects_dir.resolve()
+        dst_resolved = dst_dir.resolve()
+        if subjects_resolved not in dst_resolved.parents and dst_resolved != subjects_resolved:
+            raise ValueError(f"Refusing to provision outside the subjects folder: {slug!r}.")
         if dst_dir.exists():
             shutil.rmtree(dst_dir)
         dst_dir.mkdir(parents=True, exist_ok=True)
@@ -1581,7 +1622,7 @@ class ExamShell(cmd.Cmd):
             lines = lines[:budget]
         return lines
 
-    def print_boot_header(self, show_banner: bool = True) -> None:
+    def print_boot_header(self, show_banner: bool = True, print_initial_status: bool = True) -> None:
         t = self.theme
         disp_basedir = "~/exam-basedir" if not self.custom_basedir else str(self.exam_basedir)
 
@@ -1638,13 +1679,23 @@ class ExamShell(cmd.Cmd):
         print(t.c("examshell v0.1.1", "primary", "bold"))
         print("")
         if self.resumed:
-            self.do_status("")
+            if print_initial_status:
+                self.do_status("")
+            else:
+                self._provision_subject_files(self.current_assignment)
             return
 
         print(t.c("WARNING", "warn", "bold"))
         print(f"Your exam files will be stored in {t.c(disp_basedir, 'info')}")
         print(t.c("THIS DIRECTORY WILL BE ENTIRELY EMPTIED BEFORE YOU START", "warn"))
         print("So, if you do have important things there, Ctrl-C NOW and back them up before running this.")
+        # Never wipe silently in a script/pipe without explicit --fresh or EXAMSHELL_ALLOW_WIPE=1.
+        basedir_nonempty = self.exam_basedir.is_dir() and any(self.exam_basedir.iterdir())
+        if basedir_nonempty and not self.fresh_confirmed and os.environ.get("EXAMSHELL_REQUIRE_CONFIRM") != "1":
+            print(f"[examshell] Refusing to empty {disp_basedir}: it already contains files.")
+            print("[examshell] Nothing was deleted. To start over, back up what you need, then re-run with --fresh.")
+            print("[examshell] To keep your current exam, re-run with -r (resume) or -c \"status\".")
+            raise SystemExit(1)
         need_confirm = os.environ.get("EXAMSHELL_REQUIRE_CONFIRM") == "1"
         if need_confirm:
             try:
@@ -1669,9 +1720,10 @@ class ExamShell(cmd.Cmd):
             if not confirmed:
                 print(f"[examshell] Confirmation not granted. Existing files in {disp_basedir} were left untouched.")
                 raise SystemExit(1)
+        elif basedir_nonempty:
+            print(f"Starting fresh as requested (--fresh): emptying {disp_basedir}.")
         else:
-            print("(Press Enter to continue...)")
-            print("Confirm? [y/n] y")
+            print(f"Creating a fresh exam folder at {disp_basedir}.")
 
         self._initialize_fresh_workspace()
         if not self._viewport_active:
@@ -1689,7 +1741,10 @@ class ExamShell(cmd.Cmd):
             print("You can log out at any time. If this program tells you you earned points,")
             print("then they will be counted as whatever happens.")
             print("")
-        self.do_status("")
+        if print_initial_status:
+            self.do_status("")
+        else:
+            self._provision_subject_files(self.current_assignment)
 
     def do_status(self, arg: str) -> None:
         """Display the examshell v0.1.1 status block (wording as in docs/exqm.txt, Step 3)."""
@@ -2589,7 +2644,8 @@ class ExamShell(cmd.Cmd):
             print(f"Trace saved to {t.c(f'~/exam-basedir/traces/{trace_name}', 'info')}")
             print(t.c("✓ Grading cooldown timer has been reset to 0s!", "ok"))
             p_prof = load_student_profile(self.login)
-            p_prof.award_xp(pts * 4)
+            if p_prof.mark_validated(f"exams/{self.current_assignment}"):
+                p_prof.award_xp(pts * 4)
             p_prof.save()
             if self.current_idx + 1 < len(self.levels):
                 self.current_idx += 1
@@ -3437,6 +3493,14 @@ def main() -> int:
     explicit_mode = "practice" if args.practice else args.mode
     practice_flag = explicit_mode == "practice"
     resume_flag = bool(args.resume and not args.fresh)
+    # One-shot commands (-c "status") must resume an existing session instead of wiping it.
+    if args.command is not None and not args.fresh and not resume_flag:
+        _bd = Path(args.basedir) if args.basedir else (Path.home() / "exam-basedir")
+        try:
+            if (_bd.expanduser() / ".session.json").is_file():
+                resume_flag = True
+        except OSError:
+            pass
     active_login = args.login
     showed_menu_banner = False
 
@@ -3479,12 +3543,18 @@ def main() -> int:
                 login=active_login,
                 duration_override=args.duration,
                 defer_init_basedir=True,
+                fresh_confirmed=bool(args.fresh),
             )
         except ValueError as exc:
             print(f"Error: {exc}", file=sys.stderr)
             return 1
 
-        shell.print_boot_header(show_banner=not showed_menu_banner)
+        has_status_cmd = args.command is not None and any(
+            ln.strip().lower().split()[:1] == ["status"]
+            for ln in str(args.command).splitlines()
+            if ln.strip()
+        )
+        shell.print_boot_header(show_banner=not showed_menu_banner, print_initial_status=not has_status_cmd)
         if args.command is not None:
             for raw_ln in str(args.command).splitlines():
                 cmd_line = raw_ln.strip()

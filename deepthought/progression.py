@@ -149,6 +149,15 @@ class XPTracker:
         state = self._load()
         validated = state["validated_exercises"]
         already_done = norm_id in validated
+        if not already_done and self.ledger_path.name == "xp_ledger.json":
+            # Second source of truth: the $HOME student profile survives a
+            # deleted workspace ledger, so deleting xp_ledger.json alone
+            # cannot re-credit an exercise.
+            try:
+                if StudentProfile.load().is_validated(norm_id):
+                    already_done = True
+            except Exception:
+                pass
 
         if not passed or grade < 100:
             awarded = 0
@@ -235,7 +244,13 @@ _RANK_POOLS: Dict[int, list[str]] = {
 
 @dataclass
 class StudentProfile:
-    """Persistent student profile stored at ~/.42_student_profile.json."""
+    """Persistent student profile stored at ~/.42_student_profile.json.
+
+    `validated_exercises` is the second XP source of truth: the workspace
+    ledger (`workspace/xp_ledger.json`) can be deleted by hand, but the
+    profile in $HOME survives that. An exercise already listed here is
+    never credited twice, even with a fresh ledger.
+    """
 
     login: str = "student"
     total_xp: int = 0
@@ -243,11 +258,26 @@ class StudentProfile:
     piscine_rank: int = 0       # 0 = Piscine (pre-Common Core)
     common_core_rank: int = 0   # 2..6 once exams are passed
     completed_pools: list[str] = None  # type: ignore[assignment]
+    validated_exercises: list[str] = None  # type: ignore[assignment]
     last_updated: int = 0
 
     def __post_init__(self) -> None:
         if self.completed_pools is None:
             self.completed_pools = []
+        if self.validated_exercises is None:
+            self.validated_exercises = []
+
+    def is_validated(self, subject_id: str) -> bool:
+        """Return True when this exercise was already credited."""
+        return str(subject_id).strip().strip("/") in set(self.validated_exercises)
+
+    def mark_validated(self, subject_id: str) -> bool:
+        """Record a first pass. Return True when this call newly recorded it."""
+        norm = str(subject_id).strip().strip("/")
+        if not norm or norm in self.validated_exercises:
+            return False
+        self.validated_exercises.append(norm)
+        return True
 
     @property
     def xp(self) -> int:
@@ -275,6 +305,7 @@ class StudentProfile:
                         piscine_rank=int(raw.get("piscine_rank", 0)),
                         common_core_rank=int(raw.get("common_core_rank", 0)),
                         completed_pools=list(raw.get("completed_pools", [])),
+                        validated_exercises=list(raw.get("validated_exercises", [])),
                         last_updated=int(raw.get("last_updated", 0)),
                     )
             except (OSError, json.JSONDecodeError, ValueError):

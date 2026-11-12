@@ -342,6 +342,29 @@ def find_exercise_namesakes(resolved: str) -> list[str]:
     return [short_exercise_label(c) for c in others]
 
 
+def _all_exercise_names() -> list[str]:
+    """Every bare exercise name the student can type (short labels)."""
+    names: set[str] = set()
+    subj = KIT_ROOT / "subjects"
+    if (subj / "exams").is_dir():
+        names.update(p.name for p in (subj / "exams").iterdir() if _is_exercise_dir(p))
+    if (subj / "piscine").is_dir():
+        for ex_dir in (subj / "piscine").glob("*/*"):
+            if _is_exercise_dir(ex_dir):
+                names.add(_MODULE_PREFIX_RE.sub("", ex_dir.name))
+    return sorted(names)
+
+
+def suggest_exercise(target: str, limit: int = 3) -> list[str]:
+    """Closest exercise names to what was typed ('did you mean ...?')."""
+    import difflib
+
+    clean = str(target).strip().lower().split("/")[-1]
+    if not clean:
+        return []
+    return difflib.get_close_matches(clean, _all_exercise_names(), n=limit, cutoff=0.55)
+
+
 def resolve_exercise_or_report(target: str, theme: ThemeEngine, prefer_exam: bool = False) -> tuple[str, bool] | None:
     """Resolve an exercise or print one precise error line and return None."""
     try:
@@ -350,9 +373,119 @@ def resolve_exercise_or_report(target: str, theme: ThemeEngine, prefer_exam: boo
         print(theme.c(f"Error: {exc}", "err", "bold"))
         return None
     if not _is_exercise_dir(KIT_ROOT / "subjects" / resolved):
-        print(theme.c(f"Error: Unknown exercise '{target}'. Try `./moulinette --list`.", "err", "bold"))
+        print(theme.c(f"Error: Unknown exercise '{target}'.", "err", "bold"))
+        suggestions = suggest_exercise(str(target))
+        if suggestions:
+            print(theme.c(f"       Did you mean: {', '.join(suggestions)}?", "warn"))
+        print(theme.c("       Browse with 'list', or type 'help' for commands.", "muted"))
         return None
     return resolved, is_exam
+
+
+def print_guide(theme: ThemeEngine, exercise: str | None = None) -> int:
+    """Beginner walkthrough: the whole workflow in plain steps, with real paths."""
+    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold('How to work with moulinette (start here)')}")
+    print("")
+    print(theme.c("  You write code in your own folders. Moulinette only reads and grades them.", "secondary"))
+    print("")
+    print(theme.c("  1. Read the subject", "primary", "bold"))
+    print(theme.c("     Type:  subject <exercise>          (example: subject ft_putchar)", "secondary"))
+    print(theme.c("     It shows the files to create, the allowed functions, and examples.", "muted"))
+    print("")
+    print(theme.c("  2. Create your folder (both workflows work)", "primary", "bold"))
+    print(theme.c("     Workspace: workspace/piscine/<module>/exNN/ (ready for editing)", "secondary"))
+    print(theme.c("     Manual 42: mkdir <module>/<exNN>/<file>    (example: c00/ex00/ft_putchar.c)", "secondary"))
+    print(theme.c("     Exam     : workspace/exams/<exercise>/", "secondary"))
+    print(theme.c("     Shortcut : init <exercise> creates starter stubs (optional).", "muted"))
+    print("")
+    print(theme.c("  3. Write your code", "primary", "bold"))
+    print(theme.c("     Edit the file with your editor (vim, emacs, vscode...).", "secondary"))
+    print(theme.c("     Tip: 'watch <exercise>' re-grades automatically every time you save.", "muted"))
+    print("")
+    print(theme.c("  4. Grade it", "primary", "bold"))
+    print(theme.c("     Type:  <exercise>                  (example: ft_putchar)", "secondary"))
+    print(theme.c("     The 5 gates run: files, allowed functions, compilation, safety, tests.", "muted"))
+    print("")
+    print(theme.c("  5. Read the result", "primary", "bold"))
+    print(theme.c("     OK  = validated, XP earned once.  KO = read 'trace' for the full report,", "secondary"))
+    print(theme.c("     fix the first failing gate, then grade again.", "secondary"))
+    print("")
+    print(theme.c("  Stuck? Type 'doctor' to check your setup, 'help' for all commands,", "muted"))
+    print(theme.c("  'list' to browse exercises, 'xp' to see your progress.", "muted"))
+    if exercise:
+        print("")
+        print(theme.c(f"  Your exercise: {exercise}", "accent", "bold"))
+        found = resolve_exercise_or_report(exercise, theme)
+        if found is not None:
+            resolved = found[0]
+            leaf = _MODULE_PREFIX_RE.sub("", Path(resolved).name)
+            turnin = tilde_path(resolve_submission_dir(None, leaf, resolved_subject=resolved))
+            print(theme.c(f"  Subject : {tilde_path(KIT_ROOT / 'subjects' / resolved / 'subject.en.txt')}", "secondary"))
+            print(theme.c(f"  Turn-in : {turnin}/", "accent"))
+    print("")
+    return 0
+
+
+def print_doctor(theme: ThemeEngine) -> int:
+    """Plain-language environment check: what the grader needs, and whether it is there."""
+    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold('Setup check (doctor)')}")
+    print("")
+    checks: list[tuple[bool, str, str, bool]] = []
+    python_ok = sys.version_info >= (3, 8)
+    checks.append((python_ok, f"Python {sys.version_info.major}.{sys.version_info.minor} (need 3.8+)", "Install Python 3.8 or newer." if not python_ok else "", True))
+    for tool in ("gcc", "cc", "clang"):
+        found_tool = shutil.which(tool)
+        if found_tool:
+            checks.append((True, f"{tool}: {found_tool}", "", True))
+            break
+    else:
+        checks.append((False, "C compiler (gcc/cc/clang): not found", "Install a C compiler, e.g. 'sudo apt install gcc' on Debian/Ubuntu.", True))
+
+    norm_bin = KIT_ROOT / "bin" / "norminette"
+    if norm_bin.is_file():
+        try:
+            proc = subprocess.run([sys.executable, str(norm_bin), "--version"], capture_output=True, text=True, timeout=5)
+            ver_out = (proc.stdout or "").strip()
+            note_err = (proc.stderr or "").strip()
+            if proc.returncode == 0 and ver_out and "built-in checker" not in note_err and "built-in checker" not in ver_out:
+                checks.append((True, f"42 {ver_out} (official AST checker)", "", False))
+            else:
+                reason = note_err or ver_out or "built-in checker only"
+                checks.append((False, f"42 norminette: {reason}", "Install Python 3.10+ for official 42 norminette rules (built-in fallback remains active).", False))
+        except (OSError, subprocess.SubprocessError) as exc:
+            checks.append((False, f"42 norminette check failed: {exc}", "Verify bin/norminette permissions.", False))
+    else:
+        checks.append((False, "bin/norminette: not found", "The kit folder looks incomplete; check bin/norminette.", False))
+
+    checks.append(((KIT_ROOT / "subjects").is_dir(), "Exercise subjects are present", "The kit folder looks incomplete; re-clone magrathea.", True))
+    ws = KIT_ROOT / "workspace"
+    try:
+        ws.mkdir(parents=True, exist_ok=True)
+        ws_writable = os.access(ws, os.W_OK)
+    except OSError:
+        ws_writable = False
+    checks.append((ws_writable, f"Workspace writable: {tilde_path(ws)}", "Check folder permissions.", True))
+    checks.append((os.access(str(Path.home()), os.W_OK), f"Home folder writable: {tilde_path(Path.home())}", "Check $HOME permissions.", True))
+    all_ok = True
+    for ok, label, fix, required in checks:
+        if ok:
+            mark = theme.c("[OK]", "ok", "bold")
+        elif required:
+            mark = theme.c("[!!]", "err", "bold")
+        else:
+            mark = theme.c("[--]", "warn", "bold")
+        print(f"  {mark} {label}")
+        if not ok and fix:
+            print(theme.c(f"       Fix: {fix}", "warn"))
+            if required:
+                all_ok = False
+    print("")
+    if all_ok:
+        print(theme.c("  All good. Type 'list' to browse, or 'guide' for the step-by-step.", "ok"))
+    else:
+        print(theme.c("  Fix the items above, then run 'doctor' again.", "warn"))
+    print("")
+    return 0 if all_ok else 1
 
 
 def expected_turnin_files(resolved_subject: str, slug_leaf: str) -> list[str]:
@@ -1136,6 +1269,9 @@ def evaluate_exercise_or_module(
                 if xp_res.awarded_xp > 0 and credits_profile:
                     p_prof = load_student_profile()
                     p_prof.award_xp(xp_res.awarded_xp)
+                    # Second source of truth: deleting workspace/xp_ledger.json
+                    # must not let this exercise be credited again.
+                    p_prof.mark_validated(resolved_subject)
                     p_prof.save()
         except (OSError, ValueError, TypeError, AttributeError) as exc:
             xp_error = f"{type(exc).__name__}: {exc}"
@@ -1454,18 +1590,32 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                     _render_banner_header()
                     ws_tilde = tilde_path(KIT_ROOT / "workspace")
                     print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold('moulinette commands')}")
-                    print(theme.status("status", "Browse  : piscine | exams | <module> (c00) | <track> (rank02) | level<N>"))
-                    print(theme.status("status", "Move    : back (b, ..) | forward (f) | home | list | clear | q"))
-                    print(theme.status("status", "42 way  : read the subject file, mkdir <module>/<exNN>, write, grade"))
-                    print(theme.status("status", "Grade   : <ex> grades it | watch <ex> re-grades on save"))
-                    print(theme.status("status", "Shortcut: subject <ex> prints it | init <ex> makes the folder (optional)"))
-                    print(theme.status("status", "Module  : grade <module>, or 'grade' inside a module"))
-                    print(theme.status("status", "Options : --strict --norm --exam --self-test --dir <path>"))
-                    print(theme.status("status", "Read    : trace (full trace of the last grading) | xp (progression)"))
-                    print(theme.status("status", f"Subjects: {tilde_path(KIT_ROOT / 'subjects')}/piscine/<module>/<ex>/"))
-                    print(theme.status("status", f"Turn-in : {ws_tilde}/piscine/<module>/<exNN>/{home_note(ws_tilde)}"))
-                    print(theme.status("status", "Names   : exact. 'c01/ft_strlen' names the module when two share a name."))
+                    print(theme.status("status", "New here? : guide [ex] (step-by-step) | doctor (check your setup)"))
+                    print(theme.status("status", "Browse    : piscine | exams | <module> (c00) | <track> (rank02) | level<N>"))
+                    print(theme.status("status", "Move      : back (b, ..) | forward (f) | home | list | clear | q"))
+                    print(theme.status("status", "42 way    : read subject, mkdir <module>/<exNN>, write, <ex> to grade"))
+                    print(theme.status("status", "Grade     : <ex> grades it | watch <ex> re-grades on save | grade <module>"))
+                    print(theme.status("status", "Shortcut  : subject <ex> prints it | init <ex> makes the folder (optional)"))
+                    print(theme.status("status", "Options   : --strict --norm --exam --self-test --dir <path>"))
+                    print(theme.status("status", "Read      : trace (full trace of the last grading) | xp (your progress)"))
+                    print(theme.status("status", f"Subjects  : {tilde_path(KIT_ROOT / 'subjects')}/piscine/<module>/<ex>/"))
+                    print(theme.status("status", f"Turn-in   : {ws_tilde}/piscine/<module>/<exNN>/{home_note(ws_tilde)}"))
+                    print(theme.status("status", "Names     : exact. 'c01/ft_strlen' names the module when two share a name."))
+                    print(theme.status("status", "Example   : subject ft_putchar, then ft_putchar once the file exists"))
                     print("")
+                    continue
+
+                if low_raw in {"guide", "start", "howto", "how-to", "--guide"} or low_raw.startswith("guide "):
+                    guide_arg = raw.strip().split(None, 1)[1].strip() if (" " in raw.strip() and low_raw.startswith("guide ")) else None
+                    clear_viewport()
+                    _render_banner_header()
+                    print_guide(theme, guide_arg)
+                    continue
+
+                if low_raw in {"doctor", "check", "setup", "diagnose", "--doctor"}:
+                    clear_viewport()
+                    _render_banner_header()
+                    print_doctor(theme)
                     continue
 
                 # Inside an exam track a number is a level ('level1', 'lvl1' or '1'). This is tested before the
@@ -1757,6 +1907,14 @@ def main() -> int:
         return 2
 
     # Subcommand routing for documented CLI patterns:
+    # 0b. guide [ex] / doctor
+    if t_low in {"guide", "start", "howto", "how-to", "--guide"}:
+        ex_arg = extra_tokens[0] if extra_tokens else args.subject
+        return print_guide(theme, str(ex_arg) if ex_arg else None)
+
+    if t_low in {"doctor", "check", "setup", "diagnose", "--doctor"}:
+        return print_doctor(theme)
+
     # 1. subject <ex>
     if t_low in {"subject", "show-subject", "-s"}:
         args.show_subject = True

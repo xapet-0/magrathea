@@ -243,6 +243,16 @@ def run_status(theme: ThemeEngine) -> int:
     return 0
 
 
+def _record_pass_xp(tracker: XPTracker, subj_rel: str, grade: int, configured_xp: int) -> None:
+    """Credit first-pass XP via both XPTracker ledger and StudentProfile."""
+    xp_res = tracker.record_evaluation(subj_rel, passed=True, grade=grade, configured_xp=configured_xp)
+    if xp_res.awarded_xp > 0:
+        prof = load_student_profile()
+        prof.award_xp(xp_res.awarded_xp)
+        prof.mark_validated(subj_rel)
+        prof.save()
+
+
 def run_grade_exercise(target: str, args: argparse.Namespace, theme: ThemeEngine) -> int:
     subj_rel, is_exam, subj_dir = resolve_subject(target)
     leaf = _MODULE_PREFIX_RE.sub("", Path(subj_rel).name)
@@ -286,16 +296,13 @@ def run_grade_exercise(target: str, args: argparse.Namespace, theme: ThemeEngine
         rel_trace = trace_file
     print(theme.c(f"     trace   : {rel_trace}", "muted"))
 
-    if rep.passed and not args.self_test:
+    is_corr_dir = (KIT_ROOT / "corrections").resolve() in [sub_dir, *sub_dir.parents]
+    if rep.passed and not args.self_test and not is_corr_dir:
         ledger_path = KIT_ROOT / "workspace" / "xp_ledger.json"
         tracker = XPTracker(ledger_path)
         meta = _load_yaml(subj_dir / "meta.yml")
         cfg_xp = int(meta.get("xp", 100))
-        xp_res = tracker.record_evaluation(subj_rel, passed=True, grade=rep.grade, configured_xp=cfg_xp)
-        if xp_res.awarded_xp > 0:
-            prof = load_student_profile()
-            prof.award_xp(xp_res.awarded_xp)
-            prof.save()
+        _record_pass_xp(tracker, subj_rel, rep.grade, cfg_xp)
 
     return 0 if rep.passed else 1
 
@@ -396,11 +403,7 @@ def run_grade_module(raw_mod: str, args: argparse.Namespace, theme: ThemeEngine)
                 official_passed += 1
                 rule_s = theme.c("counted", "ok")
                 if not args.self_test and not is_corr_dir:
-                    xp_res = tracker.record_evaluation(subj_rel, passed=True, grade=100, configured_xp=configured_xp)
-                    if xp_res.awarded_xp > 0:
-                        prof = load_student_profile()
-                        prof.award_xp(xp_res.awarded_xp)
-                        prof.save()
+                    _record_pass_xp(tracker, subj_rel, 100, configured_xp)
             else:
                 rule_s = theme.c("skipped (after KO)", "muted")
         else:
