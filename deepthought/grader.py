@@ -1401,6 +1401,9 @@ _GRADER_TLS = threading.local()
 
 def _get_strict_sandbox_flags(kit_root: Path, work: Path) -> list[str]:
     """Return linker/compiler flags for strict mode, using a content-addressed precompiled sandbox_harness.o cache keyed by source, headers, compiler version, arch, and flags (OPT-SP-001)."""
+    # Apple's ld64 does not support GNU ld's --wrap=symbol flags.
+    if sys.platform.startswith("darwin"):
+        return []
     harness_src = kit_root / "deepthought/sandbox_harness.c"
     if not harness_src.exists():
         return []
@@ -1776,10 +1779,7 @@ def _grade_subject_inner(
                     if is_func_ex and not common_files and (gen_dir / "main.c").exists():
                         common_files = [gen_dir / "main.c"]
                     user_gen_exe = work / "user_gen_exe"
-                    gen_strict = []
-                    if strict and (kit_root / "deepthought/sandbox_harness.c").exists():
-                        shutil.copy2(kit_root / "deepthought/sandbox_harness.c", work / "sandbox_harness.c")
-                        gen_strict = ["sandbox_harness.c", f"-I{kit_root / 'trusted_harness'}", f"-I{kit_root / 'third_party/tsoding_arena'}", "-DDT_WRAP_MALLOC", "-Wl,--wrap=malloc", "-Wl,--wrap=calloc", "-Wl,--wrap=realloc", "-Wl,--wrap=strdup", "-Wl,--wrap=free", "-Wl,--wrap=read", "-Wl,--wrap=exit", "-Wl,--wrap=_exit", "-Wl,--wrap=_Exit"]
+                    gen_strict = _get_strict_sandbox_flags(kit_root, work) if strict else []
                     link_cmd = ["cc", *FLAGS_COMPILE_SAFE, *(["-ftrapv"] if strict else []), *[str(p) for p in c_sources], *[str(p) for p in common_files], *gen_strict, "-o", str(user_gen_exe), "-lm"]
                     lproc = subprocess.run(link_cmd, cwd=work, capture_output=True, text=True, errors="replace")
                     if lproc.returncode == 0:

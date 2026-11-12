@@ -292,10 +292,10 @@ def verify_symbol_whitelist(
     cmds_run: list[str] = []
     dual_warnings: list[str] = []
 
-    for cfile in user_c_files:
+    for idx, cfile in enumerate(user_c_files):
         if cfile.suffix != ".c":
             continue
-        obj = work_dir / f"{cfile.stem}.o"
+        obj = work_dir / f"dt_obj_{idx}_{cfile.stem}.o"
         cmd = [
             "cc",
             *FLAGS_COMPILE_SAFE,
