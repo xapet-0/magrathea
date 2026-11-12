@@ -10,9 +10,9 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-unsigned int		ft_strlen(char *str)
+unsigned int	ft_strlen(char *str)
 {
-	unsigned int i;
+	unsigned int	i;
 
 	i = 0;
 	while (str[i])
@@ -20,12 +20,12 @@ unsigned int		ft_strlen(char *str)
 	return (i);
 }
 
-unsigned int		ft_strlcat(char *dest, char *src, unsigned int size)
+unsigned int	ft_strlcat(char *dest, char *src, unsigned int size)
 {
-	unsigned int i;
-	unsigned int j;
-	unsigned int res_d;
-	unsigned int res_s;
+	unsigned int	i;
+	unsigned int	j;
+	unsigned int	res_d;
+	unsigned int	res_s;
 
 	i = ft_strlen(dest);
 	j = 0;

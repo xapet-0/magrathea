@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-int		ft_fibonacci_recur(int index, int n1, int n2)
+int	ft_fibonacci_recur(int index, int n1, int n2)
 {
 	if (index == 0)
 		return (0);
@@ -21,7 +21,7 @@ int		ft_fibonacci_recur(int index, int n1, int n2)
 	return (-1);
 }
 
-int		ft_fibonacci(int index)
+int	ft_fibonacci(int index)
 {
 	return (ft_fibonacci_recur(index, 0, 1));
 }

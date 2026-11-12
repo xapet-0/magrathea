@@ -10,3 +10,4 @@ compiler_flags:
 - -Wextra
 - -Werror
 norminette: true
+norminette_rule: CheckDefine

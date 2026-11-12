@@ -12,14 +12,14 @@
 
 #include "ft_btree.h"
 
-int		ft_max(int a, int b)
+int	ft_max(int a, int b)
 {
 	if (a > b)
 		return (a);
 	return (b);
 }
 
-int		ft_btree_level_count(t_btree *root)
+int	ft_btree_level_count(t_btree *root)
 {
 	int		count;
 

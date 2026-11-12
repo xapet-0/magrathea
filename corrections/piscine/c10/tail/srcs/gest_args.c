@@ -23,7 +23,7 @@ char	**two_args(int *argc, char **argv, int *octet)
 		*octet = *octet * 10 + (argv[1][i] - '0');
 	if (*argc > 2)
 	{
-		args = malloc(sizeof(char*) * *argc);
+		args = malloc(sizeof(char *) * *argc);
 		args[0] = argv[0];
 		i = 1;
 		while (++i < *argc)
@@ -32,7 +32,7 @@ char	**two_args(int *argc, char **argv, int *octet)
 		*argc += 1;
 		return (args);
 	}
-	args = malloc(sizeof(char*) * 2);
+	args = malloc(sizeof(char *) * 2);
 	args[0] = argv[0];
 	args[1] = "stdin";
 	no_args_stdin(*octet, args);
@@ -46,7 +46,7 @@ char	**three_args(int argc, char **argv, int octet)
 
 	if (argc > 3)
 	{
-		args = malloc(sizeof(char*) * (argc - 1));
+		args = malloc(sizeof(char *) * (argc - 1));
 		args[0] = argv[0];
 		i = 2;
 		while (++i < argc)
@@ -55,7 +55,7 @@ char	**three_args(int argc, char **argv, int octet)
 	}
 	else
 	{
-		args = malloc(sizeof(char*) * 2);
+		args = malloc(sizeof(char *) * 2);
 		args[0] = argv[0];
 		args[1] = "stdin";
 		no_args_stdin(octet, args);
@@ -71,16 +71,15 @@ void	gest_args(int argc, char **argv)
 
 	if (argc == 1 || argv[1][0] != '-' || argv[1][1] != 'c')
 		no_args(argv);
-	else if (argv[1][0] == '-' && argv[1][1] == 'c')
+	else if (argc == 2)
+		print_help(argv[0]);
+	else
 	{
-		if (argc == 2)
-		{
-			print_help(argv[0]);
-			return ;
-		}
+		if (argv[1][2] == '\0')
+			octet = ft_atoi(argv[2]);
 		if (argv[1][2] != '\0')
 			args = two_args(&argc, argv, &octet);
-		else if ((octet = ft_atoi(argv[2])) != -1)
+		else if (octet != -1)
 			args = three_args(argc, argv, octet);
 		else
 		{

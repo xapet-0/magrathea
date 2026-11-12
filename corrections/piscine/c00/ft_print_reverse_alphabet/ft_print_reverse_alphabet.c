@@ -19,7 +19,7 @@ void	ft_putchar(char c)
 
 void	ft_print_reverse_alphabet(void)
 {
-	int i;
+	int	i;
 
 	i = 26;
 	while (i > 0)

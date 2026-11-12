@@ -12,7 +12,14 @@
 
 #include <unistd.h>
 
-static void	put_s(char *s)
+static const char	*g_units[20] = {"zero", "one", "two", "three", "four",
+	"five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
+	"thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen",
+	"nineteen"};
+static const char	*g_tens[10] = {"", "", "twenty", "thirty", "forty", "fifty",
+	"sixty", "seventy", "eighty", "ninety"};
+
+static void	put_s(const char *s)
 {
 	int	i;
 
@@ -40,26 +47,15 @@ static int	is_valid_uint(char *s)
 
 static void	say_under_100(long n)
 {
-	char	*u[20];
-	char	*t[10];
-
-	u[0] = "zero"; u[1] = "one"; u[2] = "two"; u[3] = "three";
-	u[4] = "four"; u[5] = "five"; u[6] = "six"; u[7] = "seven";
-	u[8] = "eight"; u[9] = "nine"; u[10] = "ten"; u[11] = "eleven";
-	u[12] = "twelve"; u[13] = "thirteen"; u[14] = "fourteen";
-	u[15] = "fifteen"; u[16] = "sixteen"; u[17] = "seventeen";
-	u[18] = "eighteen"; u[19] = "nineteen";
-	t[2] = "twenty"; t[3] = "thirty"; t[4] = "forty"; t[5] = "fifty";
-	t[6] = "sixty"; t[7] = "seventy"; t[8] = "eighty"; t[9] = "ninety";
 	if (n < 20)
-		put_s(u[n]);
+		put_s(g_units[n]);
 	else
 	{
-		put_s(t[n / 10]);
+		put_s(g_tens[n / 10]);
 		if (n % 10)
 		{
 			put_s(" ");
-			put_s(u[n % 10]);
+			put_s(g_units[n % 10]);
 		}
 	}
 }

@@ -19,7 +19,7 @@ void	ft_putchar(char c)
 
 void	ft_putstr(char *str)
 {
-	int i;
+	int	i;
 
 	i = 0;
 	while (*(str + i) != '\0')
@@ -30,9 +30,9 @@ void	ft_putstr(char *str)
 	ft_putchar('\n');
 }
 
-int		main(int argc, char **argv)
+int	main(int argc, char **argv)
 {
-	int i;
+	int	i;
 
 	i = 0;
 	while (++i < argc)

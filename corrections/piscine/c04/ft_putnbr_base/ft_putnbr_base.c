@@ -19,8 +19,8 @@ void	ft_putchar(char c)
 
 void	ft_erreur(char *base, int *erreur)
 {
-	int i;
-	int j;
+	int	i;
+	int	j;
 
 	i = 0;
 	j = 0;
@@ -36,9 +36,9 @@ void	ft_erreur(char *base, int *erreur)
 				*erreur = 1;
 		}
 		if (base[i] == '+' || base[i] == '-' || base[i] == '%'
-				|| base[i] == '/' || base[i] == '*' || base[i] == '='
-				|| base[i] == ',' || base[i] == '.'
-				|| base[i] < 33 || base[i] > 126)
+			|| base[i] == '/' || base[i] == '*' || base[i] == '='
+			|| base[i] == ',' || base[i] == '.'
+			|| base[i] < 33 || base[i] > 126)
 			*erreur = 1;
 		else
 			i++;

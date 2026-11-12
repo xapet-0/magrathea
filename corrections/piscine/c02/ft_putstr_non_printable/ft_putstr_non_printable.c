@@ -41,8 +41,8 @@ void	ft_put_hexa(int c, int err)
 
 void	ft_putstr_non_printable(char *str)
 {
-	int i;
-	int j;
+	int	i;
+	int	j;
 
 	i = 0;
 	j = 0;

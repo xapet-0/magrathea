@@ -170,24 +170,24 @@ Low-level command-line interface to the grading engine for direct directory eval
 
 ### 4. `norminette` & `shnorm` — 42 Coding Standard Linters
 
-Standalone static analyzers enforcing the official **42 Norm v3** for C sources/headers and **Sh-Norm v4.2** for POSIX shell scripts.
+`bin/norminette` **is the official 42 norminette** ([42school/norminette](https://github.com/42school/norminette), MIT), shipped unmodified in [`third_party/norminette/`](third_party/norminette/). The grader's `Norme error` is its verdict, so code that passes here passes at school. `bin/shnorm` is Magrathea's own **Sh-Norm v4.2** linter for POSIX shell scripts.
 
 ```bash
-# Lint C source and header files against 42 Norminette v3
+# The official norminette: same options, same output as at school
 ./bin/norminette workspace/
 ./bin/norminette corrections/piscine/c07/ft_split/ft_split.c
+./bin/norminette -R CheckDefine ft_abs.h      # the rule a C 08 subject names
+./bin/norminette --version
 
 # Lint POSIX shell scripts against Sh-Norm v4.2
 ./bin/shnorm bocal/*.sh bin/*.sh
 ```
 
-**Enforced 42 Norm v3 Rules:**
-* 4-space tab indentation and strict 80-column line width limit.
-* Maximum **25 lines** per function body and maximum **5 functions** per `.c` file.
-* Maximum **4 parameters** per function and maximum **5 variables** per function block.
-* Declarations must appear at the top of the function before any executable statements, separated by a blank line.
-* Strict ban on `for`, `do...while`, `switch`, `case`, `goto`, VLAs, and single-line `//` comments.
-* Header files (`.h`) must include valid `#ifndef` / `# define` / `# endif` include guards.
+* **Nothing to install, on any system.** The tool is pure Python and lives in the repository: no `pip`, no virtual environment, no distribution package, no network. It runs wherever Python 3.10 or newer runs (Debian, Fedora, Arch, Void, Alpine, NixOS, macOS, WSL). `./install.sh` puts `norminette` on your `PATH` and prints the version in use.
+* **Python older than 3.10.** The official tool cannot run on it. The kit looks for a newer `python3.x` on `PATH`; when there is none it uses a small built-in checker (header, 80 columns, 25 lines, 5 functions, 4 parameters, forbidden keywords) and **says so in every trace**: `norminette: built-in checker, a part of the Norm only`. Install Python 3.10+ to get the school's verdict. `MAGRATHEA_NORMINETTE=builtin` forces the built-in checker.
+* **`-R CheckDefine`.** A subject that names this rule (C 08 `ft_abs.h`, `ft_boolean.h`: a macro with arguments is the exercise) is graded with it: `norminette_rule: CheckDefine` in its `meta.yml`.
+* **Another version.** `python3 third_party/update_norminette.py 3.3.60` fetches the wheel published on PyPI by 42school, checks its sha256 and replaces the shipped copy. Then run `python3 tests/test_norminette_official.py`: it checks every Piscine reference solution and every file `init` writes against the new version.
+* **Exam mode.** As at school, exams are not norm-checked unless you ask (`--norm`). The exam reference solutions are not written to the Norm.
 
 ---
 
@@ -284,7 +284,7 @@ magrathea/
 │   ├── examshell               # Interactive 42 / 1337 examination terminal (v0.1.1)
 │   ├── moulinette              # Curriculum navigator, workspace scaffolder & grader
 │   ├── deepthought             # Headless 5-gate evaluation CLI
-│   ├── norminette              # 42 Norme v3 C/H static analyzer
+│   ├── norminette              # Runs the official norminette in third_party/ (built-in fallback)
 │   ├── shnorm                  # POSIX Shell Norm v4.2 static analyzer
 │   ├── pforge                  # Curriculum pool & exercise packager
 │   ├── ft_lock                 # Cluster session screen locker
@@ -297,7 +297,6 @@ magrathea/
 │   ├── grader.py               # 5-gate evaluation pipeline & harness code generator
 │   ├── sandbox_harness.c       # Linker-wrapped heap canary, leak & exit trap harness
 │   ├── makefile_and_repo.py    # Makefile target/relink verifier & repository hygiene checks
-│   ├── norminette_engine.py    # 42 Norm v3 AST/lexer engine
 │   ├── shnorm_engine.py        # POSIX Shell Norm v4.2 validator
 │   ├── vogsphere.py            # Local bare Git repository & exponential cooldown manager
 │   ├── progression.py          # Student XP ledger, rank progression & profile manager
@@ -309,6 +308,8 @@ magrathea/
 ├── subjects/                   # 439 exercise directories (subject.en.txt, meta.yml, scale.yml, tests.yml, PDFs)
 ├── templates/                  # Exercise, scale, and profile YAML templates
 ├── third_party/
+│   ├── norminette/             # The official 42 norminette, unmodified (MIT); see SOURCE.txt
+│   ├── update_norminette.py    # Fetch another norminette version from PyPI (sha256 checked)
 │   └── tsoding_arena/          # Embedded Tsoding region arena allocator (arena.h)
 ├── trusted_harness/            # C11 trusted harness diagnostics & Arena-01 telemetry
 │   ├── dt_arena.c / .h         # Internal harness arena lifecycle & telemetry collector
@@ -326,7 +327,7 @@ magrathea/
 ## System Requirements
 
 * **Operating System**: Linux (`x86_64` / `aarch64`), macOS, or Windows WSL2.
-* **Python Runtime**: Python `3.8+` (standard library only; zero `pip` packages required).
+* **Python Runtime**: Python `3.8+` (standard library only; zero `pip` packages required). The official norminette needs Python `3.10+`; on an older Python the norm check falls back to a built-in checker that covers a part of the Norm and says so.
 * **Compilers**: `gcc` or `clang` (with `g++` / `clang++` for Rank 05 C++ exercises).
 * **Standard UNIX Toolchain**: `git`, `make`, `nm`, `ar`, `sh`, `diff`.
 

@@ -20,7 +20,7 @@ void	ft_putchar(char c, int o)
 	write(o, &c, 1);
 }
 
-int		ft_strlen(char *str)
+int	ft_strlen(char *str)
 {
 	int		i;
 
@@ -48,16 +48,20 @@ void	ft_read(char *filepath)
 	char	buf[4097];
 
 	file = open(filepath, O_RDONLY);
-	if (file != -1)
-		while ((size = read(file, buf, 4096)) != 0)
-		{
-			ft_putstr(buf, 1, size);
-		}
-	else
+	if (file == -1)
+	{
 		ft_putstr("Cannot read file.\n", 2, 0);
+		return ;
+	}
+	size = read(file, buf, 4096);
+	while (size != 0)
+	{
+		ft_putstr(buf, 1, size);
+		size = read(file, buf, 4096);
+	}
 }
 
-int		main(int argc, char **argv)
+int	main(int argc, char **argv)
 {
 	if (argc == 1)
 		ft_putstr("File name missing.\n", 2, 0);

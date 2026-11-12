@@ -1,9 +1,104 @@
 #!/usr/bin/env python3
-"""42 / 1337 Norminette v3.3.55 authentic C & Header static rule verifier."""
+"""norminette for the Magrathea kit.
+
+Runs the official 42 norminette (https://github.com/42school/norminette), shipped unmodified in
+third_party/norminette/: same tool, same verdict as at school, nothing to install.
+
+The official tool needs Python 3.10 or newer. When no such interpreter is found, or when this file
+has been copied away from the kit, the small built-in checker below is used instead. It knows only
+a part of the Norm and says so on every run. MAGRATHEA_NORMINETTE=builtin forces it.
+"""
 from __future__ import annotations
+import os
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
+
+OFFICIAL_MIN_PYTHON = (3, 10)
+OFFICIAL_TIMEOUT_SEC = 60.0
+# Run norminette.__main__.main from the kit copy only: -I ignores PYTHONPATH and the user site and keeps
+# the current directory out of sys.path, so nothing the student owns can stand in for the tool.
+_OFFICIAL_BOOTSTRAP = (
+    "import sys; sys.path.insert(0, sys.argv.pop(1)); sys.argv[0] = 'norminette'; "
+    "from norminette.__main__ import main; main()"
+)
+_PYTHON_FOR_OFFICIAL: list[str | None] = []
+
+
+def official_dir() -> Path:
+    return Path(__file__).resolve().parents[1] / "third_party" / "norminette"
+
+
+def official_version() -> str | None:
+    """Version of the shipped official norminette, read from its dist-info folder."""
+    for info in sorted(official_dir().glob("norminette-*.dist-info")):
+        return info.name[len("norminette-"):-len(".dist-info")]
+    return None
+
+
+def _python_for_official() -> str | None:
+    """An interpreter new enough for the official tool: this one, else one found on PATH."""
+    if _PYTHON_FOR_OFFICIAL:
+        return _PYTHON_FOR_OFFICIAL[0]
+    found: str | None = None
+    if sys.version_info >= OFFICIAL_MIN_PYTHON:
+        found = sys.executable
+    else:
+        probe = f"import sys; raise SystemExit(0 if sys.version_info >= {OFFICIAL_MIN_PYTHON!r} else 1)"
+        names = [f"python3.{minor}" for minor in range(19, OFFICIAL_MIN_PYTHON[1] - 1, -1)] + ["python3", "python"]
+        for name in names:
+            cand = shutil.which(name)
+            if not cand:
+                continue
+            try:
+                if subprocess.run([cand, "-c", probe], capture_output=True, timeout=10).returncode == 0:
+                    found = cand
+                    break
+            except (OSError, subprocess.SubprocessError):
+                continue
+    _PYTHON_FOR_OFFICIAL.append(found)
+    return found
+
+
+def official_command() -> tuple[list[str] | None, str]:
+    """(argv prefix that runs the official norminette, '') or (None, why it cannot run here)."""
+    if os.environ.get("MAGRATHEA_NORMINETTE", "").strip().lower() == "builtin":
+        return None, "MAGRATHEA_NORMINETTE=builtin"
+    if not (official_dir() / "norminette" / "__main__.py").is_file():
+        return None, "third_party/norminette is not next to this file"
+    python = _python_for_official()
+    if python is None:
+        this = f"{sys.version_info.major}.{sys.version_info.minor}"
+        need = ".".join(str(n) for n in OFFICIAL_MIN_PYTHON)
+        return None, f"it needs Python {need} or newer, found only Python {this}"
+    return [python, "-I", "-c", _OFFICIAL_BOOTSTRAP, str(official_dir())], ""
+
+
+def run_official(
+    files: list[Path], cwd: Path | None = None, rule: str = "CheckForbiddenSourceHeader"
+) -> tuple[bool, str] | None:
+    """Check files with the official norminette: (norm ok, its output). None when it cannot run here.
+
+    rule is the -R value the subject names: CheckForbiddenSourceHeader, or CheckDefine for the
+    headers whose subject asks for a macro (C 08).
+    """
+    cmd, _ = official_command()
+    if cmd is None:
+        return None
+    args = [*cmd, "--no-colors", "-R", rule, *[str(f) for f in files]]
+    try:
+        proc = subprocess.run(
+            args, cwd=str(cwd) if cwd else None, capture_output=True, text=True, errors="replace",
+            timeout=OFFICIAL_TIMEOUT_SEC, stdin=subprocess.DEVNULL,
+        )
+    except subprocess.TimeoutExpired:
+        return False, f"norminette did not finish within {OFFICIAL_TIMEOUT_SEC:.0f}s"
+    except OSError as exc:
+        return False, f"norminette could not be started: {exc}"
+    out = (proc.stdout + proc.stderr).strip()
+    return (proc.returncode == 0 and "Error!" not in out), out
 
 HEADER_RE = re.compile(r"^/\* \*{74} \*/$")
 
@@ -204,14 +299,24 @@ def check_file(path: Path, flags: list[str]) -> list[str]:
 
 def main() -> int:
     args = sys.argv[1:]
+    cmd, why_not = official_command()
+    if cmd is not None:
+        if "--no-colors" not in args and (os.environ.get("NO_COLOR") or not sys.stdout.isatty()):
+            args = ["--no-colors", *args]
+        try:
+            return subprocess.call([*cmd, *args])
+        except KeyboardInterrupt:
+            return 130
+    builtin_note = f"built-in checker, a part of the Norm only (official norminette not used: {why_not})"
     flags = [a for a in args if a.startswith("-")]
     files = [a for a in args if not a.startswith("-") and a != "CheckForbiddenSourceHeader" and a != "CheckDefine"]
     if "--help" in flags or "-h" in flags:
-        print("usage: norminette [-h] [-v] [-R RULE] [file ...]\n42 / 1337 Norminette v3.3.55 static C & Header verifier")
+        print(f"usage: norminette [-h] [-v] [-R RULE] [file ...]\n{builtin_note}")
         return 0
     if "--version" in flags or "-v" in flags:
-        print("norminette 3.3.55")
+        print(f"norminette: {builtin_note}")
         return 0
+    print(f"norminette: {builtin_note}", file=sys.stderr)
     if not files:
         files = [
             str(p)

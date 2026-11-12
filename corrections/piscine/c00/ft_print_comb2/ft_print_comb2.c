@@ -43,7 +43,7 @@ void	ft_get_number(int i1, int i2, int i[])
 
 void	ft_putchar_multiple(int i1, int i2)
 {
-	int i[4];
+	int	i[4];
 
 	ft_get_number(i1, i2, i);
 	ft_putchar(i[0] + 48);
@@ -60,8 +60,8 @@ void	ft_putchar_multiple(int i1, int i2)
 
 void	ft_print_comb2(void)
 {
-	int i1;
-	int i2;
+	int	i1;
+	int	i2;
 
 	i1 = 0;
 	while (i1 <= 98)

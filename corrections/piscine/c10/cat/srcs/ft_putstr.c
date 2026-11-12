@@ -14,7 +14,7 @@
 
 void	ft_putstr(char *str, int out)
 {
-	int i;
+	int	i;
 
 	i = 0;
 	while (*(str + i) != '\0')
@@ -26,7 +26,7 @@ void	ft_putstr(char *str, int out)
 
 void	ft_putstr_buf(char *str, int size)
 {
-	int i;
+	int	i;
 
 	i = -1;
 	while (++i < size)

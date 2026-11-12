@@ -16,10 +16,10 @@ int		ft_strlen(char *str);
 int		ft_power(int n, int p);
 char	*ft_putnbr_base(int nbr, char *base, int is_neg);
 
-int		check_valid(char *base)
+int	check_valid(char *base)
 {
-	int i;
-	int j;
+	int	i;
+	int	j;
 
 	i = 0;
 	if (base[0] == '\0' || base[1] == '\0')
@@ -29,9 +29,9 @@ int		check_valid(char *base)
 		j = i + 1;
 		while (base[j] != '\0')
 		{
-			if (base[i] == base[j] || base[j] == '+' || base[j] == '-' ||
-					base[j] == ' ' || base[j] == '\t' || base[j] == '\n' ||
-					base[j] == '\v' || base[j] == '\f' || base[j] == '\r')
+			if (base[i] == base[j] || base[j] == '+' || base[j] == '-'
+				|| base[j] == ' ' || base[j] == '\t' || base[j] == '\n'
+				|| base[j] == '\v' || base[j] == '\f' || base[j] == '\r')
 				return (0);
 			j++;
 		}
@@ -54,13 +54,13 @@ char	*check_sign(char *str, int *is_neg)
 
 char	*ft_atoi(char *str, char *base, int *is_neg, int *size)
 {
-	int i;
-	int j;
-	int valid;
+	int	i;
+	int	j;
+	int	valid;
 
 	i = 0;
-	while (*str == ' ' || *str == '\t' || *str == '\n' ||
-			*str == '\v' || *str == '\f' || *str == '\r')
+	while (*str == ' ' || *str == '\t' || *str == '\n'
+		|| *str == '\v' || *str == '\f' || *str == '\r')
 		str++;
 	str = check_sign(str, is_neg);
 	while (*str != '\0')

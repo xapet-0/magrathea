@@ -21,12 +21,11 @@ void	print_file(int argc, char **args, int octet)
 	i = 0;
 	j = 0;
 	while (args[++i] != 0)
-		if ((size = ft_file_count(args[i])) == -1)
-		{
-			if (errno != 21)
-				print_error(args, i);
-		}
-		else
+	{
+		size = ft_file_count(args[i]);
+		if (size == -1 && errno != 21)
+			print_error(args, i);
+		else if (size != -1)
 		{
 			if (argc > 4)
 			{
@@ -37,6 +36,7 @@ void	print_file(int argc, char **args, int octet)
 			}
 			ft_file_get(args[i], size, octet);
 		}
+	}
 }
 
 void	print_error(char **args, int i)

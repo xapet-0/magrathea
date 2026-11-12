@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-int		ft_recursive_factorial_recur(int i, int n)
+int	ft_recursive_factorial_recur(int i, int n)
 {
 	if (i == 0)
 		return (n);
@@ -19,7 +19,7 @@ int		ft_recursive_factorial_recur(int i, int n)
 	return (0);
 }
 
-int		ft_recursive_factorial(int nb)
+int	ft_recursive_factorial(int nb)
 {
 	return (ft_recursive_factorial_recur(nb, 1));
 }
