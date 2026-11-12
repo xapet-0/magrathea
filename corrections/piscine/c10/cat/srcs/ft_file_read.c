@@ -12,7 +12,7 @@
 
 #include "../includes/ft.h"
 
-int		ft_file_read(char *filepath)
+int	ft_file_read(char *filepath)
 {
 	int			file;
 	int			size;
@@ -21,8 +21,12 @@ int		ft_file_read(char *filepath)
 	file = open(filepath, O_RDWR);
 	if (file != -1)
 	{
-		while ((size = read(file, buf, __BUFF)) != 0)
+		size = read(file, buf, __BUFF);
+		while (size != 0)
+		{
 			ft_putstr_buf(buf, size);
+			size = read(file, buf, __BUFF);
+		}
 		return (1);
 	}
 	else

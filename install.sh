@@ -33,6 +33,11 @@ if [ "$MISSING" -ne 0 ]; then
     printf "\n\033[1;33mWarning: Some system tools are missing.\033[0m\n"
 fi
 
+# The official 42 norminette ships in third_party/norminette: nothing to download or build.
+# It needs Python 3.10+; on an older Python the line below names the built-in fallback.
+NORM_IN_USE="$(python3 "${REPO_DIR}/bin/norminette" --version 2>/dev/null | head -n 1 || true)"
+printf "  \033[1;32m[OK]\033[0m %-10s -> %s\n" "norminette" "${NORM_IN_USE:-python3 not found}"
+
 # 2. Ensure executable permissions on all CLI tools
 printf "\n\033[1;34m[2/4] Setting tool permissions...\033[0m\n"
 chmod +x "${REPO_DIR}/examshell" "${REPO_DIR}/moulinette"

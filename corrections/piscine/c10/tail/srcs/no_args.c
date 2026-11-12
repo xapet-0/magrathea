@@ -40,19 +40,18 @@ void	no_args_stdin(int size, char **args)
 		return ;
 	i = 0;
 	while (read(0, c, 1) != 0)
-		if (errno == 0)
-		{
-			if (i >= size)
-				ft_swap_tail(buf, size);
-			else
-				i++;
-			buf[i - 1] = c[0];
-		}
-		else
+	{
+		if (errno != 0)
 		{
 			print_error(args, 1);
 			return ;
 		}
+		if (i >= size)
+			ft_swap_tail(buf, size);
+		else
+			i++;
+		buf[i - 1] = c[0];
+	}
 	i = -1;
 	while (++i < size && buf[i])
 		ft_putchar(buf[i], 1);

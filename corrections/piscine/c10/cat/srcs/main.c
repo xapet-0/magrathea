@@ -12,7 +12,7 @@
 
 #include "../includes/ft.h"
 
-int		main(int argc, char **argv)
+int	main(int argc, char **argv)
 {
 	int		i;
 
@@ -22,6 +22,7 @@ int		main(int argc, char **argv)
 	{
 		i = 0;
 		while (++i < argc)
+		{
 			if (ft_file_read(argv[i]) == 0)
 			{
 				ft_putstr(basename(argv[0]), 2);
@@ -31,5 +32,6 @@ int		main(int argc, char **argv)
 				ft_putstr(strerror(errno), 2);
 				ft_putchar('\n', 2);
 			}
+		}
 	}
 }

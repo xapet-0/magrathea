@@ -19,7 +19,7 @@ void	ft_putchar(char c)
 
 void	ft_print_alphabet(void)
 {
-	int i;
+	int	i;
 
 	i = 0;
 	while (i < 26)

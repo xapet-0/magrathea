@@ -19,7 +19,7 @@ void	ft_putchar(char c)
 
 void	ft_putstr(char *str)
 {
-	int i;
+	int	i;
 
 	i = 0;
 	while (*(str + i) != '\0')
@@ -30,7 +30,7 @@ void	ft_putstr(char *str)
 	ft_putchar('\n');
 }
 
-int		ft_strcmp(char *s1, char *s2)
+int	ft_strcmp(char *s1, char *s2)
 {
 	while (*s1 == *s2 && *s1)
 	{
@@ -40,7 +40,7 @@ int		ft_strcmp(char *s1, char *s2)
 	return (*s1 - *s2);
 }
 
-int		main(int argc, char **argv)
+int	main(int argc, char **argv)
 {
 	int		i1;
 	int		i2;

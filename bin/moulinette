@@ -154,11 +154,45 @@ def parse_subject_disk_metadata(subject_file: Path) -> dict[str, str]:
     return info
 
 
+def _norm_visual_width(line: str) -> int:
+    """Width of a line as the Norm counts it: a tab goes to the next multiple of 4."""
+    width = 0
+    for ch in line:
+        width = (width // 4 + 1) * 4 if ch == "\t" else width + 1
+    return width
+
+
+def norm_function_stubs(prototype: str) -> str:
+    """Empty functions for a meta.yml prototype, written the way the norminette accepts them.
+
+    One tab before the function name, nothing inside the body, a line break after a parameter when
+    the line would pass 80 columns, and one function per prototype ('int match(...); int nmatch(...);').
+    """
+    stubs: list[str] = []
+    for one in (part.strip() for part in prototype.split(";")):
+        if not one:
+            continue
+        m = re.match(r"^(.+?)[ \t]+(\**[A-Za-z_]\w*\s*\(.*)$", one)
+        lines = [f"{m.group(1)}\t{m.group(2)}" if m else one]
+        while _norm_visual_width(lines[-1]) > 80:
+            line, depth, cut = lines[-1], 0, -1
+            for idx, ch in enumerate(line):
+                depth += (ch == "(") - (ch == ")")
+                if ch == "," and depth == 1 and _norm_visual_width(line[: idx + 1]) <= 80:
+                    cut = idx
+            if cut < 0:
+                break
+            lines[-1:] = [line[: cut + 1], "\t\t" + line[cut + 1:].lstrip()]
+        stubs.append("\n".join(lines) + "\n{\n}\n")
+    return "\n".join(stubs)
+
+
 def build_42_header(filename: str, login: str = DEFAULT_LOGIN) -> str:
     now_s = dt.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
     fn_pad = f"{filename[:41]:<41}"
     lg_pad = f"{login[:8]:<8}"
-    by_pad = f"By: {login} <{login}@student.1337.ma>"
+    by_login = login[:12]      # a longer login would push the line past 80 columns (Norm: INVALID_HEADER)
+    by_pad = f"By: {by_login} <{by_login}@student.1337.ma>"
     by_line = f"/*   {by_pad:<47}+#+  +:+       +#+        */"
     cr_line = f"/*   Created: {now_s} by {lg_pad}          #+#    #+#             */"
     up_line = f"/*   Updated: {now_s} by {lg_pad}         ###   ########.fr       */"
@@ -781,7 +815,11 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
 
     if (subj_dir / "subject.en.txt").exists():
         shutil.copy2(subj_dir / "subject.en.txt", out_dir / "subject.en.txt")
+    wanted_files = [str(f) for f in (meta.get("expected_files") or [])]
     for hf in subj_dir.glob("*.h"):
+        # A header that is the whole exercise (C 08 ft_abs.h, ft_point.h) is the student's to write.
+        if wanted_files == [hf.name]:
+            continue
         if not (out_dir / hf.name).exists():
             shutil.copy2(hf, out_dir / hf.name)
     for extra_f in ("resources.tar.gz", "a", "sw.diff"):
@@ -806,9 +844,9 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
             os.chmod(fpath, 0o755)
         elif fname.endswith(".h"):
             guard = re.sub(r"[^A-Za-z0-9]", "_", fname).upper()
-            fpath.write_text(build_42_header(fname) + f"#ifndef {guard}\n# define {guard}\n\n#endif\n", encoding="utf-8")
+            fpath.write_text(build_42_header(fname) + f"\n#ifndef {guard}\n# define {guard}\n\n#endif\n", encoding="utf-8")
         elif fname.endswith(".c"):
-            hdr = build_42_header(fname)
+            hdr = build_42_header(fname) + "\n"
             incs: list[str] = []
             if any(f in allowed for f in ("write", "read", "close")):
                 incs.append("#include <unistd.h>")
@@ -816,7 +854,7 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
                 incs.append("#include <stdlib.h>")
             inc_s = ("\n".join(incs) + "\n\n") if incs else ""
             if stype == "c_function" and proto and "main(" not in proto:
-                body = f"{proto.rstrip(';')}\n{{\n\t/* TODO: implement {clean_leaf} */\n}}\n"
+                body = norm_function_stubs(proto)
             else:
                 body = "int\tmain(int argc, char **argv)\n{\n\t(void)argc;\n\t(void)argv;\n\treturn (0);\n}\n"
             fpath.write_text(hdr + inc_s + body, encoding="utf-8")

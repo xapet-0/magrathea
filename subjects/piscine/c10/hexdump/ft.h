@@ -33,7 +33,7 @@ int		ft_strlen(char *str);
 int		ft_strcmp(char *s1, char *s2);
 int		ft_file_count(char *filepath);
 void	ft_file_get(char *filepath, int sizetot, int size);
-void	no_args();
+void	no_args(void);
 void	gest_args(int argc, char **argv);
 int		ft_atoi(char *str);
 

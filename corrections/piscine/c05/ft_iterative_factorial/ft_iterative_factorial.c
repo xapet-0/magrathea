@@ -10,10 +10,10 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-int		ft_iterative_factorial(int nb)
+int	ft_iterative_factorial(int nb)
 {
-	int i;
-	int res;
+	int	i;
+	int	res;
 
 	i = 0;
 	res = 1;

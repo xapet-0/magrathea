@@ -12,7 +12,7 @@
 
 #include "ft_list.h"
 
-int		ft_strlen(char *str)
+int	ft_strlen(char *str)
 {
 	int		i;
 

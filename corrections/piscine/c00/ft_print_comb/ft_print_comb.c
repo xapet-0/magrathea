@@ -31,9 +31,9 @@ void	ft_putchar_multiple(char c1, char c2, char c3)
 
 void	ft_print_comb(void)
 {
-	int i1;
-	int i2;
-	int i3;
+	int	i1;
+	int	i2;
+	int	i3;
 
 	i1 = 0;
 	while (i1 <= 7)

@@ -48,9 +48,9 @@ static int	base_idx(char c, char *b)
 
 int	ft_atoi_base(char *str, char *base)
 {
-	int	blen;
-	int	i;
-	int	sign;
+	int		blen;
+	int		i;
+	int		sign;
 	long	res;
 
 	blen = check_base(base);

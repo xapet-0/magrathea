@@ -16,12 +16,11 @@ void	ft_list_clear(t_list *begin_with, void (*free_fct)(void *))
 {
 	t_list	*ptr;
 
-	if (begin_with)
-		while (begin_with)
-		{
-			(*free_fct)(begin_with->data);
-			ptr = begin_with->next;
-			free(begin_with);
-			begin_with = ptr;
-		}
+	while (begin_with)
+	{
+		(*free_fct)(begin_with->data);
+		ptr = begin_with->next;
+		free(begin_with);
+		begin_with = ptr;
+	}
 }

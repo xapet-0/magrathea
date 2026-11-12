@@ -14,7 +14,7 @@
 
 void	ft_putchar(char c, int size)
 {
-	int i;
+	int	i;
 
 	i = 0;
 	while (i < size)

@@ -904,7 +904,18 @@ def _load_linter_module(script_path: Path, mod_name: str) -> Any:
     return mod
 
 
-def run_norminette_check(kit_root: Path, files: list[Path], *, is_shell: bool = False) -> tuple[bool, str]:
+NORMINETTE_RULES = ("CheckForbiddenSourceHeader", "CheckDefine")
+
+
+def norminette_rule_for(meta: dict) -> str:
+    """The -R rule the subject asks for (meta.yml 'norminette_rule'), e.g. CheckDefine for C 08 ft_abs.h."""
+    rule = str(meta.get("norminette_rule") or NORMINETTE_RULES[0])
+    return rule if rule in NORMINETTE_RULES else NORMINETTE_RULES[0]
+
+
+def run_norminette_check(
+    kit_root: Path, files: list[Path], *, is_shell: bool = False, rule: str = NORMINETTE_RULES[0]
+) -> tuple[bool, str]:
     if is_shell:
         shnorm = kit_root / "bin/shnorm"
         if not shnorm.exists():
@@ -938,9 +949,19 @@ def run_norminette_check(kit_root: Path, files: list[Path], *, is_shell: bool = 
         return True, "OK"
     if local_norm.exists():
         mod = _load_linter_module(local_norm, "_dt_norminette_mod")
+        # The official 42 norminette, shipped in third_party/norminette (see bin/norminette).
+        if mod is not None and hasattr(mod, "run_official"):
+            parents = {f.parent for f in c_files}
+            one_dir = parents.pop() if len(parents) == 1 else None
+            shown = [f.name if one_dir else str(f) for f in c_files]
+            official = mod.run_official([Path(n) for n in shown], cwd=one_dir, rule=rule)
+            if official is not None:
+                ok_official, out_official = official
+                return ok_official, f"$> norminette -R {rule} {' '.join(f.name for f in c_files)}\n{out_official}"
         if mod is not None and hasattr(mod, "check_file"):
-            flags = ["-R", "CheckForbiddenSourceHeader"]
-            out_lines = []
+            flags = ["-R", rule]
+            why_not = mod.official_command()[1] if hasattr(mod, "official_command") else "not available"
+            out_lines = [f"norminette: built-in checker, a part of the Norm only (official norminette not used: {why_not})"]
             any_err = False
             for sp in c_files:
                 errs = mod.check_file(sp, flags)
@@ -952,14 +973,14 @@ def run_norminette_check(kit_root: Path, files: list[Path], *, is_shell: bool = 
                 else:
                     out_lines.append(f"{sp.name}: OK!")
             out = "\n".join(out_lines)
-            return (not any_err), f"$> norminette -R CheckForbiddenSourceHeader {' '.join(f.name for f in c_files)}\n{out}"
+            return (not any_err), f"$> norminette -R {rule} {' '.join(f.name for f in c_files)}\n{out}"
     norm_bin = str(local_norm) if local_norm.exists() else shutil.which("norminette")
     if norm_bin:
         cmd = [sys.executable, norm_bin] if local_norm.exists() else [norm_bin]
-        proc = subprocess.run([*cmd, "-R", "CheckForbiddenSourceHeader", *[str(f) for f in c_files]], capture_output=True, text=True, errors="replace")
+        proc = subprocess.run([*cmd, "-R", rule, *[str(f) for f in c_files]], capture_output=True, text=True, errors="replace")
         out = (proc.stdout + proc.stderr).strip()
         ok = proc.returncode == 0 and "Error!" not in out
-        return ok, f"$> norminette -R CheckForbiddenSourceHeader {' '.join(f.name for f in c_files)}\n{out}"
+        return ok, f"$> norminette -R {rule} {' '.join(f.name for f in c_files)}\n{out}"
     return True, "$> norminette (not installed in environment — check skipped)"
 
 
@@ -1512,7 +1533,7 @@ def _grade_subject_inner(
             trace.append(">>>>>>>>>> FAILURE: Cheat detected (forbidden header include) <<<<<<<<<<")
             return GradeReport(subject_id, False, "Cheating (-42)", bad_inc[0], "\n".join(trace), "", oracle_info)
         if (not is_exam and meta.get("norminette", True)) or enforce_norm:
-            ok_n, n_log = run_norminette_check(kit_root, hdr_files)
+            ok_n, n_log = run_norminette_check(kit_root, hdr_files, rule=norminette_rule_for(meta))
             trace.append(n_log)
             if not ok_n:
                 return GradeReport(subject_id, False, "Norme error", "Norme error", "\n".join(trace), "", oracle_info)
@@ -1628,7 +1649,7 @@ def _grade_subject_inner(
         return GradeReport(subject_id, False, "Cheating (-42)", bad_inc[0], "\n".join(trace), "", oracle_info)
 
     if (not is_exam and meta.get("norminette", True)) or enforce_norm:
-        ok_n, n_log = run_norminette_check(kit_root, norm_files)
+        ok_n, n_log = run_norminette_check(kit_root, norm_files, rule=norminette_rule_for(meta))
         trace.append(n_log)
         if not ok_n:
             trace.append("\nNorme error\nGrade: 0")
