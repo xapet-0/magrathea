@@ -278,7 +278,10 @@ def _build_sandbox_preexec(cwd: Path) -> Callable[[], None]:
     3. Mounts an unreadable mode-000 tmpfs over KIT_ROOT/corrections, KIT_ROOT/subjects, and KIT_ROOT/pools
        so student binaries cannot read reference solutions or test oracles via direct paths, relative paths,
        symlinks, or /proc/self/root traversal.
-    4. Applies POSIX resource limits (RLIMIT_CORE=0, RLIMIT_FSIZE=16MB, RLIMIT_AS=512MB, RLIMIT_NOFILE=64).
+    4. Applies POSIX resource limits (RLIMIT_CORE=0, RLIMIT_FSIZE=16MB, RLIMIT_AS=512MB,
+       RLIMIT_NOFILE=1024, RLIMIT_NPROC=256, RLIMIT_CPU=30s). RLIMIT_NPROC bounds a fork
+       bomb; a child that calls setsid() still escapes the process-group kill, but it
+       cannot create more than 256 processes for this UID.
     """
     kit_root = Path(__file__).resolve().parent.parent
     protected_dirs = [
@@ -348,6 +351,17 @@ def _build_sandbox_preexec(cwd: Path) -> Callable[[], None]:
             resource.setrlimit(resource.RLIMIT_FSIZE, (16 * 1024 * 1024, 16 * 1024 * 1024))
             resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
             resource.setrlimit(resource.RLIMIT_NOFILE, (1024, 1024))
+            # Bound fork bombs and runaway CPU even when the child calls setsid().
+            if hasattr(resource, "RLIMIT_NPROC"):
+                try:
+                    resource.setrlimit(resource.RLIMIT_NPROC, (256, 256))
+                except (ValueError, OSError):
+                    pass
+            if hasattr(resource, "RLIMIT_CPU"):
+                try:
+                    resource.setrlimit(resource.RLIMIT_CPU, (30, 30))
+                except (ValueError, OSError):
+                    pass
         except Exception:
             pass
 
