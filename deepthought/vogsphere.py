@@ -151,41 +151,6 @@ def ensure_home_workspace_symlinks(kit_root: Path) -> None:
             pass
 
 
-def provision_module_or_exercise_folders(kit_root: Path, mod_or_rel: Optional[str] = None) -> None:
-    """Pre-create workspace directories and copy subject.en.txt (plus helper .h files) into each
-    exercise folder so a student can `cd` into any exercise folder from the terminal and read
-    `subject.en.txt` BEFORE running `init`.
-    """
-    ensure_home_workspace_symlinks(kit_root)
-    subj_root = kit_root / "subjects"
-    ws_root = kit_root / "workspace"
-    targets: list[Path] = []
-    if mod_or_rel:
-        clean = mod_or_rel.strip("/")
-        cand = subj_root / clean
-        if cand.is_dir():
-            if (cand / "subject.en.txt").is_file():
-                targets.append(cand)
-            else:
-                targets.extend(p.parent for p in cand.rglob("subject.en.txt"))
-    else:
-        targets.extend(p.parent for p in (subj_root / "piscine").rglob("subject.en.txt"))
-
-    for sdir in targets:
-        rel = sdir.relative_to(subj_root)
-        wdir = ws_root / rel
-        wdir.mkdir(parents=True, exist_ok=True)
-        for doc_name in ("subject.en.txt", "examples.txt"):
-            src_doc = sdir / doc_name
-            dst_doc = wdir / doc_name
-            if src_doc.is_file() and not dst_doc.exists():
-                shutil.copy2(src_doc, dst_doc)
-        for h_file in sdir.glob("*.h"):
-            dst_h = wdir / h_file.name
-            if not dst_h.exists():
-                shutil.copy2(h_file, dst_h)
-
-
 def init_exercise_vogsphere_repo(
     kit_root: Path,
     rel_subj: str,

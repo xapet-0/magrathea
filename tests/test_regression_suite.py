@@ -25,6 +25,7 @@ Covers every verification entry referenced in the Technical Remediations & Root-
 from __future__ import annotations
 
 import inspect
+import json
 import os
 import signal
 import subprocess
@@ -33,6 +34,7 @@ import tempfile
 import typing
 import unittest
 from pathlib import Path
+from unittest import mock
 
 KIT_ROOT = Path(__file__).resolve().parents[1]
 if str(KIT_ROOT) not in sys.path:
@@ -519,6 +521,125 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         self.assertEqual(p.xp, 420)
         self.assertEqual(p.total_xp, 420)
         self.assertGreater(p.level, 0.0)
+
+    def test_21(self) -> None:
+        """compiler_and_symbols assigns unique .o paths when multi-subdir files share a stem."""
+        _, exec_dir = prepare_isolated_build_dir(KIT_ROOT, "REG-21")
+        sub_a = exec_dir / "sub_a"
+        sub_b = exec_dir / "sub_b"
+        sub_a.mkdir(parents=True)
+        sub_b.mkdir(parents=True)
+        file_a = sub_a / "helper.c"
+        file_b = sub_b / "helper.c"
+        file_a.write_text("#include <stdio.h>\nvoid\tfn_a(void)\n{\n\tprintf(\"x\");\n}\n", encoding="utf-8")
+        file_b.write_text("void\tfn_b(void)\n{\n}\n", encoding="utf-8")
+        compile_res, sym_res = cas.verify_symbol_whitelist(
+            [file_a, file_b],
+            allowed_functions=["write"],
+            work_dir=exec_dir,
+            strict_dual_compiler=False,
+        )
+        self.assertTrue(compile_res.ok, compile_res.stderr)
+        self.assertFalse(sym_res.ok)
+        self.assertTrue(
+            any("printf" in s or "puts" in s for s in sym_res.forbidden_called),
+            f"Expected forbidden symbol from sub_a/helper.c, got: {sym_res}",
+        )
+
+    def test_22(self) -> None:
+        """bin/deepthought records validated_exercises in StudentProfile to prevent XP re-farming."""
+        turnin = self.work / "strlen_turnin"
+        shutil.copytree(KIT_ROOT / "corrections" / "piscine" / "c04" / "ft_strlen", turnin)
+        ws_ledger = KIT_ROOT / "workspace" / "xp_ledger.json"
+        ws_lock = KIT_ROOT / "workspace" / ".xp_ledger.json.lock"
+        trace_out = self.work / "dt_strlen.trace"
+        old_ledger = ws_ledger.read_bytes() if ws_ledger.exists() else None
+
+        def _restore() -> None:
+            if old_ledger is not None:
+                ws_ledger.write_bytes(old_ledger)
+            else:
+                ws_ledger.unlink(missing_ok=True)
+            ws_lock.unlink(missing_ok=True)
+
+        self.addCleanup(_restore)
+        ws_ledger.unlink(missing_ok=True)
+
+        r1 = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/deepthought"), "grade", "c04/ft_strlen", "--dir", str(turnin), "--trace-out", str(trace_out)],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+            timeout_sec=45.0,
+        )
+        self.assertEqual(r1.returncode, 0, r1.stdout + r1.stderr)
+        prof_file = self.home / ".42_student_profile.json"
+        self.assertTrue(prof_file.is_file())
+        p1 = json.loads(prof_file.read_text(encoding="utf-8"))
+        self.assertGreater(p1["total_xp"], 0)
+        self.assertIn("piscine/c04/ft_strlen", p1.get("validated_exercises", []))
+
+        ws_ledger.unlink(missing_ok=True)
+        r2 = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/deepthought"), "grade", "c04/ft_strlen", "--dir", str(turnin), "--trace-out", str(trace_out)],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+            timeout_sec=45.0,
+        )
+        self.assertEqual(r2.returncode, 0, r2.stdout + r2.stderr)
+        p2 = json.loads(prof_file.read_text(encoding="utf-8"))
+        self.assertEqual(p2["total_xp"], p1["total_xp"])
+
+    def test_23(self) -> None:
+        """bin/examshell blocks system/$HOME subdirs, guards non-empty basedir, and resumes -c status once."""
+        docs_dir = self.home / "Documents"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        for bad_dir in (Path("/usr/local"), docs_dir):
+            bad_res = run_captured_process(
+                [sys.executable, str(KIT_ROOT / "bin/examshell"), "--basedir", str(bad_dir), "--mode", "practice", "-c", "status"],
+                cwd=KIT_ROOT,
+                isolated_home=self.home,
+            )
+            self.assertNotEqual(bad_res.returncode, 0, f"Should refuse {bad_dir}")
+
+        eb = Path(tempfile.mkdtemp(prefix="mag_exam_"))
+        self.addCleanup(shutil.rmtree, eb, ignore_errors=True)
+        keep_file = eb / "important.txt"
+        keep_file.write_text("keep", encoding="utf-8")
+        no_wipe = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/examshell"), "--basedir", str(eb), "--mode", "practice", "-c", "status"],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+        )
+        self.assertNotEqual(no_wipe.returncode, 0)
+        self.assertTrue(keep_file.exists())
+
+        fresh_eb = Path(tempfile.mkdtemp(prefix="mag_exam_fresh_"))
+        self.addCleanup(shutil.rmtree, fresh_eb, ignore_errors=True)
+        init_res = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/examshell"), "--basedir", str(fresh_eb), "--mode", "practice", "--seed", "1", "-c", "status"],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+        )
+        self.assertEqual(init_res.returncode, 0, init_res.stdout + init_res.stderr)
+        self.assertEqual(init_res.stdout.count("Your current grade is "), 1, init_res.stdout)
+
+        marker = fresh_eb / "rendu" / "keep.txt"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text("my-work", encoding="utf-8")
+        resumed = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/examshell"), "--basedir", str(fresh_eb), "-c", "status"],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+        )
+        self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
+        self.assertTrue(marker.exists(), "examshell -c status must resume rather than wipe basedir")
+        self.assertEqual(resumed.stdout.count("Your current grade is "), 1, resumed.stdout)
+
+    def test_24(self) -> None:
+        """_get_strict_sandbox_flags omits GNU --wrap linker flags on macOS (darwin)."""
+        _, exec_dir = prepare_isolated_build_dir(KIT_ROOT, "REG-24")
+        with mock.patch.object(sys, "platform", "darwin"):
+            self.assertEqual(_get_strict_sandbox_flags(KIT_ROOT, exec_dir), [])
 
 
 if __name__ == "__main__":

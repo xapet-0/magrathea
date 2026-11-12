@@ -9,9 +9,8 @@ __pycache__/
 a.out
 core.[0-9]*
 
-# Ignore shared libraries except bundled libmemsentinel.so
+# Ignore compiled shared libraries
 *.so
-!bin/libmemsentinel.so
 
 # Editor and OS Artifacts
 *~
@@ -28,6 +27,7 @@ workspace/subject/*
 !workspace/subject/.gitkeep
 workspace/traces/
 workspace/*.json
+workspace/.xp_ledger.json*
 workspace/.*.lock
 workspace/vogsphere.git/
 

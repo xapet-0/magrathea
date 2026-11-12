@@ -51,8 +51,7 @@ shnorm:
 clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type f \( -name "*.pyc" -o -name "*.pyo" -o -name "*.o" -o -name "*.log" -o -name "*.trace" -o -name "*~" -o -name "*.swp" \) -delete 2>/dev/null || true
-	@rm -rf workspace/* workspace/.* 2>/dev/null || true
-	@rm -rf vogsphere/* vogsphere/.* 2>/dev/null || true
+	@rm -rf workspace/rendu/* workspace/subject/* workspace/traces/* vogsphere/* 2>/dev/null || true
 	@mkdir -p workspace/rendu workspace/subject vogsphere schemas 2>/dev/null || true
 	@touch workspace/rendu/.gitkeep workspace/subject/.gitkeep vogsphere/.gitkeep schemas/.gitkeep 2>/dev/null || true
 	@printf "\033[1;32m[OK] Cleaned Python bytecode caches, swap files, and trace artifacts.\033[0m\n"

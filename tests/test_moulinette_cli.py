@@ -16,10 +16,14 @@ Run with: python3 tests/test_moulinette_cli.py
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.machinery
 import importlib.util
+import io
 import json
 import os
+import pty
+import select
 import shutil
 import subprocess
 import sys
@@ -27,6 +31,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 KIT_ROOT = Path(__file__).resolve().parents[1]
 MOULINETTE = KIT_ROOT / "bin" / "moulinette"
@@ -249,6 +254,160 @@ class MoulinetteCliTest(unittest.TestCase):
                 self.assertEqual(moul.find_module_repo("c00"), workspace_c00, tree)
         finally:
             os.chdir(before)
+
+    # ------------------------------------------------------------------ UX, dual layout, XP, REPL
+    def test_guide_doctor_and_suggestions(self) -> None:
+        doc = self.run_cli("doctor")
+        self.assertEqual(doc.returncode, 0, doc.stdout + doc.stderr)
+        self.assertIn("Setup check (doctor)", doc.stdout)
+        self.assertIn("42 norminette", doc.stdout)
+        self.assertIn("Exercise subjects are present", doc.stdout)
+
+        guide = self.run_cli("guide", "ft_putchar")
+        self.assertEqual(guide.returncode, 0, guide.stdout + guide.stderr)
+        self.assertIn("How to work with moulinette", guide.stdout)
+        self.assertIn("subject.en.txt", guide.stdout)
+        self.assertIn("ft_putchar", guide.stdout)
+
+        typo = self.run_cli("ft_putchra")
+        self.assertEqual(typo.returncode, 1)
+        self.assertIn("Did you mean:", typo.stdout)
+        self.assertIn("ft_putchar", typo.stdout)
+
+    def test_dual_workspace_directories_and_symlinks(self) -> None:
+        moul.ensure_workspace_directories()
+        ws_c00_ex00 = KIT_ROOT / "workspace" / "piscine" / "c00" / "ex00"
+        ws_c00_real = KIT_ROOT / "workspace" / "piscine" / "c00" / "ft_putchar"
+        self.assertTrue(ws_c00_ex00.is_symlink())
+        self.assertEqual(os.readlink(ws_c00_ex00), "ft_putchar")
+        self.assertTrue(ws_c00_real.is_dir())
+        # Directory stays clean: no unwanted boilerplate .c or subject.en.txt injected automatically
+        self.assertFalse((ws_c00_real / "ft_putchar.c").exists())
+        self.assertFalse((ws_c00_real / "subject.en.txt").exists())
+
+    def test_xp_not_doubled_when_ledger_is_deleted(self) -> None:
+        turnin = self.reference_copy("piscine/c04/ft_strlen")
+        ws_ledger = KIT_ROOT / "workspace" / "xp_ledger.json"
+        ws_lock = KIT_ROOT / "workspace" / ".xp_ledger.json.lock"
+        old_ledger = ws_ledger.read_bytes() if ws_ledger.exists() else None
+
+        def _restore_ws() -> None:
+            if old_ledger is not None:
+                ws_ledger.write_bytes(old_ledger)
+            else:
+                ws_ledger.unlink(missing_ok=True)
+            ws_lock.unlink(missing_ok=True)
+
+        self.addCleanup(_restore_ws)
+        ws_ledger.unlink(missing_ok=True)
+
+        first = self.run_cli("c04/ft_strlen", "--dir", str(turnin))
+        self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+        prof_path = self.home / ".42_student_profile.json"
+        self.assertTrue(prof_path.is_file())
+        prof_after_first = json.loads(prof_path.read_text(encoding="utf-8"))
+        xp_first = prof_after_first["total_xp"]
+        self.assertGreater(xp_first, 0)
+        self.assertIn("piscine/c04/ft_strlen", prof_after_first.get("validated_exercises", []))
+
+        ws_ledger.unlink(missing_ok=True)
+        second = self.run_cli("c04/ft_strlen", "--dir", str(turnin))
+        self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
+        prof_after_second = json.loads(prof_path.read_text(encoding="utf-8"))
+        self.assertEqual(prof_after_second["total_xp"], xp_first)
+
+    def test_interactive_repl_guide_doctor_eval_and_errors(self) -> None:
+        ex_dir = self.hand_made("c00", "ex01", "ft_print_alphabet")
+        ledger = self.tmp / "repl_ledger.json"
+        args = SimpleNamespace(
+            dir=None,
+            exam=False,
+            norm=False,
+            strict=False,
+            watch=False,
+            trace_out=None,
+            xp_ledger=str(ledger),
+        )
+        theme = moul.ThemeEngine("plain")
+        buf = io.StringIO()
+        cmds = iter(
+            [
+                "guide ft_putchar",
+                "doctor",
+                "ft_putchra",
+                "grade",
+                "c00/ft_putchar --self-test",
+                "ft_print_alphabet",
+                "q",
+            ]
+        )
+        prev_cwd = Path.cwd()
+        os.chdir(ex_dir.parent.parent)
+        try:
+            with (
+                mock.patch.dict(os.environ, {"HOME": str(self.home), "NO_COLOR": "1", "DT_SKIP_HOME_SYMLINKS": "1"}),
+                mock.patch("builtins.input", side_effect=lambda _prompt="": next(cmds)),
+                mock.patch.object(moul, "interactive_terminal_screen", lambda enabled=True: contextlib.nullcontext()),
+                contextlib.redirect_stdout(buf),
+            ):
+                rc = moul.interactive_moulinette_repl(args, theme, is_practice=False)
+        finally:
+            os.chdir(prev_cwd)
+
+        out = buf.getvalue()
+        self.assertEqual(rc, 0)
+        self.assertIn("How to work with moulinette", out)
+        self.assertIn("Setup check (doctor)", out)
+        self.assertIn("Did you mean: ft_putchar", out)
+        self.assertIn("Usage: grade <exercise|module>", out)
+        self.assertEqual(out.count("Summary: ft_putchar -> OK :)"), 1, out)
+        self.assertEqual(out.count("Summary: ft_print_alphabet -> OK :)"), 1, out)
+
+        # Real PTY smoke test verifying sys.stdin.isatty() enters REPL and exits cleanly
+        master_fd, slave_fd = pty.openpty()
+        proc = None
+        try:
+            env = dict(os.environ, HOME=str(self.home), NO_COLOR="1", TERM="dumb", DT_SKIP_HOME_SYMLINKS="1")
+            proc = subprocess.Popen(
+                [sys.executable, str(MOULINETTE), "--no-color"],
+                stdin=slave_fd,
+                stdout=slave_fd,
+                stderr=slave_fd,
+                cwd=str(KIT_ROOT),
+                env=env,
+                close_fds=True,
+            )
+            os.close(slave_fd)
+            slave_fd = -1
+            os.write(master_fd, b"guide\ndoctor\nq\n")
+            chunks: list[bytes] = []
+            deadline = 15.0
+            import time as _time
+            end = _time.monotonic() + deadline
+            while _time.monotonic() < end:
+                rlist, _, _ = select.select([master_fd], [], [], 0.25)
+                if rlist:
+                    try:
+                        data = os.read(master_fd, 4096)
+                    except OSError:
+                        break
+                    if not data:
+                        break
+                    chunks.append(data)
+                elif proc.poll() is not None:
+                    break
+            proc.wait(timeout=5)
+            pty_out = b"".join(chunks).decode("utf-8", errors="replace")
+            self.assertEqual(proc.returncode, 0, pty_out)
+            self.assertIn("How to work with moulinette", pty_out)
+            self.assertIn("Setup check (doctor)", pty_out)
+        finally:
+            if slave_fd >= 0:
+                os.close(slave_fd)
+            os.close(master_fd)
+            if proc is not None and proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=5)
 
 
 if __name__ == "__main__":
