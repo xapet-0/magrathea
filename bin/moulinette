@@ -221,6 +221,30 @@ def get_piscine_modules() -> set[str]:
     return {p.stem for p in piscine_dir.glob("*.yml")}
 
 
+def ensure_workspace_directories() -> None:
+    """Create empty workspace directories + exNN symlinks for all piscine exercises (no files copied)."""
+    piscine_dir = KIT_ROOT / "pools" / "piscine"
+    if not piscine_dir.is_dir():
+        return
+    ws_piscine = KIT_ROOT / "workspace" / "piscine"
+    for pool_file in sorted(piscine_dir.glob("*.yml")):
+        mod = pool_file.stem
+        mod_dir = ws_piscine / mod
+        try:
+            mod_dir.mkdir(parents=True, exist_ok=True)
+            data = fast_load_yaml(pool_file)
+            for idx, ex in enumerate(data.get("exercises") or []):
+                raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
+                ex_id = Path(raw_id).name
+                ex_code = ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}"
+                (mod_dir / ex_id).mkdir(parents=True, exist_ok=True)
+                ex_link = mod_dir / ex_code
+                if not ex_link.exists():
+                    ex_link.symlink_to(ex_id)
+        except OSError:
+            pass
+
+
 class ExerciseLookupError(Exception):
     """An exercise name that cannot be honoured as typed. str(exc) is the message shown to the student."""
 
@@ -768,14 +792,15 @@ def print_catalog_list(target: str | None, theme: ThemeEngine, max_rows: int | N
     return 0
 
 
-def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: ThemeEngine, prefer_exam: bool = False) -> int:
+def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: ThemeEngine, prefer_exam: bool = False, verbose: bool = True) -> int:
     pool_file = KIT_ROOT / "pools" / "piscine" / f"{target.strip().lower()}.yml"
     if pool_file.exists():
         mod = target.strip().lower()
         data = fast_load_yaml(pool_file)
         base_out = Path(dest_override).expanduser().resolve() if dest_override else find_module_repo(mod)
         base_out.mkdir(parents=True, exist_ok=True)
-        for idx, ex in enumerate(data.get("exercises") or []):
+        exs = data.get("exercises") or []
+        for idx, ex in enumerate(exs):
             raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
             ex_id = Path(raw_id).name
             ex_code = ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}"
@@ -784,15 +809,15 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
             # A fresh exercise gets <module>/<exNN>/ (the 42 layout). An older folder named after the
             # exercise is kept and reached through an exNN link.
             ex_out = named_dir if (named_dir.is_dir() and not slot_dir.exists()) else slot_dir
-            scaffold_exercise_workspace(f"{mod}/{ex_id}", str(ex_out), theme, prefer_exam=prefer_exam)
+            scaffold_exercise_workspace(f"{mod}/{ex_id}", str(ex_out), theme, prefer_exam=prefer_exam, verbose=False)
             ex_code_link = base_out / ex_code
             if not ex_code_link.exists():
                 try:
                     ex_code_link.symlink_to(ex_id)
                 except OSError:
                     pass
-        print(theme.c(f"\n[OK] Entire module '{mod}' scaffolded in {base_out}", "ok", "bold"))
-        print(theme.c(f"Grade entire module with: ./moulinette {mod} --dir {base_out}", "primary", "bold"))
+        print(theme.c(f"[OK] Module '{mod}' scaffolded: {len(exs)} exercises ready in {tilde_path(base_out)}", "ok", "bold"))
+        print(theme.c(f"     Grade entire module with: ./bin/moulinette {mod} --dir {tilde_path(base_out)}", "muted"))
         return 0
 
     found = resolve_exercise_or_report(target, theme, prefer_exam=prefer_exam)
@@ -813,8 +838,6 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
         out_dir = KIT_ROOT / "workspace" / resolved
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    if (subj_dir / "subject.en.txt").exists():
-        shutil.copy2(subj_dir / "subject.en.txt", out_dir / "subject.en.txt")
     wanted_files = [str(f) for f in (meta.get("expected_files") or [])]
     for hf in subj_dir.glob("*.h"):
         # A header that is the whole exercise (C 08 ft_abs.h, ft_point.h) is the student's to write.
@@ -862,16 +885,17 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
     t_out = tilde_path(out_dir)
     t_subj = tilde_path(subj_dir / "subject.en.txt")
     primary_f = exp_files[0] if exp_files else f"{clean_leaf}.c"
-    print(theme.c("=" * 80, "border"))
-    print(theme.c(f"  SCAFFOLDED WORKSPACE READY: {resolved}", "ok", "bold"))
-    print(theme.c("-" * 80, "border"))
-    print(f"  Turn-In Folder  : {theme.c(t_out + '/', 'accent', 'bold')}{theme.c(home_note(t_out), 'muted')}")
-    print(f"  Subject File    : {theme.c(t_subj, 'secondary')}")
-    print(f"  Expected Files  : {', '.join(exp_files)}")
-    print(f"  Allowed Funcs   : {', '.join(allowed) if allowed else 'None'}")
-    print(f"  1) Edit Code    : {theme.c(f'vim {t_out}/{primary_f}', 'accent')}")
-    print(f"  2) Grade Now    : type {theme.c(clean_leaf, 'primary', 'bold')} here in moulinette (no git push needed)")
-    print(theme.c("=" * 80, "border"))
+    if verbose:
+        print(theme.c("=" * 80, "border"))
+        print(theme.c(f"  SCAFFOLDED WORKSPACE READY: {resolved}", "ok", "bold"))
+        print(theme.c("-" * 80, "border"))
+        print(f"  Turn-In Folder  : {theme.c(t_out + '/', 'accent', 'bold')}{theme.c(home_note(t_out), 'muted')}")
+        print(f"  Subject File    : {theme.c(t_subj, 'secondary')}")
+        print(f"  Expected Files  : {', '.join(exp_files)}")
+        print(f"  Allowed Funcs   : {', '.join(allowed) if allowed else 'None'}")
+        print(f"  1) Edit Code    : {theme.c(f'vim {t_out}/{primary_f}', 'accent')}")
+        print(f"  2) Grade Now    : type {theme.c(clean_leaf, 'primary', 'bold')} here in moulinette (no git push needed)")
+        print(theme.c("=" * 80, "border"))
     return 0
 
 
@@ -1241,6 +1265,7 @@ def resolve_exercise_in_nav_context(target: str, nav_stack: list[str]) -> str:
 
 def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is_practice: bool) -> int:
     piscine_mods = get_piscine_modules()
+    ensure_workspace_directories()
     setup_readline_completer(piscine_mods)
 
     nav_stack: list[str] = []
@@ -1710,6 +1735,7 @@ def main() -> int:
     use_plain = args.no_color or bool(os.environ.get("NO_COLOR")) or (not sys.stdout.isatty() and os.environ.get("FORCE_COLOR") != "1")
     theme = ThemeEngine("plain" if use_plain else args.theme)
     is_practice = bool(args.practice or args.mode == "practice")
+    ensure_workspace_directories()
 
     t_raw = (args.target or "").strip()
     extra_tokens = [tok.strip() for tok in getattr(args, "extra", []) if tok.strip()]
