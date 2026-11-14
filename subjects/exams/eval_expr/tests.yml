@@ -1,4 +1,5 @@
 mode: c_function
+check_leaks: true
 fixed_tests:
 - name: pool_eval_expr_T01
   call: printf("%d\n", eval_expr("3 + 42 * (1 - 2 / (3 + 4) - 1 % 21) + 1"))
@@ -55,6 +56,12 @@ fixed_tests:
   stdout: '11
 
     '
-subject_examples: []
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval eval_expr
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
 folder_examples: []
 near_examples: []

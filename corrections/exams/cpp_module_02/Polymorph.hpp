@@ -1,5 +1,5 @@
-#ifndef FWOOSH_HPP
-# define FWOOSH_HPP
+#ifndef POLYMORPH_HPP
+# define POLYMORPH_HPP
 
 # include "ASpell.hpp"
 

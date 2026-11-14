@@ -4,23 +4,26 @@ stop_on_first_failure: true
 zero_tolerance_gates:
 - segfault
 - memory_leak
-- norme_error
 - forbidden_function
 sections:
 - id: preliminaries
-  title: 'Step 1: Preliminaries & Vogsphere Integrity Check'
+  title: 'Step 1: Preliminaries & Rendu Build Check'
   points: 20
   checks:
-  - Clone official Vogsphere repository into an empty folder.
-  - Verify no malicious shell aliases or unauthorized files exist.
-  - Run norminette / shnorm and verify clean compilation with -Wall -Wextra -Werror.
+  - Verify expected files (ft_sum_digits.c) exist in `rendu/` with no unauthorized
+    artifacts.
+  - Compile cleanly with `cc -Wall -Wextra -Werror` (Norminette disabled in exam mode).
+  - 'Verify exact function prototype `void ft_sum_digits(int nbr);` and allowed functions:
+    write.'
 - id: explain_before_checking
   title: 'Step 2: Conceptual Defense (Explain Before Checking)'
   points: 30
   checks:
-  - Student explains data structures and control flow before executing tests.
+  - Student explains pointer handling, memory safety, and control flow before running
+    tests.
 - id: live_mutation
   title: 'Step 3: Live Mutation & Edge-Case Verification'
   points: 50
   checks:
-  - Inject a live boundary modification on the spot and verify deterministic behavior.
+  - Call the function from a live test driver with NULL, empty, zero, and boundary
+    values and verify deterministic return/output.

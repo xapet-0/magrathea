@@ -56,6 +56,24 @@ fixed_tests:
   stdout: '700
 
     '
-subject_examples: []
+- name: edge_int_min_side
+  call: printf("%d\n", rectangle_perimeter((-2147483647 - 1), 5))
+  stdout: '0
+
+    '
+  tier: edge
+- name: edge_near_int_max_sum
+  call: printf("%d\n", rectangle_perimeter(536870911, 536870912))
+  stdout: '2147483646
+
+    '
+  tier: edge
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval rectangle_perimeter
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
 folder_examples: []
 near_examples: []

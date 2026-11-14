@@ -92,19 +92,6 @@ subject_examples:
 folder_examples:
 - id: pool_mac-sh_T01
   origin: subject_folder/tests.yml (fixed_tests)
-  input: '`sh mac.sh.sh` (standard shell environment)'
+  input: '`sh MAC.sh` (standard shell environment)'
   expected: 02:42:ac:11:00:02\n
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: ./MAC.sh | cat -e
-  perturbed_input:
-  - mac.sh_near_arg_1
-  - mac.sh_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: pool_mac-sh_T01
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: '`sh mac.sh.sh` (standard shell environment)'
-  perturbed_input: '`th mac.sh.sh` (standard shell environme'
+near_examples: []

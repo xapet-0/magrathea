@@ -92,21 +92,4 @@ folder_examples:
   expected: "STRSPN(3)                BSD Library Functions Manual               \
     \ STRSPN(3)\n\nNAME\n     strspn, strcspn -- span a string\n\nLIBRARY\n     Standard\
     \ C Library (lib"
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_strspn
-  perturbed_input:
-  - ft_strspn_near_arg_1
-  - ft_strspn_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: can_ft_strspn_T06
-  strategy: Neighbouring perturbation of folder example (subject_folder/ft_strspn_MAIN.c)
-  original_input: Compiled and run with ft_strspn_MAIN.c
-  perturbed_input: Dompiled and run with ft_strspn_MAIN.c
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/ft_strspn_MAIN.c)
-  original_input: ft_strspn_MAIN.c
-  perturbed_input: gt_strspn_MAIN.c
+near_examples: []

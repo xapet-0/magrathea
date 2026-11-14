@@ -72,60 +72,92 @@ fixed_tests:
 
     '
   tier: subject_example
-- name: test_06_arg_auto
+- name: test_06_execve_fail
   args:
-  - '1'
-  - '2'
-  - '3'
-  - '4'
-  tier: baseline
-  stderr: 'error: cannot execute 1
+  - /nonexistent_42_cmd
+  - arg1
+  tier: edge
+  stdout: ''
+  stderr: 'error: cannot execute /nonexistent_42_cmd
 
     '
   expected_returncode: 1
-- name: test_07_arg_auto
+- name: test_07_cd_bad_args_none
   args:
-  - '0'
-  - '0'
-  - '0'
-  - '0'
-  tier: baseline
-  stderr: 'error: cannot execute 0
+  - cd
+  tier: edge
+  stdout: ''
+  stderr: 'error: cd: bad arguments
 
     '
   expected_returncode: 1
-- name: test_08_arg_auto
+- name: test_08_cd_bad_args_many
   args:
-  - '-1'
-  - '5'
-  - '10'
-  - '20'
-  tier: baseline
-  stderr: 'error: cannot execute -1
+  - cd
+  - /tmp
+  - /var
+  tier: edge
+  stdout: ''
+  stderr: 'error: cd: bad arguments
 
     '
   expected_returncode: 1
-- name: test_09_arg_auto
+- name: test_09_cd_nonexistent
   args:
-  - '42'
-  - '1337'
-  - '100'
-  - '200'
-  tier: baseline
-  stderr: 'error: cannot execute 42
+  - cd
+  - /nonexistent_42_dir
+  tier: edge
+  stdout: ''
+  stderr: 'error: cd: cannot change directory to /nonexistent_42_dir
 
     '
   expected_returncode: 1
-- name: test_10_arg_auto
+- name: test_10_cd_and_pwd
   args:
-  - '1'
-  - '2'
-  - '3'
+  - cd
+  - /
+  - ;
+  - /bin/pwd
   tier: baseline
-  stderr: 'error: cannot execute 1
+  stdout: '/
 
     '
-  expected_returncode: 1
+  stderr: ''
+  expected_returncode: 0
+- name: test_11_multi_stage_pipe_and_semicolon
+  args:
+  - /bin/echo
+  - alpha_beta
+  - '|'
+  - /usr/bin/tr
+  - a-z
+  - A-Z
+  - '|'
+  - /usr/bin/tr
+  - _
+  - '-'
+  - ;
+  - /bin/echo
+  - done
+  tier: baseline
+  stdout: 'ALPHA-BETA
+
+    done
+
+    '
+  stderr: ''
+  expected_returncode: 0
+- name: test_12_fifty_pipes_low_nofile
+  python_harness: "import resource, subprocess, sys\n\nexe = sys.argv[1]\ncmd = [exe,\
+    \ '/bin/echo', 'pipe_ok']\nfor _ in range(50):\n    cmd.extend(['|', '/bin/cat'])\n\
+    \ndef limit_fds():\n    resource.setrlimit(resource.RLIMIT_NOFILE, (25, 25))\n\
+    \nproc = subprocess.run(cmd, capture_output=True, text=True, preexec_fn=limit_fds,\
+    \ timeout=3.0)\nassert proc.returncode == 0, f'rc={proc.returncode} stderr={proc.stderr!r}'\n\
+    assert proc.stderr == '', f'stderr={proc.stderr!r}'\nassert proc.stdout == 'pipe_ok\\\
+    n', f'stdout={proc.stdout!r}'\nprint('OK')\n"
+  expected: 'OK
+
+    '
 folder_examples:
 - expected: hello\n42\n
   id: cur_microshell_T01
@@ -141,37 +173,29 @@ folder_examples:
   origin: subject_folder/tests.yml (fixed_tests)
 mode: c_program
 near_examples:
-- derived_from: subj_ex_01
-  id: near_subj_01_lexical_shift
-  original_input: &id001
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
   - /bin/ls
   - '"'
   perturbed_input:
   - /cin/ls
   - '"!'
-  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
-    strcmp(argv[1])
-- derived_from: subj_ex_01
-  id: near_subj_01_whitespace_envelope
-  original_input: *id001
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - /bin/ls
+  - '"'
   perturbed_input:
   - '  /bin/ls  '
   - '"'
-  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-- derived_from: cur_microshell_T01
-  id: near_folder_01_boundary_neighbor
-  original_input: '[''/bin/echo'', ''hello'', '';'', ''/bin/echo'', ''42'']'
-  perturbed_input: '[''/cin/echo'', ''hello'', '';'', ''/bin/echo'','
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-- derived_from: cur_microshell_T02
-  id: near_folder_02_boundary_neighbor
-  original_input: '[''/bin/echo'', ''1337'']'
-  perturbed_input: '[''/cin/echo'', ''1337'']'
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
 subject_examples:
-- args: *id001
+- args:
+  - /bin/ls
+  - '"'
   cat_e: false
   command: ./microshell /bin/ls "|" /usr/bin/grep microshell ";" /bin/echo i love
     my microshell

@@ -96,24 +96,4 @@ folder_examples:
   origin: subject_folder/tests.yml (fixed_tests)
   input: char d[8] = {0}; ft_strncpy(d, "abcdef", 3); printf("%s\n", d)
   expected: abc\n
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_strncpy
-  perturbed_input:
-  - ft_strncpy_near_arg_1
-  - ft_strncpy_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: pool_ft_strncpy_T01
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: char d[8]="xxxxxxx"; ft_strncpy(d,"abc",5); printf("%c%c%c:%d:%d\n",d[0],d[1],d[2],d[3],d[4])
-  perturbed_input: dhar d[8]="xxxxxxx"; ft_strncpy(d,"abc",
-- id: near_folder_02_boundary_neighbor
-  derived_from: pool_ft_strncpy_T02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: char d[8] = "xxxxxxx"; ft_strncpy(d, "hi", 5); printf("%s\|%d\|%d\n",
-    d, d[2], d[4])
-  perturbed_input: dhar d[8] = "xxxxxxx"; ft_strncpy(d, "hi
+near_examples: []

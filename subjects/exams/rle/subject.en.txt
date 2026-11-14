@@ -8,7 +8,7 @@ characters using Run-Length Encoding: print the count before the character ONLY
 when the count is greater than 1, followed by a newline.
 
 Requirements:
-    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - If the number of arguments is invalid, the program must display a newline and exit cleanly.
     - Your program will be compiled with: cc -Wall -Wextra -Werror.
 
 Examples:

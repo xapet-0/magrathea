@@ -1,8 +1,2 @@
-# Examples for ft_putnbr_base (from official subject specification)
-
-Examples of invalid arguments:
-◦ The base is empty or has only one character.
-◦ The base contains duplicate characters.
-◦ The base contains‘+’ or ‘-’.
-• The function should be prototyped as follows:
-void ft_putnbr_base(int nbr, char *base);
+# No examples in official PDF.
+# Use `man 2 write, man ascii` and consult subject.en.txt for the exact specification.

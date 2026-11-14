@@ -1,17 +1,17 @@
 Assignment name  : remove_duplicate
 Expected files   : remove_duplicate.c
 Allowed functions: write
-Version          : 
 --------------------------------------------------------------------------------
 
+Write a program that takes a string and displays it without duplicate characters,
+preserving the order of first appearance, followed by a newline.
 
-Write a function for an int array and remove duplicate elements in that array
+If the number of arguments is not 1, the program displays only a newline.
 
-Your function must be declared as follows:
-    int	*remove_duplicates(int *arr);
-
-Example:
-    $> ./remove_duplicates "1, 1, 2, 2, 3, 4, 4, 5"
-        1 2 3 4 5;
-    $> ./remove_duplicates "1, 1, 2, 2, 3, 4, 4, 5, 9, 9, 8, 8, 7"
-        1 2 3 4 5 9 8 7;
+Examples:
+$> ./remove_duplicate "abracadabra" | cat -e
+abrcd$
+$> ./remove_duplicate "zazaza" | cat -e
+za$
+$> ./remove_duplicate | cat -e
+$

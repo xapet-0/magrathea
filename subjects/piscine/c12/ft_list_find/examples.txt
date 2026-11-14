@@ -1,5 +1,2 @@
-# Examples for ft_list_find (from official subject specification)
-
-Examples:
-    t_list b={.data="b",.next=0}; t_list a={.data="a",.next=&b}; printf("%s\n",(char*)ft_list_find(&a,"b",dt_cmp)->data)
-    Output: b
+# No examples in official PDF.
+# Use `man 3 strcmp, man cc` and consult subject.en.txt for the exact specification.

@@ -1,15 +1,18 @@
 allowed_functions:
 - fork
 - waitpid
-- alarm
-- kill
-- sigaction
-- sigemptyset
-- errno
 - exit
+- alarm
+- sigaction
+- kill
 - printf
-- puts
 - strsignal
+- errno
+- sigaddset
+- sigemptyset
+- sigfillset
+- sigdelset
+- sigismember
 compiler_flags:
 - -Wall
 - -Wextra

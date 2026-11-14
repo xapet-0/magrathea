@@ -1,5 +1,2 @@
-# Examples for ft_create_elem (from official subject specification)
-
-Examples:
-    t_list *n=ft_create_elem("x"); printf("%s:%d\n",(char*)n->data,n->next==0)
-    Output: x:1
+# No examples in official PDF.
+# Use `man 3 malloc` and consult subject.en.txt for the exact specification.

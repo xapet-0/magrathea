@@ -7,7 +7,7 @@ Write a program that alerts ("Alert!!!\n") if any of its arguments (ignoring
 leading/trailing spaces and case) matches "president", "attack", or "powers".
 
 Requirements:
-    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - If no argument triggers an alert (or the number of arguments is 0), nothing is displayed.
     - Your program will be compiled with: cc -Wall -Wextra -Werror.
 
 Examples:
@@ -18,4 +18,4 @@ Alert!!!$
 $> ./spy "POWERS" | cat -e
 Alert!!!$
 $> ./spy "hello" "world" | cat -e
-$
+(no output)

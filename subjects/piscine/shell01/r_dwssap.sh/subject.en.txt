@@ -4,24 +4,19 @@ Expected files   : r_dwssap.sh
 Allowed functions: None
 --------------------------------------------------------------------------------
 
-skip.sh
-Turn-in directory: ex06/
-Files to turn in:skip.sh
-Allowed functions:None
-• Write a command line that executes ls -l but displays only every second line,
-starting from the first line.
-• Example output:
-$>ls -l | cat -e
-total 4$
--rw-rw-r-- 1 eagle eagle ** ** 15 15:46 skip.sh$
--rw-rw-r-- 1 eagle eagle ** ** 15 15:41 tata$
--rw-rw-r-- 1 eagle eagle ** ** 15 15:41 titi$
--rw-rw-r-- 1 eagle eagle ** ** 15 15:41 toto$
--rw-rw-r-- 1 eagle eagle ** ** 15 15:41 tutu$
-$>
-$>./skip.sh | cat -e
-total 4$
--rw-rw-r-- 1 eagle eagle ** ** 15 15:41 tata$
--rw-rw-r-- 1 eagle eagle ** ** 15 15:41 toto$
-$>
-Git push regularly!
+• Write a command line that processes the output of cat /etc/passwd with the
+  following modifications:
+  - Remove comments.
+  - Keep every other line, starting from the second line.
+  - Reverse each login name.
+  - Sort the results in reverse alphabetical order.
+  - Keep only logins between the environment variables FT_LINE1 and FT_LINE2
+    (inclusive).
+  - Join them in a single line, separated by ", ".
+  - End the output with a "." (no trailing newline).
+• Follow the steps in the exact order given!
+
+Examples:
+- for FT_LINE1=7 and FT_LINE2=15:
+$> ./r_dwssap.sh
+sstq_, sorebrek_brk_, soibten_, sergtsop_, scodved_, rlaxcm_, rgmecived_, revreswodniw_, revressta_.$>

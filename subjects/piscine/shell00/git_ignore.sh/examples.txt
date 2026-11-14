@@ -1,3 +1,4 @@
 Examples:
-$> ./git_ignore.sh | cat -e
-$
+%> bash git_ignore.sh | cat -e
+.DS_Store$
+mywork.c~$

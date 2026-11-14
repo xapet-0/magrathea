@@ -41,38 +41,34 @@ fixed_tests:
     '
   name: space_argument
   tier: baseline
-- name: test_07_arg_auto
+- name: edge_flc_punct
   args:
-  - ''
-  tier: baseline
+  - hello!
+  stdout: 'h!
+
+    '
+  tier: edge_case
+- name: edge_flc_digits
+  args:
+  - '42'
+  stdout: '42
+
+    '
+  tier: edge_case
+- name: edge_flc_extra_arg
+  args:
+  - a
+  - b
   stdout: '
 
     '
-- name: test_08_arg_auto
-  args:
-  - '   '
-  tier: baseline
-  stdout: "  \n"
-- name: test_09_arg_auto
-  args:
-  - '1337'
-  tier: baseline
-  stdout: '17
-
-    '
-- name: test_10_arg_auto
-  args:
-  - 42_Network
-  tier: baseline
-  stdout: '4k
-
-    '
+  tier: edge_case
 mode: c_program
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./first_last_char Hello | cat -e
-  args: &id001
+  args:
   - Hello
   expected: 'Ho
 
@@ -81,7 +77,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./first_last_char a | cat -e
-  args: &id002
+  args:
   - a
   expected: 'aa
 
@@ -110,35 +106,39 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - Hello
   perturbed_input:
   - Iello
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - Hello
   perturbed_input:
   - '  Hello  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - a
   perturbed_input:
   - b
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - a
   perturbed_input:
   - '  a  '
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_first_last_char_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./first_last_char Hello \| cat -e
-  perturbed_input: ./girst_last_char Hello \| cat -e
+  perturbed_input: ./first_last_char Iello | cat -e
 - id: near_folder_02_boundary_neighbor
   derived_from: e1337_first_last_char_T08
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./first_last_char a \| cat -e
-  perturbed_input: ./girst_last_char a \| cat -e
+  perturbed_input: ./first_last_char b | cat -e

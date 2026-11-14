@@ -1,3 +1,4 @@
+check_leaks: true
 fixed_tests:
 - call: t_btree l={"L",0,0}; t_btree r={"R",0,0}; t_btree root={"C",&l,&r}; btree_apply_by_level(&root,dt_apply);
     printf("\n");

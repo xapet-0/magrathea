@@ -28,7 +28,9 @@ fixed_tests:
   exit_code: 0
 - name: zombie_hunter_empty_input
   stdin: ''
-  stdout: ''
+  stdout: '0
+
+    '
   exit_code: 0
 - name: zombie_hunter_no_zombies
   stdin: 'S 1001
@@ -36,62 +38,48 @@ fixed_tests:
     R 1002
 
     '
-  stdout: ''
+  stdout: '0
+
+    '
   exit_code: 0
-- name: test_05_stdin_auto
-  stdin: '42
+- name: zombie_hunter_last_line
+  stdin: 'S 100
 
-    1337
+    R 200
 
-    '
-  tier: baseline
-  stdout: ''
-  expect_empty: true
-- name: test_06_stdin_auto
-  stdin: 'hello world
+    Z 999
 
     '
-  tier: baseline
-  stdout: ''
-  expect_empty: true
-- name: test_07_stdin_auto
-  stdin: 'a
-
-    b
-
-    c
+  stdout: '999
 
     '
-  tier: baseline
-  stdout: ''
-  expect_empty: true
-- name: test_08_stdin_auto
-  stdin: '10 20 30 40 50
+  exit_code: 0
+- name: zombie_hunter_lowercase_and_tabs
+  stdin: "z 111\n\tZ\t222\n"
+  stdout: '222
 
     '
-  tier: baseline
-  stdout: ''
-  expect_empty: true
-- name: test_09_stdin_auto
-  stdin: 'single_line
+  exit_code: 0
+- name: zombie_hunter_non_z_state_zero
+  stdin: 'S 42
+
+    R 84
+
+    Z+ 99
 
     '
-  tier: baseline
-  stdout: ''
-  expect_empty: true
-- name: test_10_stdin_auto
-  stdin: 'foo
-
-    bar
-
-    baz
-
-    qux
+  stdout: '0
 
     '
-  tier: baseline
-  stdout: ''
-  expect_empty: true
+  exit_code: 0
+- name: zombie_hunter_single_zombie
+  stdin: 'Z 1
+
+    '
+  stdout: '1
+
+    '
+  exit_code: 0
 subject_examples: []
 folder_examples: []
 near_examples: []

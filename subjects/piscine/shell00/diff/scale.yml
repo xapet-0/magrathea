@@ -2,25 +2,24 @@ project: diff
 scale_version: 1337HUB-v4.2
 stop_on_first_failure: true
 zero_tolerance_gates:
-- segfault
-- memory_leak
-- norme_error
-- forbidden_function
+- missing_deliverable
+- format_or_content_mismatch
 sections:
 - id: preliminaries
-  title: 'Step 1: Preliminaries & Vogsphere Integrity Check'
+  title: 'Step 1: Preliminaries & Deliverable Integrity Check'
   points: 20
   checks:
-  - Clone official Vogsphere repository into an empty folder.
-  - Verify no malicious shell aliases or unauthorized files exist.
-  - Run norminette / shnorm and verify clean compilation with -Wall -Wextra -Werror.
+  - Verify expected deliverable (b) exists in repository with no unauthorized files.
+  - Verify exact filename, permissions/format, and content match subject specifications
+    (no C compilation applies).
 - id: explain_before_checking
   title: 'Step 2: Conceptual Defense (Explain Before Checking)'
   points: 30
   checks:
-  - Student explains data structures and control flow before executing tests.
+  - Student explains the shell, git, SSH, or diff/patch steps used to construct `b`.
 - id: live_mutation
-  title: 'Step 3: Live Mutation & Edge-Case Verification'
+  title: 'Step 3: Live Reproduction & Edge-Case Verification'
   points: 50
   checks:
-  - Inject a live boundary modification on the spot and verify deterministic behavior.
+  - Verify the artifact cleanly reproduces or passes validation checks on edge inputs
+    (quoting, whitespace, key/patch check).

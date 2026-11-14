@@ -1,5 +1,2 @@
-# Examples for ft_str_is_printable (from official subject specification)
-
-Examples:
-    ft_str_is_printable("abc XYZ") -> 1
-    ft_str_is_printable("abc\n") -> 0
+# No examples in official PDF.
+# Use `man 3 isprint, man ascii` and consult subject.en.txt for the exact specification.

@@ -6,12 +6,10 @@ fixed_tests:
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: ./diff | cat -e
+  command: patch a -i sw.diff -o b
   args: []
-  expected: '
-
-    '
-  cat_e: true
+  expected: ''
+  cat_e: false
 folder_examples:
 - id: folder_ex_01
   origin: subject_folder/examples.txt
@@ -20,13 +18,13 @@ folder_examples:
 near_examples:
 - id: near_subj_01_arity_perturbation
   derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: ./diff | cat -e
+  strategy: Perturb patch / diff verification check around subject.en.txt example
+  original_input: patch a -i sw.diff -o b
   perturbed_input:
-  - diff_near_arg_1
-  - diff_near_arg_2
+  - diff_modified_line
+  - diff_extra_whitespace
 - id: near_folder_01_boundary_neighbor
   derived_from: folder_ex_01
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: diff baseline folder fixture
-  perturbed_input: eiff baseline folder fixture
+  perturbed_input: diff altered line ending fixture

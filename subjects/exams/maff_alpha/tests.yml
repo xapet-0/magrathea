@@ -35,48 +35,6 @@ fixed_tests:
     '
   category: Edge Case
   tier: baseline
-- name: test_05_arg_auto
-  args:
-  - ''
-  tier: baseline
-  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
-
-    '
-- name: test_06_arg_auto
-  args:
-  - '   '
-  tier: baseline
-  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
-
-    '
-- name: test_07_arg_auto
-  args:
-  - '1337'
-  tier: baseline
-  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
-
-    '
-- name: test_08_arg_auto
-  args:
-  - 42_Network
-  tier: baseline
-  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
-
-    '
-- name: test_09_arg_auto
-  args:
-  - '!@#$%^&*()'
-  tier: baseline
-  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
-
-    '
-- name: test_10_arg_auto
-  args:
-  - a b c d e
-  tier: baseline
-  stdout: 'aBcDeFgHiJkLmNoPqRsTuVwXyZ
-
-    '
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
@@ -94,13 +52,13 @@ folder_examples:
 near_examples:
 - id: near_subj_01_arity_perturbation
   derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./maff_alpha | cat -e
   perturbed_input:
-  - maff_alpha_near_arg_1
-  - maff_alpha_near_arg_2
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_maff_alpha_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./maff_alpha \| cat -e
-  perturbed_input: ./naff_alpha \| cat -e
+  perturbed_input: ./maff_alpha arg1 | cat -e

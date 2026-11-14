@@ -3,9 +3,10 @@ Expected files   : ascii_character_v2.c
 Allowed functions: write
 --------------------------------------------------------------------------------
 
-Write a program that takes a single character as argument and displays it on
-standard output followed by a newline. If the number of arguments is not 1,
-display only a newline.
+Write a program that takes a single character as argument and displays its
+decimal ASCII code on standard output followed by a newline. If the number of
+arguments is not 1, or if the argument does not have length 1, display only a
+newline.
 
 Examples:
 $> ./ascii_character_v2 "A" | cat -e
@@ -14,3 +15,5 @@ $> ./ascii_character_v2 "z" | cat -e
 122$
 $> ./ascii_character_v2 "0" | cat -e
 48$
+$> ./ascii_character_v2 | cat -e
+$

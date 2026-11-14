@@ -60,56 +60,72 @@ fixed_tests:
 
     '
   tier: edge_case
-- name: test_05_arg_auto
+- name: csv_sum_header_and_zero_score
+  files:
+    data5.csv: 'name,role,score
+
+      alice,student,0
+
+      bob,student_assistant,99
+
+      '
+  env:
+    FT_CSV: data5.csv
   args: []
-  tier: baseline
   stdout: '0
 
     '
-- name: test_06_arg_auto
-  args:
-  - extra
-  tier: baseline
+  tier: edge_case
+- name: csv_sum_negative_and_zero_scores
+  files:
+    data6.csv: 'a,student,-10
+
+      b,student,52
+
+      c,teacher,100
+
+      '
+  env:
+    FT_CSV: data6.csv
+  args: []
+  stdout: '42
+
+    '
+  tier: edge_case
+- name: csv_sum_empty_file
+  files:
+    empty.csv: ''
+  env:
+    FT_CSV: empty.csv
+  args: []
   stdout: '0
 
     '
-- name: test_07_arg_auto
-  args:
-  - a
-  - b
-  tier: baseline
-  stdout: '0
+  tier: edge_case
+- name: csv_sum_spaces_and_substring_roles
+  files:
+    data7.csv: 'jean luc,student,21
+
+      alice,exstudent,100
+
+      bob,student2,200
+
+      marie claire,student,21
+
+      '
+  env:
+    FT_CSV: data7.csv
+  args: []
+  stdout: '42
 
     '
-- name: test_08_arg_auto
-  args:
-  - '1'
-  - '2'
-  - '3'
-  tier: baseline
-  stdout: '0
-
-    '
-- name: test_09_arg_auto
-  args:
-  - --help
-  tier: baseline
-  stdout: '0
-
-    '
-- name: test_10_arg_auto
-  args:
-  - -v
-  tier: baseline
-  stdout: '0
-
-    '
+  tier: edge_case
 mode: shell
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: FT_CSV="data.csv" sh csv_sum.sh | cat -e
-  args: &id001
+  args:
   - sh
   - csv_sum.sh
   expected: '142
@@ -119,7 +135,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: FT_CSV="data2.csv" sh csv_sum.sh | cat -e
-  args: &id002
+  args:
   - sh
   - csv_sum.sh
   expected: '0
@@ -129,7 +145,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: FT_CSV="data3.csv" sh csv_sum.sh | cat -e
-  args: &id003
+  args:
   - sh
   - csv_sum.sh
   expected: '42
@@ -160,14 +176,18 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - sh
+  - csv_sum.sh
   perturbed_input:
   - th
   - dsv_sum.sh
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - sh
+  - csv_sum.sh
   perturbed_input:
   - '  sh  '
   - csv_sum.sh
@@ -175,14 +195,18 @@ near_examples:
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - sh
+  - csv_sum.sh
   perturbed_input:
   - th
   - dsv_sum.sh
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - sh
+  - csv_sum.sh
   perturbed_input:
   - '  sh  '
   - csv_sum.sh
@@ -190,14 +214,18 @@ near_examples:
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - sh
+  - csv_sum.sh
   perturbed_input:
   - th
   - dsv_sum.sh
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - sh
+  - csv_sum.sh
   perturbed_input:
   - '  sh  '
   - csv_sum.sh
@@ -205,9 +233,9 @@ near_examples:
   derived_from: e1337_csv_sum_T04
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: FT_CSV="data.csv" sh csv_sum.sh \| cat -e
-  perturbed_input: GT_CSV="data.csv" sh csv_sum.sh \| cat -
+  perturbed_input: FT_CSV="eata.csv" sh csv_sum.sh | cat -e
 - id: near_folder_02_boundary_neighbor
   derived_from: e1337_csv_sum_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: FT_CSV="data2.csv" sh csv_sum.sh \| cat -e
-  perturbed_input: 'GT_CSV="data2.csv" sh csv_sum.sh \| cat '
+  perturbed_input: FT_CSV="eata2.csv" sh csv_sum.sh | cat -e

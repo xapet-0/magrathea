@@ -1,14 +1,5 @@
 Assignment name  : cpp_module_02
-Expected files   : Warlock.cpp Warlock.hpp
-                   ASpell.hpp ASpell.cpp
-				   ATarget.hpp ATarget.cpp
-				   Fwoosh.hpp Fwoosh.cpp
-				   Dummy.hpp Dummy.cpp
-				   Fireball.hpp Fireball.cpp
-				   Polymorph.hpp Polymorph.cpp
-				   BrickWall.hpp BrickWall.cpp
-				   SpellBook.hpp SpellBook.cpp
-				   TargetGenerator.hpp TargetGenerator.cpp
+Expected files   : Warlock.cpp Warlock.hpp ASpell.cpp ASpell.hpp ATarget.cpp ATarget.hpp Fwoosh.cpp Fwoosh.hpp Dummy.cpp Dummy.hpp Fireball.cpp Fireball.hpp Polymorph.cpp Polymorph.hpp BrickWall.cpp BrickWall.hpp SpellBook.cpp SpellBook.hpp TargetGenerator.cpp TargetGenerator.hpp
 --------------------------------------------------------------------------------
 
 In the Warlock, SpellBook and TargetGenerator classes, the switch statement is
@@ -44,15 +35,13 @@ non-copyable.
 It will have the following functions:
 
 * void learnTargetType(ATarget*), teaches a target to the generator
-
 * void forgetTargetType(string const &), that makes the generator forget a
   target type if it's known
-
 * ATarget* createTarget(string const &), that creates a target of the
   specified type
 
-Phew, that's done. Now here's a test main. It's not very thorough, so make sure 
-to use your own aswell.
+Phew, that's done. Now here's a test main. It's not very thorough, so make sure
+to use your own as well.
 
 int main()
 {
@@ -77,13 +66,9 @@ int main()
   richard.launchSpell("Fireball", *wall);
 }
 
-~$ ./a.out | cat -e
+$> ./a.out | cat -e
 Richard: This looks like another boring day.$
 Richard: I am Richard, Hello, I'm Richard the Warlock!!$
 Inconspicuous Red-brick Wall has been turned into a critter!$
 Inconspicuous Red-brick Wall has been burnt to a crisp!$
 Richard: My job here is done!$
-~$
-
-[cpp_cpp_module_02_T01] Input: `cpp_module_02()` (zero / void parameter call)  ==>  Expected: *(none)*
-[cpp_cpp_module_02_T02] Input: Harness evaluation: int main() Warlock richard("Richard", "foo"); richard.setTitle("Hello, I'm Richard the Warlock!"); BrickWall model1; Pol...  ==>  Expected: Richard: This looks like another boring day.\nRichard: I am Richard, Hello, I'm Richard the Warlock!!\nInconspicuous Red-brick Wall has been turned into a critter!\nInconspicuous Red-brick Wall has been burnt to a crisp!\nRichard: My job here is done!

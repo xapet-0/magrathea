@@ -1,9 +1,2 @@
-# Examples for tail (from official subject specification)
-
-Examples:
-$> ./tail "-c" "5" "a.txt" | cat -e
-orld$
-$> ./tail "-c" "11" "a.txt" | cat -e
-ello world$
-$> ./tail "-c" "99" "a.txt" | cat -e
-abc$
+# No examples in official PDF.
+# Use `man 1 tail, man 3 errno, man 3 strerror, man 3 basename, man 3 malloc, man 2 open, man 2 read, man 2 write, man 2 close` and consult subject.en.txt for the exact specification.

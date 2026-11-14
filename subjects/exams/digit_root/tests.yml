@@ -33,48 +33,49 @@ fixed_tests:
 
     '
   tier: baseline
-- name: test_06_arg_auto
+- name: edge_digit_root_single_9
+  args:
+  - '9'
+  stdout: '9
+
+    '
+  tier: edge_case
+- name: edge_digit_root_ten
+  args:
+  - '10'
+  stdout: '1
+
+    '
+  tier: edge_case
+- name: edge_digit_root_huge
+  args:
+  - '999999999999'
+  stdout: '9
+
+    '
+  tier: edge_case
+- name: edge_digit_root_empty
   args:
   - ''
-  tier: baseline
   stdout: '
 
     '
-- name: test_07_arg_auto
+  tier: edge_case
+- name: edge_digit_root_extra_arg
   args:
-  - '   '
-  tier: baseline
-  stdout: '0
+  - '12'
+  - '34'
+  stdout: '
 
     '
-- name: test_08_arg_auto
-  args:
-  - '1337'
-  tier: baseline
-  stdout: '5
-
-    '
-- name: test_09_arg_auto
-  args:
-  - 42_Network
-  tier: baseline
-  stdout: '6
-
-    '
-- name: test_10_arg_auto
-  args:
-  - '!@#$%^&*()'
-  tier: baseline
-  stdout: '0
-
-    '
+  tier: edge_case
 subject_id: digit_root
 mode: c_program
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./digit_root "1337" | cat -e
-  args: &id001
+  args:
   - '1337'
   expected: '5
 
@@ -83,7 +84,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./digit_root "42" | cat -e
-  args: &id002
+  args:
   - '42'
   expected: '6
 
@@ -92,7 +93,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./digit_root "999" | cat -e
-  args: &id003
+  args:
   - '999'
   expected: '9
 
@@ -101,7 +102,7 @@ subject_examples:
 - id: subj_ex_04
   origin: subject.en.txt
   command: ./digit_root "0" | cat -e
-  args: &id004
+  args:
   - '0'
   expected: '0
 
@@ -135,61 +136,69 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - '1337'
   perturbed_input:
   - '1338'
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - '1337'
   perturbed_input:
   - '  1337  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - '42'
   perturbed_input:
   - '43'
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - '42'
   perturbed_input:
   - '  42  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - '999'
   perturbed_input:
   - '1000'
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - '999'
   perturbed_input:
   - '  999  '
 - id: near_subj_04_lexical_shift
   derived_from: subj_ex_04
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id004
+  original_input:
+  - '0'
   perturbed_input:
   - '1'
 - id: near_subj_04_whitespace_envelope
   derived_from: subj_ex_04
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id004
+  original_input:
+  - '0'
   perturbed_input:
   - '  0  '
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_digit_root_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./digit_root "1337" \| cat -e
-  perturbed_input: ./eigit_root "1337" \| cat -e
+  perturbed_input: ./digit_root 1338 | cat -e
 - id: near_folder_02_boundary_neighbor
   derived_from: e1337_digit_root_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./digit_root "42" \| cat -e
-  perturbed_input: ./eigit_root "42" \| cat -e
+  perturbed_input: ./digit_root 43 | cat -e

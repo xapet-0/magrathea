@@ -5,7 +5,7 @@ static int slen(const char *s) { int i = 0; while (s[i]) i++; return i; }
 
 int main(int ac, char **av)
 {
-    if (ac != 3) return 0;
+    if (ac != 3) { write(1, "\n", 1); return 0; }
     const char *a = av[1], *b = av[2];
     int sign = 1;
     if (*a == '-') { sign = -sign; a++; }

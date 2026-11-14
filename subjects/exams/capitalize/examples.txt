@@ -6,4 +6,4 @@ $
 $> ./capitalize "pISCINE" | cat -e
 Piscine$
 $> ./capitalize "  aBC	dEF  " | cat -e
-Abc	Def  $
+  Abc	Def  $

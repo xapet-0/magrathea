@@ -37,38 +37,37 @@ fixed_tests:
 
     '
   tier: baseline
-- name: test_07_arg_auto
+- name: edge_alt_case_leading_trailing_ws
   args:
-  - ''
-  tier: baseline
+  - '  ONE  two  THREE  '
+  stdout: "  one  TWO  three  \n"
+  tier: edge_case
+- name: edge_alt_case_tabs
+  args:
+  - "\talpha\tBETA\tgamma"
+  stdout: "\talpha\tBETA\tgamma\n"
+  tier: edge_case
+- name: edge_alt_case_digits_word
+  args:
+  - 42! hello
+  stdout: '42! HELLO
+
+    '
+  tier: edge_case
+- name: edge_alt_case_extra_arg
+  args:
+  - a
+  - b
   stdout: '
 
     '
-- name: test_08_arg_auto
-  args:
-  - '   '
-  tier: baseline
-  stdout: "   \n"
-- name: test_09_arg_auto
-  args:
-  - '1337'
-  tier: baseline
-  stdout: '1337
-
-    '
-- name: test_10_arg_auto
-  args:
-  - 42_Network
-  tier: baseline
-  stdout: '42_network
-
-    '
+  tier: edge_case
 mode: c_program
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./alt_case "hello world yes" | cat -e
-  args: &id001
+  args:
   - hello world yes
   expected: 'hello WORLD yes
 
@@ -93,22 +92,19 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - hello world yes
   perturbed_input:
   - iello world yes
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - hello world yes
   perturbed_input:
   - '  hello world yes  '
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_alt_case_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./alt_case "hello world yes" \| cat -e
-  perturbed_input: ./blt_case "hello world yes" \| cat -e
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+  perturbed_input: ./alt_case 'iello world yes' | cat -e

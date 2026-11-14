@@ -7,7 +7,7 @@ Write a program that will print the all the solutions to the n queens
 problem for a n given as argument.
 
 The N Queens problem is a classic puzzle that involves placing N queens on an N×N chessboard
-in such a way that no queens threaten each other. Please refer to the files attached to this subject.
+in such a way that no queens threaten each other.
 
 We will not test with negative values.
 The order of the solutions is not important.
@@ -69,4 +69,3 @@ $> ./n_queens 7 | cat -e
 6 2 5 1 4 0 3$
 6 3 0 4 1 5 2$
 6 4 2 0 5 3 1$
-$>

@@ -1,3 +1,2 @@
-Examples:
-$> ./ft_putstr | cat -e
-$
+# No examples in official PDF.
+# Use `man 2 write` and consult subject.en.txt for the exact specification.

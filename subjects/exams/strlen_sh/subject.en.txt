@@ -1,15 +1,12 @@
 Assignment name  : strlen_sh
 Expected files   : strlen.sh
-Allowed functions: 
+Allowed commands : None
 --------------------------------------------------------------------------------
 
 Write a shell script that displays the length of the string contained in the
-environment variable FT_LINE, followed by a \n.
+environment variable FT_LINE, followed by a newline.
 
-Example:
-
-$> echo $FT_LINE
-Les stagiaires du staff ne sentent pas toujours tres bon.
-$> zsh strlen.sh
-57
-$>
+Examples:
+$> export FT_LINE="Les putes, c'est comme les chevilles, ca enfle."
+$> ./strlen.sh | cat -e
+48$

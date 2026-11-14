@@ -31,4 +31,3 @@ first
 $>
 $>./rostring | cat -e
 $
-$>

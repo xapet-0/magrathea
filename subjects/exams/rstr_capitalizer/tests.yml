@@ -77,7 +77,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./rstr_capitalizer "a FiRSt LiTTlE TESt" | cat -e
-  args: &id001
+  args:
   - a FiRSt LiTTlE TESt
   expected: 'A firsT littlE tesT
 
@@ -88,7 +88,7 @@ subject_examples:
   command: ./rstr_capitalizer "SecONd teST A LITtle BiT   Moar comPLEX" "   But...
     This iS not THAT COMPLEX" "     Okay, this is the last 1239809147801 but not    the
     least    t" | cat -e
-  args: &id002
+  args:
   - SecONd teST A LITtle BiT   Moar comPLEX
   - '   But... This iS not THAT COMPLEX'
   - '     Okay, this is the last 1239809147801 but not    the least    t'
@@ -131,29 +131,34 @@ folder_examples:
 near_examples:
 - id: near_subj_01_arity_perturbation
   derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./rstr_capitalizer | cat -e
   perturbed_input:
-  - rstr_capitalizer_near_arg_1
-  - rstr_capitalizer_near_arg_2
+  - arg1
+  - arg2
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - a FiRSt LiTTlE TESt
   perturbed_input:
   - b FiRSt LiTTlE TESt
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - a FiRSt LiTTlE TESt
   perturbed_input:
   - '  a FiRSt LiTTlE TESt  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - SecONd teST A LITtle BiT   Moar comPLEX
+  - '   But... This iS not THAT COMPLEX'
+  - '     Okay, this is the last 1239809147801 but not    the least    t'
   perturbed_input:
   - TecONd teST A LITtle BiT   Moar comPLEX
   - '   Cut... This iS not THAT COMPLEX'
@@ -161,7 +166,10 @@ near_examples:
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - SecONd teST A LITtle BiT   Moar comPLEX
+  - '   But... This iS not THAT COMPLEX'
+  - '     Okay, this is the last 1239809147801 but not    the least    t'
   perturbed_input:
   - '  SecONd teST A LITtle BiT   Moar comPLEX  '
   - '   But... This iS not THAT COMPLEX'
@@ -170,9 +178,9 @@ near_examples:
   derived_from: can_rstr_capitalizer_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rstr_capitalizer/tester.sh)
   original_input: ./rstr_capitalizer "10"
-  perturbed_input: ./sstr_capitalizer "10"
+  perturbed_input: ./rstr_capitalizer 11
 - id: near_folder_02_boundary_neighbor
   derived_from: can_rstr_capitalizer_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rstr_capitalizer/tester.sh)
   original_input: ./rstr_capitalizer "a FiRSt LiTTlE TESt"
-  perturbed_input: ./sstr_capitalizer "a FiRSt LiTTlE TESt"
+  perturbed_input: ./rstr_capitalizer 'b FiRSt LiTTlE TESt'

@@ -1,24 +1,3 @@
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `ft_mul`
-  input: ft_mul(INT_MIN), ft_mul(0), ft_mul(1)
-  expected: Correct mathematical result without signed overflow UB
-- name: edge_02_S
-  code: '[S]'
-  title: Arithmetic overflow and infinite recursion protection in `ft_mul`
-  input: Run ft_mul with large inputs
-  expected: Safe return or termination without stack overflow
-- name: edge_03_B
-  code: '[B]'
-  title: Zero factorial and power edge cases in `ft_mul`
-  input: ft_mul(0)
-  expected: Canonical mathematical result for 0
-- name: edge_04_T
-  code: '[T]'
-  title: Time complexity guard against exponential runtime in `ft_mul`
-  input: Call ft_mul on large prime or composite integer
-  expected: Execute within 0.5s limit without timing out
 fixed_tests:
 - name: test_01_d_n_x
   call: printf("%d\n", x)
@@ -107,6 +86,39 @@ fixed_tests:
   stdout: '-1000
 
     '
+- name: edge_int_max_times_one
+  call: printf("%d\n", x)
+  stdout: '2147483647
+
+    '
+  tier: edge
+  setup:
+  - int x = 2147483647
+  - ft_mul(1, &x)
+- name: edge_int_min_times_one
+  call: printf("%d\n", x)
+  stdout: '-2147483648
+
+    '
+  tier: edge
+  setup:
+  - int x = 1
+  - ft_mul((-2147483647 - 1), &x)
+- name: edge_int_min_times_zero
+  call: printf("%d\n", x)
+  stdout: '0
+
+    '
+  tier: edge
+  setup:
+  - int x = (-2147483647 - 1)
+  - ft_mul(0, &x)
+- name: edge_null_ptr
+  call: ft_mul(42, NULL); printf("ok\n")
+  stdout: 'ok
+
+    '
+  tier: edge
 folder_examples:
 - expected: 42\n
   id: cur_ft_mul_T01
@@ -121,30 +133,11 @@ folder_examples:
   input: printf("%d\n", x)
   origin: subject_folder/tests.yml (fixed_tests)
 mode: c_function
-near_examples:
-- derived_from: subj_ex_01
-  id: near_subj_01_arity_perturbation
-  original_input: eval ft_mul
-  perturbed_input:
-  - ft_mul_near_arg_1
-  - ft_mul_near_arg_2
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-- derived_from: cur_ft_mul_T01
-  id: near_folder_01_boundary_neighbor
-  original_input: printf("%d\n", x)
-  perturbed_input: qrintf("%d\n", x)
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-- derived_from: cur_ft_mul_T02
-  id: near_folder_02_boundary_neighbor
-  original_input: printf("%d\n", x)
-  perturbed_input: qrintf("%d\n", x)
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
+near_examples: []
 subject_examples:
-- args: []
-  cat_e: false
-  command: eval ft_mul
-  expected: Conform to subject.en.txt prototype and output specification
-  id: subj_ex_01
+- id: subj_ex_01
   origin: subject.en.txt (contract specification)
+  command: eval ft_mul
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false

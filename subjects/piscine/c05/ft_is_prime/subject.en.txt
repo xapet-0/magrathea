@@ -1,10 +1,4 @@
 Assignment name  : ft_is_prime
-Expected files   : ft_is_prime.c
-Allowed functions: None
---------------------------------------------------------------------------------
-
-Module           : C Piscine C 05 (Official PDF)
-Exercise         : ft_is_prime
 Turn-in directory: ex06/
 Expected files   : ft_is_prime.c
 Allowed functions: None
@@ -15,12 +9,3 @@ is not.
 • The function should be prototyped as follows:
 int ft_is_prime(int nb);
 0 and 1 are not prime numbers.
-
-Your function must be declared as follows:
-    int ft_is_prime(int nb);
-
-Examples:
-    ft_is_prime(-42) -> 0
-    ft_is_prime(0) -> 0
-    ft_is_prime(1) -> 0
-    ft_is_prime(2) -> 1

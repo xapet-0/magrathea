@@ -10,5 +10,5 @@ Your function must be declared as follows:
 void	ft_print_numbers(void);
 
 Examples:
-$> ./ft_print_numbers | cat -e
-0123456789$
+    ft_print_numbers()
+    Output: 0123456789

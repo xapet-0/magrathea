@@ -41,7 +41,7 @@ fixed_tests:
 - name: near_ex_one_arg_only
   tier: near_example
   args:
-  - only_one_near_arg
+  - arg1
   expected: '
 
     '
@@ -54,49 +54,78 @@ fixed_tests:
   expected: '
 
     '
-- name: test_07_arg_auto
+- name: edge_wdmatch_alt_empty_first
   args:
-  - '1'
-  - '2'
-  - '3'
-  tier: baseline
+  - ''
+  - abc
   stdout: '
 
     '
-- name: test_08_arg_auto
+  tier: edge_case
+- name: edge_wdmatch_alt_empty_second
   args:
-  - a
-  - b
-  - c
-  tier: baseline
+  - abc
+  - ''
   stdout: '
 
     '
-- name: test_09_arg_auto
+  tier: edge_case
+- name: edge_wdmatch_alt_missing_dup
   args:
-  - '10'
-  - '20'
-  - '30'
-  tier: baseline
+  - aba
+  - ab
   stdout: '
 
     '
-- name: test_10_arg_auto
+  tier: edge_case
+- name: edge_wdmatch_alt_subseq_ok
   args:
   - '42'
-  - '1337'
-  - school
-  tier: baseline
-  stdout: '
+  - '4132'
+  stdout: '42
 
     '
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
-  origin: subject.en.txt (contract specification)
-  command: eval wdmatch_alt
+  origin: subject.en.txt
+  command: ./wdmatch_alt "faya" "fgvvfdxcacpolhyghbreda" | cat -e
+  args:
+  - faya
+  - fgvvfdxcacpolhyghbreda
+  expected: 'faya
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./wdmatch_alt "faya" "fgvvfdxcacpolhyghbred" | cat -e
+  args:
+  - faya
+  - fgvvfdxcacpolhyghbred
+  expected: '
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./wdmatch_alt "quarante deux" "qfqfsudf arzgsayns tsregfdgs sjytdekuoixq
+    " | cat -e
+  args:
+  - quarante deux
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+  expected: 'quarante deux
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./wdmatch_alt | cat -e
   args: []
-  expected: Conform to subject.en.txt prototype and output specification
-  cat_e: false
+  expected: '
+
+    '
+  cat_e: true
 folder_examples:
 - id: cur_wdmatch_alt_T01
   origin: subject_folder/tests.yml (fixed_tests)
@@ -111,43 +140,79 @@ folder_examples:
   input: '[''quarante deux'', ''qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '']'
   expected: quarante deux\n
 near_examples:
-- id: near_subj_01_arity_perturbation
+- id: near_subj_01_lexical_shift
   derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval wdmatch_alt
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
+  - faya
+  - fgvvfdxcacpolhyghbreda
   perturbed_input:
-  - wdmatch_alt_near_arg_1
-  - wdmatch_alt_near_arg_2
+  - gaya
+  - ggvvfdxcacpolhyghbreda
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - faya
+  - fgvvfdxcacpolhyghbreda
+  perturbed_input:
+  - '  faya  '
+  - fgvvfdxcacpolhyghbreda
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
+  - faya
+  - fgvvfdxcacpolhyghbred
+  perturbed_input:
+  - gaya
+  - ggvvfdxcacpolhyghbred
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - faya
+  - fgvvfdxcacpolhyghbred
+  perturbed_input:
+  - '  faya  '
+  - fgvvfdxcacpolhyghbred
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
+  - quarante deux
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+  perturbed_input:
+  - ruarante deux
+  - 'rfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - quarante deux
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+  perturbed_input:
+  - '  quarante deux  '
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
+- id: near_subj_04_arity_perturbation
+  derived_from: subj_ex_04
+  strategy: Invoke binary with unexpected arguments to verify argc guard
+  original_input: ./wdmatch_alt | cat -e
+  perturbed_input:
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: cur_wdmatch_alt_T01
   strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
     (fixed_tests))
   original_input: '[''faya'', ''fgvvfdxcacpolhyghbreda'']'
-  perturbed_input: '[''gaya'', ''fgvvfdxcacpolhyghbreda'']'
+  perturbed_input: '[''gaya'', ''ggvvfdxcacpolhyghbreda'']'
 - id: near_folder_02_boundary_neighbor
   derived_from: cur_wdmatch_alt_T02
   strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
     (fixed_tests))
   original_input: '[''faya'', ''fgvvfdxcacpolhyghbred'']'
-  perturbed_input: '[''gaya'', ''fgvvfdxcacpolhyghbred'']'
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Empty string and whitespace-only string in `wdmatch_alt`
-  input: "wdmatch_alt(\"   \t\t   \")"
-  expected: Print newline only with no extra spaces
-- name: edge_02_B
-  code: '[B]'
-  title: Single word surrounded by spaces vs string without spaces in `wdmatch_alt`
-  input: wdmatch_alt("   word   ") and wdmatch_alt("word")
-  expected: Identical output 'word$' for both inputs
-- name: edge_03_B
-  code: '[B]'
-  title: Extended ASCII characters and repetitive tokens in `wdmatch_alt`
-  input: wdmatch_alt("aaa bbb ccc")
-  expected: Format words with exact single space separation and terminating newline
-- name: edge_04_B
-  code: '[B]'
-  title: Argument count check (argc < 2 or argc > 2) in `wdmatch_alt`
-  input: Execute wdmatch_alt with no arguments and with 3 arguments
-  expected: Print newline only
+  perturbed_input: '[''gaya'', ''ggvvfdxcacpolhyghbred'']'

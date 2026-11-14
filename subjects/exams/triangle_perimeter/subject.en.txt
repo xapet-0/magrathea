@@ -1,19 +1,17 @@
 Assignment name  : triangle_perimeter
 Expected files   : triangle_perimeter.c
-Allowed functions:
-Version          : 
+Allowed functions: None
 --------------------------------------------------------------------------------
 
 Write a function to calculate the perimeter of a triangle:
-    - mathematical formula for the perimeter of a triangle (a + b + c).
-with a, b, and c as the sides of the triangle;
+    - mathematical formula for the perimeter of a triangle: a + b + c,
+      with a, b, and c as the sides of the triangle.
+    - if any side is less than or equal to 0, return 0.
 
 Your function must be declared as follows:
-    int perimeter_triangle(int a, int b, int c):
+    int triangle_perimeter(int a, int b, int c);
 
-[cur_triangle_perimeter_T01] Input: triangle_perimeter(3, 4, 5)  ==>  Expected: 12\n
-[cur_triangle_perimeter_T02] Input: triangle_perimeter(10, 10, 10)  ==>  Expected: 30\n
-[cur_triangle_perimeter_T03] Input: Dynamic generation rule via basic_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
-[cur_triangle_perimeter_T04] Input: Dynamic generation rule via decimal_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
-[cur_triangle_perimeter_T05] Input: Dynamic generation rule via zero_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
-[cur_triangle_perimeter_T06] Input: Dynamic generation rule via large_radius_test()  ==>  Expected: Deterministic output validated by Deepthought oracle
+Examples:
+    triangle_perimeter(3, 4, 5) -> 12
+    triangle_perimeter(10, 10, 10) -> 30
+    triangle_perimeter(0, 4, 5) -> 0

@@ -1,7 +1,2 @@
-# Examples for mac.sh (from official subject specification)
-
-Example output:
-$>./count_files.sh | cat -e
-42$
-$>
-Failure is part of your learning journey—keep testing and improving!
+# No examples in official PDF.
+# Use `man ifconfig, man ip` and consult subject.en.txt for the exact specification.

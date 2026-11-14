@@ -6,4 +6,4 @@ Alert!!!$
 $> ./spy "POWERS" | cat -e
 Alert!!!$
 $> ./spy "hello" "world" | cat -e
-$
+(no output)

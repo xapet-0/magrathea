@@ -61,6 +61,12 @@ fixed_tests:
   stdout: '10
 
     '
-subject_examples: []
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_list_size
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
 folder_examples: []
 near_examples: []

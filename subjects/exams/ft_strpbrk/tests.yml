@@ -87,21 +87,4 @@ folder_examples:
   expected: "STRPBRK(3)               BSD Library Functions Manual               STRPBRK(3)\n\
     \nNAME\n\tstrpbrk -- locate multiple characters in string\n\nLIBRARY\n\t\tStandard\
     \ C Libr"
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_strpbrk
-  perturbed_input:
-  - ft_strpbrk_near_arg_1
-  - ft_strpbrk_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: can_ft_strpbrk_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: char *p=ft_strpbrk("abcdef","dx"); printf("%s\n",p)
-  perturbed_input: dhar *p=ft_strpbrk("abcdef","dx"); print
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/strpbrk.man.txt)
-  original_input: strpbrk.man.txt
-  perturbed_input: ttrpbrk.man.txt
+near_examples: []

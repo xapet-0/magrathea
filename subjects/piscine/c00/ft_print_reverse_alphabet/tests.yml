@@ -91,23 +91,4 @@ folder_examples:
   input: ft_print_reverse_alphabet(); ft_print_reverse_alphabet(); write(1, "\n",
     1)
   expected: zyxwvutsrqponmlkjihgfedcbazyxwvutsrqponmlkjihgfedcba\n
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_print_reverse_alphabet
-  perturbed_input:
-  - ft_print_reverse_alphabet_near_arg_1
-  - ft_print_reverse_alphabet_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: pool_ft_print_reverse_alphabet_T01
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: ft_print_reverse_alphabet()
-  perturbed_input: gt_print_reverse_alphabet()
-- id: near_folder_02_boundary_neighbor
-  derived_from: pool_ft_print_reverse_alphabet_T02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: ft_print_reverse_alphabet(); write(1, "\n", 1)
-  perturbed_input: gt_print_reverse_alphabet(); write(1, "\
+near_examples: []

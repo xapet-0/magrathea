@@ -11,16 +11,20 @@ sections:
   title: 'Step 1: Preliminaries & Vogsphere Integrity Check'
   points: 20
   checks:
-  - Clone official Vogsphere repository into an empty folder.
-  - Verify no malicious shell aliases or unauthorized files exist.
-  - Run norminette / shnorm and verify clean compilation with -Wall -Wextra -Werror.
+  - Clone official Vogsphere repository into an empty folder and verify expected files
+    (Makefile).
+  - Run `norminette` and verify clean compilation with `cc -Wall -Wextra -Werror`.
+  - 'Verify CLI `argc`/`argv` behavior and allowed functions: close, open, read, write,
+    strerror, basename.'
 - id: explain_before_checking
   title: 'Step 2: Conceptual Defense (Explain Before Checking)'
   points: 30
   checks:
-  - Student explains data structures and control flow before executing tests.
+  - Student explains `argc`/`argv` parsing, memory cleanup, and output formatting
+    before executing tests.
 - id: live_mutation
   title: 'Step 3: Live Mutation & Edge-Case Verification'
   points: 50
   checks:
-  - Inject a live boundary modification on the spot and verify deterministic behavior.
+  - Invoke the compiled binary with edge CLI arguments (no args, extra args, empty
+    strings) checking exact `| cat -e` output.

@@ -1,5 +1,2 @@
-# Examples for ft_map (from official subject specification)
-
-Examples:
-    int a[]={1,2,3}; int *r=ft_map(a,3,dt_double); for(int i=0;i<3;i++) printf("%d,",r[i]); printf("\n"); free(r)
-    Output: 2,4,6,
+# No examples in official PDF.
+# Use `man 3 malloc` and consult subject.en.txt for the exact specification.

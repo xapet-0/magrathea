@@ -127,20 +127,13 @@ folder_examples:
   input: ./ft_strcpy "AkjhZ zLKIJz , 23y "
   expected: Matches 42 reference standard output and exit code
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_strcpy
-  perturbed_input:
-  - ft_strcpy_near_arg_1
-  - ft_strcpy_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_ft_strcpy_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strcpy/tester.sh)
   original_input: ./ft_strcpy "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
-  perturbed_input: ./gt_strcpy "wNcOre Un ExEmPle Pas Facil
+  perturbed_input: ./ft_strcpy 'xNcOre Un ExEmPle Pas Facilw a Ecrirw ' x f
 - id: near_folder_02_boundary_neighbor
   derived_from: can_ft_strcpy_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strcpy/tester.sh)
   original_input: ./ft_strcpy "   "
-  perturbed_input: ./gt_strcpy "   "
+  perturbed_input: ./ft_strcpy '   !'

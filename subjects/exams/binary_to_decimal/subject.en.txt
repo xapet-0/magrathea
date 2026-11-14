@@ -1,7 +1,6 @@
 Assignment name  : binary_to_decimal
 Expected files   : binary_to_decimal.c
 Allowed functions: write, atoi
-Version          : 
 --------------------------------------------------------------------------------
 
 Write a program to convert a number from binary to decimal.

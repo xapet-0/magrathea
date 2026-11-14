@@ -1,2 +1,3 @@
-[cur_ft_add_T01] Input: printf("%d\n", x)  ==>  Expected: 42\n
-[cur_ft_add_T02] Input: printf("%d\n", x)  ==>  Expected: 0\n
+Examples:
+    int x = 40; ft_add(2, &x); -> x == 42
+    int x = -5; ft_add(5, &x); -> x == 0

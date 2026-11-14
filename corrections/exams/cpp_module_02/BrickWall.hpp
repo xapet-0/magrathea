@@ -1,5 +1,5 @@
-#ifndef DUMMY_HPP
-# define DUMMY_HPP
+#ifndef BRICKWALL_HPP
+# define BRICKWALL_HPP
 
 # include "ATarget.hpp"
 

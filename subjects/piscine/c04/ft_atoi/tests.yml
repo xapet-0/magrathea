@@ -77,39 +77,14 @@ oracle_tests:
 mode: c_function
 subject_examples:
 - id: subj_ex_01
-  origin: subject.en.txt
-  command: ./a.out " ---+--+1234ab567"
-  args: &id001
-  - ' ---+--+1234ab567'
-  expected: '-1234
-
-    • The function should be prototyped as follows:
-
-    int ft_atoi(char *str);
-
-    '
+  origin: subject.en.txt (contract specification)
+  command: eval ft_atoi
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
   cat_e: false
 folder_examples:
 - id: folder_ex_01
   origin: subject_folder/examples.txt
   input: ft_atoi baseline folder fixture
   expected: Matches reference correction
-near_examples:
-- id: near_subj_01_lexical_shift
-  derived_from: subj_ex_01
-  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
-    strcmp(argv[1])
-  original_input: *id001
-  perturbed_input:
-  - ' ---+--+1234bb567'
-- id: near_subj_01_whitespace_envelope
-  derived_from: subj_ex_01
-  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
-  perturbed_input:
-  - '   ---+--+1234ab567  '
-- id: near_folder_01_boundary_neighbor
-  derived_from: folder_ex_01
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: ft_atoi baseline folder fixture
-  perturbed_input: gt_atoi baseline folder fixture
+near_examples: []

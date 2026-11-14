@@ -16,4 +16,3 @@ $>./paramsum 6 12 24 | cat -e
 3$
 $>./paramsum | cat -e
 0$
-$>

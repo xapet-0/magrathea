@@ -1,5 +1,2 @@
-# Examples for ft_strlowcase (from official subject specification)
-
-Examples:
-    char s[] = "HELLO"; ft_strlowcase(s); printf("%s\n", s)
-    Output: hello
+# No examples in official PDF.
+# Use `man 3 tolower, man ascii` and consult subject.en.txt for the exact specification.

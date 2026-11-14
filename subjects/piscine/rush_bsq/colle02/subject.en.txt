@@ -3,17 +3,20 @@ Expected files   : Makefile *.c *.h
 Allowed functions: read, write, malloc, free
 --------------------------------------------------------------------------------
 
-# Colle-02 — Rush Detector from STDIN
-
-Expected files: Makefile, *.c, *.h
-Allowed functions: read, write, malloc, free
-
-Requirements:
-    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
-    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+• Write a program `colle-2` (built by `Makefile`) that takes a non-negative integer
+  argument and prints its English written word representation followed by a newline.
+• If an optional dictionary path is passed as the first of two arguments
+  (./colle-2 <dict> <number>), convert the second argument accordingly.
+• If the number of arguments is invalid or the number is not a valid non-negative
+  integer, display "Error\n" and exit cleanly.
+• Your program will be compiled with: cc -Wall -Wextra -Werror.
 
 Examples:
-$> printf "o---o\n|   |\no---o\n" | ./colle02 | cat -e
-[colle-00] [5] [3]$
-$> printf "invalid\n" | ./colle02 | cat -e
-aucune$
+$> ./colle-2 42 | cat -e
+forty two$
+$> ./colle-2 0 | cat -e
+zero$
+$> ./colle-2 100000 | cat -e
+one hundred thousand$
+$> ./colle-2 -42 | cat -e
+Error$

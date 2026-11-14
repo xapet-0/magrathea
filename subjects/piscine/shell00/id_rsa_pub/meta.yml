@@ -1,5 +1,5 @@
 id: id_rsa_pub
-type: shell
+type: shell_file
 module: Shell 00
 xp: 130
 expected_files:

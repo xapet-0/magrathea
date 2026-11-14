@@ -20,44 +20,97 @@ expected_stdout: 'Richard: This looks like another boring day.
   Richard: My job here is done!
 
   '
-must_not_compile: []
-fixed_tests:
-- name: cpp_module_02_canonical_driver
-  main_code: ''
-  expected: ''
-- name: cpp_module_02_coplien_and_const_contract
-  main_code: ''
-  expected: ''
-- name: cpp_module_02_boundary_and_state_invariants
-  main_code: ''
-  expected: ''
-- name: cpp_module_02_destructor_and_resource_lifecycle
-  main_code: ''
-  expected: ''
-- name: test_05_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_06_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_07_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_08_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_09_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_10_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-subject_examples: []
+must_not_compile:
+- '#include "Warlock.hpp"
+
+  int main() { Warlock bob; return 0; }
+
+  '
+- '#include "Warlock.hpp"
+
+  int main() { Warlock a("A", "B"); Warlock b(a); return 0; }
+
+  '
+- '#include "Warlock.hpp"
+
+  int main() { Warlock a("A", "B"); Warlock b("C", "D"); b = a; return 0; }
+
+  '
+- '#include "SpellBook.hpp"
+
+  int main() { SpellBook a; SpellBook b(a); return 0; }
+
+  '
+- '#include "SpellBook.hpp"
+
+  int main() { SpellBook a; SpellBook b; b = a; return 0; }
+
+  '
+- '#include "TargetGenerator.hpp"
+
+  int main() { TargetGenerator a; TargetGenerator b(a); return 0; }
+
+  '
+- '#include "TargetGenerator.hpp"
+
+  int main() { TargetGenerator a; TargetGenerator b; b = a; return 0; }
+
+  '
+- '#include "ASpell.hpp"
+
+  int main() { ASpell s("a", "b"); return 0; }
+
+  '
+- '#include "ATarget.hpp"
+
+  int main() { ATarget t("x"); return 0; }
+
+  '
+extra_cpp_tests:
+- name: cpp02_spellbook_targetgen_and_all_classes
+  main_cpp: "#include \"Warlock.hpp\"\n#include \"ASpell.hpp\"\n#include \"ATarget.hpp\"\
+    \n#include \"Fwoosh.hpp\"\n#include \"Fireball.hpp\"\n#include \"Polymorph.hpp\"\
+    \n#include \"Dummy.hpp\"\n#include \"BrickWall.hpp\"\n#include \"SpellBook.hpp\"\
+    \n#include \"TargetGenerator.hpp\"\n\nint main()\n{\n  SpellBook book;\n  TargetGenerator\
+    \ gen;\n  Fwoosh fwoosh;\n  Fireball fireball;\n  Polymorph polymorph;\n  Dummy\
+    \ dummy;\n  BrickWall wall;\n\n  if (book.createSpell(\"Missing\") != 0 || gen.createTarget(\"\
+    Missing\") != 0)\n    return 1;\n  book.learnSpell(&fwoosh);\n  book.learnSpell(&fireball);\n\
+    \  gen.learnTargetType(&dummy);\n  gen.learnTargetType(&wall);\n  ASpell *sp =\
+    \ book.createSpell(\"Fireball\");\n  ATarget *tg = gen.createTarget(\"Target Practice\
+    \ Dummy\");\n  if (!sp || !tg)\n    return 1;\n  sp->launch(*tg);\n  delete sp;\n\
+    \  delete tg;\n  book.forgetSpell(\"Fireball\");\n  gen.forgetTargetType(\"Target\
+    \ Practice Dummy\");\n  if (book.createSpell(\"Fireball\") != 0 || gen.createTarget(\"\
+    Target Practice Dummy\") != 0)\n    return 1;\n\n  Warlock w(\"Merlin\", \"Grand\
+    \ Magus\");\n  w.learnSpell(&fwoosh);\n  w.learnSpell(&polymorph);\n  w.launchSpell(\"\
+    Fwoosh\", wall);\n  w.launchSpell(\"Polymorph\", wall);\n  w.forgetSpell(\"Fwoosh\"\
+    );\n  w.launchSpell(\"Fwoosh\", wall);\n  return 0;\n}\n"
+  expected_stdout: 'Target Practice Dummy has been burnt to a crisp!
+
+    Merlin: This looks like another boring day.
+
+    Inconspicuous Red-brick Wall has been fwooshed!
+
+    Inconspicuous Red-brick Wall has been turned into a critter!
+
+    Merlin: My job here is done!
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./a.out | cat -e
+  args: []
+  expected: 'Richard: This looks like another boring day.
+
+    Richard: I am Richard, Hello, I''m Richard the Warlock!!
+
+    Inconspicuous Red-brick Wall has been turned into a critter!
+
+    Inconspicuous Red-brick Wall has been burnt to a crisp!
+
+    Richard: My job here is done!
+
+    '
+  cat_e: true
 folder_examples: []
 near_examples: []

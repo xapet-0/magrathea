@@ -115,21 +115,4 @@ folder_examples:
   origin: subject_folder/mini-moulinette/ex04/ft_putnbr_base.c
   input: 'Input: 2147483647'
   expected: 'Expected: 7fffffff'
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_putnbr_base
-  perturbed_input:
-  - ft_putnbr_base_near_arg_1
-  - ft_putnbr_base_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: pool_ft_putnbr_base_T09
-  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex04/ft_putnbr_base.c)
-  original_input: 'Input: -12'
-  perturbed_input: 'Jnput: -12'
-- id: near_folder_02_boundary_neighbor
-  derived_from: pool_ft_putnbr_base_T10
-  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex04/ft_putnbr_base.c)
-  original_input: 'Input: 40'
-  perturbed_input: 'Jnput: 40'
+near_examples: []

@@ -1,5 +1,2 @@
-# Examples for clean (from official subject specification)
-
-Examples:
-$> sh clean | cat -e
-$
+# No examples in official PDF.
+# Use `man find` and consult subject.en.txt for the exact specification.

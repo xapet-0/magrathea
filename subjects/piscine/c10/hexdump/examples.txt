@@ -1,7 +1,2 @@
-# Examples for hexdump (from official subject specification)
-
-Examples:
-$> ./hexdump "-C" "a.txt" | cat -e
-$
-$> ./hexdump "-C" "no_such_file.txt" | cat -e
-$
+# No examples in official PDF.
+# Use `man 1 hexdump, man 3 errno, man 3 strerror, man 3 basename, man 3 malloc, man 2 open, man 2 read, man 2 write, man 2 close` and consult subject.en.txt for the exact specification.

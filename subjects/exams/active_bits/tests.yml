@@ -1,24 +1,3 @@
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Bitwise boundary values (0x00, 0xFF, 0x80, 0x01) in `active_bits`
-  input: active_bits(0x00), active_bits(0xFF), active_bits(0x80)
-  expected: Accurate bit manipulation using unsigned byte representations
-- name: edge_02_B
-  code: '[B]'
-  title: Zero length buffer and NULL pointer guard in `active_bits`
-  input: active_bits(NULL, 0)
-  expected: Safe return without SIGSEGV
-- name: edge_03_D
-  code: '[D]'
-  title: Inverse bitwise operation property verification in `active_bits`
-  input: 'Apply reverse or swap twice: active_bits(active_bits(x))'
-  expected: Restores original value
-- name: edge_04_B
-  code: '[B]'
-  title: Hexadecimal formatting and padding in `active_bits`
-  input: active_bits(15) and active_bits(16)
-  expected: Canonical hex output matching 42 specifications
 fixed_tests:
 - name: test_01_folder_example_42
   expr: active_bits(42)
@@ -93,23 +72,11 @@ folder_examples:
   origin: subject_folder/tests.yml
 mode: c_function
 near_examples:
-- derived_from: subj_ex_01
-  id: near_subj_01_arity_perturbation
-  original_input: eval active_bits
-  perturbed_input:
-  - active_bits_near_arg_1
-  - active_bits_near_arg_2
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-- derived_from: e1337_active_bits_T07
-  id: near_folder_01_boundary_neighbor
-  original_input: active_bits(42) -> 3   (42 in binary is 101010)
-  perturbed_input: 'bctive_bits(42) -> 3   (42 in binary is '
+- id: near_folder_01_boundary_neighbor
+  derived_from: e1337_active_bits_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-- derived_from: folder_fixture_02
-  id: near_folder_02_boundary_neighbor
-  original_input: tests.yml
-  perturbed_input: uests.yml
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
+  original_input: active_bits(42) -> 3   (42 in binary is 101010)
+  perturbed_input: active_bits(43)
 subject_examples:
 - args: []
   cat_e: false

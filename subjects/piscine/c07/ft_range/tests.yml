@@ -53,6 +53,27 @@ fixed_tests:
   stdout: '10,11,12,13,14,15,16,17,18,19,
 
     '
+- name: edge_int_min_pair
+  call: int *a=ft_range((-2147483647 - 1),-2147483646); printf("%d,%d\n", a[0], a[1]);
+    free(a);
+  stdout: '-2147483648,-2147483647
+
+    '
+  tier: edge
+- name: edge_int_max_single
+  call: int *a=ft_range(2147483646,2147483647); printf("%d\n", a[0]); free(a);
+  stdout: '2147483646
+
+    '
+  tier: edge
+- name: edge_int_min_max_empty
+  call: int *a=ft_range((-2147483647 - 1),(-2147483647 - 1)); int *b=ft_range(2147483647,2147483647);
+    int *c=ft_range(2147483647,(-2147483647 - 1)); printf("%d:%d:%d\n", a==NULL, b==NULL,
+    c==NULL);
+  stdout: '1:1:1
+
+    '
+  tier: edge
 mode: c_function
 subject_examples: []
 folder_examples: []

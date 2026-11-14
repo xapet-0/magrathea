@@ -1,12 +1,10 @@
 allowed_functions:
 - atoi
 - printf
-- write
 - malloc
 - calloc
 - realloc
 - free
-- putchar
 compiler_flags:
 - -Wall
 - -Wextra

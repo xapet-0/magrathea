@@ -66,16 +66,4 @@ folder_examples:
   origin: subject_folder/examples.txt
   input: ft_putnbr baseline folder fixture
   expected: Matches reference correction
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_putnbr
-  perturbed_input:
-  - ft_putnbr_near_arg_1
-  - ft_putnbr_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: folder_ex_01
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: ft_putnbr baseline folder fixture
-  perturbed_input: gt_putnbr baseline folder fixture
+near_examples: []

@@ -121,21 +121,4 @@ folder_examples:
   origin: subject_folder/deepthought/corrections/exams/ft_strcat/generator.py
   input: Dynamic generation rule via edge_case()
   expected: Deterministic output validated by Deepthought oracle
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_strcat
-  perturbed_input:
-  - ft_strcat_near_arg_1
-  - ft_strcat_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: cur_ft_strcat_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_strcat.c)
-  original_input: 'Input: Hello'
-  perturbed_input: 'Jnput: Hello'
-- id: near_folder_02_boundary_neighbor
-  derived_from: cur_ft_strcat_T06
-  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_strcat.c)
-  original_input: 'Input: Network'
-  perturbed_input: 'Jnput: Network'
+near_examples: []

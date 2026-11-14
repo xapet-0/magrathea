@@ -91,19 +91,20 @@ mode: shell
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: ./r_dwssap.sh
+  command: ./add_chelou.sh | cat -e
   args: []
-  expected: 'sstq_, sorebrek_brk_, soibten_, sergtsop_, scodved_, rlaxcm_, rgmecived_,
-    revreswodniw_,
-
-    revressta_.$>
-
-    • Follow the steps in the exact order given!
-
-    • Did you check with your left-side neighbor?
+  expected: 'Salut
 
     '
-  cat_e: false
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./add_chelou.sh | cat -e
+  args: []
+  expected: 'Segmentation fault
+
+    '
+  cat_e: true
 folder_examples:
 - id: folder_ex_01
   origin: subject_folder/examples.txt
@@ -112,13 +113,13 @@ folder_examples:
 near_examples:
 - id: near_subj_01_arity_perturbation
   derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: ./r_dwssap.sh
+  strategy: Perturb base-5 operand inputs around subject.en.txt example
+  original_input: ./add_chelou.sh | cat -e
   perturbed_input:
-  - add_chelou.sh_near_arg_1
-  - add_chelou.sh_near_arg_2
+  - add_chelou.sh_zero_plus_zero
+  - add_chelou.sh_two_plus_two
 - id: near_folder_01_boundary_neighbor
   derived_from: folder_ex_01
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: add_chelou.sh baseline folder fixture
-  perturbed_input: bdd_chelou.sh baseline folder fixture
+  perturbed_input: add_chelou.sh carry-propagation folder fixture

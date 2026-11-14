@@ -1,5 +1,2 @@
-# Examples for match_n_match (from official subject specification)
-
-Examples:
-    printf("%d:%d:%d:%d\n", match("main.c", "*.c"), match("main.c", "*.h"), nmatch("abcbd", "*b*"), nmatch("abc", "a**"))
-    Output: 1:0:2:3
+# No examples in official PDF.
+# Use `man 3 fnmatch, man cc` and consult subject.en.txt for the exact specification.

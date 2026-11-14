@@ -1,3 +1,2 @@
 Examples:
-$> ./ft_atoi | cat -e
-$
+    ft_atoi(" ---+--+1234ab567") -> -1234

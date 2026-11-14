@@ -1,15 +1,8 @@
 Examples:
-  cat test.c
-  Invocations: flood_fill(area, size, begin)
-  gcc flood_fill.c test.c -o test; ./test
-  11111111
-10001001
-10010001
-10110001
-11100001
-
-FFFFFFFF
-F000F00F
-F00F000F
-F0FF000F
-FFF0000F
+    Given a 8x5 area with zone[] = {"11111111", "10001001", "10010001", "10110001", "11100001"}
+    and begin = {7, 4}, calling flood_fill(area, (t_point){8, 5}, begin) updates the area to:
+    FFFFFFFF
+    F000F00F
+    F00F000F
+    F0FF000F
+    FFF0000F

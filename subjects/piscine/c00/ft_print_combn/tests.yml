@@ -140,34 +140,11 @@ fixed_tests:
     12346789, 12356789, 12456789, 13456789, 23456789
 subject_examples:
 - id: subj_ex_01
-  origin: subject.en.txt
-  command: ./a.out | cat -e
+  origin: subject.en.txt (contract specification)
+  command: eval ft_print_combn
   args: []
-  expected: "01, 02, 03, ..., 09, 12, ..., 79, 89$>\n• The function should be prototyped\
-    \ as follows:\nvoid ft_print_combn(int n);\nDid you check with your neighbor on\
-    \ the left?\n\nYour function must be declared as follows:\n    void ft_print_combn(int\
-    \ n);\n\nExamples:\n    ft_print_combn(1)\n    Output: 0, 1, 2, 3, 4, 5, 6, 7,\
-    \ 8, 9\n    ft_print_combn(2)\n    Output: 01, 02, 03, 04, 05, 06, 07, 08, 09,\
-    \ 12, 13, 14, 15, 16, 17, 18, 19, 23, 24, 25, 26, 27, 28, 29, 34, 35, 36, 37,\
-    \ 38, 39, 45, 46, 47, 48, 49, 56, 57, 58, 59, 67, 68, 69, 78, 79, 89\n    ft_print_combn(4)\n\
-    \    Output: 0123, 0124, 0125, 0126, 0127, 0128, 0129, 0134, 0135, 0136, 0137,\
-    \ 0138, 0139, 0145, 0146, 0147, 0148, 0149, 0156, 0157, 0158, 0159, 0167, 0168,\
-    \ 0169, 0178, 0179, 0189, 0234, 0235, 0236, 0237, 0238, 0239, 0245, 0246, 0247,\
-    \ 0248, 0249, 0256, 0257, 0258, 0259, 0267, 0268, 0269, 0278, 0279, 0289, 0345,\
-    \ 0346, 0347, 0348, 0349, 0356, 0357, 0358, 0359, 0367, 0368, 0369, 0378, 0379,\
-    \ 0389, 0456, 0457, 0458, 0459, 0467, 0468, 0469, 0478, 0479, 0489, 0567, 0568,\
-    \ 0569, 0578, 0579, 0589, 0678, 0679, 0689, 0789, 1234, 1235, 1236, 1237, 1238,\
-    \ 1239, 1245, 1246, 1247, 1248, 1249, 1256, 1257, 1258, 1259, 1267, 1268, 1269,\
-    \ 1278, 1279, 1289, 1345, 1346, 1347, 1348, 1349, 1356, 1357, 1358, 1359, 1367,\
-    \ 1368, 1369, 1378, 1379, 1389, 1456, 1457, 1458, 1459, 1467, 1468, 1469, 1478,\
-    \ 1479, 1489, 1567, 1568, 1569, 1578, 1579, 1589, 1678, 1679, 1689, 1789, 2345,\
-    \ 2346, 2347, 2348, 2349, 2356, 2357, 2358, 2359, 2367, 2368, 2369, 2378, 2379,\
-    \ 2389, 2456, 2457, 2458, 2459, 2467, 2468, 2469, 2478, 2479, 2489, 2567, 2568,\
-    \ 2569, 2578, 2579, 2589, 2678, 2679, 2689, 2789, 3456, 3457, 3458, 3459, 3467,\
-    \ 3468, 3469, 3478, 3479, 3489, 3567, 3568, 3569, 3578, 3579, 3589, 3678, 3679,\
-    \ 3689, 3789, 4567, 4568, 4569, 4578, 4579, 4589, 4678, 4679, 4689, 4789, 5678,\
-    \ 5679, 5689, 5789, 6789\n"
-  cat_e: true
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
 folder_examples:
 - id: pool_ft_print_combn_T05
   origin: subject_folder/mini-moulinette/ex08/ft_print_combn.c
@@ -186,21 +163,4 @@ folder_examples:
     257, 258, 259, 267, 268, 269, 278, 279, 289, 345, 346, 347, 348, 349, 356, 357,
     358, 359, 367, 368, 369, 378, 379, 389, 456, 457, 458, 459, 467, 468, 469, 478,
     479, 489, 567, 568, 569, 578, 579, 589, 678, 679, 689, 789'
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: ./a.out | cat -e
-  perturbed_input:
-  - ft_print_combn_near_arg_1
-  - ft_print_combn_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: pool_ft_print_combn_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex08/ft_print_combn.c)
-  original_input: 'Input:'
-  perturbed_input: 'Jnput:'
-- id: near_folder_02_boundary_neighbor
-  derived_from: pool_ft_print_combn_T06
-  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex08/ft_print_combn.c)
-  original_input: 'Input:'
-  perturbed_input: 'Jnput:'
+near_examples: []

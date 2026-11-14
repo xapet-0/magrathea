@@ -1,9 +1,7 @@
-# Examples for is_consonant (from official subject specification)
-
-Example:
-
-    $>  is_consonant ('b') = 1
-    $>  is_consonant('C') = 1
-    $>  is_consonant('o') = 0
-    $>  is_consonant('A') = 0
-    $>  is_consonant('z') = 1
+Examples:
+    is_consonant('b') -> 1
+    is_consonant('C') -> 1
+    is_consonant('o') -> 0
+    is_consonant('A') -> 0
+    is_consonant('z') -> 1
+    is_consonant('1') -> 0

@@ -1,12 +1,35 @@
+support_code: "int ft_ten_queens_puzzle(void);\n\nstatic int dt_verify_ten_queens(void)\n\
+  {\n  int fd;\n  int saved;\n  char buf[8192];\n  ssize_t total;\n  ssize_t r;\n\
+  \  int ret;\n  int i;\n  int j;\n  int a;\n  int b;\n  int seen_ex1;\n  int seen_ex2;\n\
+  \n  fd = open(\"__dt_tenq.out\", O_RDWR | O_CREAT | O_TRUNC, 0600);\n  saved = dup(1);\n\
+  \  if (fd < 0 || saved < 0)\n    return (-1);\n  dup2(fd, 1);\n  ret = ft_ten_queens_puzzle();\n\
+  \  fflush(stdout);\n  dup2(saved, 1);\n  close(saved);\n  lseek(fd, 0, SEEK_SET);\n\
+  \  total = 0;\n  while (total < (ssize_t)sizeof(buf))\n  {\n    r = read(fd, buf\
+  \ + total, sizeof(buf) - (size_t)total);\n    if (r <= 0)\n      break ;\n    total\
+  \ += r;\n  }\n  close(fd);\n  unlink(\"__dt_tenq.out\");\n  if (ret != 724 || total\
+  \ != 724 * 11)\n    return (-2);\n  seen_ex1 = 0;\n  seen_ex2 = 0;\n  for (i = 0;\
+  \ i < 724; i++)\n  {\n    const char *row = buf + i * 11;\n    if (row[10] != '\\\
+  n')\n      return (-3);\n    for (a = 0; a < 10; a++)\n    {\n      if (row[a] <\
+  \ '0' || row[a] > '9')\n        return (-4);\n      for (b = a + 1; b < 10; b++)\n\
+  \      {\n        int dr = row[a] - row[b];\n        if (dr == 0 || dr == a - b\
+  \ || dr == b - a)\n          return (-5);\n      }\n    }\n    for (j = 0; j < i;\
+  \ j++)\n    {\n      if (memcmp(buf + j * 11, row, 10) == 0)\n        return (-6);\n\
+  \    }\n    if (memcmp(row, \"0257948136\", 10) == 0)\n      seen_ex1 = 1;\n   \
+  \ if (memcmp(row, \"9742051863\", 10) == 0)\n      seen_ex2 = 1;\n  }\n  if (!seen_ex1\
+  \ || !seen_ex2)\n    return (-7);\n  return (ret);\n}\n"
 fixed_tests:
-- call: int saved=dup(1); FILE *sink=fopen("/dev/null","w"); dup2(fileno(sink),1);
-    int r=ft_ten_queens_puzzle(); fflush(stdout); dup2(saved,1); close(saved); fclose(sink);
-    printf("%d\n",r);
-  name: ten_queens_total_count_724
+- call: printf("%d\n", dt_verify_ten_queens());
+  name: ten_queens_all_724_solutions_verified
   stdout: '724
 
     '
 mode: c_function
-subject_examples: []
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_ten_queens_puzzle
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
 folder_examples: []
 near_examples: []

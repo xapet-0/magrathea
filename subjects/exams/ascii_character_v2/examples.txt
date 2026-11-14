@@ -1,5 +1,3 @@
-# Examples for ascii_character_v2 (from official subject specification)
-
 Examples:
 $> ./ascii_character_v2 "A" | cat -e
 65$
@@ -7,3 +5,5 @@ $> ./ascii_character_v2 "z" | cat -e
 122$
 $> ./ascii_character_v2 "0" | cat -e
 48$
+$> ./ascii_character_v2 | cat -e
+$

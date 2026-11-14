@@ -1,3 +1,2 @@
-Examples:
-$> ./diff | cat -e
-$
+# Official PDF shows `%> cat -e a` and `%> diff a b > sw.diff`.
+# Use `man patch` and `man diff` to create file b from a and sw.diff.

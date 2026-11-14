@@ -28,61 +28,45 @@ fixed_tests:
 
     '
   tier: baseline
-- name: test_05_arg_auto
+- name: edge_nth_rev_step_1
   args:
-  - ''
-  - ''
-  tier: baseline
-  stdout: '
+  - abcdef
+  - '1'
+  stdout: 'abcdef
 
     '
-- name: test_06_arg_auto
+  tier: edge_case
+- name: edge_nth_rev_step_gt_len
   args:
-  - '42'
-  - '1337'
-  tier: baseline
-  stdout: '24
+  - abcde
+  - '10'
+  stdout: 'edcba
 
     '
-- name: test_07_arg_auto
-  args:
-  - pad
-  - test
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_08_arg_auto
-  args:
-  - '!@#$'
-  - '%^&*'
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_09_arg_auto
+  tier: edge_case
+- name: edge_nth_rev_zero_step
   args:
   - abc
-  - abcdef
-  tier: baseline
+  - '0'
   stdout: '
 
     '
-- name: test_10_arg_auto
+  tier: edge_case
+- name: edge_nth_rev_empty_str
   args:
-  - same
-  - same
-  tier: baseline
+  - ''
+  - '2'
   stdout: '
 
     '
+  tier: edge_case
 subject_id: nth_reverse
 mode: c_program
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./nth_reverse "abcdef" "2" | cat -e
-  args: &id001
+  args:
   - abcdef
   - '2'
   expected: 'badcfe
@@ -100,7 +84,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./nth_reverse "ABCDEFG" "3" | cat -e
-  args: &id002
+  args:
   - ABCDEFG
   - '3'
   expected: 'CBAFEDG
@@ -110,7 +94,7 @@ subject_examples:
 - id: subj_ex_04
   origin: subject.en.txt
   command: ./nth_reverse "ABC" | cat -e
-  args: &id003
+  args:
   - ABC
   expected: '
 
@@ -144,36 +128,44 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - abcdef
+  - '2'
   perturbed_input:
   - bbcdef
   - '3'
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - abcdef
+  - '2'
   perturbed_input:
   - '  abcdef  '
   - '2'
 - id: near_subj_02_arity_perturbation
   derived_from: subj_ex_02
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./nth_reverse | cat -e
   perturbed_input:
-  - nth_reverse_near_arg_1
-  - nth_reverse_near_arg_2
+  - arg1
+  - arg2
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - ABCDEFG
+  - '3'
   perturbed_input:
   - BBCDEFG
   - '4'
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - ABCDEFG
+  - '3'
   perturbed_input:
   - '  ABCDEFG  '
   - '3'
@@ -181,22 +173,24 @@ near_examples:
   derived_from: subj_ex_04
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - ABC
   perturbed_input:
   - BBC
 - id: near_subj_04_whitespace_envelope
   derived_from: subj_ex_04
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - ABC
   perturbed_input:
   - '  ABC  '
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_nth_reverse_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./nth_reverse "abcdef" "2" \| cat -e
-  perturbed_input: ./oth_reverse "abcdef" "2" \| cat -e
+  perturbed_input: ./nth_reverse bbcdef 3 | cat -e
 - id: near_folder_02_boundary_neighbor
   derived_from: e1337_nth_reverse_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./nth_reverse \| cat -e
-  perturbed_input: ./oth_reverse \| cat -e
+  perturbed_input: ./nth_reverse arg1 | cat -e

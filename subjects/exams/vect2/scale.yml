@@ -4,23 +4,27 @@ stop_on_first_failure: true
 zero_tolerance_gates:
 - segfault
 - memory_leak
-- norme_error
+- compile_error
 - forbidden_function
 sections:
 - id: preliminaries
-  title: 'Step 1: Preliminaries & Vogsphere Integrity Check'
+  title: 'Step 1: Preliminaries & C++ Compilation Check'
   points: 20
   checks:
-  - Clone official Vogsphere repository into an empty folder.
-  - Verify no malicious shell aliases or unauthorized files exist.
-  - Run norminette / shnorm and verify clean compilation with -Wall -Wextra -Werror.
+  - Verify expected C++ files (vect2.cpp vect2.hpp) exist in rendu/ exam workspace
+    with no extraneous build artifacts.
+  - Compile cleanly with `c++ -Wall -Wextra -Werror` against the evaluation test harness
+    (Norminette disabled).
+  - 'Verify only permitted functions/constructs are used: write, printf.'
 - id: explain_before_checking
-  title: 'Step 2: Conceptual Defense (Explain Before Checking)'
+  title: 'Step 2: Class Design & Ownership Defense'
   points: 30
   checks:
-  - Student explains data structures and control flow before executing tests.
+  - Student explains class invariants, Orthodox Canonical Form, `new`/`delete` ownership,
+    and polymorphism before executing tests.
 - id: live_mutation
   title: 'Step 3: Live Mutation & Edge-Case Verification'
   points: 50
   checks:
-  - Inject a live boundary modification on the spot and verify deterministic behavior.
+  - Test copy/assignment boundaries, extreme numeric/string inputs, and polymorphism
+    with zero leaks.

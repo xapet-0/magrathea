@@ -73,33 +73,11 @@ fixed_tests:
   expected: '
 
     '
-- name: subj_ex_05
-  tier: subject_example
-  args:
-  - vous voyez c'est facile d'afficher la meme chose
-  expected: 'vous voyez c''est facile d''afficher la meme chose
-
-    '
-- name: subj_ex_06
-  tier: subject_example
-  args:
-  - ' seulement          la c''est      plus dur '
-  expected: 'seulement la c''est plus dur
-
-    '
-- name: subj_ex_07
-  tier: subject_example
-  args:
-  - comme c'est cocasse
-  - vous avez entendu, Mathilde ?
-  expected: '
-
-    '
 - name: near_ex_too_many_args
   tier: near_example
   args:
-  - near_arg_1
-  - near_arg_2
+  - arg1
+  - arg2
   expected: '
 
     '
@@ -107,7 +85,7 @@ subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./epur_str "See? It's easy to print the same thing" | cat -e
-  args: &id001
+  args:
   - See? It's easy to print the same thing
   expected: 'See? It''s easy to print the same thing
 
@@ -117,7 +95,7 @@ subject_examples:
   origin: subject.en.txt
   command: ./epur_str " this        time it      will     be    more complex  . "
     | cat -e
-  args: &id002
+  args:
   - ' this        time it      will     be    more complex  . '
   expected: 'this time it will be more complex .
 
@@ -126,7 +104,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./epur_str "No S*** Sherlock..." "nAw S*** ShErLaWQ..." | cat -e
-  args: &id003
+  args:
   - No S*** Sherlock...
   - nAw S*** ShErLaWQ...
   expected: '
@@ -134,44 +112,6 @@ subject_examples:
     '
   cat_e: true
 - id: subj_ex_04
-  origin: subject.en.txt
-  command: ./epur_str "" | cat -e
-  args: &id004
-  - ''
-  expected: '
-
-    '
-  cat_e: true
-- id: subj_ex_05
-  origin: subject.en.txt
-  command: ./epur_str "vous voyez c'est facile d'afficher la meme chose" | cat -e
-  args:
-  - vous voyez c'est facile d'afficher la meme chose
-  expected: 'vous voyez c''est facile d''afficher la meme chose
-
-    '
-  cat_e: true
-- id: subj_ex_06
-  origin: subject.en.txt
-  command: ./epur_str " seulement          la c'est      plus dur " | cat -e
-  args:
-  - ' seulement          la c''est      plus dur '
-  expected: 'seulement la c''est plus dur
-
-    '
-  cat_e: true
-- id: subj_ex_07
-  origin: subject.en.txt
-  command: ./epur_str "comme c'est cocasse" "vous avez entendu, Mathilde ?" | cat
-    -e
-  args:
-  - comme c'est cocasse
-  - vous avez entendu, Mathilde ?
-  expected: '
-
-    '
-  cat_e: true
-- id: subj_ex_08
   origin: subject.en.txt
   command: ./epur_str "" | cat -e
   args:
@@ -211,15 +151,16 @@ folder_examples:
   expected: Matches 42 reference standard output and exit code
 - id: can_epur_str_T13
   origin: subject_folder/examples.txt
-  input: ./epur_str "vous voyez c'est facile d'afficher la meme chose" \| cat -e
-  expected: vous voyez c'est facile d'afficher la meme chose$
+  input: ./epur_str "See? It's easy to print the same thing" \| cat -e
+  expected: See? It's easy to print the same thing$
 - id: can_epur_str_T14
   origin: subject_folder/examples.txt
-  input: ./epur_str " seulement          la c'est      plus dur " \| cat -e
-  expected: seulement la c'est plus dur$
+  input: ./epur_str " this        time it      will     be    more complex  . " \|
+    cat -e
+  expected: this time it will be more complex .$
 - id: can_epur_str_T15
   origin: subject_folder/examples.txt
-  input: ./epur_str "comme c'est cocasse" "vous avez entendu, Mathilde ?" \| cat -e
+  input: ./epur_str "No S*** Sherlock..." "nAw S*** ShErLaWQ..." \| cat -e
   expected: $
 - id: can_epur_str_T16
   origin: subject_folder/examples.txt
@@ -230,40 +171,48 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - See? It's easy to print the same thing
   perturbed_input:
   - Tee? It's easy to print the same thing
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - See? It's easy to print the same thing
   perturbed_input:
   - '  See? It''s easy to print the same thing  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - ' this        time it      will     be    more complex  . '
   perturbed_input:
   - ' uhis        time it      will     be    more complex  . '
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - ' this        time it      will     be    more complex  . '
   perturbed_input:
   - '   this        time it      will     be    more complex  .   '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - No S*** Sherlock...
+  - nAw S*** ShErLaWQ...
   perturbed_input:
   - Oo S*** Sherlock...
   - oAw S*** ShErLaWQ...
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - No S*** Sherlock...
+  - nAw S*** ShErLaWQ...
   perturbed_input:
   - '  No S*** Sherlock...  '
   - nAw S*** ShErLaWQ...
@@ -271,22 +220,25 @@ near_examples:
   derived_from: subj_ex_04
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id004
+  original_input:
+  - ''
   perturbed_input:
   - ' '
 - id: near_subj_04_whitespace_envelope
   derived_from: subj_ex_04
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id004
+  original_input:
+  - ''
   perturbed_input:
   - '    '
 - id: near_folder_01_boundary_neighbor
   derived_from: can_epur_str_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/epur_str/tester.sh)
   original_input: ./epur_str "comme c'est cocasse" "vous avez entendu, Mathilde ?"
-  perturbed_input: ./fpur_str "comme c'est cocasse" "vous a
+  perturbed_input: ./epur_str 'domme c'"'"'est cocasse' 'wous avez entendu, Mathilde
+    ?'
 - id: near_folder_02_boundary_neighbor
   derived_from: can_epur_str_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/epur_str/tester.sh)
   original_input: ./epur_str "See? It's easy to print the same thing"
-  perturbed_input: './fpur_str "See? It''s easy to print the '
+  perturbed_input: ./epur_str 'Tee? It'"'"'s easy to print the same thing'

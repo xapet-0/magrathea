@@ -1,6 +1,4 @@
-# Examples for vbc (without tree) (from official subject specification)
-
-example this should work:
+Examples:
 $> ./vbc '1' | cat -e
 1$
 $> ./vbc '2+3' | cat -e

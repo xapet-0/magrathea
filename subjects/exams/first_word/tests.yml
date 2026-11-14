@@ -43,43 +43,39 @@ fixed_tests:
   expected: 'FOR_PONY_NEAR
 
     '
-- name: test_07_arg_auto
+- name: edge_fw_empty
   args:
   - ''
-  - ''
-  tier: baseline
   stdout: '
 
     '
-- name: test_08_arg_auto
+  tier: edge_case
+- name: edge_fw_tabs_only
   args:
-  - '42'
-  - '1337'
-  tier: baseline
+  - "\t  \t"
   stdout: '
 
     '
-- name: test_09_arg_auto
+  tier: edge_case
+- name: edge_fw_solo
   args:
-  - pad
-  - test
-  tier: baseline
-  stdout: '
+  - solo
+  stdout: 'solo
 
     '
-- name: test_10_arg_auto
+  tier: edge_case
+- name: edge_fw_trailing_tab
   args:
-  - '!@#$'
-  - '%^&*'
-  tier: baseline
-  stdout: '
+  - "word\t"
+  stdout: 'word
 
     '
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./first_word "FOR PONY" | cat -e
-  args: &id001
+  args:
   - FOR PONY
   expected: 'FOR
 
@@ -89,7 +85,7 @@ subject_examples:
   origin: subject.en.txt
   command: ./first_word "this        ...       is sparta, then again, maybe    not"
     | cat -e
-  args: &id002
+  args:
   - this        ...       is sparta, then again, maybe    not
   expected: 'this
 
@@ -98,7 +94,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./first_word "   " | cat -e
-  args: &id003
+  args:
   - '   '
   expected: '
 
@@ -107,7 +103,7 @@ subject_examples:
 - id: subj_ex_04
   origin: subject.en.txt
   command: ./first_word "a" "b" | cat -e
-  args: &id004
+  args:
   - a
   - b
   expected: '
@@ -178,53 +174,63 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - FOR PONY
   perturbed_input:
   - GOR PONY
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - FOR PONY
   perturbed_input:
   - '  FOR PONY  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - this        ...       is sparta, then again, maybe    not
   perturbed_input:
   - uhis        ...       is sparta, then again, maybe    not
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - this        ...       is sparta, then again, maybe    not
   perturbed_input:
   - '  this        ...       is sparta, then again, maybe    not  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - '   '
   perturbed_input:
   - '   !'
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - '   '
   perturbed_input:
   - '       '
 - id: near_subj_04_lexical_shift
   derived_from: subj_ex_04
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id004
+  original_input:
+  - a
+  - b
   perturbed_input:
   - b
   - c
 - id: near_subj_04_whitespace_envelope
   derived_from: subj_ex_04
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id004
+  original_input:
+  - a
+  - b
   perturbed_input:
   - '  a  '
   - b
@@ -232,9 +238,9 @@ near_examples:
   derived_from: can_first_word_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/first_word/tester.sh)
   original_input: ./first_word "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
-  perturbed_input: ./girst_word "wNcOre Un ExEmPle Pas Faci
+  perturbed_input: ./first_word 'xNcOre Un ExEmPle Pas Facilw a Ecrirw ' x f
 - id: near_folder_02_boundary_neighbor
   derived_from: can_first_word_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/first_word/tester.sh)
   original_input: ./first_word "   "
-  perturbed_input: ./girst_word "   "
+  perturbed_input: ./first_word '   !'

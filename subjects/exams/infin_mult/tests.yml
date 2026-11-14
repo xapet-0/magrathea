@@ -40,59 +40,65 @@ fixed_tests:
     '
   category: Functional
   tier: baseline
-- name: test_05_arg_auto
-  args:
-  - ''
-  - ''
-  tier: baseline
+- name: edge_infin_mult_no_args
+  args: []
   stdout: '
 
     '
-- name: test_06_arg_auto
+  tier: edge_case
+- name: edge_infin_mult_one_arg
   args:
   - '42'
-  - '1337'
-  tier: baseline
-  stdout: '56154
+  stdout: '
 
     '
-- name: test_07_arg_auto
+  tier: edge_case
+- name: edge_infin_mult_three_args
   args:
-  - pad
-  - test
-  tier: baseline
-  stdout: '1971796
+  - '1'
+  - '2'
+  - '3'
+  stdout: '
 
     '
-- name: test_08_arg_auto
+  tier: edge_case
+- name: edge_infin_mult_neg_by_neg_zero
   args:
-  - '!@#$'
-  - '%^&*'
-  tier: baseline
-  stdout: '89''05(52
+  - '-9999999999'
+  - '-0'
+  stdout: '0
 
     '
-- name: test_09_arg_auto
+  tier: edge_case
+- name: edge_infin_mult_by_neg_one
   args:
-  - abc
-  - abcdef
-  tier: baseline
-  stdout: 'Y44929584
+  - '-1'
+  - '12345678901234567890'
+  stdout: '-12345678901234567890
 
     '
-- name: test_10_arg_auto
+  tier: edge_case
+- name: edge_infin_mult_leading_zeros
   args:
-  - same
-  - same
-  tier: baseline
-  stdout: '>5388969
+  - '-00012'
+  - '-0003'
+  stdout: '36
 
     '
+  tier: edge_case
+- name: edge_infin_mult_huge
+  args:
+  - '11111111111111111111'
+  - '1111111111'
+  stdout: '12345679011111111110987654321
+
+    '
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./infin_mult "879879087" "67548976597" | cat -e
-  args: &id001
+  args:
   - '879879087'
   - '67548976597'
   expected: '59434931855952726939
@@ -102,7 +108,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./infin_mult "9999999999" "0" | cat -e
-  args: &id002
+  args:
   - '9999999999'
   - '0'
   expected: '0
@@ -112,7 +118,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./infin_mult "-6" "7" | cat -e
-  args: &id003
+  args:
   - '-6'
   - '7'
   expected: '-42
@@ -122,7 +128,7 @@ subject_examples:
 - id: subj_ex_04
   origin: subject.en.txt
   command: ./infin_mult "-6" "-7" | cat -e
-  args: &id004
+  args:
   - '-6'
   - '-7'
   expected: '42
@@ -151,14 +157,18 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - '879879087'
+  - '67548976597'
   perturbed_input:
   - '879879088'
   - '67548976598'
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - '879879087'
+  - '67548976597'
   perturbed_input:
   - '  879879087  '
   - '67548976597'
@@ -166,14 +176,18 @@ near_examples:
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - '9999999999'
+  - '0'
   perturbed_input:
   - '10000000000'
   - '1'
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - '9999999999'
+  - '0'
   perturbed_input:
   - '  9999999999  '
   - '0'
@@ -181,14 +195,18 @@ near_examples:
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - '-6'
+  - '7'
   perturbed_input:
   - '-7'
   - '8'
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - '-6'
+  - '7'
   perturbed_input:
   - '  -6  '
   - '7'
@@ -196,14 +214,18 @@ near_examples:
   derived_from: subj_ex_04
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id004
+  original_input:
+  - '-6'
+  - '-7'
   perturbed_input:
   - '-7'
   - '-8'
 - id: near_subj_04_whitespace_envelope
   derived_from: subj_ex_04
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id004
+  original_input:
+  - '-6'
+  - '-7'
   perturbed_input:
   - '  -6  '
   - '-7'
@@ -211,30 +233,9 @@ near_examples:
   derived_from: can_infin_mult_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./infin_mult "879879087" "67548976597" \| cat -e
-  perturbed_input: ./jnfin_mult "879879087" "67548976597" \
+  perturbed_input: ./infin_mult 879879088 67548976598 | cat -e
 - id: near_folder_02_boundary_neighbor
   derived_from: can_infin_mult_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./infin_mult "9999999999" "0" \| cat -e
-  perturbed_input: ./jnfin_mult "9999999999" "0" \| cat -e
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `infin_mult`
-  input: infin_mult(INT_MIN), infin_mult(0), infin_mult(1)
-  expected: Correct mathematical result without signed overflow UB
-- name: edge_02_S
-  code: '[S]'
-  title: Arithmetic overflow and infinite recursion protection in `infin_mult`
-  input: Run infin_mult with large inputs
-  expected: Safe return or termination without stack overflow
-- name: edge_03_B
-  code: '[B]'
-  title: Zero factorial and power edge cases in `infin_mult`
-  input: infin_mult(0)
-  expected: Canonical mathematical result for 0
-- name: edge_04_T
-  code: '[T]'
-  title: Time complexity guard against exponential runtime in `infin_mult`
-  input: Call infin_mult on large prime or composite integer
-  expected: Execute within 0.5s limit without timing out
+  perturbed_input: ./infin_mult 10000000000 1 | cat -e

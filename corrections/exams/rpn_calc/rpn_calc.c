@@ -102,7 +102,7 @@ int		main(int ac, char **av)
 			else
 				break;
 		}
-		if (*str || begin_list->next)
+		if (!begin_list || *str || begin_list->next)
 			write(1, "Error\n", 6);
 		else
 			printf("%d\n", begin_list->val);

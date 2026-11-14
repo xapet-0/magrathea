@@ -105,20 +105,13 @@ folder_examples:
     \nNAME\n\tstrcspn -- span the complement of a string\n\nLIBRARY\n\tStandard C\
     \ Library (l"
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_strcspn
-  perturbed_input:
-  - ft_strcspn_near_arg_1
-  - ft_strcspn_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_ft_strcspn_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strcspn/tester.sh)
   original_input: ./ft_strcspn "test" "es"
-  perturbed_input: ./gt_strcspn "test" "es"
+  perturbed_input: ./ft_strcspn uest fs
 - id: near_folder_02_boundary_neighbor
   derived_from: can_ft_strcspn_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strcspn/tester.sh)
   original_input: ./ft_strcspn "hello World" "hello world"
-  perturbed_input: ./gt_strcspn "hello World" "hello world"
+  perturbed_input: ./ft_strcspn 'iello World' 'iello world'

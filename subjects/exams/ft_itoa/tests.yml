@@ -96,20 +96,13 @@ folder_examples:
     {\n\tprintf(\"%s\\n\", ft_itoa(33));\n\tprintf(\"%s\\n\", ft_itoa(-33));\n\tprintf(\"\
     %s\\n\", ft_itoa(12345));"
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_itoa
-  perturbed_input:
-  - ft_itoa_near_arg_1
-  - ft_itoa_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_ft_itoa_T04
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_itoa/tester.sh)
   original_input: ./ft_itoa "16"
-  perturbed_input: ./gt_itoa "16"
+  perturbed_input: ./ft_itoa 17
 - id: near_folder_02_boundary_neighbor
   derived_from: can_ft_itoa_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_itoa/tester.sh)
   original_input: ./ft_itoa "-13268"
-  perturbed_input: ./gt_itoa "-13268"
+  perturbed_input: ./ft_itoa -13269

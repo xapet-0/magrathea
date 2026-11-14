@@ -81,27 +81,24 @@ folder_examples:
   origin: subject_folder/main.c
 mode: c_program
 near_examples:
-- derived_from: subj_ex_01
-  id: near_subj_01_lexical_shift
-  original_input: &id001
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
   - 4 3 2 1 1 2 2 2 4 3 2 1 1 2 2 2
   perturbed_input:
   - 4 3 2 1 1 2 2 2 4 3 2 1 1 2 2 2!
-  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
-    strcmp(argv[1])
-- derived_from: subj_ex_01
-  id: near_subj_01_whitespace_envelope
-  original_input: *id001
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - 4 3 2 1 1 2 2 2 4 3 2 1 1 2 2 2
   perturbed_input:
   - '  4 3 2 1 1 2 2 2 4 3 2 1 1 2 2 2  '
-  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-- derived_from: folder_fixture_01
-  id: near_folder_01_boundary_neighbor
-  original_input: main.c
-  perturbed_input: nain.c
-  strategy: Neighbouring perturbation of folder example (subject_folder/main.c)
 subject_examples:
-- args: *id001
+- args:
+  - 4 3 2 1 1 2 2 2 4 3 2 1 1 2 2 2
   cat_e: true
   command: ./rush-01 "4 3 2 1 1 2 2 2 4 3 2 1 1 2 2 2" | cat -e
   expected: '1 2 3 4

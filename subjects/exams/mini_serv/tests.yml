@@ -73,19 +73,60 @@ fixed_tests:
 
     '
 - name: multi_client_broadcast_and_disconnect
-  python_harness: "import socket, subprocess, sys, time\nexe = sys.argv[1]\ns = socket.socket()\n\
-    s.bind((\"127.0.0.1\", 0))\nport = s.getsockname()[1]\ns.close()\np = subprocess.Popen([exe,\
-    \ str(port)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)\ntry:\n    time.sleep(0.15)\n\
-    \    c0 = socket.create_connection((\"127.0.0.1\", port), timeout=1.0)\n    time.sleep(0.05)\n\
-    \    c1 = socket.create_connection((\"127.0.0.1\", port), timeout=1.0)\n    time.sleep(0.05)\n\
-    \    assert c0.recv(1024) == b\"server: client 1 just arrived\\n\"\n    c0.sendall(b\"\
-    hello\\nworld\\n\")\n    time.sleep(0.05)\n    got = c1.recv(1024)\n    assert\
-    \ got == b\"client 0: hello\\nclient 0: world\\n\", f\"Got {got!r}\"\n    c1.close()\n\
-    \    time.sleep(0.05)\n    assert c0.recv(1024) == b\"server: client 1 just left\\\
-    n\"\n    c0.close()\n    print(\"OK\")\nfinally:\n    p.kill()\n    p.wait()\n"
+  python_harness: "import socket, subprocess, sys, time\n\nexe = sys.argv[1]\ns =\
+    \ socket.socket()\ns.bind(('127.0.0.1', 0))\nport = s.getsockname()[1]\ns.close()\n\
+    \ndef connect_retry(pno):\n    deadline = time.time() + 1.5\n    while True:\n\
+    \        try:\n            return socket.create_connection(('127.0.0.1', pno),\
+    \ timeout=1.0)\n        except OSError:\n            if time.time() > deadline:\n\
+    \                raise\n            time.sleep(0.02)\n\ndef recv_exact(sock, exp):\n\
+    \    buf = b''\n    while len(buf) < len(exp):\n        chunk = sock.recv(len(exp)\
+    \ - len(buf))\n        if not chunk:\n            break\n        buf += chunk\n\
+    \    assert buf == exp, f'Expected {exp!r}, got {buf!r}'\n\np = subprocess.Popen([exe,\
+    \ str(port)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)\ntry:\n    c0 =\
+    \ connect_retry(port)\n    time.sleep(0.02)\n    c1 = connect_retry(port)\n  \
+    \  recv_exact(c0, b'server: client 1 just arrived\\n')\n    c0.sendall(b'hello\\\
+    nworld\\n')\n    recv_exact(c1, b'client 0: hello\\nclient 0: world\\n')\n   \
+    \ c1.close()\n    recv_exact(c0, b'server: client 1 just left\\n')\n    c0.close()\n\
+    \    print('OK')\nfinally:\n    p.kill()\n    p.wait()\n"
   expected: 'OK
 
     '
-subject_examples: []
+- name: chunked_long_message_and_three_clients_id_monotonicity
+  python_harness: "import socket, subprocess, sys, time\n\nexe = sys.argv[1]\ns =\
+    \ socket.socket()\ns.bind(('127.0.0.1', 0))\nport = s.getsockname()[1]\ns.close()\n\
+    \ndef connect_retry(pno):\n    deadline = time.time() + 1.5\n    while True:\n\
+    \        try:\n            return socket.create_connection(('127.0.0.1', pno),\
+    \ timeout=1.0)\n        except OSError:\n            if time.time() > deadline:\n\
+    \                raise\n            time.sleep(0.02)\n\ndef recv_exact(sock, exp):\n\
+    \    buf = b''\n    while len(buf) < len(exp):\n        chunk = sock.recv(len(exp)\
+    \ - len(buf))\n        if not chunk:\n            break\n        buf += chunk\n\
+    \    assert buf == exp, f'Expected {exp!r}, got {buf!r}'\n\np = subprocess.Popen([exe,\
+    \ str(port)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)\ntry:\n    c0 =\
+    \ connect_retry(port)\n    time.sleep(0.02)\n    c1 = connect_retry(port)\n  \
+    \  recv_exact(c0, b'server: client 1 just arrived\\n')\n    c2 = connect_retry(port)\n\
+    \    recv_exact(c0, b'server: client 2 just arrived\\n')\n    recv_exact(c1, b'server:\
+    \ client 2 just arrived\\n')\n\n    c0.sendall(b'split_')\n    c1.settimeout(0.04)\n\
+    \    try:\n        premature = c1.recv(1024)\n        raise AssertionError(f'Received\
+    \ premature unterminated fragment: {premature!r}')\n    except socket.timeout:\n\
+    \        pass\n    finally:\n        c1.settimeout(1.0)\n\n    c0.sendall(b'message\\\
+    n')\n    recv_exact(c1, b'client 0: split_message\\n')\n    recv_exact(c2, b'client\
+    \ 0: split_message\\n')\n\n    payload = b'X' * 1500 + b'\\n'\n    c1.sendall(payload)\n\
+    \    exp_long = b'client 1: ' + payload\n    recv_exact(c0, exp_long)\n    recv_exact(c2,\
+    \ exp_long)\n\n    c0.sendall(b'dangling_no_nl')\n    time.sleep(0.02)\n    c0.close()\n\
+    \    recv_exact(c1, b'server: client 0 just left\\n')\n    recv_exact(c2, b'server:\
+    \ client 0 just left\\n')\n\n    c3 = connect_retry(port)\n    recv_exact(c1,\
+    \ b'server: client 3 just arrived\\n')\n    recv_exact(c2, b'server: client 3\
+    \ just arrived\\n')\n    c3.close()\n    c2.close()\n    c1.close()\n    print('OK')\n\
+    finally:\n    p.kill()\n    p.wait()\n"
+  expected: 'OK
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval mini_serv
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
 folder_examples: []
 near_examples: []

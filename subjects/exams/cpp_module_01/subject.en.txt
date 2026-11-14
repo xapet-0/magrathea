@@ -1,9 +1,5 @@
-Assignment name  : cpp01_02
-Expected files   : Warlock.cpp Warlock.hpp
-                   ASpell.hpp ASpell.cpp
-				   ATarget.hpp ATarget.cpp
-				   Fwoosh.hpp Fwoosh.cpp
-				   LittleKid.hpp LittleKid.cpp
+Assignment name  : cpp_module_01
+Expected files   : Warlock.cpp Warlock.hpp ASpell.cpp ASpell.hpp ATarget.cpp ATarget.hpp Fwoosh.cpp Fwoosh.hpp Dummy.cpp Dummy.hpp
 --------------------------------------------------------------------------------
 
 In the Warlock class, the switch statement is FORBIDDEN and its use would
@@ -60,7 +56,7 @@ is "Target Practice Dummy". You must also implement its clone() method.
 Add to the Warlock the following member functions:
 
 * learnSpell, takes a pointer to ASpell, that makes the Warlock learn a spell
-* forgetSpell, takes a string corresponding a to a spell's name, and makes the
+* forgetSpell, takes a string corresponding to a spell's name, and makes the
   Warlock forget it. If it's not a known spell, does nothing.
 * launchSpell, takes a string (a spell name) and a reference to ATarget, that
   launches the spell on the selected target. If it's not a known spell, does
@@ -87,11 +83,8 @@ int main()
   richard.launchSpell("Fwoosh", bob);
 }
 
-~$ ./a.out | cat -e
+$> ./a.out | cat -e
 Richard: This looks like another boring day.$
 Richard: I am Richard, the Titled!$
 Target Practice Dummy has been fwooshed!$
 Richard: My job here is done!$
-
-[cpp_cpp_module_01_T01] Input: `cpp_module_01()` (zero / void parameter call)  ==>  Expected: *(none)*
-[cpp_cpp_module_01_T02] Input: Harness evaluation: int main() Warlock richard("Richard", "the Titled"); Dummy bob; Fwoosh* fwoosh = new Fwoosh(); richard.learnSpell(fwoosh...  ==>  Expected: Richard: This looks like another boring day.\nRichard: I am Richard, the Titled!\nTarget Practice Dummy has been fwooshed!\nRichard: My job here is done!

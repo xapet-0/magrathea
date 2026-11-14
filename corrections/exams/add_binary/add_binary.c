@@ -17,7 +17,6 @@ char *add_binary(char *a, char *b)
         buf[k++] = (s % 2) + '0';
         carry = s / 2;
     }
-    if (k == 0) buf[k++] = '0';
     for (int l = 0; l < k / 2; l++) {
         char t = buf[l]; buf[l] = buf[k - 1 - l]; buf[k - 1 - l] = t;
     }

@@ -29,61 +29,53 @@ fixed_tests:
 
     '
   tier: baseline
-- name: test_05_arg_auto
+- name: edge_inter_space_empty1
   args:
   - ''
-  - ''
-  tier: baseline
+  - abc
   stdout: '
 
     '
-- name: test_06_arg_auto
-  args:
-  - '42'
-  - '1337'
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_07_arg_auto
-  args:
-  - pad
-  - test
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_08_arg_auto
-  args:
-  - '!@#$'
-  - '%^&*'
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_09_arg_auto
+  tier: edge_case
+- name: edge_inter_space_empty2
   args:
   - abc
-  - abcdef
-  tier: baseline
+  - ''
+  stdout: '
+
+    '
+  tier: edge_case
+- name: edge_inter_space_dups
+  args:
+  - abca
+  - cba
   stdout: 'a b c
 
     '
-- name: test_10_arg_auto
+  tier: edge_case
+- name: edge_inter_space_one_arg
   args:
-  - same
-  - same
-  tier: baseline
-  stdout: 's a m e
+  - a
+  stdout: '
 
     '
+  tier: edge_case
+- name: edge_inter_space_three_args
+  args:
+  - '1'
+  - '2'
+  - '3'
+  stdout: '
+
+    '
+  tier: edge_case
 subject_id: inter_space
 mode: c_program
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./inter_space "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" | cat -e
-  args: &id001
+  args:
   - padinton
   - paqefwtdjetyiytjneytjoeyjnejeyj
   expected: 'p a d i n t o
@@ -93,7 +85,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./inter_space "abc" "bcd" | cat -e
-  args: &id002
+  args:
   - abc
   - bcd
   expected: 'b c
@@ -103,7 +95,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./inter_space "a" "a" | cat -e
-  args: &id003
+  args:
   - a
   - a
   expected: 'a
@@ -146,14 +138,18 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - padinton
+  - paqefwtdjetyiytjneytjoeyjnejeyj
   perturbed_input:
   - qadinton
   - qaqefwtdjetyiytjneytjoeyjnejeyj
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - padinton
+  - paqefwtdjetyiytjneytjoeyjnejeyj
   perturbed_input:
   - '  padinton  '
   - paqefwtdjetyiytjneytjoeyjnejeyj
@@ -161,14 +157,18 @@ near_examples:
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - abc
+  - bcd
   perturbed_input:
   - bbc
   - ccd
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - abc
+  - bcd
   perturbed_input:
   - '  abc  '
   - bcd
@@ -176,32 +176,36 @@ near_examples:
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - a
+  - a
   perturbed_input:
   - b
   - b
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - a
+  - a
   perturbed_input:
   - '  a  '
   - a
 - id: near_subj_04_arity_perturbation
   derived_from: subj_ex_04
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./inter_space | cat -e
   perturbed_input:
-  - inter_space_near_arg_1
-  - inter_space_near_arg_2
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_inter_space_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./inter_space "padinton" "paqefwtdjetyiytjneytjoeyjnejeyj" \| cat
     -e
-  perturbed_input: ./jnter_space "padinton" "paqefwtdjetyiy
+  perturbed_input: ./inter_space qadinton qaqefwtdjetyiytjneytjoeyjnejeyj | cat -e
 - id: near_folder_02_boundary_neighbor
   derived_from: e1337_inter_space_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./inter_space "abc" "bcd" \| cat -e
-  perturbed_input: ./jnter_space "abc" "bcd" \| cat -e
+  perturbed_input: ./inter_space bbc ccd | cat -e

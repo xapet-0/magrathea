@@ -1,6 +1,4 @@
-# Examples for triangle_area (from official subject specification)
-
-Example:
-
-    $> triangle_area(2, 4) = 6
-    $> triangle_area(1, 2) = 1
+Examples:
+    triangle_area(2, 4) -> 4
+    triangle_area(1, 2) -> 1
+    triangle_area(0, 5) -> 0

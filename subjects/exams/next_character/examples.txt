@@ -6,4 +6,4 @@ a$
 $> ./next_character | cat -e
 $
 $> ./next_character "" | cat -e
-Clean execution
+$

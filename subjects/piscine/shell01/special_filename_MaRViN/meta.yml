@@ -1,5 +1,5 @@
 id: special_filename_MaRViN
-type: shell
+type: shell_file
 module: Shell 01
 xp: 150
 expected_files:

@@ -47,43 +47,43 @@ fixed_tests:
   expected: '
 
     '
-- name: test_07_arg_auto
+- name: edge_wdmatch_empty_first
   args:
   - ''
-  - ''
-  tier: baseline
+  - abc
   stdout: '
 
     '
-- name: test_08_arg_auto
+  tier: edge_case
+- name: edge_wdmatch_empty_second
+  args:
+  - abc
+  - ''
+  stdout: '
+
+    '
+  tier: edge_case
+- name: edge_wdmatch_missing_dup
+  args:
+  - aba
+  - ab
+  stdout: '
+
+    '
+  tier: edge_case
+- name: edge_wdmatch_subseq_ok
   args:
   - '42'
-  - '1337'
-  tier: baseline
-  stdout: '
+  - '4132'
+  stdout: '42
 
     '
-- name: test_09_arg_auto
-  args:
-  - pad
-  - test
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_10_arg_auto
-  args:
-  - '!@#$'
-  - '%^&*'
-  tier: baseline
-  stdout: '
-
-    '
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./wdmatch "faya" "fgvvfdxcacpolhyghbreda" | cat -e
-  args: &id001
+  args:
   - faya
   - fgvvfdxcacpolhyghbreda
   expected: 'faya
@@ -93,7 +93,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./wdmatch "faya" "fgvvfdxcacpolhyghbred" | cat -e
-  args: &id002
+  args:
   - faya
   - fgvvfdxcacpolhyghbred
   expected: '
@@ -104,7 +104,7 @@ subject_examples:
   origin: subject.en.txt
   command: ./wdmatch "quarante deux" "qfqfsudf arzgsayns tsregfdgs sjytdekuoixq "
     | cat -e
-  args: &id003
+  args:
   - quarante deux
   - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
   expected: 'quarante deux
@@ -114,7 +114,7 @@ subject_examples:
 - id: subj_ex_04
   origin: subject.en.txt
   command: ./wdmatch "error" rrerrrfiiljdfxjyuifrrvcoojh | cat -e
-  args: &id004
+  args:
   - error
   - rrerrrfiiljdfxjyuifrrvcoojh
   expected: '
@@ -184,14 +184,18 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - faya
+  - fgvvfdxcacpolhyghbreda
   perturbed_input:
   - gaya
   - ggvvfdxcacpolhyghbreda
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - faya
+  - fgvvfdxcacpolhyghbreda
   perturbed_input:
   - '  faya  '
   - fgvvfdxcacpolhyghbreda
@@ -199,14 +203,18 @@ near_examples:
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - faya
+  - fgvvfdxcacpolhyghbred
   perturbed_input:
   - gaya
   - ggvvfdxcacpolhyghbred
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - faya
+  - fgvvfdxcacpolhyghbred
   perturbed_input:
   - '  faya  '
   - fgvvfdxcacpolhyghbred
@@ -214,14 +222,18 @@ near_examples:
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - quarante deux
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
   perturbed_input:
   - ruarante deux
   - 'rfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - quarante deux
+  - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
   perturbed_input:
   - '  quarante deux  '
   - 'qfqfsudf arzgsayns tsregfdgs sjytdekuoixq '
@@ -229,14 +241,18 @@ near_examples:
   derived_from: subj_ex_04
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id004
+  original_input:
+  - error
+  - rrerrrfiiljdfxjyuifrrvcoojh
   perturbed_input:
   - frror
   - srerrrfiiljdfxjyuifrrvcoojh
 - id: near_subj_04_whitespace_envelope
   derived_from: subj_ex_04
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id004
+  original_input:
+  - error
+  - rrerrrfiiljdfxjyuifrrvcoojh
   perturbed_input:
   - '  error  '
   - rrerrrfiiljdfxjyuifrrvcoojh
@@ -244,9 +260,9 @@ near_examples:
   derived_from: can_wdmatch_T09
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/wdmatch/tester.sh)
   original_input: ./wdmatch ddf6vewg64f gtwthgdwthdwfteewhrtag6h4ffdhsd
-  perturbed_input: ./xdmatch ddf6vewg64f gtwthgdwthdwfteewh
+  perturbed_input: ./wdmatch edf6vewg64f htwthgdwthdwfteewhrtag6h4ffdhsd
 - id: near_folder_02_boundary_neighbor
   derived_from: can_wdmatch_T10
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/wdmatch/tester.sh)
   original_input: ./wdmatch "rien" "cette phrase ne cache rien"
-  perturbed_input: './xdmatch "rien" "cette phrase ne cache '
+  perturbed_input: ./wdmatch sien 'dette phrase ne cache rien'

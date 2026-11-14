@@ -170,25 +170,4 @@ folder_examples:
     t[1].str=""; t[1].copy=""; t[2].size=1; t[2].str=" "; t[2].copy=" "; t[3].str=0;
     ft_show_tab(t)
   expected: \n1\n \n\n0\n\n \n1\n \n
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_show_tab
-  perturbed_input:
-  - ft_show_tab_near_arg_1
-  - ft_show_tab_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: pool_ft_show_tab_T01
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: struct s_stock_str t[2]; t[0].size=2; t[0].str="ab"; t[0].copy="ab";
-    t[1].str=0; ft_show_tab(t)
-  perturbed_input: ttruct s_stock_str t[2]; t[0].size=2; t[
-- id: near_folder_02_boundary_neighbor
-  derived_from: pool_ft_show_tab_T02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: struct s_stock_str t[3]; t[0].size=3; t[0].str="abc"; t[0].copy="abc";
-    t[1].size=1; t[1].str="Z"; t[1].copy="Z"; t[2].str=0; ft_show_tab(t)
-  perturbed_input: ttruct s_stock_str t[3]; t[0].size=3; t[
+near_examples: []

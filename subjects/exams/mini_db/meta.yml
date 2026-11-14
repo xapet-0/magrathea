@@ -29,5 +29,5 @@ id: mini_db
 module: Exam Rank 06
 norminette: false
 prototype: int main(int argc, char **argv);
-type: cpp_program
+type: cpp
 xp: 705

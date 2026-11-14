@@ -1,3 +1,2 @@
-Examples:
-$> ./ft_rev_int_tab | cat -e
-$
+# No examples in official PDF.
+# Use `man cc` and consult subject.en.txt for the exact specification.

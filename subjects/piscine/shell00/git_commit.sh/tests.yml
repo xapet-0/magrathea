@@ -8,9 +8,17 @@ mode: shell
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: ./git_commit.sh | cat -e
+  command: bash git_commit.sh | cat -e
   args: []
-  expected: '
+  expected: 'baa23b54f0adb7bf42623d6d0a6ed4587e11412a
+
+    2f52d74b1387fa80eea844969e8dc5483b531ac1
+
+    905f53d98656771334f53f59bb984fc29774701f
+
+    5ddc8474f4f15b3fcb72d08fcb333e19c3a27078
+
+    e94d0b448c03ec633f16d84d63beaef9ae7e7be8
 
     '
   cat_e: true
@@ -22,13 +30,13 @@ folder_examples:
 near_examples:
 - id: near_subj_01_arity_perturbation
   derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: ./git_commit.sh | cat -e
+  strategy: Perturb commit count / history boundary around subject.en.txt example
+  original_input: bash git_commit.sh | cat -e
   perturbed_input:
-  - git_commit.sh_near_arg_1
-  - git_commit.sh_near_arg_2
+  - git_commit.sh_3_commits
+  - git_commit.sh_6_commits
 - id: near_folder_01_boundary_neighbor
   derived_from: folder_ex_01
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: git_commit.sh baseline folder fixture
-  perturbed_input: hit_commit.sh baseline folder fixture
+  perturbed_input: git_commit.sh empty-repo fixture

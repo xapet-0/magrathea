@@ -13,5 +13,3 @@ Requirements:
 Examples:
 $> sh dup_finder.sh | cat -e
 42$
-$> sh dup_finder.sh | cat -e
-42$

@@ -1,3 +1,2 @@
-Examples:
-$> ./c09_libft | cat -e
-$
+# No examples in official PDF.
+# Use `man 1 sh, man cc, man 1 ar, man 1 ranlib` and consult subject.en.txt for the exact specification.

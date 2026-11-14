@@ -59,7 +59,7 @@ fixed_tests:
   call: char *s1=ft_convert_base("-2147483648","0123456789","0123456789"); char *s2=ft_convert_base("2147483647","0123456789","0123456789");
     printf("%s:%s\n",s1,s2); free(s1); free(s2);
   tier: stress
-  stdout: '-:2147483647
+  stdout: '-2147483648:2147483647
 
     '
 mode: c_function

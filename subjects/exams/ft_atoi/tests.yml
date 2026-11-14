@@ -51,6 +51,24 @@ fixed_tests:
   stdout: '0
 
     '
+- name: edge_empty_string
+  expr: ft_atoi("")
+  stdout: '0
+
+    '
+  tier: edge
+- name: edge_int_max
+  expr: ft_atoi("2147483647")
+  stdout: '2147483647
+
+    '
+  tier: edge
+- name: edge_plus_int_max
+  expr: ft_atoi("+2147483647")
+  stdout: '2147483647
+
+    '
+  tier: edge
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt (contract specification)
@@ -108,20 +126,13 @@ folder_examples:
   input: 'Input: -0'
   expected: 'Expected: 0'
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_atoi
-  perturbed_input:
-  - ft_atoi_near_arg_1
-  - ft_atoi_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_ft_atoi_T18
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_atoi/tester.sh)
   original_input: ./ft_atoi "13268!"
-  perturbed_input: ./gt_atoi "13268!"
+  perturbed_input: ./ft_atoi '13268!!'
 - id: near_folder_02_boundary_neighbor
   derived_from: can_ft_atoi_T19
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_atoi/tester.sh)
   original_input: ./ft_atoi "-13268!"
-  perturbed_input: ./gt_atoi "-13268!"
+  perturbed_input: ./ft_atoi '-13268!!'

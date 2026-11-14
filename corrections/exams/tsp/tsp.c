@@ -30,9 +30,9 @@ static void dfs(int u, int cnt, float cur)
 int main(void)
 {
     while (fscanf(stdin, "%f, %f", &xs[n], &ys[n]) == 2) n++;
-    if (n <= 1) { printf("0.00\n"); return 0; }
+    if (n <= 1) { fprintf(stdout, "0.00\n"); return 0; }
     used[0] = 1;
     dfs(0, 1, 0.0f);
-    printf("%.2f\n", best);
+    fprintf(stdout, "%.2f\n", best);
     return 0;
 }

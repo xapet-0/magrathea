@@ -64,63 +64,26 @@ mode: shell
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: ls -l | cat -e
-  args: &id001
-  - -l
-  expected: 'total 4
-
-    -rw-rw-r-- 1 eagle eagle ** ** 15 15:46 skip.sh
-
-    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 tata
-
-    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 titi
-
-    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 toto
-
-    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 tutu
-
-    '
-  cat_e: true
-- id: subj_ex_02
-  origin: subject.en.txt
-  command: ./skip.sh | cat -e
+  command: FT_LINE1=7 FT_LINE2=15 ./r_dwssap.sh
   args: []
-  expected: 'total 4
-
-    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 tata
-
-    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 toto
-
-    '
-  cat_e: true
+  expected: sstq_, sorebrek_brk_, soibten_, sergtsop_, scodved_, rlaxcm_, rgmecived_,
+    revreswodniw_, revressta_.
+  cat_e: false
 folder_examples:
 - id: folder_ex_01
   origin: subject_folder/examples.txt
   input: r_dwssap.sh baseline folder fixture
   expected: Matches reference correction
 near_examples:
-- id: near_subj_01_lexical_shift
+- id: near_subj_01_arity_perturbation
   derived_from: subj_ex_01
-  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
-    strcmp(argv[1])
-  original_input: *id001
+  strategy: Perturb line range environment variables around subject.en.txt example
+  original_input: FT_LINE1=7 FT_LINE2=15 ./r_dwssap.sh
   perturbed_input:
-  - -m
-- id: near_subj_01_whitespace_envelope
-  derived_from: subj_ex_01
-  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
-  perturbed_input:
-  - '  -l  '
-- id: near_subj_02_arity_perturbation
-  derived_from: subj_ex_02
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: ./skip.sh | cat -e
-  perturbed_input:
-  - r_dwssap.sh_near_arg_1
-  - r_dwssap.sh_near_arg_2
+  - FT_LINE1=1 FT_LINE2=3 ./r_dwssap.sh
+  - FT_LINE1=2 FT_LINE2=2 ./r_dwssap.sh
 - id: near_folder_01_boundary_neighbor
   derived_from: folder_ex_01
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: r_dwssap.sh baseline folder fixture
-  perturbed_input: s_dwssap.sh baseline folder fixture
+  perturbed_input: r_dwssap.sh single-line range fixture

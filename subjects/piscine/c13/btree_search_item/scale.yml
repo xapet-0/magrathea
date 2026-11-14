@@ -11,16 +11,21 @@ sections:
   title: 'Step 1: Preliminaries & Vogsphere Integrity Check'
   points: 20
   checks:
-  - Clone official Vogsphere repository into an empty folder.
-  - Verify no malicious shell aliases or unauthorized files exist.
-  - Run norminette / shnorm and verify clean compilation with -Wall -Wextra -Werror.
+  - Clone official Vogsphere repository into an empty folder and verify expected files
+    (btree_search_item.c ft_btree.h).
+  - Run `norminette` and verify clean compilation with `cc -Wall -Wextra -Werror`.
+  - 'Verify exact function prototype `void *btree_search_item(t_btree *root, void
+    *data_ref, int (*cmpf)(void *, void *));` and allowed functions: None (no external
+    functions).'
 - id: explain_before_checking
   title: 'Step 2: Conceptual Defense (Explain Before Checking)'
   points: 30
   checks:
-  - Student explains data structures and control flow before executing tests.
+  - Student explains pointer handling, memory safety, and control flow before running
+    tests.
 - id: live_mutation
   title: 'Step 3: Live Mutation & Edge-Case Verification'
   points: 50
   checks:
-  - Inject a live boundary modification on the spot and verify deterministic behavior.
+  - Call the function from a live test driver with NULL, empty, zero, and boundary
+    values and verify deterministic return/output.

@@ -1,24 +1,3 @@
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Empty array (size = 0), single element, and NULL pointer in `print_doublon`
-  input: print_doublon(tab, 0) and print_doublon(NULL, 0)
-  expected: Safe return without memory violation
-- name: edge_02_B
-  code: '[B]'
-  title: Array with duplicate elements and all elements identical in `print_doublon`
-  input: print_doublon([5, 5, 5, 5], 4)
-  expected: Preserve stable sort or return correct count
-- name: edge_03_B
-  code: '[B]'
-  title: Array already sorted in reverse order in `print_doublon`
-  input: print_doublon([9, 8, 7, 6, 5], 5)
-  expected: Properly sort array with no missing elements
-- name: edge_04_T
-  code: '[T]'
-  title: Performance verification on large array in `print_doublon`
-  input: Run print_doublon on array of 10,000 elements
-  expected: Complete within timeout limit
 fixed_tests:
 - name: test_01_a_4_b_3
   call: print_doublon(a, 4, b, 3)
@@ -100,6 +79,21 @@ fixed_tests:
   stdout: '3 7 11
 
     '
+- name: edge_empty_arrays
+  call: int a[] = {1}; print_doublon(a, 0, a, 0)
+  stdout: '
+
+    '
+  tier: edge
+- name: edge_int_min_and_max
+  call: print_doublon(a, 3, b, 3)
+  stdout: '-2147483648 2147483647
+
+    '
+  tier: edge
+  setup:
+  - int a[] = {(-2147483647 - 1), 0, 2147483647}
+  - int b[] = {(-2147483647 - 1), 1, 2147483647}
 folder_examples:
 - expected: 'Output: 2 15\n    int a[] = {1, 3, 5}; int b[] = {2, 4, 6}; print_doublon(a,
     3, b, 3)\n    Output: \n    int a[] = {-5, 0, 42}; int b[] = {-5, 42}; print_doublon(a,
@@ -108,20 +102,7 @@ folder_examples:
   input: int a[] = {1, 2, 10, 15}; int b[] = {2, 15, 20}; print_doublon(a, 4, b, 3)
   origin: subject_folder/examples.txt
 mode: c_function
-near_examples:
-- derived_from: subj_ex_01
-  id: near_subj_01_arity_perturbation
-  original_input: eval print_doublon
-  perturbed_input:
-  - print_doublon_near_arg_1
-  - print_doublon_near_arg_2
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-- derived_from: can_print_doublon_T05
-  id: near_folder_01_boundary_neighbor
-  original_input: int a[] = {1, 2, 10, 15}; int b[] = {2, 15, 20}; print_doublon(a,
-    4, b, 3)
-  perturbed_input: 'jnt a[] = {1, 2, 10, 15}; int b[] = {2, '
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+near_examples: []
 subject_examples:
 - args: []
   cat_e: false

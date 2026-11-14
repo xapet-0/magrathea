@@ -100,21 +100,4 @@ folder_examples:
   expected: "fixed_tests:\n- setup:\n  - char s[] = \"Hello 42 World!\"\n  call: printf(\"\
     %s\\n\", swap_cases(s))\n  stdout: 'hELLO 42 wORLD!\n\n    '\n- setup:\n  - char\
     \ s[] = \"abcXYZ\"\n"
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval swap_cases
-  perturbed_input:
-  - swap_cases_near_arg_1
-  - swap_cases_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: e1337_swap_cases_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: char s[] = "Hello 42 World!"; printf("%s\n", swap_cases(s))
-  perturbed_input: dhar s[] = "Hello 42 World!"; printf("%s
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+near_examples: []

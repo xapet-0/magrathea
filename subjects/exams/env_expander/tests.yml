@@ -42,85 +42,72 @@ fixed_tests:
   stdin: '$FT_VAR
 
     '
-- name: test_05_stdin_auto
-  stdin: '42
-
-    1337
-
-    '
-  tier: baseline
-  stdout: '42
-
-    1337
+- name: env_expander_multiple_occurrences
+  args: []
+  env:
+    FT_VAR: '42'
+  stdin: '$FT_VAR+$FT_VAR=$FT_VAR
 
     '
-- name: test_06_stdin_auto
-  stdin: 'hello world
+  stdout: '42+42=42
 
     '
-  tier: baseline
-  stdout: 'hello world
+  tier: edge_case
+- name: env_expander_empty_var
+  args: []
+  env:
+    FT_VAR: ''
+  stdin: 'pre[$FT_VAR]post
 
     '
-- name: test_07_stdin_auto
-  stdin: 'a
-
-    b
-
-    c
+  stdout: 'pre[]post
 
     '
-  tier: baseline
-  stdout: 'a
+  tier: edge_case
+- name: env_expander_multiline
+  args: []
+  env:
+    FT_VAR: piscine
+  stdin: 'line1 $FT_VAR
 
-    b
+    no var here
 
-    c
-
-    '
-- name: test_08_stdin_auto
-  stdin: '10 20 30 40 50
-
-    '
-  tier: baseline
-  stdout: '10 20 30 40 50
+    $FT_VAR end
 
     '
-- name: test_09_stdin_auto
-  stdin: 'single_line
+  stdout: 'line1 piscine
+
+    no var here
+
+    piscine end
 
     '
-  tier: baseline
-  stdout: 'single_line
+  tier: edge_case
+- name: env_expander_empty_stdin
+  args: []
+  env:
+    FT_VAR: '1337'
+  stdin: ''
+  stdout: ''
+  tier: edge_case
+- name: env_expander_other_var_untouched
+  args: []
+  env:
+    FT_VAR: '42'
+  stdin: 'OTHER=$OTHER
 
     '
-- name: test_10_stdin_auto
-  stdin: 'foo
-
-    bar
-
-    baz
-
-    qux
+  stdout: 'OTHER=$OTHER
 
     '
-  tier: baseline
-  stdout: 'foo
-
-    bar
-
-    baz
-
-    qux
-
-    '
+  tier: edge_case
 subject_id: env_expander
 mode: shell
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: printf "Hello $FT_VAR\n" | FT_VAR="1337" sh env_expander.sh | cat -e
-  args: &id001
+  args:
   - Hello $FT_VAR\n
   expected: 'Hello 1337
 
@@ -130,7 +117,7 @@ subject_examples:
   origin: subject.en.txt
   command: printf "Welcome to $FT_VAR!\n" | FT_VAR="42_School" sh env_expander.sh
     | cat -e
-  args: &id002
+  args:
   - Welcome to $FT_VAR!\n
   expected: 'Welcome to 42_School!
 
@@ -139,7 +126,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: printf "$FT_VAR\n" | FT_VAR="OK" sh env_expander.sh | cat -e
-  args: &id003
+  args:
   - $FT_VAR\n
   expected: 'OK
 
@@ -170,50 +157,44 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - Hello $FT_VAR\n
   perturbed_input:
   - Iello $FT_VAR\n
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - Hello $FT_VAR\n
   perturbed_input:
   - '  Hello $FT_VAR\n  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - Welcome to $FT_VAR!\n
   perturbed_input:
   - Xelcome to $FT_VAR!\n
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - Welcome to $FT_VAR!\n
   perturbed_input:
   - '  Welcome to $FT_VAR!\n  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - $FT_VAR\n
   perturbed_input:
   - $GT_VAR\n
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - $FT_VAR\n
   perturbed_input:
   - '  $FT_VAR\n  '
-- id: near_folder_01_boundary_neighbor
-  derived_from: e1337_env_expander_T04
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: printf "Hello $FT_VAR\n" \| FT_VAR="1337" sh env_expander.sh \|
-    cat -e
-  perturbed_input: qrintf "Hello $FT_VAR\n" \| FT_VAR="1337
-- id: near_folder_02_boundary_neighbor
-  derived_from: e1337_env_expander_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: printf "Welcome to $FT_VAR!\n" \| FT_VAR="42_School" sh env_expander.sh
-    \| cat -e
-  perturbed_input: qrintf "Welcome to $FT_VAR!\n" \| FT_VAR

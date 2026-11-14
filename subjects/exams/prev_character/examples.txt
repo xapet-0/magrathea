@@ -1,5 +1,9 @@
-# Examples for prev_character (from official subject specification)
-
-Example:
-    $>  prev_character ('B') = A
-    $>  prev_character('a') = z
+Examples:
+$> ./prev_character 'b' | cat -e
+a$
+$> ./prev_character 'a' | cat -e
+z$
+$> ./prev_character 'A' | cat -e
+Z$
+$> ./prev_character | cat -e
+$

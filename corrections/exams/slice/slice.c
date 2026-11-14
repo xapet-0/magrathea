@@ -20,7 +20,7 @@ int	main(int ac, char **av)
 	int	i;
 	int	n;
 
-	if (ac == 3)
+	if (ac == 3 && av[1][0] != '\0')
 	{
 		n = ft_atoi_p(av[2]);
 		i = 1;

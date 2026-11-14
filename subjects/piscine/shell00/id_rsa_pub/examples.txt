@@ -1,3 +1,2 @@
-Examples:
-$> ./id_rsa_pub | cat -e
-$
+# No examples in official PDF.
+# Use `man ssh-keygen, man ssh` and consult subject.en.txt for the exact specification.

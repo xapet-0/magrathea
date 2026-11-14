@@ -1,26 +1,17 @@
 Assignment name  : ft_div
 Expected files   : ft_div.c
 Allowed functions: None
+--------------------------------------------------------------------------------
 
--------------------------------------------------------------------------------------------
-create a function that divide an integer from an integer pointed by a pointer.the parameters are an integer and a pointer pointing to an integer.
+Write a function that divides the integer a by the integer b and returns the
+result.
+    - If b is 0, return 0.
 
-it should be prototyped as such
+Your function must be declared as follows:
+    int ft_div(int a, int b);
 
-void    ft_div(int a, int *ptr)
-
->>> STANDARD TEST CASES (Happy Path & Functional Tests):
-  [Standard Test 1] Name: test
-    Call / Invocation : ft_div(20,5)
-    Expected Output   : '4\n'
-  [Standard Test 2] Name: test
-    Call / Invocation : ft_div(7,0)
-    Expected Output   : '0\n'
-
->>> EDGE CASES & BOUNDARY CONDITIONS (Robustness & Fault Tolerance):
-  [Edge Case 1] Name: edge_ft_div_zero_divisor [Test description: "edge_ft_div_zero_divisor"]
-    Call / Invocation : ft_div(42, 0)
-    Expected Output   : '0\n'
-  [Edge Case 2] Name: edge_ft_div_negative [Test description: "edge_ft_div_negative"]
-    Call / Invocation : ft_div(-84, 2)
-    Expected Output   : '-42\n'
+Examples:
+    ft_div(20, 5) -> 4
+    ft_div(7, 0) -> 0
+    ft_div(42, 0) -> 0
+    ft_div(-84, 2) -> -42

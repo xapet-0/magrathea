@@ -1,10 +1,4 @@
 Assignment name  : ft_putstr_non_printable
-Expected files   : ft_putstr_non_printable.c
-Allowed functions: write
---------------------------------------------------------------------------------
-
-Module           : C Piscine C 02 (Official PDF)
-Exercise         : ft_putstr_non_printable
 Turn-in directory: ex11/
 Expected files   : ft_putstr_non_printable.c
 Allowed functions: write
@@ -19,9 +13,6 @@ Hello\nHow are you?
 Hello\n\0aHow are you?
 • Here is how it should be prototyped:
 void ft_putstr_non_printable(char *str);
-
-Your function must be declared as follows:
-    void ft_putstr_non_printable(char *str);
 
 Examples:
     ft_putstr_non_printable("Coucou\ntu vas bien ?")

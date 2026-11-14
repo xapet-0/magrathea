@@ -38,70 +38,44 @@ fixed_tests:
     e   f
 
     '
-- name: test_05_stdin_auto
-  stdin: '42
+- name: odd_epur_tabs_and_multiple_spaces
+  args: []
+  stdin: "\t  one\t\t two   three \t\nignored_even\n\t four\n"
+  stdout: 'one two three
 
-    1337
-
-    '
-  tier: baseline
-  stdout: '42
+    four
 
     '
-- name: test_06_stdin_auto
-  stdin: 'hello world
+  tier: edge_case
+- name: odd_epur_even_line_count
+  args: []
+  stdin: 'first
+
+    second
+
+    third
+
+    fourth
 
     '
-  tier: baseline
-  stdout: 'hello world
+  stdout: 'first
+
+    third
 
     '
-- name: test_07_stdin_auto
-  stdin: 'a
-
-    b
-
-    c
-
-    '
-  tier: baseline
-  stdout: 'a
-
-    c
+  tier: edge_case
+- name: odd_epur_single_line
+  args: []
+  stdin: "   solo   \n"
+  stdout: 'solo
 
     '
-- name: test_08_stdin_auto
-  stdin: '10 20 30 40 50
-
-    '
-  tier: baseline
-  stdout: '10 20 30 40 50
-
-    '
-- name: test_09_stdin_auto
-  stdin: 'single_line
-
-    '
-  tier: baseline
-  stdout: 'single_line
-
-    '
-- name: test_10_stdin_auto
-  stdin: 'foo
-
-    bar
-
-    baz
-
-    qux
-
-    '
-  tier: baseline
-  stdout: 'foo
-
-    baz
-
-    '
+  tier: edge_case
+- name: odd_epur_empty_input
+  args: []
+  stdin: ''
+  stdout: ''
+  tier: edge_case
 subject_id: odd_epur
 mode: shell
 subject_examples:
@@ -109,7 +83,7 @@ subject_examples:
   origin: subject.en.txt
   command: printf "  hello   world  \nignore\n  foo   bar  \n" | sh odd_epur.sh |
     cat -e
-  args: &id001
+  args:
   - '  hello   world  \nignore\n  foo   bar  \n'
   expected: 'hello world
 
@@ -120,7 +94,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: printf "   42   1337   \n" | sh odd_epur.sh | cat -e
-  args: &id002
+  args:
   - '   42   1337   \n'
   expected: '42 1337
 
@@ -129,7 +103,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: printf "a   b\nc   d\ne   f\n" | sh odd_epur.sh | cat -e
-  args: &id003
+  args:
   - a   b\nc   d\ne   f\n
   expected: 'a b
 
@@ -162,49 +136,44 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - '  hello   world  \nignore\n  foo   bar  \n'
   perturbed_input:
   - '  iello   world  \nignore\n  foo   bar  \n'
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - '  hello   world  \nignore\n  foo   bar  \n'
   perturbed_input:
   - '    hello   world  \nignore\n  foo   bar  \n  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - '   42   1337   \n'
   perturbed_input:
   - '   42   1337   \o'
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - '   42   1337   \n'
   perturbed_input:
   - '     42   1337   \n  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - a   b\nc   d\ne   f\n
   perturbed_input:
   - b   b\nc   d\ne   f\n
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - a   b\nc   d\ne   f\n
   perturbed_input:
   - '  a   b\nc   d\ne   f\n  '
-- id: near_folder_01_boundary_neighbor
-  derived_from: e1337_odd_epur_T04
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: printf "  hello   world  \nignore\n  foo   bar  \n" \| sh odd_epur.sh
-    \| cat -e
-  perturbed_input: qrintf "  hello   world  \nignore\n  foo
-- id: near_folder_02_boundary_neighbor
-  derived_from: e1337_odd_epur_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: printf "   42   1337   \n" \| sh odd_epur.sh \| cat -e
-  perturbed_input: qrintf "   42   1337   \n" \| sh odd_epu

@@ -28,4 +28,3 @@ OK$
 OK$
 $> ./brackets | cat -e
 $
-$>

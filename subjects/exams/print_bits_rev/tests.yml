@@ -81,21 +81,4 @@ folder_examples:
   expected: "subject_id: print_bits_rev\nfixed_tests:\n- call: print_bits_rev(2);\
     \ printf(\"\\n\")\n  stdout: '01000000\n\n    '\n- call: print_bits_rev(0); printf(\"\
     \\n\")\n  stdout: '00"
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval print_bits_rev
-  perturbed_input:
-  - print_bits_rev_near_arg_1
-  - print_bits_rev_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: e1337_print_bits_rev_T06
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: print_bits_rev(2); printf("\n")
-  perturbed_input: qrint_bits_rev(2); printf("\n")
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+near_examples: []

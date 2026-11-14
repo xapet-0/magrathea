@@ -1,9 +1,4 @@
-# Examples for strlen_sh (from official subject specification)
-
-Example:
-
-$> echo $FT_LINE
-Les stagiaires du staff ne sentent pas toujours tres bon.
-$> zsh strlen.sh
-57
-$>
+Examples:
+$> export FT_LINE="Les putes, c'est comme les chevilles, ca enfle."
+$> ./strlen.sh | cat -e
+48$

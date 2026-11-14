@@ -75,7 +75,7 @@ subject_examples:
   origin: subject.en.txt
   command: ./rev_wstr "You hate people! But I love gatherings. Isn't it ironic?" |
     cat -e
-  args: &id001
+  args:
   - You hate people! But I love gatherings. Isn't it ironic?
   expected: 'ironic? it Isn''t gatherings. love I But people! hate You
 
@@ -84,7 +84,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./rev_wstr "abcdefghijklm"
-  args: &id002
+  args:
   - abcdefghijklm
   expected: 'abcdefghijklm
 
@@ -93,48 +93,13 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./rev_wstr "Wingardium Leviosa" | cat -e
-  args: &id003
+  args:
   - Wingardium Leviosa
   expected: 'Leviosa Wingardium
 
     '
   cat_e: true
 - id: subj_ex_04
-  origin: subject.en.txt
-  command: ./rev_wstr | cat -e
-  args: []
-  expected: '
-
-    '
-  cat_e: true
-- id: subj_ex_05
-  origin: subject.en.txt
-  command: ./rev_wstr "le temps du mepris precede celui de l'indifference" | cat -e
-  args:
-  - le temps du mepris precede celui de l'indifference
-  expected: 'l''indifference de celui precede mepris du temps le
-
-    '
-  cat_e: true
-- id: subj_ex_06
-  origin: subject.en.txt
-  command: ./rev_wstr "abcdefghijklm"
-  args:
-  - abcdefghijklm
-  expected: 'abcdefghijklm
-
-    '
-  cat_e: false
-- id: subj_ex_07
-  origin: subject.en.txt
-  command: ./rev_wstr "il contempla le mont" | cat -e
-  args:
-  - il contempla le mont
-  expected: 'mont le contempla il
-
-    '
-  cat_e: true
-- id: subj_ex_08
   origin: subject.en.txt
   command: ./rev_wstr | cat -e
   args: []
@@ -180,55 +145,61 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - You hate people! But I love gatherings. Isn't it ironic?
   perturbed_input:
   - Zou hate people! But I love gatherings. Isn't it ironic?
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - You hate people! But I love gatherings. Isn't it ironic?
   perturbed_input:
   - '  You hate people! But I love gatherings. Isn''t it ironic?  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - abcdefghijklm
   perturbed_input:
   - bbcdefghijklm
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - abcdefghijklm
   perturbed_input:
   - '  abcdefghijklm  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - Wingardium Leviosa
   perturbed_input:
   - Xingardium Leviosa
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - Wingardium Leviosa
   perturbed_input:
   - '  Wingardium Leviosa  '
 - id: near_subj_04_arity_perturbation
   derived_from: subj_ex_04
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./rev_wstr | cat -e
   perturbed_input:
-  - rev_wstr_near_arg_1
-  - rev_wstr_near_arg_2
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_rev_wstr_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rev_wstr/tester.sh)
   original_input: ./rev_wstr "abcdefghijklm"
-  perturbed_input: ./sev_wstr "abcdefghijklm"
+  perturbed_input: ./rev_wstr bbcdefghijklm
 - id: near_folder_02_boundary_neighbor
   derived_from: can_rev_wstr_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rev_wstr/tester.sh)
   original_input: ./rev_wstr "order in us put"
-  perturbed_input: ./sev_wstr "order in us put"
+  perturbed_input: ./rev_wstr 'prder in us put'

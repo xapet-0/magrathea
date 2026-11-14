@@ -1,6 +1,2 @@
-# Examples for ft_strlcpy (from official subject specification)
-
-Examples:
-    r == 5 && strcmp(buf, "hello") == 0 ? 1 : 0 -> 1
-    r == 5 && strcmp(buf, "hel") == 0 ? 1 : 0 -> 1
-    r == 3 && buf[0] == 'x' ? 3 : 0 -> 3
+# No examples in official PDF.
+# Use `man 3 strlcpy` and consult subject.en.txt for the exact specification.

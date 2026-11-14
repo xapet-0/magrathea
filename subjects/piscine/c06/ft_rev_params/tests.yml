@@ -138,7 +138,7 @@ subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./ft_rev_params "one" "two" "three" | cat -e
-  args: &id001
+  args:
   - one
   - two
   - three
@@ -153,7 +153,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./ft_rev_params "42" | cat -e
-  args: &id002
+  args:
   - '42'
   expected: '42
 
@@ -163,14 +163,12 @@ subject_examples:
   origin: subject.en.txt
   command: ./ft_rev_params | cat -e
   args: []
-  expected: '
-
-    '
+  expected: ''
   cat_e: true
 - id: subj_ex_04
   origin: subject.en.txt
   command: ./ft_rev_params "a" "b" "c" "d" | cat -e
-  args: &id003
+  args:
   - a
   - b
   - c
@@ -197,13 +195,16 @@ folder_examples:
 - id: pool_ft_rev_params_T03
   origin: subject_folder/tests.yml (fixed_tests)
   input: '`./ft_rev_params` (no CLI arguments passed, `argc == 1`)'
-  expected: '`\n` (Single newline emitted on argument count mismatch)'
+  expected: ''
 near_examples:
 - id: near_subj_01_lexical_shift
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - one
+  - two
+  - three
   perturbed_input:
   - pne
   - uwo
@@ -211,7 +212,10 @@ near_examples:
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - one
+  - two
+  - three
   perturbed_input:
   - '  one  '
   - two
@@ -220,27 +224,33 @@ near_examples:
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - '42'
   perturbed_input:
   - '43'
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - '42'
   perturbed_input:
   - '  42  '
 - id: near_subj_03_arity_perturbation
   derived_from: subj_ex_03
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./ft_rev_params | cat -e
   perturbed_input:
-  - ft_rev_params_near_arg_1
-  - ft_rev_params_near_arg_2
+  - arg1
+  - arg2
 - id: near_subj_04_lexical_shift
   derived_from: subj_ex_04
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - a
+  - b
+  - c
+  - d
   perturbed_input:
   - b
   - c
@@ -249,7 +259,11 @@ near_examples:
 - id: near_subj_04_whitespace_envelope
   derived_from: subj_ex_04
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - a
+  - b
+  - c
+  - d
   perturbed_input:
   - '  a  '
   - b
@@ -260,10 +274,10 @@ near_examples:
   strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
     (fixed_tests))
   original_input: '[''one'', ''two'', ''three'']'
-  perturbed_input: '[''pne'', ''two'', ''three'']'
+  perturbed_input: '[''pne'', ''uwo'', ''uhree'']'
 - id: near_folder_02_boundary_neighbor
   derived_from: pool_ft_rev_params_T02
   strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
     (fixed_tests))
   original_input: '[''42'']'
-  perturbed_input: '[''42'']!'
+  perturbed_input: '[''43'']'

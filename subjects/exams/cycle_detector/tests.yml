@@ -1,4 +1,5 @@
 mode: c_function
+check_leaks: true
 fixed_tests:
 - name: can_cycle_detector_T01
   description: has_cycle
@@ -90,21 +91,4 @@ folder_examples:
   expected: "#include <stdio.h>\n#include <stdlib.h>\n#include \"list.h\"\n\nint cycle_detector(const\
     \ t_list *list);\n\nint main(void)\n{\n    t_list a, b, c;\n    a.next = &b;\n\
     \    b.n"
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval cycle_detector
-  perturbed_input:
-  - cycle_detector_near_arg_1
-  - cycle_detector_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: can_cycle_detector_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/cycle_detector_MAIN.c)
-  original_input: Compiled and run with cycle_detector_MAIN.c
-  perturbed_input: Dompiled and run with cycle_detector_MAI
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/cycle_detector_MAIN.c)
-  original_input: cycle_detector_MAIN.c
-  perturbed_input: dycle_detector_MAIN.c
+near_examples: []

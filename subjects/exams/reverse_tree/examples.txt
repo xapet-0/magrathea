@@ -1,6 +1,5 @@
 Examples:
   r.left->value == 2 && r.right->value == 1 -> 1
-  reverse_tree(NULL); printf("ok
-")
+  reverse_tree(NULL); printf("ok\n")
     Output: ok
     r.value == 42 && r.left == NULL && r.right == NULL -> 1

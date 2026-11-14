@@ -1,25 +1,23 @@
-Assignment name  : size_variable
+Assignment name  : size_variables
 Expected files   : size_variable.c
 Allowed functions: write
-Version          : 
 --------------------------------------------------------------------------------
 
-Write a program that returns size of variables in c followed by a newline('\n')
+Write a program that displays the size of C variable types followed by a newline ('\n').
 
-    -If the number of arguments is not 1, display only a newline.
-    -If the number of arguments is not ('int' , 'char', 'double', 'float') , display only a newline.
+    - If the number of arguments is not 1, display only a newline.
+    - If the argument is not one of ('int', 'char', 'float', 'double'), display only a newline.
 
-Example:
-
-$> ./size_variable 'int' | cat -e
+Examples:
+$> ./size_variables 'int' | cat -e
 4 bytes$
-$> ./size_variable 'char' | cat -e
+$> ./size_variables 'char' | cat -e
 1 bytes$
-$> ./size_variable 'float' | cat -e
+$> ./size_variables 'float' | cat -e
 4 bytes$
-$>./size_variable 'double'| cat -e
+$> ./size_variables 'double' | cat -e
 8 bytes$
-$>./size_variable 'tryu'| cat -e
+$> ./size_variables 'tryu' | cat -e
 $
-$>./size_variable "" | cat -e
+$> ./size_variables "" | cat -e
 $

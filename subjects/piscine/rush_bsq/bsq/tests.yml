@@ -182,7 +182,10 @@ fixed_tests:
 
     '
   tier: edge
-  stdout: "xx.\nxx\n\0"
+  stdout: ''
+  stderr: 'map error
+
+    '
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt (contract specification)
@@ -324,21 +327,4 @@ folder_examples:
     .o
 
     ..'
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval bsq
-  perturbed_input:
-  - bsq_near_arg_1
-  - bsq_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: folder_fixture_01
-  strategy: Neighbouring perturbation of folder example (subject_folder/map1000_100)
-  original_input: map1000_100
-  perturbed_input: nap1000_100
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/map600)
-  original_input: map600
-  perturbed_input: nap600
+near_examples: []

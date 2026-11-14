@@ -44,30 +44,185 @@ fixed_tests:
 
     '
   expected_returncode: 1
-- name: test_08_arg_auto
+- name: edge_argo_escape_quote_backslash
   args: []
-  tier: baseline
-  stdout: 'Unexpected end of input
+  stdin: '"\"hello\\\""'
+  expected_stdout: '"\"hello\\\""
+
+    '
+  tier: edge_case
+- name: edge_argo_trailing_garbage
+  args: []
+  stdin: 42 1
+  expected_stdout: 'Unexpected token ''1''
 
     '
   expected_returncode: 1
-- name: test_09_arg_auto
+  tier: edge_case
+- name: edge_argo_invalid_escape
+  args: []
+  stdin: '"\n"'
+  expected_stdout: 'Unexpected token ''n''
+
+    '
+  expected_returncode: 1
+  tier: edge_case
+- name: edge_argo_nested_ws
+  args: []
+  stdin: "  {\n  \"k1\"\t:\r  -42  , \"k2\" : { \"nested\" : \"ok\" } \n } "
+  expected_stdout: '{"k1":-42,"k2":{"nested":"ok"}}
+
+    '
+  tier: edge_case
+- name: edge_argo_empty_stdin
+  args: []
+  stdin: ''
+  expected_stdout: 'Unexpected end of input
+
+    '
+  expected_returncode: 1
+  tier: edge_case
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: echo -n '1' | ./argo | cat -e
+  args: &id001
+  - -n
+  - '1'
+  expected: '1
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: echo -n '"bonjour"' | ./argo | cat -e
+  args: &id002
+  - -n
+  - '"bonjour"'
+  expected: '"bonjour"
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: echo -n '"escape! \" "' | ./argo | cat -e
+  args: &id003
+  - -n
+  - '"escape! \" "'
+  expected: '"escape! \" "
+
+    '
+  cat_e: true
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: echo -n '{"tomatoes":42,"potatoes":234}' | ./argo | cat -e
+  args: &id004
+  - -n
+  - '{"tomatoes":42,"potatoes":234}'
+  expected: '{"tomatoes":42,"potatoes":234}
+
+    '
+  cat_e: true
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: echo -n '{"recursion":{"recursion":{"recursion":{"recursion":"recursion"}}}}'
+    | ./argo | cat -e
   args:
-  - extra
-  tier: baseline
-  stdout: 'Unexpected end of input
+  - -n
+  - '{"recursion":{"recursion":{"recursion":{"recursion":"recursion"}}}}'
+  expected: '{"recursion":{"recursion":{"recursion":{"recursion":"recursion"}}}}
 
     '
-  expected_returncode: 1
-- name: test_10_arg_auto
+  cat_e: true
+- id: subj_ex_06
+  origin: subject.en.txt
+  command: echo -n '"unfinished string' | ./argo | cat -e
   args:
-  - a
-  - b
-  tier: baseline
-  stdout: 'Unexpected end of input
+  - -n
+  - '"unfinished string'
+  expected: 'Unexpected end of input
 
     '
-  expected_returncode: 1
-subject_examples: []
+  cat_e: true
+- id: subj_ex_07
+  origin: subject.en.txt
+  command: echo -n '"unfinished string 2\"' | ./argo | cat -e
+  args:
+  - -n
+  - '"unfinished string 2\"'
+  expected: 'Unexpected end of input
+
+    '
+  cat_e: true
+- id: subj_ex_08
+  origin: subject.en.txt
+  command: echo -n '{"no value?":}' | ./argo | cat -e
+  args:
+  - -n
+  - '{"no value?":}'
+  expected: 'Unexpected token ''}''
+
+    '
+  cat_e: true
 folder_examples: []
-near_examples: []
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - -o
+  - '2'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  -n  '
+  - '1'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - -o
+  - '"conjour"'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  -n  '
+  - '"bonjour"'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - -o
+  - '"fscape! \" "'
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  -n  '
+  - '"escape! \" "'
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - -o
+  - '{"uomatoes":42,"potatoes":234}'
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  -n  '
+  - '{"tomatoes":42,"potatoes":234}'

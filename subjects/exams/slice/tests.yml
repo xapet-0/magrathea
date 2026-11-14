@@ -29,61 +29,54 @@ fixed_tests:
 
     '
   tier: baseline
-- name: test_05_arg_auto
+- name: edge_slice_zero_n
+  args:
+  - Hello
+  - '0'
+  stdout: '
+
+    '
+  tier: edge_case
+- name: edge_slice_single_char_str
+  args:
+  - a
+  - '5'
+  stdout: '
+
+    '
+  tier: edge_case
+- name: edge_slice_n_gt_len
+  args:
+  - Hello
+  - '99'
+  stdout: 'ello
+
+    '
+  tier: edge_case
+- name: edge_slice_empty_str
   args:
   - ''
-  - ''
-  tier: baseline
+  - '3'
   stdout: '
 
     '
-- name: test_06_arg_auto
+  tier: edge_case
+- name: edge_slice_extra_arg
   args:
-  - '42'
-  - '1337'
-  tier: baseline
-  stdout: '2
-
-    '
-- name: test_07_arg_auto
-  args:
-  - pad
-  - test
-  tier: baseline
+  - a
+  - '2'
+  - '3'
   stdout: '
 
     '
-- name: test_08_arg_auto
-  args:
-  - '!@#$'
-  - '%^&*'
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_09_arg_auto
-  args:
-  - abc
-  - abcdef
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_10_arg_auto
-  args:
-  - same
-  - same
-  tier: baseline
-  stdout: '
-
-    '
+  tier: edge_case
 subject_id: slice
 mode: c_program
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./slice "Hello" "3" | cat -e
-  args: &id001
+  args:
   - Hello
   - '3'
   expected: 'el
@@ -93,7 +86,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./slice "abcdef" "4" | cat -e
-  args: &id002
+  args:
   - abcdef
   - '4'
   expected: 'bcd
@@ -103,7 +96,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./slice "Hello" "1" | cat -e
-  args: &id003
+  args:
   - Hello
   - '1'
   expected: '
@@ -146,14 +139,18 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - Hello
+  - '3'
   perturbed_input:
   - Iello
   - '4'
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - Hello
+  - '3'
   perturbed_input:
   - '  Hello  '
   - '3'
@@ -161,14 +158,18 @@ near_examples:
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - abcdef
+  - '4'
   perturbed_input:
   - bbcdef
   - '5'
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - abcdef
+  - '4'
   perturbed_input:
   - '  abcdef  '
   - '4'
@@ -176,31 +177,35 @@ near_examples:
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - Hello
+  - '1'
   perturbed_input:
   - Iello
   - '2'
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - Hello
+  - '1'
   perturbed_input:
   - '  Hello  '
   - '1'
 - id: near_subj_04_arity_perturbation
   derived_from: subj_ex_04
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./slice | cat -e
   perturbed_input:
-  - slice_near_arg_1
-  - slice_near_arg_2
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_slice_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./slice "Hello" "3" \| cat -e
-  perturbed_input: ./tlice "Hello" "3" \| cat -e
+  perturbed_input: ./slice Iello 4 | cat -e
 - id: near_folder_02_boundary_neighbor
   derived_from: e1337_slice_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./slice "abcdef" "4" \| cat -e
-  perturbed_input: ./tlice "abcdef" "4" \| cat -e
+  perturbed_input: ./slice bbcdef 5 | cat -e

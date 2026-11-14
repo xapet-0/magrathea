@@ -85,21 +85,4 @@ folder_examples:
   expected: "#include <stdio.h>\nvoid ft_swap(int *a, int *b);\n\nint main(void)\n\
     {\n\tint old_age = 223;\n\tint young_age = 1;\n\tprintf(\"old_age: %d\\nyoung_age:\
     \ %d\\n\", old_age, youn"
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_swap
-  perturbed_input:
-  - ft_swap_near_arg_1
-  - ft_swap_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: can_ft_swap_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex02/ft_swap.c)
-  original_input: 'Input:'
-  perturbed_input: 'Jnput:'
-- id: near_folder_02_boundary_neighbor
-  derived_from: can_ft_swap_T06
-  strategy: Neighbouring perturbation of folder example (subject_folder/1-2-ft_swap_MAIN.c)
-  original_input: Compiled and run with 1-2-ft_swap_MAIN.c
-  perturbed_input: Dompiled and run with 1-2-ft_swap_MAIN.c
+near_examples: []

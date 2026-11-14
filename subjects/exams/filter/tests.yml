@@ -5,6 +5,7 @@ fixed_tests:
   stdin: 'abcdefaaaabcdeabcabcdabc
 
     '
+  expected_stderr: ''
   stdout: '***defaaa***de******d***
 
     '
@@ -95,7 +96,72 @@ fixed_tests:
   stdin: 12xy34xy56
   tier: stress
   stdout: 12**34**56
+- name: test_11_error_no_args
+  args: []
+  stdin: abc
+  tier: edge
+  stdout: ''
+  expected_returncode: 1
+- name: test_12_error_empty_arg
+  args:
+  - ''
+  stdin: abc
+  tier: edge
+  stdout: ''
+  expected_returncode: 1
+- name: test_13_error_multiple_args
+  args:
+  - a
+  - b
+  stdin: abc
+  tier: edge
+  stdout: ''
+  expected_returncode: 1
 subject_id: filter
-subject_examples: []
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: echo 'abcdefaaaabcdeabcabcdabc' | ./filter abc | cat -e
+  args: &id001
+  - abcdefaaaabcdeabcabcdabc
+  expected: '***defaaa***de******d***
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: echo 'ababcabababc' | ./filter ababc | cat -e
+  args: &id002
+  - ababcabababc
+  expected: '*****ab*****
+
+    '
+  cat_e: true
 folder_examples: []
-near_examples: []
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - bbcdefaaaabcdeabcabcdabc
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  abcdefaaaabcdeabcabcdabc  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - bbabcabababc
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  ababcabababc  '

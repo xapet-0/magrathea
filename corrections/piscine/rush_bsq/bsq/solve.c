@@ -64,12 +64,43 @@ static void	dp_step(t_map *m, int *dp, int pos, int *best)
 	}
 }
 
+static int	valid_grid(t_map *m)
+{
+	int	r;
+	int	c;
+	int	idx;
+
+	if (m->rows <= 0 || m->cols <= 0)
+		return (0);
+	r = 0;
+	while (r < m->rows)
+	{
+		c = 0;
+		while (c < m->cols)
+		{
+			idx = r * (m->cols + 1) + c;
+			if (m->grid[idx] != m->empty && m->grid[idx] != m->oider)
+				return (0);
+			c++;
+		}
+		if (m->grid[r * (m->cols + 1) + m->cols] != '\n')
+			return (0);
+		r++;
+	}
+	return (m->grid[m->rows * (m->cols + 1)] == '\0');
+}
+
 void	solve_and_print(t_map *m)
 {
 	int	*dp;
 	int	best[3];
 	int	i;
 
+	if (!valid_grid(m))
+	{
+		write(2, "map error\n", 10);
+		return ;
+	}
 	dp = (int *)malloc(sizeof(int) * m->rows * m->cols);
 	if (!dp)
 		return ;

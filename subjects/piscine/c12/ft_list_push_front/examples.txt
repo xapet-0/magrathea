@@ -1,5 +1,2 @@
-# Examples for ft_list_push_front (from official subject specification)
-
-Examples:
-    t_list *l=NULL; ft_list_push_front(&l,"b"); ft_list_push_front(&l,"a"); printf("%s%s\n",(char*)l->data,(char*)l->next->data)
-    Output: ab
+# No examples in official PDF.
+# Use `man cc` and consult subject.en.txt for the exact specification.

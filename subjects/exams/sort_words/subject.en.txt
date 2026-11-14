@@ -1,7 +1,6 @@
 Assignment name  : sort_words
 Expected files   : sort_words.c
 Allowed functions: write
-Version          : 
 --------------------------------------------------------------------------------
 
 

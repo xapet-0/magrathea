@@ -64,8 +64,8 @@ fixed_tests:
 - name: near_ex_too_many_args
   tier: near_example
   args:
-  - near_arg_1
-  - near_arg_2
+  - arg1
+  - arg2
   expected: '
 
     '
@@ -73,7 +73,7 @@ subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./rotone "abc"
-  args: &id001
+  args:
   - abc
   expected: 'bcd
 
@@ -83,7 +83,7 @@ subject_examples:
   origin: subject.en.txt
   command: ./rotone "Les stagiaires du staff ne sentent pas toujours tres bon." |
     cat -e
-  args: &id002
+  args:
   - Les stagiaires du staff ne sentent pas toujours tres bon.
   expected: 'Mft tubhjbjsft ev tubgg of tfoufou qbt upvkpvst usft cpo.
 
@@ -92,7 +92,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./rotone "AkjhZ zLKIJz , 23y " | cat -e
-  args: &id003
+  args:
   - 'AkjhZ zLKIJz , 23y '
   expected: "BlkiA aMLJKa , 23z \n"
   cat_e: true
@@ -168,55 +168,61 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - abc
   perturbed_input:
   - bbc
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - abc
   perturbed_input:
   - '  abc  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - Les stagiaires du staff ne sentent pas toujours tres bon.
   perturbed_input:
   - Mes stagiaires du staff ne sentent pas toujours tres bon.
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - Les stagiaires du staff ne sentent pas toujours tres bon.
   perturbed_input:
   - '  Les stagiaires du staff ne sentent pas toujours tres bon.  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - 'AkjhZ zLKIJz , 23y '
   perturbed_input:
   - 'BkjhZ zLKIJz , 23y '
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - 'AkjhZ zLKIJz , 23y '
   perturbed_input:
   - '  AkjhZ zLKIJz , 23y   '
 - id: near_subj_04_arity_perturbation
   derived_from: subj_ex_04
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./rotone | cat -e
   perturbed_input:
-  - rotone_near_arg_1
-  - rotone_near_arg_2
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_rotone_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rotone/tester.sh)
   original_input: ./rotone "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
-  perturbed_input: ./sotone "wNcOre Un ExEmPle Pas Facilw a
+  perturbed_input: ./rotone 'xNcOre Un ExEmPle Pas Facilw a Ecrirw ' x f
 - id: near_folder_02_boundary_neighbor
   derived_from: can_rotone_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rotone/tester.sh)
   original_input: ./rotone "   "
-  perturbed_input: ./sotone "   "
+  perturbed_input: ./rotone '   !'

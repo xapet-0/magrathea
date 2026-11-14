@@ -37,43 +37,6 @@ expected_stdout: 'v1: {0, 0}
   v1 != v1: 0
 
   '
-fixed_tests:
-- name: vect2_canonical_driver
-  main_code: ''
-  expected: ''
-- name: vect2_coplien_and_const_contract
-  main_code: ''
-  expected: ''
-- name: vect2_boundary_and_state_invariants
-  main_code: ''
-  expected: ''
-- name: vect2_destructor_and_resource_lifecycle
-  main_code: ''
-  expected: ''
-- name: test_05_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_06_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_07_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_08_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_09_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_10_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
 main_cpp: "#include \"vect2.hpp\"\n#include <iostream>\n\nint main()\n{\n\tvect2 v1;\
   \ // 0, 0\n\tvect2 v2(1, 2); // 1, 2\n\tconst vect2 v3(v2); // 1, 2\n\tvect2 v4\
   \ = v2; // 1, 2\n\tstd::cout << \"v1: \" << v1 << std::endl;\n\tstd::cout << \"\
@@ -91,7 +54,59 @@ main_cpp: "#include \"vect2.hpp\"\n#include <iostream>\n\nint main()\n{\n\tvect2
   \tstd::cout << \"v1 == v3: \" << (v1 == v3) << std::endl;\n\tstd::cout << \"v1 ==\
   \ v1: \" << (v1 == v1) << std::endl;\n\tstd::cout << \"v1 != v3: \" << (v1 != v3)\
   \ << std::endl;\n\tstd::cout << \"v1 != v1: \" << (v1 != v1) << std::endl;\n}"
+extra_cpp_tests:
+- name: vect2_edge_arithmetic_and_const_access
+  main_cpp: "#include \"vect2.hpp\"\n#include <iostream>\n\nint main()\n{\n    const\
+    \ vect2 a(3, -4);\n    const vect2 b(1, 5);\n    vect2 z;\n    std::cout << \"\
+    z=\" << z << \",eq=\" << (z == vect2(0, 0)) << std::endl;\n    std::cout << \"\
+    idx=\" << a[0] << \",\" << a[1] << std::endl;\n    std::cout << \"add=\" << (a\
+    \ + b) << \",sub=\" << (a - b) << \",neg=\" << (-a) << std::endl;\n    std::cout\
+    \ << \"mul=\" << (a * 2) << \",\" << (3 * b) << std::endl;\n    vect2 c(a);\n\
+    \    c -= b;\n    std::cout << \"subeq=\" << c << std::endl;\n    c += b;\n  \
+    \  std::cout << \"addeq=\" << c << \",\" << (c == a) << \",\" << (c != a) << std::endl;\n\
+    \    vect2 d(0, 0);\n    std::cout << \"inc=\" << d++ << \",\" << d << \",\" <<\
+    \ ++d << std::endl;\n    std::cout << \"dec=\" << d-- << \",\" << d << \",\" <<\
+    \ --d << std::endl;\n    return (0);\n}\n"
+  expected_stdout: 'z={0, 0},eq=1
+
+    idx=3,-4
+
+    add={4, 1},sub={2, -9},neg={-3, 4}
+
+    mul={6, -8},{3, 15}
+
+    subeq={2, -9}
+
+    addeq={3, -4},1,0
+
+    inc={0, 0},{1, 1},{2, 2}
+
+    dec={2, 2},{1, 1},{0, 0}
+
+    '
+must_not_compile:
+- '#include "vect2.hpp"
+
+  int main() { const vect2 v(1, 2); v[0] = 5; return 0; }
+
+  '
+- '#include "vect2.hpp"
+
+  int main() { const vect2 v(1, 2); ++v; return 0; }
+
+  '
+- '#include "vect2.hpp"
+
+  int main() { const vect2 v(1, 2); v += vect2(1, 1); return 0; }
+
+  '
 mode: cpp
-subject_examples: []
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval vect2
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
 folder_examples: []
 near_examples: []

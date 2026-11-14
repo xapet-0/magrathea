@@ -59,35 +59,60 @@ fixed_tests:
   expected: 'Error
 
     '
-- name: test_08_arg_auto
-  args:
-  - ''
-  - ''
-  tier: baseline
-  stdout: 'Error
-
-    '
-- name: test_09_arg_auto
+- name: edge_rpn_single_num
   args:
   - '42'
-  - '1337'
-  tier: baseline
-  stdout: 'Error
+  expected: '42
 
     '
-- name: test_10_arg_auto
+  tier: edge_case
+- name: edge_rpn_div
   args:
-  - pad
-  - test
-  tier: baseline
-  stdout: 'Error
+  - 20 4 /
+  expected: '5
 
     '
+  tier: edge_case
+- name: edge_rpn_mod
+  args:
+  - 23 5 %
+  expected: '3
+
+    '
+  tier: edge_case
+- name: edge_rpn_div_zero
+  args:
+  - 10 0 /
+  expected: 'Error
+
+    '
+  tier: edge_case
+- name: edge_rpn_mod_zero
+  args:
+  - 10 0 %
+  expected: 'Error
+
+    '
+  tier: edge_case
+- name: edge_rpn_neg_mul
+  args:
+  - -3 -4 *
+  expected: '12
+
+    '
+  tier: edge_case
+- name: edge_rpn_empty
+  args:
+  - ''
+  expected: 'Error
+
+    '
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./rpn_calc "1 2 * 3 * 4 +" | cat -e
-  args: &id001
+  args:
   - 1 2 * 3 * 4 +
   expected: '10
 
@@ -96,7 +121,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./rpn_calc "1 2 3 4 +" | cat -e
-  args: &id002
+  args:
   - 1 2 3 4 +
   expected: 'Error
 
@@ -128,42 +153,46 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - 1 2 * 3 * 4 +
   perturbed_input:
   - 1 2 * 3 * 4 +!
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - 1 2 * 3 * 4 +
   perturbed_input:
   - '  1 2 * 3 * 4 +  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - 1 2 3 4 +
   perturbed_input:
   - 1 2 3 4 +!
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - 1 2 3 4 +
   perturbed_input:
   - '  1 2 3 4 +  '
 - id: near_subj_03_arity_perturbation
   derived_from: subj_ex_03
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./rpn_calc |cat -e
   perturbed_input:
-  - rpn_calc_near_arg_1
-  - rpn_calc_near_arg_2
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_rpn_calc_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./rpn_calc "1 2 * 3 * 4 +" \| cat -e
-  perturbed_input: ./spn_calc "1 2 * 3 * 4 +" \| cat -e
+  perturbed_input: ./rpn_calc '1 2 * 3 * 4 +!' | cat -e
 - id: near_folder_02_boundary_neighbor
   derived_from: can_rpn_calc_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./rpn_calc "1 2 3 4 +" \| cat -e
-  perturbed_input: ./spn_calc "1 2 3 4 +" \| cat -e
+  perturbed_input: ./rpn_calc '1 2 3 4 +!' | cat -e

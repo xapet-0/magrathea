@@ -106,126 +106,80 @@ fixed_tests:
     9 x 19 = 171
 
     '
-- name: test_06_arg_auto
+- name: edge_tm_two
   args:
-  - ''
-  tier: baseline
-  stdout: '1 x 0 = 0
+  - '2'
+  expected: '1 x 2 = 2
 
-    2 x 0 = 0
+    2 x 2 = 4
 
-    3 x 0 = 0
+    3 x 2 = 6
 
-    4 x 0 = 0
+    4 x 2 = 8
 
-    5 x 0 = 0
+    5 x 2 = 10
 
-    6 x 0 = 0
+    6 x 2 = 12
 
-    7 x 0 = 0
+    7 x 2 = 14
 
-    8 x 0 = 0
+    8 x 2 = 16
 
-    9 x 0 = 0
+    9 x 2 = 18
 
     '
-- name: test_07_arg_auto
+  tier: edge_case
+- name: edge_tm_ten
   args:
-  - '   '
-  tier: baseline
-  stdout: '1 x 0 = 0
+  - '10'
+  expected: '1 x 10 = 10
 
-    2 x 0 = 0
+    2 x 10 = 20
 
-    3 x 0 = 0
+    3 x 10 = 30
 
-    4 x 0 = 0
+    4 x 10 = 40
 
-    5 x 0 = 0
+    5 x 10 = 50
 
-    6 x 0 = 0
+    6 x 10 = 60
 
-    7 x 0 = 0
+    7 x 10 = 70
 
-    8 x 0 = 0
+    8 x 10 = 80
 
-    9 x 0 = 0
+    9 x 10 = 90
 
     '
-- name: test_08_arg_auto
+  tier: edge_case
+- name: edge_tm_max_safe_int
   args:
-  - '1337'
-  tier: baseline
-  stdout: '1 x 1337 = 1337
+  - '238609294'
+  expected: '1 x 238609294 = 238609294
 
-    2 x 1337 = 2674
+    2 x 238609294 = 477218588
 
-    3 x 1337 = 4011
+    3 x 238609294 = 715827882
 
-    4 x 1337 = 5348
+    4 x 238609294 = 954437176
 
-    5 x 1337 = 6685
+    5 x 238609294 = 1193046470
 
-    6 x 1337 = 8022
+    6 x 238609294 = 1431655764
 
-    7 x 1337 = 9359
+    7 x 238609294 = 1670265058
 
-    8 x 1337 = 10696
+    8 x 238609294 = 1908874352
 
-    9 x 1337 = 12033
+    9 x 238609294 = 2147483646
 
     '
-- name: test_09_arg_auto
-  args:
-  - 42_Network
-  tier: baseline
-  stdout: '1 x 42 = 42
-
-    2 x 42 = 84
-
-    3 x 42 = 126
-
-    4 x 42 = 168
-
-    5 x 42 = 210
-
-    6 x 42 = 252
-
-    7 x 42 = 294
-
-    8 x 42 = 336
-
-    9 x 42 = 378
-
-    '
-- name: test_10_arg_auto
-  args:
-  - '!@#$%^&*()'
-  tier: baseline
-  stdout: '1 x 0 = 0
-
-    2 x 0 = 0
-
-    3 x 0 = 0
-
-    4 x 0 = 0
-
-    5 x 0 = 0
-
-    6 x 0 = 0
-
-    7 x 0 = 0
-
-    8 x 0 = 0
-
-    9 x 0 = 0
-
-    '
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./tab_mult 9
-  args: &id001
+  args:
   - '9'
   expected: '1 x 9 = 9
 
@@ -250,7 +204,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./tab_mult 19
-  args: &id002
+  args:
   - '19'
   expected: '1 x 19 = 19
 
@@ -320,42 +274,46 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - '9'
   perturbed_input:
   - '10'
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - '9'
   perturbed_input:
   - '  9  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - '19'
   perturbed_input:
   - '20'
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - '19'
   perturbed_input:
   - '  19  '
 - id: near_subj_03_arity_perturbation
   derived_from: subj_ex_03
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./tab_mult | cat -e
   perturbed_input:
-  - tab_mult_near_arg_1
-  - tab_mult_near_arg_2
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_tab_mult_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/tab_mult/tester.sh)
   original_input: ./tab_mult "9"
-  perturbed_input: ./uab_mult "9"
+  perturbed_input: ./tab_mult 10
 - id: near_folder_02_boundary_neighbor
   derived_from: can_tab_mult_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/tab_mult/tester.sh)
   original_input: ./tab_mult "1"
-  perturbed_input: ./uab_mult "1"
+  perturbed_input: ./tab_mult 2

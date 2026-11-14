@@ -55,6 +55,12 @@ fixed_tests:
   stdout: '0
 
     '
+- name: test_11_null_zero_and_neg_length
+  call: int a[]={3,1}; printf("%d:%d:%d\n",ft_is_sort(NULL,0,dt_cmp),ft_is_sort(NULL,1,dt_cmp),ft_is_sort(a,-1,dt_cmp));
+  tier: edge
+  stdout: '1:1:1
+
+    '
 mode: c_function
 subject_examples: []
 folder_examples: []

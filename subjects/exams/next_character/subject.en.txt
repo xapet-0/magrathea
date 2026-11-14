@@ -1,19 +1,20 @@
 Assignment name  : next_character
 Expected files   : next_character.c
 Allowed functions: write
-Version          : 
 --------------------------------------------------------------------------------
 
-Write a program that returns the next character followed by a newline ("\n").
+Write a program that displays the next ASCII character followed by a newline
+('\n'), wrapping 'z' to 'a' and 'Z' to 'A'.
 
-If the number of arguments is other than 1, display only a newline.
+If the number of arguments is not 1, or if the argument is empty, display only
+a newline.
 
-Example:
-
+Examples:
 $> ./next_character 'A' | cat -e
 B$
 $> ./next_character 'z' | cat -e
 a$
-$>./next_character | cat -e
+$> ./next_character | cat -e
 $
-$>./next_character "" | cat -e
+$> ./next_character "" | cat -e
+$

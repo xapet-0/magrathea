@@ -145,8 +145,8 @@ fixed_tests:
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: ./tail "-c" "5" "a.txt" | cat -e
-  args: &id001
+  command: ./ft_tail "-c" "5" "a.txt" | cat -e
+  args:
   - -c
   - '5'
   - a.txt
@@ -156,8 +156,8 @@ subject_examples:
   cat_e: true
 - id: subj_ex_02
   origin: subject.en.txt
-  command: ./tail "-c" "11" "a.txt" | cat -e
-  args: &id002
+  command: ./ft_tail "-c" "11" "a.txt" | cat -e
+  args:
   - -c
   - '11'
   - a.txt
@@ -167,8 +167,8 @@ subject_examples:
   cat_e: true
 - id: subj_ex_03
   origin: subject.en.txt
-  command: ./tail "-c" "99" "a.txt" | cat -e
-  args: &id003
+  command: ./ft_tail "-c" "99" "a.txt" | cat -e
+  args:
   - -c
   - '99'
   - a.txt
@@ -215,7 +215,10 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - -c
+  - '5'
+  - a.txt
   perturbed_input:
   - -d
   - '6'
@@ -223,7 +226,10 @@ near_examples:
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - -c
+  - '5'
+  - a.txt
   perturbed_input:
   - '  -c  '
   - '5'
@@ -232,7 +238,10 @@ near_examples:
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - -c
+  - '11'
+  - a.txt
   perturbed_input:
   - -d
   - '12'
@@ -240,7 +249,10 @@ near_examples:
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - -c
+  - '11'
+  - a.txt
   perturbed_input:
   - '  -c  '
   - '11'
@@ -249,7 +261,10 @@ near_examples:
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - -c
+  - '99'
+  - a.txt
   perturbed_input:
   - -d
   - '100'
@@ -257,18 +272,11 @@ near_examples:
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - -c
+  - '99'
+  - a.txt
   perturbed_input:
   - '  -c  '
   - '99'
   - a.txt
-- id: near_folder_01_boundary_neighbor
-  derived_from: folder_fixture_01
-  strategy: Neighbouring perturbation of folder example (subject_folder/out1)
-  original_input: out1
-  perturbed_input: put1
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/out2)
-  original_input: out2
-  perturbed_input: put2

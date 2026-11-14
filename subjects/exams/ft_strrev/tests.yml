@@ -123,20 +123,13 @@ folder_examples:
     \nint main(int argc, char **argv)\n{\n\tint i;\n\n\ti = 0;\n\tif (argc != 2)\n\
     \t{\n\t\twrite(1, \"\\n\", 1);\n"
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_strrev
-  perturbed_input:
-  - ft_strrev_near_arg_1
-  - ft_strrev_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_ft_strrev_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strrev/tester.sh)
   original_input: ./ft_strrev "   "
-  perturbed_input: ./gt_strrev "   "
+  perturbed_input: ./ft_strrev '   !'
 - id: near_folder_02_boundary_neighbor
   derived_from: can_ft_strrev_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_strrev/tester.sh)
   original_input: ./ft_strrev "dub0 a POIL"
-  perturbed_input: ./gt_strrev "dub0 a POIL"
+  perturbed_input: ./ft_strrev 'eub0 a POIL'

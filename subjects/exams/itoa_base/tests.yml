@@ -65,6 +65,32 @@ fixed_tests:
   stdout: '-2147483648
 
     '
+- name: edge_int_max_base10
+  call: 'char *s = itoa_base(2147483647, 10); printf("%s\n", s ? s : "(null)"); free(s);'
+  stdout: '2147483647
+
+    '
+  tier: edge
+- name: edge_int_max_hex
+  call: 'char *s = itoa_base(2147483647, 16); printf("%s\n", s ? s : "(null)"); free(s);'
+  stdout: '7FFFFFFF
+
+    '
+  tier: edge
+- name: edge_int_min_hex_unsigned_abs
+  call: 'char *s = itoa_base((-2147483647 - 1), 16); printf("%s\n", s ? s : "(null)");
+    free(s);'
+  stdout: '80000000
+
+    '
+  tier: edge
+- name: edge_invalid_base_null
+  call: char *s1 = itoa_base(42, 1); char *s2 = itoa_base(42, 17); printf("%d:%d\n",
+    s1 == NULL, s2 == NULL); free(s1); free(s2);
+  stdout: '1:1
+
+    '
+  tier: edge
 oracle_tests:
 - name: case_itoa_base_edges
   source: "int main(void)\n{\n    char *s1 = itoa_base(0, 10);\n    char *s2 = itoa_base(-42,\
@@ -94,20 +120,8 @@ folder_examples:
     \ *s = itoa_base(255, 16); printf(\"%s\\n\", s); free(s);\n  stdout: 'FF\n\n \
     \   '\n- name: negative"
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval itoa_base
-  perturbed_input:
-  - itoa_base_near_arg_1
-  - itoa_base_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_itoa_base_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: itoa_base(255, 16)         -> "FF"
-  perturbed_input: jtoa_base(255, 16)         -> "FF"
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+  perturbed_input: itoa_base(256, 17)

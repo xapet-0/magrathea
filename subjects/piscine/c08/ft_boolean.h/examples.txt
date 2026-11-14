@@ -1,3 +1,4 @@
 Examples:
-$> ./ft_boolean.h | cat -e
-$
+    Even argc - 1: I have an even number of arguments.
+    Odd argc - 1:  I have an odd number of arguments.
+# Check with `norminette -R CheckDefine ft_boolean.h` and `man cc`.

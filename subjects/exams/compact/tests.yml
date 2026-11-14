@@ -97,21 +97,4 @@ folder_examples:
   expected: "subject_id: compact\nfixed_tests:\n- setup:\n  - char *a[] = {\"a\",\
     \ 0, \"b\", 0};\n  expr: compact(a, 4)\n  stdout: '2\n\n    '\n- setup:\n  - char\
     \ *a[] = {0, 0, 0};\n  expr"
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval compact
-  perturbed_input:
-  - compact_near_arg_1
-  - compact_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: e1337_compact_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: 'If tab = {"a", NULL, "b", NULL} and length = 4:'
-  perturbed_input: Jf tab = {"a", NULL, "b", NULL} and leng
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+near_examples: []

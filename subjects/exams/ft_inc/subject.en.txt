@@ -1,17 +1,14 @@
-======================================ft_dec.txt=========================================
 Assignment name  : ft_inc
 Expected files   : ft_inc.c
 Allowed functions: None
 --------------------------------------------------------------------------------
 
-Write a function that takes an int pointer and increment it's value
+Write a function that takes a pointer to int and increments its value.
 
-The function must be declared as follows
+Your function must be declared as follows:
 
-void    *ft_inc(int *a);
-==========================================================================================
+void	ft_inc(int *ptr);
 
-[cur_ft_inc_T01] Input: printf("%d\n", x)  ==>  Expected: 42\n
-[cur_ft_inc_T02] Input: printf("%d\n", x)  ==>  Expected: 0\n
-[cur_ft_inc_T03] Input: printf("%d\n", x)  ==>  Expected: 1\n
-[cur_ft_inc_T04] Input: printf("%d\n", x)  ==>  Expected: -42\n
+Examples:
+    int x = 41; ft_inc(&x); -> x == 42
+    int x = -1; ft_inc(&x); -> x == 0

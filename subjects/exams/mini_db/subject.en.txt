@@ -1,12 +1,12 @@
-Assignment name: mini_db
-Expected files : *. cpp *. hpp
------------------------------------------------------------------
+Assignment name  : mini_db
+Expected files   : mini_db.cpp mini_db.hpp
+--------------------------------------------------------------------------------
 
 Write a program that takes as an argument a port and a path.
 Your program must listen for clients to connect on 127.0.0.1 on the given port.
 
-When your program is ready to accept incoming connections, it will print "ready\n" on
-the standard output.
+Note: printing "ready\n" on standard output at startup is optional (the test
+harness connects on the given port regardless).
 
 Your program will receive commands from the connected clients and will maintain a
 database of key-values.
@@ -48,7 +48,7 @@ and load it.
 
 Hint: you can use nc to test your program.
 
-You will find in this directory a file containing some network code in case you
+You will find in this directory a file (socket.hpp) containing some network code in case you
 have forgotten how it works.
 
 Example:
@@ -56,7 +56,7 @@ Example:
 $> ./mini_db 1111 .save &
 $> nc localhost 1111 | cat -e
 POST A B
-O$
+0$
 POST B C
 0$
 GET A
@@ -64,7 +64,7 @@ GET A
 GET C
 1$
 DELETE A
-O$
+0$
 DELETE C
 1$
 UNKNOWN_COMMAND
@@ -74,4 +74,3 @@ $> pkill -SIGINT mini_db
 $> ./mini_db 1111 .save &
 $> echo "GET B" | nc localhost 1111 | cat -e
 0 C$
-S>

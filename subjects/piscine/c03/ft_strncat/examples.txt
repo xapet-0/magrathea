@@ -1,5 +1,2 @@
-# Examples for ft_strncat (from official subject specification)
-
-Examples:
-    char d[20] = "Hello"; ft_strncat(d, " World", 3); printf("%s\n", d)
-    Output: Hello Wo
+# No examples in official PDF.
+# Use `man 3 strncat` and consult subject.en.txt for the exact specification.

@@ -1,1 +1,2 @@
-[pool_midls_T01] Input: `sh midls.sh` (standard shell environment)  ==>  Expected: *(none)*
+# No examples in official PDF.
+# Use `man ls` and consult subject.en.txt for the exact specification.

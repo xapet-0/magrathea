@@ -1,3 +1,2 @@
-Examples:
-$> ./ft_strs_to_tab | cat -e
-$
+# No examples in official PDF.
+# Use `man 3 malloc, man 3 free` and consult subject.en.txt for the exact specification.

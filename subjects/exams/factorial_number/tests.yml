@@ -68,6 +68,18 @@ fixed_tests:
   stdout: '3628800
 
     '
+- name: edge_int_min
+  expr: factorial_number((-2147483647 - 1))
+  stdout: '0
+
+    '
+  tier: edge
+- name: edge_factorial_12_max_int32
+  expr: factorial_number(12)
+  stdout: '479001600
+
+    '
+  tier: edge
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt (contract specification)
@@ -96,42 +108,4 @@ folder_examples:
   origin: subject_folder/deepthought/corrections/exams/factorial_number/generator.py
   input: Dynamic generation rule via multiple_arguments_test()
   expected: Deterministic output validated by Deepthought oracle
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval factorial_number
-  perturbed_input:
-  - factorial_number_near_arg_1
-  - factorial_number_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: cur_factorial_number_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/factorial_number/generator.py)
-  original_input: Dynamic generation rule via basic_test()
-  perturbed_input: Eynamic generation rule via basic_test()
-- id: near_folder_02_boundary_neighbor
-  derived_from: cur_factorial_number_T06
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/factorial_number/generator.py)
-  original_input: Dynamic generation rule via basic_test1()
-  perturbed_input: Eynamic generation rule via basic_test1(
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `factorial_number`
-  input: factorial_number(INT_MIN), factorial_number(0), factorial_number(1)
-  expected: Correct mathematical result without signed overflow UB
-- name: edge_02_S
-  code: '[S]'
-  title: Arithmetic overflow and infinite recursion protection in `factorial_number`
-  input: Run factorial_number with large inputs
-  expected: Safe return or termination without stack overflow
-- name: edge_03_B
-  code: '[B]'
-  title: Zero factorial and power edge cases in `factorial_number`
-  input: factorial_number(0)
-  expected: Canonical mathematical result for 0
-- name: edge_04_T
-  code: '[T]'
-  title: Time complexity guard against exponential runtime in `factorial_number`
-  input: Call factorial_number on large prime or composite integer
-  expected: Execute within 0.5s limit without timing out
+near_examples: []

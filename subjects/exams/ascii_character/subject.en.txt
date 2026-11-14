@@ -1,15 +1,14 @@
 Assignment name  : ascii_character
 Expected files   : ascii_character.c
-Allowed functions:
-Version          : 1
+Allowed functions: None
 --------------------------------------------------------------------------------
 
-Write a function that returns  ASCII character.
+Write a function that returns the ASCII code of a character.
 
 Your function must be declared as follows:
     int ascii_character(char c);
-Example:
 
-    $> ascii_character('A') = 65
-    $> ascii_character('z') = 122
-    $> ascii_character('B') = 66
+Examples:
+    ascii_character('A') -> 65
+    ascii_character('z') -> 122
+    ascii_character('B') -> 66

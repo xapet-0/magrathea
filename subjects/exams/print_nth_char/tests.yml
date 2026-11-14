@@ -83,21 +83,4 @@ folder_examples:
   expected: "subject_id: print_nth_char\nfixed_tests:\n- call: print_nth_char(\"ABCDEF\"\
     , 2)\n  stdout: 'BDF\n\n    '\n- call: print_nth_char(\"Hello\", 2)\n  stdout:\
     \ 'el\n\n    '\n- call"
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval print_nth_char
-  perturbed_input:
-  - print_nth_char_near_arg_1
-  - print_nth_char_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: e1337_print_nth_char_T08
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: ABCDEF, 2 -> BDF; Hello, 2 -> el.
-  perturbed_input: BBCDEF, 2 -> BDF; Hello, 2 -> el.
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+near_examples: []

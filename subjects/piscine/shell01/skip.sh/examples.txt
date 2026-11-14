@@ -1,3 +1,5 @@
 Examples:
 $> ./skip.sh | cat -e
-$
+total 4$
+-rw-rw-r-- 1 eagle eagle ** ** 15 15:41 tata$
+-rw-rw-r-- 1 eagle eagle ** ** 15 15:41 toto$

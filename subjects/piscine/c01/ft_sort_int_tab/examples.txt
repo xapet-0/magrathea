@@ -1,3 +1,2 @@
-Examples:
-$> ./ft_sort_int_tab | cat -e
-$
+# No examples in official PDF.
+# Use `man cc, man 3 qsort` and consult subject.en.txt for the exact specification.

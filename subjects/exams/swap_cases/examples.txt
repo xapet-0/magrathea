@@ -1,9 +1,7 @@
 Examples:
   char s[] = "Hello 42 World!"; printf("%s\n", swap_cases(s))
   Output: hELLO 42 wORLD!
-    char s[] = "abcXYZ"; printf("%s
-", swap_cases(s))
+    char s[] = "abcXYZ"; printf("%s\n", swap_cases(s))
     Output: ABCxyz
-    char s[] = "1337"; printf("%s
-", swap_cases(s))
+    char s[] = "1337"; printf("%s\n", swap_cases(s))
     Output: 1337

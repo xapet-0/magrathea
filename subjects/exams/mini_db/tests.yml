@@ -71,17 +71,281 @@ fixed_tests:
 - expected: 'OK
 
     '
-  name: tcp_post_get_delete_persistence
-  python_harness: "import socket, subprocess, sys, time\nexe = sys.argv[1]\ns = socket.socket()\n\
-    s.bind(('127.0.0.1', 0))\nport = s.getsockname()[1]\ns.close()\np = subprocess.Popen([exe,\
-    \ str(port), 'test_db.txt'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n\
-    try:\n    time.sleep(0.15)\n    c = socket.create_connection(('127.0.0.1', port),\
-    \ timeout=1.0)\n    c.sendall(b'POST school 1337\\n')\n    assert c.recv(1024)\
-    \ == b'0\\n'\n    c.sendall(b'GET school\\n')\n    assert c.recv(1024) == b'0\
-    \ 1337\\n'\n    c.sendall(b'DELETE school\\n')\n    assert c.recv(1024) == b'0\\\
-    n'\n    c.sendall(b'GET school\\n')\n    assert c.recv(1024) == b'1\\n'\n    c.close()\n\
-    \    print('OK')\nfinally:\n    p.kill()\n    p.wait()\n"
-mode: c_program
-subject_examples: []
+  name: tcp_post_get_delete_unknown
+  python_harness: |
+    import socket, subprocess, sys, time
+
+    exe = sys.argv[1]
+    s = socket.socket()
+    s.bind(('127.0.0.1', 0))
+    port = s.getsockname()[1]
+    s.close()
+
+    def connect_retry(pno):
+        deadline = time.time() + 1.5
+        while True:
+            try:
+                return socket.create_connection(('127.0.0.1', pno), timeout=1.0)
+            except OSError:
+                if time.time() > deadline:
+                    raise
+                time.sleep(0.02)
+
+    def recv_line(sock):
+        buf = b''
+        while not buf.endswith(b'\n'):
+            chunk = sock.recv(1024)
+            if not chunk:
+                break
+            buf += chunk
+        return buf
+
+    p = subprocess.Popen([exe, str(port), 'test_db.txt'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        c1 = connect_retry(port)
+        c2 = connect_retry(port)
+        c1.sendall(b'POST school 1337\n')
+        assert recv_line(c1) == b'0\n'
+        c1.sendall(b'POST school 42\n')
+        assert recv_line(c1) == b'0\n'
+        c2.sendall(b'GET school\n')
+        assert recv_line(c2) == b'0 42\n'
+        c2.sendall(b'DELETE school\n')
+        assert recv_line(c2) == b'0\n'
+        c2.sendall(b'DELETE missing\n')
+        assert recv_line(c2) == b'1\n'
+        c1.sendall(b'GET school\n')
+        assert recv_line(c1) == b'1\n'
+        c1.sendall(b'UNKNOWN_COMMAND\n')
+        assert recv_line(c1) == b'2\n'
+        c1.sendall(b'BADCMD a b\n')
+        assert recv_line(c1) == b'2\n'
+        c1.close()
+        c2.close()
+        print('OK')
+    finally:
+        p.kill()
+        p.wait()
+- expected: 'OK
+
+    '
+  name: tcp_persistence_sigint_restart
+  python_harness: |
+    import os, signal, socket, subprocess, sys, time
+
+    exe = sys.argv[1]
+    db_path = 'persist_db.txt'
+    if os.path.exists(db_path):
+        os.unlink(db_path)
+
+    def free_port():
+        s = socket.socket()
+        s.bind(('127.0.0.1', 0))
+        port = s.getsockname()[1]
+        s.close()
+        return port
+
+    def connect_retry(pno):
+        deadline = time.time() + 1.5
+        while True:
+            try:
+                return socket.create_connection(('127.0.0.1', pno), timeout=1.0)
+            except OSError:
+                if time.time() > deadline:
+                    raise
+                time.sleep(0.02)
+
+    def recv_line(sock):
+        buf = b''
+        while not buf.endswith(b'\n'):
+            chunk = sock.recv(1024)
+            if not chunk:
+                break
+            buf += chunk
+        return buf
+
+    port1 = free_port()
+    p1 = subprocess.Popen([exe, str(port1), db_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        c = connect_retry(port1)
+        for req, exp in (
+            (b'POST alpha 42\n', b'0\n'),
+            (b'POST beta v1\n', b'0\n'),
+            (b'POST beta v2\n', b'0\n'),
+            (b'POST gamma temp\n', b'0\n'),
+            (b'DELETE gamma\n', b'0\n'),
+        ):
+            c.sendall(req)
+            got = recv_line(c)
+            assert got == exp, f'{req!r} -> {got!r} != {exp!r}'
+        c.close()
+        p1.send_signal(signal.SIGINT)
+        rc = p1.wait(timeout=2.0)
+        assert rc == 0, f'SIGINT exit code {rc}'
+    finally:
+        if p1.poll() is None:
+            p1.kill()
+            p1.wait()
+
+    assert os.path.exists(db_path), 'DB file was not saved on SIGINT'
+
+    port2 = free_port()
+    p2 = subprocess.Popen([exe, str(port2), db_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        c2 = connect_retry(port2)
+        for req, exp in (
+            (b'GET alpha\n', b'0 42\n'),
+            (b'GET beta\n', b'0 v2\n'),
+            (b'GET gamma\n', b'1\n'),
+            (b'POST delta reloaded\n', b'0\n'),
+            (b'GET delta\n', b'0 reloaded\n'),
+        ):
+            c2.sendall(req)
+            got = recv_line(c2)
+            assert got == exp, f'restart {req!r} -> {got!r} != {exp!r}'
+        c2.close()
+        print('OK')
+    finally:
+        p2.kill()
+        p2.wait()
+mode: cpp
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./mini_db 1111 .save &
+  args: &id001
+  - '1111'
+  - .save
+  - '&'
+  expected: ''
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: nc localhost 1111 | cat -e
+  args: &id002
+  - localhost
+  - '1111'
+  expected: 'POST A B
+
+    0
+
+    POST B C
+
+    0
+
+    GET A
+
+    0 B
+
+    GET C
+
+    1
+
+    DELETE A
+
+    0
+
+    DELETE C
+
+    1
+
+    UNKNOWN_COMMAND
+
+    2
+
+    ^C
+
+    '
+  cat_e: true
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: pkill -SIGINT mini_db
+  args: &id003
+  - -SIGINT
+  - mini_db
+  expected: ''
+  cat_e: false
+- id: subj_ex_04
+  origin: subject.en.txt
+  command: ./mini_db 1111 .save &
+  args: &id004
+  - '1111'
+  - .save
+  - '&'
+  expected: ''
+  cat_e: false
+- id: subj_ex_05
+  origin: subject.en.txt
+  command: echo "GET B" | nc localhost 1111 | cat -e
+  args:
+  - GET B
+  expected: '0 C
+
+    '
+  cat_e: true
 folder_examples: []
-near_examples: []
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - '1112'
+  - .tave
+  - '&!'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  1111  '
+  - .save
+  - '&'
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id002
+  perturbed_input:
+  - mocalhost
+  - '1112'
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id002
+  perturbed_input:
+  - '  localhost  '
+  - '1111'
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id003
+  perturbed_input:
+  - -TIGINT
+  - nini_db
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id003
+  perturbed_input:
+  - '  -SIGINT  '
+  - mini_db
+- id: near_subj_04_lexical_shift
+  derived_from: subj_ex_04
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id004
+  perturbed_input:
+  - '1112'
+  - .tave
+  - '&!'
+- id: near_subj_04_whitespace_envelope
+  derived_from: subj_ex_04
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id004
+  perturbed_input:
+  - '  1111  '
+  - .save
+  - '&'

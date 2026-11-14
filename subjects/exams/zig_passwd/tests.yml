@@ -46,85 +46,53 @@ fixed_tests:
     u3
 
     '
-- name: test_05_stdin_auto
-  stdin: '42
+- name: zig_passwd_skip_comments
+  args: []
+  stdin: '# header comment
 
-    1337
+    root:x:0:0::/root:/bin/sh
 
-    '
-  tier: baseline
-  stdout: '42
+    # middle
 
-    1337
-
-    '
-- name: test_06_stdin_auto
-  stdin: 'hello world
+    _apt:x:100:65534::/nonexistent:/bin/false
 
     '
-  tier: baseline
-  stdout: 'hello world
+  stdout: 'root
+
+    _apt
 
     '
-- name: test_07_stdin_auto
-  stdin: 'a
-
-    b
-
-    c
+  tier: edge_case
+- name: zig_passwd_extra_colons
+  args: []
+  stdin: 'alice:x:1000:1000:Alice:Room 42:/home/alice:/bin/zsh
 
     '
-  tier: baseline
-  stdout: 'a
-
-    b
-
-    c
+  stdout: 'alice
 
     '
-- name: test_08_stdin_auto
-  stdin: '10 20 30 40 50
+  tier: edge_case
+- name: zig_passwd_only_comments
+  args: []
+  stdin: '# line1
+
+    # line2
 
     '
-  tier: baseline
-  stdout: '10 20 30 40 50
-
-    '
-- name: test_09_stdin_auto
-  stdin: 'single_line
-
-    '
-  tier: baseline
-  stdout: 'single_line
-
-    '
-- name: test_10_stdin_auto
-  stdin: 'foo
-
-    bar
-
-    baz
-
-    qux
-
-    '
-  tier: baseline
-  stdout: 'foo
-
-    bar
-
-    baz
-
-    qux
-
-    '
+  stdout: ''
+  tier: edge_case
+- name: zig_passwd_empty_input
+  args: []
+  stdin: ''
+  stdout: ''
+  tier: edge_case
 subject_id: zig_passwd
 mode: shell
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: printf "root:x:0:0::/root:/bin/sh\n" | sh zig_passwd.sh | cat -e
-  args: &id001
+  args:
   - root:x:0:0::/root:/bin/sh\n
   expected: 'root
 
@@ -134,7 +102,7 @@ subject_examples:
   origin: subject.en.txt
   command: printf "marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n"
     | sh zig_passwd.sh | cat -e
-  args: &id002
+  args:
   - marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n
   expected: 'marvin
 
@@ -162,37 +130,29 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - root:x:0:0::/root:/bin/sh\n
   perturbed_input:
   - soot:x:0:0::/root:/bin/sh\n
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - root:x:0:0::/root:/bin/sh\n
   perturbed_input:
   - '  root:x:0:0::/root:/bin/sh\n  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n
   perturbed_input:
   - narvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n
   perturbed_input:
   - '  marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n  '
-- id: near_folder_01_boundary_neighbor
-  derived_from: e1337_zig_passwd_T03
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: printf "root:x:0:0::/root:/bin/sh\n" \| sh zig_passwd.sh \| cat
-    -e
-  perturbed_input: 'qrintf "root:x:0:0::/root:/bin/sh\n" \| '
-- id: near_folder_02_boundary_neighbor
-  derived_from: e1337_zig_passwd_T04
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: printf "marvin:x:42:42::/home/marvin:/bin/sh\nbocal:x:1337:1337::/home/bocal:/bin/sh\n"
-    \| sh zig_passwd.sh \| cat -e
-  perturbed_input: qrintf "marvin:x:42:42::/home/marvin:/bi

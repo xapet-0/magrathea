@@ -1,5 +1,4 @@
-example:
-
-$ ./naahio Hello_Open_AI_is_cool
-> Reversed: cool is AI Open Hello
-> Vowel count: 10
+Examples:
+$> ./naahio Hello_Open_AI_is_cool | cat -e
+Reversed: cool is AI Open Hello$
+Vowel count: 9$

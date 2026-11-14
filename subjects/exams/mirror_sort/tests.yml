@@ -50,85 +50,69 @@ fixed_tests:
     a
 
     '
-- name: test_05_stdin_auto
-  stdin: '42
+- name: mirror_sort_order_distinction
+  args: []
+  stdin: 'xb
 
-    1337
+    ya
 
-    '
-  tier: baseline
-  stdout: '24
-
-    7331
+    zc
 
     '
-- name: test_06_stdin_auto
-  stdin: 'hello world
+  stdout: 'ay
+
+    bx
+
+    cz
 
     '
-  tier: baseline
-  stdout: 'dlrow olleh
+  tier: edge_case
+- name: mirror_sort_varying_lengths
+  args: []
+  stdin: 'abcd
+
+    a
+
+    12345
 
     '
-- name: test_07_stdin_auto
-  stdin: 'a
+  stdout: '54321
 
-    b
+    a
 
-    c
-
-    '
-  tier: baseline
-  stdout: 'a
-
-    b
-
-    c
+    dcba
 
     '
-- name: test_08_stdin_auto
-  stdin: '10 20 30 40 50
+  tier: edge_case
+- name: mirror_sort_duplicates
+  args: []
+  stdin: 'z1
+
+    a1
+
+    z1
 
     '
-  tier: baseline
-  stdout: '05 04 03 02 01
+  stdout: '1a
+
+    1z
+
+    1z
 
     '
-- name: test_09_stdin_auto
-  stdin: 'single_line
-
-    '
-  tier: baseline
-  stdout: 'enil_elgnis
-
-    '
-- name: test_10_stdin_auto
-  stdin: 'foo
-
-    bar
-
-    baz
-
-    qux
-
-    '
-  tier: baseline
-  stdout: 'oof
-
-    rab
-
-    xuq
-
-    zab
-
-    '
+  tier: edge_case
+- name: mirror_sort_empty_input
+  args: []
+  stdin: ''
+  stdout: ''
+  tier: edge_case
 subject_id: mirror_sort
 mode: shell
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: printf "ba\nab\n" | sh mirror_sort.sh | cat -e
-  args: &id001
+  args:
   - ba\nab\n
   expected: 'ab
 
@@ -139,7 +123,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: printf "dc\nba\n" | sh mirror_sort.sh | cat -e
-  args: &id002
+  args:
   - dc\nba\n
   expected: 'ab
 
@@ -150,7 +134,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: printf "z\na\n" | sh mirror_sort.sh | cat -e
-  args: &id003
+  args:
   - z\na\n
   expected: 'a
 
@@ -182,48 +166,44 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - ba\nab\n
   perturbed_input:
   - ca\nab\n
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - ba\nab\n
   perturbed_input:
   - '  ba\nab\n  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - dc\nba\n
   perturbed_input:
   - ec\nba\n
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - dc\nba\n
   perturbed_input:
   - '  dc\nba\n  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - z\na\n
   perturbed_input:
   - z\oa\n
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - z\na\n
   perturbed_input:
   - '  z\na\n  '
-- id: near_folder_01_boundary_neighbor
-  derived_from: e1337_mirror_sort_T04
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: printf "ba\nab\n" \| sh mirror_sort.sh \| cat -e
-  perturbed_input: qrintf "ba\nab\n" \| sh mirror_sort.sh \
-- id: near_folder_02_boundary_neighbor
-  derived_from: e1337_mirror_sort_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: printf "dc\nba\n" \| sh mirror_sort.sh \| cat -e
-  perturbed_input: qrintf "dc\nba\n" \| sh mirror_sort.sh \

@@ -32,56 +32,44 @@ fixed_tests:
 
     '
   tier: baseline
-- name: test_05_arg_auto
+- name: vowel_count_spaces_tabs_no_vowels
+  env:
+    FT_LINE: "bcdfg\tXYZ 12345!"
   args: []
-  tier: baseline
-  stdout: '3
+  stdout: '0
 
     '
-- name: test_06_arg_auto
-  args:
-  - extra
-  tier: baseline
-  stdout: '3
+  tier: edge_case
+- name: vowel_count_only_y
+  env:
+    FT_LINE: yYrRwW
+  args: []
+  stdout: '0
 
     '
-- name: test_07_arg_auto
-  args:
-  - a
-  - b
-  tier: baseline
-  stdout: '3
+  tier: edge_case
+- name: vowel_count_mixed_sentence
+  env:
+    FT_LINE: 42 Piscine Exam Shell Scripting!
+  args: []
+  stdout: '8
 
     '
-- name: test_08_arg_auto
-  args:
-  - '1'
-  - '2'
-  - '3'
-  tier: baseline
-  stdout: '3
+  tier: edge_case
+- name: vowel_count_single_vowel
+  env:
+    FT_LINE: A
+  args: []
+  stdout: '1
 
     '
-- name: test_09_arg_auto
-  args:
-  - --help
-  tier: baseline
-  stdout: '3
-
-    '
-- name: test_10_arg_auto
-  args:
-  - -v
-  tier: baseline
-  stdout: '3
-
-    '
+  tier: edge_case
 mode: shell
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: FT_LINE="Hello 1337 World!" sh vowel_count.sh | cat -e
-  args: &id001
+  args:
   - sh
   - vowel_count.sh
   expected: '3
@@ -91,7 +79,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: FT_LINE="AEIOUaeiou" sh vowel_count.sh | cat -e
-  args: &id002
+  args:
   - sh
   - vowel_count.sh
   expected: '10
@@ -101,7 +89,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: FT_LINE="bcdfg" sh vowel_count.sh | cat -e
-  args: &id003
+  args:
   - sh
   - vowel_count.sh
   expected: '0
@@ -111,7 +99,7 @@ subject_examples:
 - id: subj_ex_04
   origin: subject.en.txt
   command: FT_LINE="" sh vowel_count.sh | cat -e
-  args: &id004
+  args:
   - sh
   - vowel_count.sh
   expected: '0
@@ -146,14 +134,18 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - sh
+  - vowel_count.sh
   perturbed_input:
   - th
   - wowel_count.sh
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - sh
+  - vowel_count.sh
   perturbed_input:
   - '  sh  '
   - vowel_count.sh
@@ -161,14 +153,18 @@ near_examples:
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - sh
+  - vowel_count.sh
   perturbed_input:
   - th
   - wowel_count.sh
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - sh
+  - vowel_count.sh
   perturbed_input:
   - '  sh  '
   - vowel_count.sh
@@ -176,14 +172,18 @@ near_examples:
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - sh
+  - vowel_count.sh
   perturbed_input:
   - th
   - wowel_count.sh
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - sh
+  - vowel_count.sh
   perturbed_input:
   - '  sh  '
   - vowel_count.sh
@@ -191,14 +191,18 @@ near_examples:
   derived_from: subj_ex_04
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id004
+  original_input:
+  - sh
+  - vowel_count.sh
   perturbed_input:
   - th
   - wowel_count.sh
 - id: near_subj_04_whitespace_envelope
   derived_from: subj_ex_04
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id004
+  original_input:
+  - sh
+  - vowel_count.sh
   perturbed_input:
   - '  sh  '
   - vowel_count.sh
@@ -206,9 +210,9 @@ near_examples:
   derived_from: e1337_vowel_count_T04
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: FT_LINE="Hello 1337 World!" sh vowel_count.sh \| cat -e
-  perturbed_input: GT_LINE="Hello 1337 World!" sh vowel_cou
+  perturbed_input: FT_LINE="Iello 1337 World!" sh vowel_count.sh | cat -e
 - id: near_folder_02_boundary_neighbor
   derived_from: e1337_vowel_count_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: FT_LINE="AEIOUaeiou" sh vowel_count.sh \| cat -e
-  perturbed_input: GT_LINE="AEIOUaeiou" sh vowel_count.sh \
+  perturbed_input: FT_LINE="BEIOUaeiou" sh vowel_count.sh | cat -e

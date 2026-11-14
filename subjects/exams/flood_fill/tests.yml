@@ -69,6 +69,12 @@ fixed_tests:
   stdout: 'FFF|F0F|FFF
 
     '
-subject_examples: []
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval flood_fill
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
 folder_examples: []
 near_examples: []

@@ -138,10 +138,31 @@ fixed_tests:
     '
 subject_examples:
 - id: subj_ex_01
-  origin: subject.en.txt (contract specification)
-  command: eval display_file
+  origin: subject.en.txt
+  command: ./ft_display_file a.txt
+  args:
+  - a.txt
+  expected: 'hello
+
+    '
+  cat_e: false
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./ft_display_file
   args: []
-  expected: Conform to subject.en.txt prototype and output specification
+  expected: 'File name missing.
+
+    '
+  cat_e: false
+- id: subj_ex_03
+  origin: subject.en.txt
+  command: ./ft_display_file a.txt b.txt
+  args:
+  - a.txt
+  - b.txt
+  expected: 'Too many arguments.
+
+    '
   cat_e: false
 folder_examples:
 - id: folder_fixture_01
@@ -152,15 +173,44 @@ folder_examples:
 
     /*                                                                            *'
 near_examples:
-- id: near_subj_01_arity_perturbation
+- id: near_subj_01_lexical_shift
   derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval display_file
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
+  - a.txt
   perturbed_input:
-  - display_file_near_arg_1
-  - display_file_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: folder_fixture_01
-  strategy: Neighbouring perturbation of folder example (subject_folder/srcs/main.c)
-  original_input: srcs/main.c
-  perturbed_input: trcs/main.c
+  - b.txt
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - a.txt
+  perturbed_input:
+  - '  a.txt  '
+- id: near_subj_02_arity_perturbation
+  derived_from: subj_ex_02
+  strategy: Invoke binary with unexpected arguments to verify argc guard
+  original_input: ./ft_display_file
+  perturbed_input:
+  - arg1
+  - arg2
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
+  - a.txt
+  - b.txt
+  perturbed_input:
+  - b.txt
+  - c.txt
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - a.txt
+  - b.txt
+  perturbed_input:
+  - '  a.txt  '
+  - b.txt

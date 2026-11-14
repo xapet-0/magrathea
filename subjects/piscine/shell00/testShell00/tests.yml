@@ -11,24 +11,24 @@ folder_examples:
   origin: subject_folder/examples.txt
 mode: shell
 near_examples:
-- derived_from: subj_ex_01
-  id: near_subj_01_arity_perturbation
-  original_input: ./testShell00 | cat -e
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Perturb permissions / byte size around subject.en.txt example
+  original_input: ls -l testShell00
   perturbed_input:
-  - testShell00_near_arg_1
-  - testShell00_near_arg_2
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-- derived_from: folder_ex_01
-  id: near_folder_01_boundary_neighbor
-  original_input: testShell00 baseline folder fixture
-  perturbed_input: uestShell00 baseline folder fixture
+  - testShell00_wrong_size_41
+  - testShell00_wrong_perms
+- id: near_folder_01_boundary_neighbor
+  derived_from: folder_ex_01
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
+  original_input: testShell00 baseline folder fixture
+  perturbed_input: testShell00 wrong timestamp fixture
 subject_examples:
-- args: []
-  cat_e: true
-  command: ./testShell00 | cat -e
-  expected: '
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ls -l testShell00
+  args: []
+  expected: '-r--r-xr-x 1 XX XX 40 Jun 1 23:42 testShell00
 
     '
-  id: subj_ex_01
-  origin: subject.en.txt
+  cat_e: false

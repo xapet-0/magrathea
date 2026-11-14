@@ -105,20 +105,13 @@ folder_examples:
     \ main(void)\n{\n\tchar letter_t;\n\tchar letter_G;\n\tletter_t = 't';\n\tletter_G\
     \ = 'G';\n\n\tprintf(\"lett"
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval swap_bits
-  perturbed_input:
-  - swap_bits_near_arg_1
-  - swap_bits_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_swap_bits_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/swap_bits/tester.sh)
   original_input: ./swap_bits "0"
-  perturbed_input: ./twap_bits "0"
+  perturbed_input: ./swap_bits 1
 - id: near_folder_02_boundary_neighbor
   derived_from: can_swap_bits_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/swap_bits/tester.sh)
   original_input: ./swap_bits "P"
-  perturbed_input: ./twap_bits "P"
+  perturbed_input: ./swap_bits Q

@@ -1,5 +1,5 @@
 id: ft_abs.h
-type: c_function
+type: c_header
 module: C 08
 xp: 210
 expected_files:

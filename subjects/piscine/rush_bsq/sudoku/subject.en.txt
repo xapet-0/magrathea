@@ -3,14 +3,23 @@ Expected files   : *.c *.h
 Allowed functions: write, malloc, free
 --------------------------------------------------------------------------------
 
-# Rush 01 Legacy — 9x9 Sudoku Backtracking Solver
+Write a program that resolves a 9x9 Sudoku puzzle passed on the command line.
 
-Expected files: *.c, *.h
-Allowed functions: write, malloc, free
+Your program takes 9 arguments, each representing one row of the grid as a
+9-character string containing only digits from '1' to '9' and the '.' character
+for empty cells.
 
-Requirements:
-    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
-    - Your program will be compiled with: cc -Wall -Wextra -Werror.
+If the input grid is valid and solvable, your program must display the solved
+9x9 grid as 9 lines of 9 digits separated by a single space, each ending with
+a newline.
+
+If the number of arguments is different from 9, if any argument does not have
+exact length 9, if an invalid character is encountered, if initial clues contain
+duplicates in a row, column, or 3x3 subgrid, or if the puzzle has no valid
+solution, the program must display "Error" followed by a newline.
+
+Compilation:
+    - Your program will be compiled with: cc -Wall -Wextra -Werror *.c
 
 Examples:
 $> ./sudoku "9...7...." "2...9..53" ".6..124.." "84...1.9." "5.....8.." ".31..4..." "..37..68." ".9..5.741" "47......." | cat -e
@@ -23,3 +32,7 @@ $> ./sudoku "9...7...." "2...9..53" ".6..124.." "84...1.9." "5.....8.." ".31..4.
 1 5 3 7 4 9 6 8 2$
 6 9 8 2 5 3 7 4 1$
 4 7 2 1 6 8 9 3 5$
+$> ./sudoku "9...7...." | cat -e
+Error$
+$> ./sudoku "99..7...." "2...9..53" ".6..124.." "84...1.9." "5.....8.." ".31..4..." "..37..68." ".9..5.741" "47......." | cat -e
+Error$

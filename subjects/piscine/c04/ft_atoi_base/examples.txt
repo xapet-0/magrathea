@@ -1,3 +1,2 @@
-Examples:
-$> ./ft_atoi_base | cat -e
-$
+# No examples in official PDF.
+# Use `man 3 atoi, man 3 strtol, man 3 isspace` and consult subject.en.txt for the exact specification.

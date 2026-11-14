@@ -10,4 +10,4 @@ compiler_flags:
 - -Wextra
 - -Werror
 norminette: true
-prototype: sh find_sh.sh.sh [args...]
+prototype: sh find_sh.sh [args...]

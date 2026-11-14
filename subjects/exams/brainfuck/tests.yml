@@ -41,101 +41,56 @@ fixed_tests:
   expected: 'Hi
 
     '
-- name: test_06_arg_auto
+- name: edge_bf_empty_prog
   args:
   - ''
-  - ''
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_07_arg_auto
+  stdout: ''
+  tier: edge_case
+- name: edge_bf_nested_loop_zero
   args:
-  - '42'
-  - '1337'
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_08_arg_auto
+  - ++++[>++++[>+++<-]<-]>>.
+  stdout: '0'
+  tier: edge_case
+- name: edge_bf_skip_zero_loop
   args:
-  - pad
-  - test
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_09_arg_auto
+  - '[++++]++++++++++++++++++++++++++++++++++++++++++++++++++.'
+  stdout: '2'
+  tier: edge_case
+- name: edge_bf_add_sub
   args:
-  - '!@#$'
-  - '%^&*'
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_10_arg_auto
+  - ++++++++++++++++++++++++++++++++++++++++++++++++++---.
+  stdout: /
+  tier: edge_case
+- name: edge_bf_extra_arg
   args:
-  - abc
-  - abcdef
-  tier: baseline
+  - +.
+  - ignored
   stdout: '
 
     '
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: ./brainfuck "++++++++++[>+++++++>++++++++++>+++>+<<<<-]
-  args: &id001
-  - '"++++++++++[>+++++++>++++++++++>+++>+<<<<-]'
-  expected: '>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>."
+  command: ./brainfuck "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>."
     | cat -e
-
-    Hello World!$
+  args:
+  - ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.
+  expected: 'Hello World!
 
     '
-  cat_e: false
+  cat_e: true
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./brainfuck "+++++[>++++[>++++H>+++++i<<-]>>>++\n<<<<-]>>--------.>+++++.>."
     | cat -e
-  args: &id002
+  args:
   - +++++[>++++[>++++H>+++++i<<-]>>>++\n<<<<-]>>--------.>+++++.>.
   expected: 'Hi
 
     '
   cat_e: true
 - id: subj_ex_03
-  origin: subject.en.txt
-  command: ./brainfuck | cat -e
-  args: []
-  expected: '
-
-
-    Examples:
-
-    '
-  cat_e: true
-- id: subj_ex_04
-  origin: subject.en.txt
-  command: ./brainfuck "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>."
-    | cat -e
-  args: &id003
-  - ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.
-  expected: 'Hello World!
-
-    '
-  cat_e: true
-- id: subj_ex_05
-  origin: subject.en.txt
-  command: ./brainfuck "+++++[>++++[>++++H>+++++i<<-]>>>++\n<<<<-]>>--------.>+++++.>."
-    | cat -e
-  args:
-  - +++++[>++++[>++++H>+++++i<<-]>>>++\n<<<<-]>>--------.>+++++.>.
-  expected: 'Hi
-
-    '
-  cat_e: true
-- id: subj_ex_06
   origin: subject.en.txt
   command: ./brainfuck | cat -e
   args: []
@@ -163,57 +118,50 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.
   perturbed_input:
-  - '"++++++++++[>+++++++>++++++++++>+++>+<<<<-]!'
+  - ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.!
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.
   perturbed_input:
-  - '  "++++++++++[>+++++++>++++++++++>+++>+<<<<-]  '
+  - '  ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - +++++[>++++[>++++H>+++++i<<-]>>>++\n<<<<-]>>--------.>+++++.>.
   perturbed_input:
   - +++++[>++++[>++++I>+++++i<<-]>>>++\n<<<<-]>>--------.>+++++.>.
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - +++++[>++++[>++++H>+++++i<<-]>>>++\n<<<<-]>>--------.>+++++.>.
   perturbed_input:
   - '  +++++[>++++[>++++H>+++++i<<-]>>>++\n<<<<-]>>--------.>+++++.>.  '
 - id: near_subj_03_arity_perturbation
   derived_from: subj_ex_03
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./brainfuck | cat -e
   perturbed_input:
-  - brainfuck_near_arg_1
-  - brainfuck_near_arg_2
-- id: near_subj_04_lexical_shift
-  derived_from: subj_ex_04
-  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
-    strcmp(argv[1])
-  original_input: *id003
-  perturbed_input:
-  - ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.!
-- id: near_subj_04_whitespace_envelope
-  derived_from: subj_ex_04
-  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
-  perturbed_input:
-  - '  ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.  '
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_brainfuck_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./brainfuck "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>."
     \| cat -e
-  perturbed_input: ./crainfuck "++++++++++[>+++++++>+++++++
+  perturbed_input: ./brainfuck '++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.!'
+    | cat -e
 - id: near_folder_02_boundary_neighbor
   derived_from: can_brainfuck_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./brainfuck "+++++[>++++[>++++H>+++++i<<-]>>>++\n<<<<-]>>--------.>+++++.>."
     \| cat -e
-  perturbed_input: ./crainfuck "+++++[>++++[>++++H>+++++i<<
+  perturbed_input: ./brainfuck '+++++[>++++[>++++I>+++++i<<-]>>>++\n<<<<-]>>--------.>+++++.>.'
+    | cat -e

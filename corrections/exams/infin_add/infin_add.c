@@ -13,7 +13,7 @@ static int cmp_abs(const char *a, const char *b)
 
 int main(int ac, char **av)
 {
-    if (ac != 3) return 0;
+    if (ac != 3) { write(1, "\n", 1); return 0; }
     const char *a = av[1], *b = av[2];
     int sa = 1, sb = 1;
     if (*a == '-') { sa = -1; a++; }

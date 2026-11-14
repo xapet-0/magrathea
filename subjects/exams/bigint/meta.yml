@@ -1,5 +1,5 @@
 id: bigint
-type: c_program
+type: cpp
 module: Exam Rank 05
 xp: 635
 expected_files:
@@ -15,4 +15,4 @@ compiler_flags:
 - -Wextra
 - -Werror
 norminette: false
-prototype: int main(int argc, char **argv);
+prototype: class bigint { ... };

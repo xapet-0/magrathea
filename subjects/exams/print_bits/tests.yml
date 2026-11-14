@@ -99,20 +99,13 @@ folder_examples:
     {\n\tprint_bits(0);\n\twrite(1, \"\\n\", 1);\n\tprint_bits(1);\n\twrite(1, \"\\\
     n\", 1);\n\tprint_bits"
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval print_bits
-  perturbed_input:
-  - print_bits_near_arg_1
-  - print_bits_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_print_bits_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/print_bits/tester.sh)
   original_input: ./print_bits "0"
-  perturbed_input: ./qrint_bits "0"
+  perturbed_input: ./print_bits 1
 - id: near_folder_02_boundary_neighbor
   derived_from: can_print_bits_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/print_bits/tester.sh)
   original_input: ./print_bits "P"
-  perturbed_input: ./qrint_bits "P"
+  perturbed_input: ./print_bits Q

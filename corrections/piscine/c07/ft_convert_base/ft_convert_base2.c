@@ -56,6 +56,8 @@ char	*ft_putnbr_base(int nbr, char *base, int is_neg)
 	char	*res;
 
 	nb = nbr;
+	if (nb < 0)
+		nb = -nb;
 	blen = ft_strlen(base);
 	len = get_len(nb, blen, is_neg);
 	res = (char *)malloc(sizeof(char) * (len + 1));

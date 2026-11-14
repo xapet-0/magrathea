@@ -1,10 +1,4 @@
 Assignment name  : tail
-Expected files   : Makefile
-Allowed functions: close, open, read, write, malloc, free, strerror, basename
---------------------------------------------------------------------------------
-
-Module           : C Piscine C 10 (Official PDF)
-Exercise         : tail
 Turn-in directory: ex02/
 Expected files   : Makefile
 Allowed functions: close, open, read, write, malloc, free, strerror, basename
@@ -18,15 +12,3 @@ command tail.
 • The submission directory should contain a Makefile with the following rules: all,
 clean, fclean.
 • You may use the variable errno.
-
-Requirements:
-    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
-    - Your program will be compiled with: cc -Wall -Wextra -Werror.
-
-Examples:
-$> ./tail "-c" "5" "a.txt" | cat -e
-orld$
-$> ./tail "-c" "11" "a.txt" | cat -e
-ello world$
-$> ./tail "-c" "99" "a.txt" | cat -e
-abc$

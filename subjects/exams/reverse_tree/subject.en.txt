@@ -20,8 +20,6 @@ struct s_node
 };
 #endif
 
-Your function must be declared as follows:
-    void reverse_tree(struct s_node *root);
 
 Examples:
     r.left->value == 2 && r.right->value == 1 -> 1

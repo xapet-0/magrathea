@@ -1,3 +1,9 @@
 Examples:
-$> ./ft_ten_queens_puzzle | cat -e
-$
+    Calling ft_ten_queens_puzzle() prints:
+    0257948136$
+    0258693147$
+    ...
+    4605713829$
+    4609582731$
+    ...
+    9742051863$

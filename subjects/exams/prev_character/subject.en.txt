@@ -1,14 +1,21 @@
-Assignment name  : prev_character_v1
-Expected files   : prev_character_v1.c
-Allowed functions: 
-Version          : 1
+Assignment name  : prev_character
+Expected files   : prev_character.c
+Allowed functions: write
 --------------------------------------------------------------------------------
 
-Write a function that  returns the previous character followed by a newline ("\n").
+Write a program that takes a single character as argument and displays the
+previous ASCII character followed by a newline ('\n'), wrapping 'a' to 'z' and
+'A' to 'Z'.
 
-Your function must be declared as follows:
-    char prev_character(char c);
+If the number of arguments is not 1, or if the argument does not have length 1,
+display only a newline.
 
-Example:
-    $>  prev_character ('B') = A
-    $>  prev_character('a') = z
+Examples:
+$> ./prev_character 'b' | cat -e
+a$
+$> ./prev_character 'a' | cat -e
+z$
+$> ./prev_character 'A' | cat -e
+Z$
+$> ./prev_character | cat -e
+$

@@ -1,4 +1,3 @@
-?>cat z
+Examples:
+?> cat z
 Z
-?>
-Google is your friend.

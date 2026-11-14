@@ -1,15 +1,24 @@
 allowed_functions:
-- printf
-- scanf
 - write
-- malloc
-- free
-- exit
-- sqrt
-- cos
-- sin
-- fscanf
 - sqrtf
+- getline
+- fseek
+- fscanf
+- ferror
+- feof
+- fabsf
+- memcpy
+- fprintf
+- fclose
+- malloc
+- calloc
+- realloc
+- free
+- fopen
+- errno
+- stderr
+- stdin
+- stdout
 compiler_flags:
 - -Wall
 - -Wextra

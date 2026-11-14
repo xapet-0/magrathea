@@ -132,30 +132,19 @@ subject_examples:
   origin: subject.en.txt
   command: ./find_sh.sh | cat -e
   args: []
-  expected: 'file1
+  expected: 'find_sh
+
+    file1
 
     file2
 
-    find_sh
+    file3
 
     '
   cat_e: true
 folder_examples:
 - id: pool_find_sh-sh_T01
   origin: subject_folder/tests.yml (fixed_tests)
-  input: '`sh find_sh.sh.sh` (standard shell environment)'
+  input: '`sh find_sh.sh` (standard shell environment)'
   expected: a\nb\n
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: ./find_sh.sh | cat -e
-  perturbed_input:
-  - find_sh.sh_near_arg_1
-  - find_sh.sh_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: pool_find_sh-sh_T01
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: '`sh find_sh.sh.sh` (standard shell environment)'
-  perturbed_input: '`th find_sh.sh.sh` (standard shell envir'
+near_examples: []

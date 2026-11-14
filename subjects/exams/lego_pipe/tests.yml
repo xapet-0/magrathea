@@ -63,84 +63,68 @@ fixed_tests:
     world
 
     '
-- name: test_05_stdin_auto
-  stdin: '42
+- name: lego_pipe_only_empty_lines
+  args: []
+  stdin: '
 
-    1337
 
-    '
-  tier: baseline
-  stdout: '1337
-
-    42
 
     '
-- name: test_06_stdin_auto
-  stdin: 'hello world
+  stdout: ''
+  tier: edge_case
+- name: lego_pipe_mixed_case_duplicates
+  args: []
+  stdin: 'Foo
 
-    '
-  tier: baseline
-  stdout: 'hello world
-
-    '
-- name: test_07_stdin_auto
-  stdin: 'a
-
-    b
-
-    c
-
-    '
-  tier: baseline
-  stdout: 'a
-
-    b
-
-    c
-
-    '
-- name: test_08_stdin_auto
-  stdin: '10 20 30 40 50
-
-    '
-  tier: baseline
-  stdout: '10 20 30 40 50
-
-    '
-- name: test_09_stdin_auto
-  stdin: 'single_line
-
-    '
-  tier: baseline
-  stdout: 'single_line
-
-    '
-- name: test_10_stdin_auto
-  stdin: 'foo
+    FOO
 
     bar
 
-    baz
 
-    qux
+    BAR
+
+    Baz
 
     '
-  tier: baseline
   stdout: 'bar
 
     baz
 
     foo
 
-    qux
+    '
+  tier: edge_case
+- name: lego_pipe_digits_and_letters
+  args: []
+  stdin: 'z9
+
+
+    a1
+
+    A1
+
+    42
 
     '
+  stdout: '42
+
+    a1
+
+    z9
+
+    '
+  tier: edge_case
+- name: lego_pipe_empty_input
+  args: []
+  stdin: ''
+  stdout: ''
+  tier: edge_case
 mode: shell
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: printf "B\na\nB\n\n" | sh lego_pipe.sh | cat -e
-  args: &id001
+  args:
   - B\na\nB\n\n
   expected: 'a
 
@@ -151,7 +135,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: printf "Z\nA\nz\nA\n" | sh lego_pipe.sh | cat -e
-  args: &id002
+  args:
   - Z\nA\nz\nA\n
   expected: 'a
 
@@ -162,7 +146,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: printf "hello\nHELLO\nworld\n" | sh lego_pipe.sh | cat -e
-  args: &id003
+  args:
   - hello\nHELLO\nworld\n
   expected: 'hello
 
@@ -194,48 +178,44 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - B\na\nB\n\n
   perturbed_input:
   - C\na\nB\n\n
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - B\na\nB\n\n
   perturbed_input:
   - '  B\na\nB\n\n  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - Z\nA\nz\nA\n
   perturbed_input:
   - Z\oA\nz\nA\n
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - Z\nA\nz\nA\n
   perturbed_input:
   - '  Z\nA\nz\nA\n  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - hello\nHELLO\nworld\n
   perturbed_input:
   - iello\nHELLO\nworld\n
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - hello\nHELLO\nworld\n
   perturbed_input:
   - '  hello\nHELLO\nworld\n  '
-- id: near_folder_01_boundary_neighbor
-  derived_from: e1337_lego_pipe_T04
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: printf "B\na\nB\n\n" \| sh lego_pipe.sh \| cat -e
-  perturbed_input: 'qrintf "B\na\nB\n\n" \| sh lego_pipe.sh '
-- id: near_folder_02_boundary_neighbor
-  derived_from: e1337_lego_pipe_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: printf "Z\nA\nz\nA\n" \| sh lego_pipe.sh \| cat -e
-  perturbed_input: qrintf "Z\nA\nz\nA\n" \| sh lego_pipe.sh

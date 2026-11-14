@@ -2,25 +2,27 @@ project: c09_makefile
 scale_version: 1337HUB-v4.2
 stop_on_first_failure: true
 zero_tolerance_gates:
-- segfault
-- memory_leak
+- missing_required_rule
+- relink_on_second_make
 - norme_error
-- forbidden_function
 sections:
 - id: preliminaries
-  title: 'Step 1: Preliminaries & Vogsphere Integrity Check'
+  title: 'Step 1: Preliminaries & Makefile Rules Check'
   points: 20
   checks:
-  - Clone official Vogsphere repository into an empty folder.
-  - Verify no malicious shell aliases or unauthorized files exist.
-  - Run norminette / shnorm and verify clean compilation with -Wall -Wextra -Werror.
+  - Verify expected build file (Makefile) exists with no extraneous files.
+  - Verify required rules (`$(NAME)`, `all`, `clean`, `fclean`, `re`), explicit object
+    rules, and `cc -Wall -Wextra -Werror` compilation of library sources.
+  - Run `make` twice consecutively and verify zero unnecessary relinking occurs.
 - id: explain_before_checking
-  title: 'Step 2: Conceptual Defense (Explain Before Checking)'
+  title: 'Step 2: Build Graph & Dependency Defense'
   points: 30
   checks:
-  - Student explains data structures and control flow before executing tests.
+  - Student explains target dependencies, archive indexing (`ar rcs`), header paths,
+    and cleanup targets.
 - id: live_mutation
-  title: 'Step 3: Live Mutation & Edge-Case Verification'
+  title: 'Step 3: Live Clean/Rebuild & Edge-Case Verification'
   points: 50
   checks:
-  - Inject a live boundary modification on the spot and verify deterministic behavior.
+  - Execute `make fclean && make && make clean && make re` and verify clean archive
+    linking against a C test driver.

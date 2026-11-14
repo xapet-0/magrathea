@@ -135,23 +135,23 @@ fixed_tests:
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: ./hexdump "-C" "a.txt" | cat -e
-  args: &id001
+  command: ./ft_hexdump "-C" "a.txt" | cat -e
+  args:
   - -C
   - a.txt
-  expected: '
+  expected: '00000000  48 65 6c 6c 6f 20 34 32  0a                       |Hello 42.|
+
+    00000009
 
     '
   cat_e: true
 - id: subj_ex_02
   origin: subject.en.txt
-  command: ./hexdump "-C" "no_such_file.txt" | cat -e
-  args: &id002
+  command: ./ft_hexdump "-C" "no_such_file.txt" | cat -e
+  args:
   - -C
   - no_such_file.txt
-  expected: '
-
-    '
+  expected: ''
   cat_e: true
 folder_examples:
 - id: folder_fixture_01
@@ -166,14 +166,18 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - -C
+  - a.txt
   perturbed_input:
   - -D
   - b.txt
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - -C
+  - a.txt
   perturbed_input:
   - '  -C  '
   - a.txt
@@ -181,19 +185,18 @@ near_examples:
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - -C
+  - no_such_file.txt
   perturbed_input:
   - -D
   - oo_such_file.txt
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - -C
+  - no_such_file.txt
   perturbed_input:
   - '  -C  '
   - no_such_file.txt
-- id: near_folder_01_boundary_neighbor
-  derived_from: folder_fixture_01
-  strategy: Neighbouring perturbation of folder example (subject_folder/srcs/main.c)
-  original_input: srcs/main.c
-  perturbed_input: trcs/main.c

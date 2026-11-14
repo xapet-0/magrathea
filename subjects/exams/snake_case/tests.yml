@@ -41,38 +41,41 @@ fixed_tests:
 
     '
   tier: baseline
-- name: test_07_arg_auto
+- name: edge_sc_single_letters
   args:
-  - ''
-  tier: baseline
+  - a_b_c
+  stdout: 'ABC
+
+    '
+  tier: edge_case
+- name: edge_sc_mixed_case
+  args:
+  - foo_BAR_baz
+  stdout: 'FooBarBaz
+
+    '
+  tier: edge_case
+- name: edge_sc_only_underscores
+  args:
+  - ___
   stdout: '
 
     '
-- name: test_08_arg_auto
+  tier: edge_case
+- name: edge_sc_extra_arg
   args:
-  - '   '
-  tier: baseline
-  stdout: "   \n"
-- name: test_09_arg_auto
-  args:
-  - '1337'
-  tier: baseline
-  stdout: '1337
+  - a
+  - b
+  stdout: '
 
     '
-- name: test_10_arg_auto
-  args:
-  - 42_Network
-  tier: baseline
-  stdout: '42Network
-
-    '
+  tier: edge_case
 mode: c_program
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./snake_case hello_world_yes | cat -e
-  args: &id001
+  args:
   - hello_world_yes
   expected: 'HelloWorldYes
 
@@ -97,22 +100,19 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - hello_world_yes
   perturbed_input:
   - iello_world_yes
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - hello_world_yes
   perturbed_input:
   - '  hello_world_yes  '
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_snake_case_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./snake_case hello_world_yes \| cat -e
-  perturbed_input: ./tnake_case hello_world_yes \| cat -e
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+  perturbed_input: ./snake_case iello_world_yes | cat -e

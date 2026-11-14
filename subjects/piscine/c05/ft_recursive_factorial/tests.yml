@@ -70,6 +70,12 @@ fixed_tests:
   stdout: '479001600
 
     '
+- name: edge_int_min
+  expr: ft_recursive_factorial((-2147483647 - 1))
+  stdout: '0
+
+    '
+  tier: edge
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt (contract specification)
@@ -94,21 +100,4 @@ folder_examples:
   origin: subject_folder/mini-moulinette/ex01/ft_recursive_factorial.c
   input: 'Input:'
   expected: 'Expected: 0'
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_recursive_factorial
-  perturbed_input:
-  - ft_recursive_factorial_near_arg_1
-  - ft_recursive_factorial_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: pool_ft_recursive_factorial_T07
-  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex01/ft_recursive_factorial.c)
-  original_input: 'Input:'
-  perturbed_input: 'Jnput:'
-- id: near_folder_02_boundary_neighbor
-  derived_from: pool_ft_recursive_factorial_T08
-  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex01/ft_recursive_factorial.c)
-  original_input: 'Input:'
-  perturbed_input: 'Jnput:'
+near_examples: []

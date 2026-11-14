@@ -21,7 +21,7 @@ sed 's/bonjour/*******/g'
 
 ./filter abc
 will behave in the same way as:
-sed's/abc/***/g'
+sed 's/abc/***/g'
 
 More generally your program must be the equivalent of the shell script filter.sh
 present in this directory (you can compare your program with it).
@@ -38,7 +38,6 @@ $> echo 'abcdefaaaabcdeabcabcdabc' | ./filter abc | cat -e
 ***defaaa***de******d***$
 $> echo 'ababcabababc' | ./filter ababc | cat -e
 *****ab*****$
-$>
 
 NOTES:
 memmem includes:

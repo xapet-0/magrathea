@@ -54,65 +54,39 @@ fixed_tests:
   exit_code: 0
   category: Edge Case
   tier: edge_case
-- name: test_05_arg_auto
+- name: black_hole_special_chars_arg
+  description: Special shell metacharacters in arguments
   args:
-  - '1'
-  - '2'
-  - '3'
-  tier: baseline
+  - --help
+  - ; echo FAIL
+  - '*'
   stdout: 'OK
 
     '
-- name: test_06_arg_auto
-  args:
-  - a
-  - b
-  - c
-  tier: baseline
-  stdout: 'OK
+  expected: 'OK
 
     '
-- name: test_07_arg_auto
-  args:
-  - '10'
-  - '20'
-  - '30'
+  exit_code: 0
+  category: Edge Case
   tier: baseline
-  stdout: 'OK
-
-    '
-- name: test_08_arg_auto
-  args:
-  - '42'
-  - '1337'
-  - school
-  tier: baseline
-  stdout: 'OK
-
-    '
-- name: test_09_arg_auto
-  args:
-  - one
-  - two
-  - ''
-  tier: baseline
-  stdout: 'OK
-
-    '
-- name: test_10_arg_auto
+- name: black_hole_empty_arg
+  description: Empty string argument
   args:
   - ''
-  - ''
-  - ''
-  tier: baseline
   stdout: 'OK
 
     '
+  expected: 'OK
+
+    '
+  exit_code: 0
+  category: Edge Case
+  tier: baseline
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: sh black_hole.sh | cat -e
-  args: &id001
+  args:
   - black_hole.sh
   expected: 'OK
 
@@ -121,7 +95,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: sh black_hole.sh "ignored_err" | cat -e
-  args: &id002
+  args:
   - black_hole.sh
   - ignored_err
   expected: 'OK
@@ -131,7 +105,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: sh black_hole.sh "a" "b" | cat -e
-  args: &id003
+  args:
   - black_hole.sh
   - a
   - b
@@ -157,27 +131,33 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - black_hole.sh
   perturbed_input:
   - clack_hole.sh
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - black_hole.sh
   perturbed_input:
   - '  black_hole.sh  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - black_hole.sh
+  - ignored_err
   perturbed_input:
   - clack_hole.sh
   - jgnored_err
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - black_hole.sh
+  - ignored_err
   perturbed_input:
   - '  black_hole.sh  '
   - ignored_err
@@ -185,7 +165,10 @@ near_examples:
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - black_hole.sh
+  - a
+  - b
   perturbed_input:
   - clack_hole.sh
   - b
@@ -193,17 +176,14 @@ near_examples:
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - black_hole.sh
+  - a
+  - b
   perturbed_input:
   - '  black_hole.sh  '
   - a
   - b
-- id: near_folder_01_boundary_neighbor
-  derived_from: cur_black_hole_T01
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: '`sh black_hole.sh` (standard shell environment)'
-  perturbed_input: '`th black_hole.sh` (standard shell envir'
 - id: near_folder_02_boundary_neighbor
   derived_from: cur_black_hole_T02
   strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml

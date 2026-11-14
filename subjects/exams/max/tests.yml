@@ -126,20 +126,13 @@ folder_examples:
   input: ./max "AkjhZ zLKIJz , 23y "
   expected: Matches 42 reference standard output and exit code
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval max
-  perturbed_input:
-  - max_near_arg_1
-  - max_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_max_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/max/tester.sh)
   original_input: ./max "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
-  perturbed_input: ./nax "wNcOre Un ExEmPle Pas Facilw a Ec
+  perturbed_input: ./max 'xNcOre Un ExEmPle Pas Facilw a Ecrirw ' x f
 - id: near_folder_02_boundary_neighbor
   derived_from: can_max_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/max/tester.sh)
   original_input: ./max "   "
-  perturbed_input: ./nax "   "
+  perturbed_input: ./max '   !'

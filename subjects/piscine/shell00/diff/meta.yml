@@ -1,5 +1,5 @@
 id: diff
-type: shell
+type: shell_file
 module: Shell 00
 xp: 130
 expected_files:

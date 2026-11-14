@@ -72,7 +72,7 @@ fixed_tests:
 - name: near_ex_one_arg_only
   tier: near_example
   args:
-  - only_one_near_arg
+  - arg1
   expected: '
 
     '
@@ -89,7 +89,7 @@ subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./hidenp "fgex.;" "tyf34gdgf;'ektufjhgdgex.;.;rtjynur6" | cat -e
-  args: &id001
+  args:
   - fgex.;
   - tyf34gdgf;'ektufjhgdgex.;.;rtjynur6
   expected: '1
@@ -99,7 +99,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./hidenp "abc" "2altrb53c.sse" | cat -e
-  args: &id002
+  args:
   - abc
   - 2altrb53c.sse
   expected: '1
@@ -109,7 +109,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./hidenp "abc" "btarc" | cat -e
-  args: &id003
+  args:
   - abc
   - btarc
   expected: '0
@@ -162,14 +162,18 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - fgex.;
+  - tyf34gdgf;'ektufjhgdgex.;.;rtjynur6
   perturbed_input:
   - ggex.;
   - uyf34gdgf;'ektufjhgdgex.;.;rtjynur6
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - fgex.;
+  - tyf34gdgf;'ektufjhgdgex.;.;rtjynur6
   perturbed_input:
   - '  fgex.;  '
   - tyf34gdgf;'ektufjhgdgex.;.;rtjynur6
@@ -177,14 +181,18 @@ near_examples:
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - abc
+  - 2altrb53c.sse
   perturbed_input:
   - bbc
   - 2bltrb53c.sse
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - abc
+  - 2altrb53c.sse
   perturbed_input:
   - '  abc  '
   - 2altrb53c.sse
@@ -192,31 +200,35 @@ near_examples:
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - abc
+  - btarc
   perturbed_input:
   - bbc
   - ctarc
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - abc
+  - btarc
   perturbed_input:
   - '  abc  '
   - btarc
 - id: near_subj_04_arity_perturbation
   derived_from: subj_ex_04
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./hidenp | cat -e
   perturbed_input:
-  - hidenp_near_arg_1
-  - hidenp_near_arg_2
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_hidenp_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/hidenp/tester.sh)
   original_input: ./hidenp "abc" "2altrb53c.sse"
-  perturbed_input: ./iidenp "abc" "2altrb53c.sse"
+  perturbed_input: ./hidenp bbc 2bltrb53c.sse
 - id: near_folder_02_boundary_neighbor
   derived_from: can_hidenp_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/hidenp/tester.sh)
   original_input: ./hidenp "mais non!" "mais non!"
-  perturbed_input: ./iidenp "mais non!" "mais non!"
+  perturbed_input: ./hidenp 'nais non!' 'nais non!'

@@ -41,43 +41,6 @@ expected_stdout: 'a = 42
   (d >= a) = 1
 
   '
-fixed_tests:
-- name: bigint_canonical_driver
-  main_code: ''
-  expected: ''
-- name: bigint_coplien_and_const_contract
-  main_code: ''
-  expected: ''
-- name: bigint_boundary_and_state_invariants
-  main_code: ''
-  expected: ''
-- name: bigint_destructor_and_resource_lifecycle
-  main_code: ''
-  expected: ''
-- name: test_05_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_06_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_07_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_08_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_09_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_10_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
 main_cpp: "#include \"bigint.hpp\"\n#include <iostream>\n\nint main()\n{\n    const\
   \ bigint a(42);\n    bigint b(21), c, d(1337), e(d);\n\n\n    std::cout << \"a =\
   \ \" << a << std::endl;\n    std::cout << \"b = \" << b << std::endl;\n    std::cout\
@@ -95,7 +58,54 @@ main_cpp: "#include \"bigint.hpp\"\n#include <iostream>\n\nint main()\n{\n    co
   (d != a) = \" << (d != a) << std::endl;\n    std::cout << \"(d <= a) = \" << (d\
   \ <= a) << std::endl;\n    std::cout << \"(d >= a) = \" << (d >= a) << std::endl;\n\
   \n    return (0);\n}\n"
+extra_cpp_tests:
+- name: bigint_arbitrary_precision_and_zero_trim
+  main_cpp: "#include \"bigint.hpp\"\n#include <iostream>\n\nint main()\n{\n    bigint\
+    \ big(1);\n    for (int i = 0; i < 70; ++i)\n        big += big;\n    std::cout\
+    \ << \"2^70=\" << big << std::endl;\n    std::cout << \"2^70+1=\" << (big + bigint(1))\
+    \ << std::endl;\n    const bigint cbig(big);\n    std::cout << \"cmp=\" << (cbig\
+    \ < (cbig + bigint(1))) << (cbig == big) << (cbig != big) << std::endl;\n    std::cout\
+    \ << \"zshift=\" << (bigint(0) << 10) << \",\" << (bigint(42) >> 10) << \",\"\
+    \ << (bigint(123456) >> 3) << std::endl;\n    std::cout << \"sh20=\" << (bigint(1)\
+    \ << 20) << std::endl;\n    bigint inc(99);\n    std::cout << \"post=\" << inc++\
+    \ << \",after=\" << inc << \",pre=\" << ++inc << std::endl;\n    return (0);\n\
+    }\n"
+  expected_stdout: '2^70=1180591620717411303424
+
+    2^70+1=1180591620717411303425
+
+    cmp=110
+
+    zshift=0,0,123
+
+    sh20=100000000000000000000
+
+    post=99,after=100,pre=101
+
+    '
+must_not_compile:
+- '#include "bigint.hpp"
+
+  int main() { const bigint c(10); ++c; return 0; }
+
+  '
+- '#include "bigint.hpp"
+
+  int main() { const bigint c(10); c += bigint(1); return 0; }
+
+  '
+- '#include "bigint.hpp"
+
+  int main() { const bigint c(10); c <<= 2; return 0; }
+
+  '
 mode: cpp
-subject_examples: []
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval bigint
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
 folder_examples: []
 near_examples: []

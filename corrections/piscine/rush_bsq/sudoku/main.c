@@ -109,8 +109,22 @@ static int	load_sud(int argc, char **argv, int g[9][9])
 int	main(int argc, char **argv)
 {
 	int	g[9][9];
+	int	i;
+	int	v;
+	int	ok;
 
-	if (!load_sud(argc, argv, g) || !solve_sud(g, 0))
+	ok = load_sud(argc, argv, g);
+	i = 0;
+	while (ok && i < 81)
+	{
+		v = g[i / 9][i % 9];
+		g[i / 9][i % 9] = 0;
+		if (v != 0 && !can_place(g, i / 9, i % 9, v))
+			ok = 0;
+		g[i / 9][i % 9] = v;
+		i++;
+	}
+	if (!ok || !solve_sud(g, 0))
 		write(1, "Error\n", 6);
 	else
 		print_sud(g);

@@ -1,3 +1,5 @@
 Examples:
-$> ./print_groups.sh | cat -e
-$
+$> FT_USER=bocal ./print_groups.sh
+bocal,adm,cdrom,sudo,dip,plugdev,lxd,lpadmin,libvirt$>
+$> FT_USER=daemon ./print_groups.sh
+daemon,bin$>

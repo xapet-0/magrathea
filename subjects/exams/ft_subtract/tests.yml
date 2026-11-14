@@ -90,6 +90,30 @@ fixed_tests:
   stdout: '42
 
     '
+- name: edge_sub_int_max_to_min
+  call: printf("%d\n", x)
+  stdout: '-2147483648
+
+    '
+  tier: edge
+  setup:
+  - int x = -1
+  - ft_subtract(2147483647, &x)
+- name: edge_sub_neg_to_int_max
+  call: printf("%d\n", x)
+  stdout: '2147483647
+
+    '
+  tier: edge
+  setup:
+  - int x = 0
+  - ft_subtract(-2147483647, &x)
+- name: edge_null_ptr
+  call: ft_subtract(42, NULL); printf("ok\n")
+  stdout: 'ok
+
+    '
+  tier: edge
 subject_id: ft_subtract
 mode: c_function
 subject_examples:
@@ -111,21 +135,4 @@ folder_examples:
   expected: "fixed_tests:\n- setup:\n  - int x = 50\n  - ft_subtract(8, &x)\n  call:\
     \ printf(\"%d\\n\", x)\n  stdout: '42\n\n    '\n- setup:\n  - int x = 10\n  -\
     \ ft_subtract(15, &x)\n  cal"
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_subtract
-  perturbed_input:
-  - ft_subtract_near_arg_1
-  - ft_subtract_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: e1337_ft_subtract_T04
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: int x = 50; ft_subtract(8, &x); printf("%d\n", x)
-  perturbed_input: jnt x = 50; ft_subtract(8, &x); printf("
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+near_examples: []

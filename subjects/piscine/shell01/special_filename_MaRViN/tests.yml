@@ -6,9 +6,11 @@ fixed_tests:
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: ./special_filename_MaRViN | cat -e
-  args: []
-  expected: '
+  command: ls -lRa *MaRV* | cat -e
+  args:
+  - -lRa
+  - '*MaRV*'
+  expected: '-rw---xr-- 1 75355 32015 2 Oct 2 12:21 "\?$*\''MaRViN\''*$?\"
 
     '
   cat_e: true
@@ -20,13 +22,32 @@ folder_examples:
 near_examples:
 - id: near_subj_01_arity_perturbation
   derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: ./special_filename_MaRViN | cat -e
+  strategy: Perturb argument / file content boundary around subject.en.txt example
+  original_input: ls -lRa *MaRV* | cat -e
   perturbed_input:
-  - special_filename_MaRViN_near_arg_1
-  - special_filename_MaRViN_near_arg_2
+  - special_filename_MaRViN_extra_newline
+  - special_filename_MaRViN_wrong_name
 - id: near_folder_01_boundary_neighbor
   derived_from: folder_ex_01
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: special_filename_MaRViN baseline folder fixture
-  perturbed_input: 'tpecial_filename_MaRViN baseline folder '
+  perturbed_input: special_filename_MaRViN trailing whitespace fixture
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
+  - -lRa
+  - '*MaRV*'
+  perturbed_input:
+  - -mRa
+  - '*NaRV*'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - -lRa
+  - '*MaRV*'
+  perturbed_input:
+  - '  -lRa  '
+  - '*MaRV*'

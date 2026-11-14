@@ -72,6 +72,18 @@ fixed_tests:
     '
   category: Edge Case
   tier: baseline
+- name: edge_int_min
+  expr: ft_sqrt((-2147483647 - 1))
+  stdout: '0
+
+    '
+  tier: edge
+- name: edge_int_max_minus_one
+  expr: ft_sqrt(2147483646)
+  stdout: '0
+
+    '
+  tier: edge
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt (contract specification)
@@ -108,21 +120,4 @@ folder_examples:
   origin: subject_folder/deepthought/corrections/exams/ft_sqrt/generator.py
   input: Dynamic generation rule via edge_case_negative()
   expected: Deterministic output validated by Deepthought oracle
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_sqrt
-  perturbed_input:
-  - ft_sqrt_near_arg_1
-  - ft_sqrt_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: cur_ft_sqrt_T10
-  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex05/ft_sqrt.c)
-  original_input: 'Input:'
-  perturbed_input: 'Jnput:'
-- id: near_folder_02_boundary_neighbor
-  derived_from: cur_ft_sqrt_T11
-  strategy: Neighbouring perturbation of folder example (subject_folder/mini-moulinette/ex05/ft_sqrt.c)
-  original_input: 'Input:'
-  perturbed_input: 'Jnput:'
+near_examples: []

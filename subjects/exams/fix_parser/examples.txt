@@ -1,8 +1,5 @@
-# Examples for fix_parser (from official subject specification)
-
-examples:
-
-$>./validator "5+3*2" --> true (1)
-$>./validator "10 / 2" --> true (1)
-$>./validator "7 + * 3" --> false (0)
-$>./validator "abc"     --> false (0)
+Examples:
+    is_valid_expression("5+3*2") -> 1
+    is_valid_expression("10 / 2") -> 1
+    is_valid_expression("7 + * 3") -> 0
+    is_valid_expression("abc") -> 0

@@ -52,40 +52,45 @@ fixed_tests:
 - name: near_ex_too_many_args
   tier: near_example
   args:
-  - near_arg_1
-  - near_arg_2
+  - arg1
+  - arg2
   expected: '
 
     '
-- name: test_08_arg_auto
+- name: edge_rv_only_vowels
   args:
-  - ''
-  - ''
-  tier: baseline
+  - aeiouAEIOU
   stdout: '
 
     '
-- name: test_09_arg_auto
+  tier: edge_case
+- name: edge_rv_y_preserved
   args:
-  - '42'
-  - '1337'
-  tier: baseline
+  - yY
+  stdout: 'yY
+
+    '
+  tier: edge_case
+- name: edge_rv_no_vowels
+  args:
+  - bcdfg
+  stdout: 'bcdfg
+
+    '
+  tier: edge_case
+- name: edge_rv_extra_arg
+  args:
+  - a
+  - b
   stdout: '
 
     '
-- name: test_10_arg_auto
-  args:
-  - pad
-  - test
-  tier: baseline
-  stdout: '
-
-    '
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./remove_vowels "Hi there, how are you?" | cat -e
-  args: &id001
+  args:
   - Hi there, how are you?
   expected: 'H thr, hw r y?
 
@@ -94,7 +99,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./remove_vowels "Hello world!" | cat -e
-  args: &id002
+  args:
   - Hello world!
   expected: 'Hll wrld!
 
@@ -111,7 +116,7 @@ subject_examples:
 - id: subj_ex_04
   origin: subject.en.txt
   command: ./remove_vowels "" | cat -e
-  args: &id003
+  args:
   - ''
   expected: '
 
@@ -139,76 +144,51 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - Hi there, how are you?
   perturbed_input:
   - Ii there, how are you?
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - Hi there, how are you?
   perturbed_input:
   - '  Hi there, how are you?  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - Hello world!
   perturbed_input:
   - Iello world!
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - Hello world!
   perturbed_input:
   - '  Hello world!  '
 - id: near_subj_03_arity_perturbation
   derived_from: subj_ex_03
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./remove_vowels | cat -e
   perturbed_input:
-  - remove_vowels_near_arg_1
-  - remove_vowels_near_arg_2
+  - arg1
+  - arg2
 - id: near_subj_04_lexical_shift
   derived_from: subj_ex_04
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - ''
   perturbed_input:
   - ' '
 - id: near_subj_04_whitespace_envelope
   derived_from: subj_ex_04
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - ''
   perturbed_input:
   - '    '
-- id: near_folder_01_boundary_neighbor
-  derived_from: cur_remove_vowels_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/remove_vowels/generator.py)
-  original_input: Dynamic generation rule via basic_test()
-  perturbed_input: Eynamic generation rule via basic_test()
-- id: near_folder_02_boundary_neighbor
-  derived_from: cur_remove_vowels_T06
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/remove_vowels/generator.py)
-  original_input: Dynamic generation rule via basic_test1()
-  perturbed_input: Eynamic generation rule via basic_test1(
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Empty string and whitespace-only string in `remove_vowels`
-  input: "remove_vowels(\"   \t\t   \")"
-  expected: Print newline only with no extra spaces
-- name: edge_02_B
-  code: '[B]'
-  title: Single word surrounded by spaces vs string without spaces in `remove_vowels`
-  input: remove_vowels("   word   ") and remove_vowels("word")
-  expected: Identical output 'word$' for both inputs
-- name: edge_03_B
-  code: '[B]'
-  title: Extended ASCII characters and repetitive tokens in `remove_vowels`
-  input: remove_vowels("aaa bbb ccc")
-  expected: Format words with exact single space separation and terminating newline
-- name: edge_04_B
-  code: '[B]'
-  title: Argument count check (argc < 2 or argc > 2) in `remove_vowels`
-  input: Execute remove_vowels with no arguments and with 3 arguments
-  expected: Print newline only

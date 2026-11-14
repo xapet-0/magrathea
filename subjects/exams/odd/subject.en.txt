@@ -3,12 +3,10 @@ Expected files   : odd.c
 Allowed functions: write
 --------------------------------------------------------------------------------
 
-Write a program That displays odd numbers, followed by a new line.
+Write a program that displays the odd digits from 1 to 9 (`13579`), followed by a newline.
 
-Example:
-
-$> ./odd 
+Examples:
+$> ./odd
 13579
 $> ./odd | cat -e
 13579$
-==========================================================================================

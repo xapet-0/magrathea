@@ -1,8 +1,6 @@
-examples:
-
-$ ./list_trait 0 -5 8 7
-
-List: 0 -5 8 7
-sum: 10
-Max: 8
-count: 4
+Examples:
+$> ./list_trait 0 -5 8 7 | cat -e
+List: 0 -5 8 7 $
+Sum: 10$
+Max: 8$
+Count: 4$

@@ -60,6 +60,24 @@ fixed_tests:
   stdout: '0
 
     '
+- name: edge_int_min_zero_int_max
+  expr: antidote((-2147483647 - 1), 0, 2147483647)
+  stdout: '0
+
+    '
+  tier: edge
+- name: edge_int_max_min_dup
+  expr: antidote(2147483647, (-2147483647 - 1), (-2147483647 - 1))
+  stdout: '-2147483648
+
+    '
+  tier: edge
+- name: edge_int_max_adj_min
+  expr: antidote(2147483647, 2147483646, (-2147483647 - 1))
+  stdout: '2147483646
+
+    '
+  tier: edge
 mode: c_function
 subject_examples:
 - id: subj_ex_01
@@ -80,20 +98,8 @@ folder_examples:
     \ '3\n\n    '\n- expr: antidote(10, 2, 8)\n  stdout: '8\n\n    '\n- expr: antidote(-5,\
     \ 0, 5)\n  stdo"
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval antidote
-  perturbed_input:
-  - antidote_near_arg_1
-  - antidote_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_antidote_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: antidote(1, 5, 3)   -> 3
-  perturbed_input: bntidote(1, 5, 3)   -> 3
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+  perturbed_input: antidote(2, 6, 4)

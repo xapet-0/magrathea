@@ -5,5 +5,3 @@ $> ./alpha_mirror "My horse is Amazing." | cat -e
 Nb slihv rh Znzarmt.$
 $> ./alpha_mirror | cat -e
 $
-  ==========================================================================================
-  Clean execution

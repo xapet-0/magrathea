@@ -120,6 +120,28 @@ fixed_tests:
 
     '
 subject_id: wheeler_loop
-subject_examples: []
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: sh wheeler_loop.sh | cat -e
+  args: &id001
+  - wheeler_loop.sh
+  expected: './a.txt
+
+    '
+  cat_e: true
 folder_examples: []
-near_examples: []
+near_examples:
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input: *id001
+  perturbed_input:
+  - xheeler_loop.sh
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input: *id001
+  perturbed_input:
+  - '  wheeler_loop.sh  '

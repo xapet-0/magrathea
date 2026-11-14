@@ -1,7 +1,2 @@
-# Examples for ft_find_next_prime (from official subject specification)
-
-Examples:
-    ft_find_next_prime(-10) -> 2
-    ft_find_next_prime(14) -> 17
-    ft_find_next_prime(0) -> 2
-    ft_find_next_prime(2) -> 2
+# No examples in official PDF.
+# Use `man cc` and consult subject.en.txt for the exact specification.

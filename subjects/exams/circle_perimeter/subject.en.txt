@@ -10,8 +10,6 @@ Your function must be declared as follows:
 
 float	circle_perimeter(float radius);
 
-Your function must be declared as follows:
-    float circle_perimeter(float radius);
 
 Examples:
     (int)(circle_perimeter(10.0f) * 100) -> 6280

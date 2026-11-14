@@ -61,7 +61,34 @@ fixed_tests:
   stdout: '8:-4,-3,-2,-1,0,1,2,3,
 
     '
+- name: edge_int_min_pair
+  call: int *a=NULL; int n=ft_ultimate_range(&a,(-2147483647 - 1),-2147483646); printf("%d:%d,%d\n",
+    n, a[0], a[1]); free(a);
+  stdout: '2:-2147483648,-2147483647
+
+    '
+  tier: edge
+- name: edge_int_max_single
+  call: int *a=NULL; int n=ft_ultimate_range(&a,2147483646,2147483647); printf("%d:%d\n",
+    n, a[0]); free(a);
+  stdout: '1:2147483646
+
+    '
+  tier: edge
+- name: edge_int_max_gt_min
+  call: int *a=(int*)0x42; int n=ft_ultimate_range(&a,2147483647,(-2147483647 - 1));
+    printf("%d:%d\n", n, a==NULL);
+  stdout: '0:1
+
+    '
+  tier: edge
 mode: c_function
-subject_examples: []
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt (contract specification)
+  command: eval ft_ultimate_range
+  args: []
+  expected: Conform to subject.en.txt prototype and output specification
+  cat_e: false
 folder_examples: []
 near_examples: []

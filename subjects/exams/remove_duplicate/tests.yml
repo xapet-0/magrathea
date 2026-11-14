@@ -1,24 +1,3 @@
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Empty string and whitespace-only string in `remove_duplicate`
-  input: "remove_duplicate(\"   \t\t   \")"
-  expected: Print newline only with no extra spaces
-- name: edge_02_B
-  code: '[B]'
-  title: Single word surrounded by spaces vs string without spaces in `remove_duplicate`
-  input: remove_duplicate("   word   ") and remove_duplicate("word")
-  expected: Identical output 'word$' for both inputs
-- name: edge_03_B
-  code: '[B]'
-  title: Extended ASCII characters and repetitive tokens in `remove_duplicate`
-  input: remove_duplicate("aaa bbb ccc")
-  expected: Format words with exact single space separation and terminating newline
-- name: edge_04_B
-  code: '[B]'
-  title: Argument count check (argc < 2 or argc > 2) in `remove_duplicate`
-  input: Execute remove_duplicate with no arguments and with 3 arguments
-  expected: Print newline only
 fixed_tests:
 - args:
   - abracadabra
@@ -87,32 +66,28 @@ fixed_tests:
 
     '
   tier: subject_example
-- name: test_07_arg_auto
+- name: edge_rd_all_same
   args:
-  - ''
-  tier: baseline
+  - aaaaaa
+  stdout: 'a
+
+    '
+  tier: edge_case
+- name: edge_rd_digits
+  args:
+  - '42421337'
+  stdout: '42137
+
+    '
+  tier: edge_case
+- name: edge_rd_extra_arg
+  args:
+  - a
+  - b
   stdout: '
 
     '
-- name: test_08_arg_auto
-  args:
-  - '   '
-  tier: baseline
-  stdout: " \n"
-- name: test_09_arg_auto
-  args:
-  - '1337'
-  tier: baseline
-  stdout: '137
-
-    '
-- name: test_10_arg_auto
-  args:
-  - 42_Network
-  tier: baseline
-  stdout: '42_Network
-
-    '
+  tier: edge_case
 folder_examples:
 - expected: Deterministic output validated by Deepthought oracle
   id: cur_remove_duplicate_T05
@@ -128,58 +103,67 @@ folder_examples:
   origin: subject_folder/deepthought/corrections/exams/remove_duplicate/generator.py
 mode: c_program
 near_examples:
-- derived_from: subj_ex_01
-  id: near_subj_01_lexical_shift
-  original_input: &id001
-  - 1, 1, 2, 2, 3, 4, 4, 5
-  perturbed_input:
-  - 1, 1, 2, 2, 3, 4, 4, 5!
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-- derived_from: subj_ex_01
-  id: near_subj_01_whitespace_envelope
-  original_input: *id001
+  original_input:
+  - abracadabra
   perturbed_input:
-  - '  1, 1, 2, 2, 3, 4, 4, 5  '
+  - bbracadabra
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-- derived_from: subj_ex_02
-  id: near_subj_02_lexical_shift
-  original_input: &id002
-  - 1, 1, 2, 2, 3, 4, 4, 5, 9, 9, 8, 8, 7
+  original_input:
+  - abracadabra
   perturbed_input:
-  - 1, 1, 2, 2, 3, 4, 4, 5, 9, 9, 8, 8, 7!
+  - '  abracadabra  '
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-- derived_from: subj_ex_02
-  id: near_subj_02_whitespace_envelope
-  original_input: *id002
+  original_input:
+  - zazaza
   perturbed_input:
-  - '  1, 1, 2, 2, 3, 4, 4, 5, 9, 9, 8, 8, 7  '
+  - zbzaza
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-- derived_from: cur_remove_duplicate_T05
-  id: near_folder_01_boundary_neighbor
-  original_input: Dynamic generation rule via basic_test()
-  perturbed_input: Eynamic generation rule via basic_test()
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/remove_duplicate/generator.py)
-- derived_from: cur_remove_duplicate_T06
-  id: near_folder_02_boundary_neighbor
-  original_input: Dynamic generation rule via basic_test1()
-  perturbed_input: Eynamic generation rule via basic_test1(
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/remove_duplicate/generator.py)
+  original_input:
+  - zazaza
+  perturbed_input:
+  - '  zazaza  '
+- id: near_subj_03_arity_perturbation
+  derived_from: subj_ex_03
+  strategy: Invoke binary with unexpected arguments to verify argc guard
+  original_input: ./remove_duplicate | cat -e
+  perturbed_input:
+  - arg1
+  - arg2
 subject_examples:
-- args: *id001
-  cat_e: false
-  command: ./remove_duplicates "1, 1, 2, 2, 3, 4, 4, 5"
-  expected: '        1 2 3 4 5;
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./remove_duplicate "abracadabra" | cat -e
+  args:
+  - abracadabra
+  expected: 'abrcd
 
     '
-  id: subj_ex_01
+  cat_e: true
+- id: subj_ex_02
   origin: subject.en.txt
-- args: *id002
-  cat_e: false
-  command: ./remove_duplicates "1, 1, 2, 2, 3, 4, 4, 5, 9, 9, 8, 8, 7"
-  expected: '        1 2 3 4 5 9 8 7;
+  command: ./remove_duplicate "zazaza" | cat -e
+  args:
+  - zazaza
+  expected: 'za
 
     '
-  id: subj_ex_02
+  cat_e: true
+- id: subj_ex_03
   origin: subject.en.txt
+  command: ./remove_duplicate | cat -e
+  args: []
+  expected: '
+
+    '
+  cat_e: true

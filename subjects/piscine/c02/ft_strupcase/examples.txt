@@ -1,5 +1,2 @@
-# Examples for ft_strupcase (from official subject specification)
-
-Examples:
-    char s[] = "hello"; ft_strupcase(s); printf("%s\n", s)
-    Output: HELLO
+# No examples in official PDF.
+# Use `man 3 toupper, man ascii` and consult subject.en.txt for the exact specification.

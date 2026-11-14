@@ -1,11 +1,18 @@
 allowed_functions:
 - read
 - write
-- malloc
-- free
-- realloc
 - strlen
-- putchar
+- memmem
+- memmove
+- malloc
+- calloc
+- realloc
+- free
+- printf
+- fprintf
+- stdout
+- stderr
+- perror
 compiler_flags:
 - -Wall
 - -Wextra

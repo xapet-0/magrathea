@@ -1,3 +1,2 @@
-Examples:
-$> ./ft_strcpy | cat -e
-$
+# No examples in official PDF.
+# Use `man 3 strcpy` and consult subject.en.txt for the exact specification.

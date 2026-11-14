@@ -33,11 +33,11 @@ fixed_tests:
     '
 - name: test_05_42_user
   env:
-    USER: xapet
-    HOME: /home/xapet
+    USER: zaphod
+    HOME: /home/zaphod
     PWD: /tmp
   tier: baseline
-  stdout: 'xapet:/home/xapet:/tmp
+  stdout: 'zaphod:/home/zaphod:/tmp
 
     '
 - name: test_06_deep_paths

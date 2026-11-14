@@ -8,7 +8,7 @@ positions in the alphabet (equivalent to 42 % 26 = 16 positions ahead),
 preserving case, followed by a newline.
 
 Requirements:
-    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - If the number of arguments is invalid, the program must display a newline and exit cleanly.
     - Your program will be compiled with: cc -Wall -Wextra -Werror.
 
 Examples:

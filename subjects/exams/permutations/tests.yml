@@ -163,29 +163,27 @@ subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./permutations a | cat -e
-  args: &id001
+  args:
   - a
   expected: 'a
-
 
     '
   cat_e: true
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./permutations ab | cat -e
-  args: &id002
+  args:
   - ab
   expected: 'ab
 
     ba
-
 
     '
   cat_e: true
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./permutations abc | cat -e
-  args: &id003
+  args:
   - abc
   expected: 'abc
 
@@ -215,69 +213,54 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - a
   perturbed_input:
   - b
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - a
   perturbed_input:
   - '  a  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - ab
   perturbed_input:
   - bb
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - ab
   perturbed_input:
   - '  ab  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - abc
   perturbed_input:
   - bbc
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - abc
   perturbed_input:
   - '  abc  '
 - id: near_folder_01_boundary_neighbor
   derived_from: cur_permutations_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/permutations/tester.sh)
   original_input: ./permutations "$arg" 2
-  perturbed_input: ./qermutations "$arg" 2
+  perturbed_input: ./permutations '$brg' 3
 - id: near_folder_02_boundary_neighbor
   derived_from: cur_permutations_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/permutations/tester.sh)
   original_input: ./permutations abcd; then
-  perturbed_input: ./qermutations abcd; then
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Empty tree (NULL), single node, and linear skewed tree in `permutations`
-  input: permutations(NULL) and linear tree of depth 30
-  expected: Return 0/NULL for empty tree, correct calculation for unbalanced tree
-- name: edge_02_B
-  code: '[B]'
-  title: No valid solution or duplicate/zero values in `permutations`
-  input: Input with no valid solution or containing duplicate values in permutations
-  expected: Do not emit corrupted output or duplicate equivalent solutions
-- name: edge_03_M
-  code: '[M]'
-  title: Deallocation of auxiliary structures under leak checks in `permutations`
-  input: Run permutations with DT_CHECK_LEAKS=1
-  expected: 0 bytes leaked and structural integrity of left/right child pointers
-- name: edge_04_D
-  code: '[D]'
-  title: Output order verification (Lexicographical / Infix Order) in `permutations`
-  input: Inspect sequence of traversed or printed nodes in permutations
-  expected: Exact match with standard traversal order required in subject
+  perturbed_input: ./permutations 'bbcd;' uhen

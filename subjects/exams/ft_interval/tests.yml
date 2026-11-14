@@ -33,46 +33,35 @@ fixed_tests:
 
     '
   tier: baseline
-- name: test_06_arg_auto
+- name: edge_fti_single
   args:
-  - ''
-  tier: baseline
+  - x
+  stdout: 'x
+
+    '
+  tier: edge_case
+- name: edge_fti_six_chars
+  args:
+  - '012345'
+  stdout: '012543
+
+    '
+  tier: edge_case
+- name: edge_fti_extra_arg
+  args:
+  - a
+  - b
   stdout: '
 
     '
-- name: test_07_arg_auto
-  args:
-  - '   '
-  tier: baseline
-  stdout: "   \n"
-- name: test_08_arg_auto
-  args:
-  - '1337'
-  tier: baseline
-  stdout: '1335
-
-    '
-- name: test_09_arg_auto
-  args:
-  - 42_Network
-  tier: baseline
-  stdout: '42_5e35or5
-
-    '
-- name: test_10_arg_auto
-  args:
-  - '!@#$%^&*()'
-  tier: baseline
-  stdout: '!@#5%35*(5
-
-    '
+  tier: edge_case
 subject_id: ft_interval
 mode: c_program
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./ft_interval "abcdef" | cat -e
-  args: &id001
+  args:
   - abcdef
   expected: 'abc5e3
 
@@ -81,7 +70,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./ft_interval "ab" | cat -e
-  args: &id002
+  args:
   - ab
   expected: 'ab
 
@@ -90,7 +79,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./ft_interval "" | cat -e
-  args: &id003
+  args:
   - ''
   expected: '
 
@@ -132,55 +121,61 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - abcdef
   perturbed_input:
   - bbcdef
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - abcdef
   perturbed_input:
   - '  abcdef  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - ab
   perturbed_input:
   - bb
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - ab
   perturbed_input:
   - '  ab  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - ''
   perturbed_input:
   - ' '
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - ''
   perturbed_input:
   - '    '
 - id: near_subj_04_arity_perturbation
   derived_from: subj_ex_04
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./ft_interval | cat -e
   perturbed_input:
-  - ft_interval_near_arg_1
-  - ft_interval_near_arg_2
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_ft_interval_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./ft_interval "abcdef" \| cat -e
-  perturbed_input: ./gt_interval "abcdef" \| cat -e
+  perturbed_input: ./ft_interval bbcdef | cat -e
 - id: near_folder_02_boundary_neighbor
   derived_from: e1337_ft_interval_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./ft_interval "ab" \| cat -e
-  perturbed_input: ./gt_interval "ab" \| cat -e
+  perturbed_input: ./ft_interval bb | cat -e

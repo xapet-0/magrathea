@@ -1,24 +1,3 @@
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Empty string and whitespace-only string in `title`
-  input: "title(\"   \t\t   \")"
-  expected: Print newline only with no extra spaces
-- name: edge_02_B
-  code: '[B]'
-  title: Single word surrounded by spaces vs string without spaces in `title`
-  input: title("   word   ") and title("word")
-  expected: Identical output 'word$' for both inputs
-- name: edge_03_B
-  code: '[B]'
-  title: Extended ASCII characters and repetitive tokens in `title`
-  input: title("aaa bbb ccc")
-  expected: Format words with exact single space separation and terminating newline
-- name: edge_04_B
-  code: '[B]'
-  title: Argument count check (argc < 2 or argc > 2) in `title`
-  input: Execute title with no arguments and with 3 arguments
-  expected: Print newline only
 fixed_tests:
 - args:
   - no NO no!
@@ -77,39 +56,26 @@ fixed_tests:
 
     '
   tier: subject_example
-- name: test_06_arg_auto
+- name: edge_title_tabs_preserve_upper
   args:
-  - ''
-  tier: baseline
+  - "\thello\tWORLD\ttest"
+  stdout: "\tHello\tWORLD\tTest\n"
+  tier: edge_case
+- name: edge_title_digits_punct
+  args:
+  - 42abc _def
+  stdout: '42abc _def
+
+    '
+  tier: edge_case
+- name: edge_title_extra_arg
+  args:
+  - a
+  - b
   stdout: '
 
     '
-- name: test_07_arg_auto
-  args:
-  - '   '
-  tier: baseline
-  stdout: "   \n"
-- name: test_08_arg_auto
-  args:
-  - '1337'
-  tier: baseline
-  stdout: '1337
-
-    '
-- name: test_09_arg_auto
-  args:
-  - 42_Network
-  tier: baseline
-  stdout: '42_Network
-
-    '
-- name: test_10_arg_auto
-  args:
-  - '!@#$%^&*()'
-  tier: baseline
-  stdout: '!@#$%^&*()
-
-    '
+  tier: edge_case
 folder_examples:
 - expected: No NO No!\n
   id: cur_title_T01
@@ -125,88 +91,79 @@ folder_examples:
   origin: subject_folder/tests.yml (fixed_tests)
 mode: c_program
 near_examples:
-- derived_from: subj_ex_01
-  id: near_subj_01_arity_perturbation
+- id: near_subj_01_arity_perturbation
+  derived_from: subj_ex_01
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./title | cat -e
   perturbed_input:
-  - title_near_arg_1
-  - title_near_arg_2
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-- derived_from: subj_ex_02
-  id: near_subj_02_lexical_shift
-  original_input: &id001
+  - arg1
+  - arg2
+- id: near_subj_02_lexical_shift
+  derived_from: subj_ex_02
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
   - no NO no no no!
   perturbed_input:
   - oo NO no no no!
-  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
-    strcmp(argv[1])
-- derived_from: subj_ex_02
-  id: near_subj_02_whitespace_envelope
-  original_input: *id001
+- id: near_subj_02_whitespace_envelope
+  derived_from: subj_ex_02
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - no NO no no no!
   perturbed_input:
   - '  no NO no no no!  '
-  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-- derived_from: subj_ex_03
-  id: near_subj_03_lexical_shift
-  original_input: &id002
+- id: near_subj_03_lexical_shift
+  derived_from: subj_ex_03
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
   - pjldfjslogjlsj
   perturbed_input:
   - qjldfjslogjlsj
-  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
-    strcmp(argv[1])
-- derived_from: subj_ex_03
-  id: near_subj_03_whitespace_envelope
-  original_input: *id002
+- id: near_subj_03_whitespace_envelope
+  derived_from: subj_ex_03
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - pjldfjslogjlsj
   perturbed_input:
   - '  pjldfjslogjlsj  '
-  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-- derived_from: subj_ex_04
-  id: near_subj_04_arity_perturbation
-  original_input: Pjldfjslogjlsj
-  perturbed_input:
-  - title_near_arg_1
-  - title_near_arg_2
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-- derived_from: cur_title_T01
-  id: near_folder_01_boundary_neighbor
+- id: near_folder_01_boundary_neighbor
+  derived_from: cur_title_T01
+  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
+    (fixed_tests))
   original_input: '[''no NO no!'']'
   perturbed_input: '[''oo NO no!'']'
+- id: near_folder_02_boundary_neighbor
+  derived_from: cur_title_T02
   strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
     (fixed_tests))
-- derived_from: cur_title_T02
-  id: near_folder_02_boundary_neighbor
   original_input: '[''hello world'']'
   perturbed_input: '[''iello world'']'
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
 subject_examples:
-- args: []
-  cat_e: true
+- id: subj_ex_01
+  origin: subject.en.txt
   command: ./title | cat -e
+  args: []
   expected: '
 
     '
-  id: subj_ex_01
-  origin: subject.en.txt
-- args: *id001
   cat_e: true
-  command: ./rstr_capitalizer "no NO no no no!" | cat -e
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./title "no NO no no no!" | cat -e
+  args:
+  - no NO no no no!
   expected: 'No NO No No No!
 
     '
-  id: subj_ex_02
-  origin: subject.en.txt
-- args: *id002
   cat_e: true
-  command: ./title pjldfjslogjlsj | cat -e
-  expected: ''
-  id: subj_ex_03
+- id: subj_ex_03
   origin: subject.en.txt
-- args: []
-  cat_e: false
-  command: Pjldfjslogjlsj
-  expected: '==========================================================================================
+  command: ./title pjldfjslogjlsj | cat -e
+  args:
+  - pjldfjslogjlsj
+  expected: 'Pjldfjslogjlsj
 
     '
-  id: subj_ex_04
-  origin: subject.en.txt
+  cat_e: true

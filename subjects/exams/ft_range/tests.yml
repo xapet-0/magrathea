@@ -80,6 +80,22 @@ fixed_tests:
   stdout: '10,11,12,13,14,15,
 
     '
+- name: edge_int_min_ascending
+  call: printf("%d,%d\n", r[0], r[1]); free(r)
+  stdout: '-2147483648,-2147483647
+
+    '
+  tier: edge
+  setup:
+  - int *r = ft_range((-2147483647 - 1), -2147483647);
+- name: edge_int_max_descending
+  call: printf("%d,%d\n", r[0], r[1]); free(r)
+  stdout: '2147483647,2147483646
+
+    '
+  tier: edge
+  setup:
+  - int *r = ft_range(2147483647, 2147483646);
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt (contract specification)
@@ -139,20 +155,13 @@ folder_examples:
     *ft_range(int min, int max);\n\nvoid\tft_putchar(char c)\n{\n\twrite(1, &c, 1);\n\
     \treturn;\n}\n\nvoid ft_pu"
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_range
-  perturbed_input:
-  - ft_range_near_arg_1
-  - ft_range_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_ft_range_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_range/tester.sh)
   original_input: ./ft_range "-13" "2932"
-  perturbed_input: ./gt_range "-13" "2932"
+  perturbed_input: ./ft_range -14 2933
 - id: near_folder_02_boundary_neighbor
   derived_from: can_ft_range_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/ft_range/tester.sh)
   original_input: ./ft_range "3" "8"
-  perturbed_input: ./gt_range "3" "8"
+  perturbed_input: ./ft_range 4 9

@@ -1,49 +1,98 @@
-#include <stdio.h>
 #include <ctype.h>
+#include <stdio.h>
 
-static const char *s;
-static int pos = 0;
+static const char	*g_s;
+static int			g_pos;
+static int			g_err;
 
-static int parse_expr(void);
+static long	parse_expr(void);
 
-static int parse_factor(void)
+static void	report_error(void)
 {
-    if (s[pos] == '(') {
-        pos++;
-        int v = parse_expr();
-        if (s[pos] == ')') pos++;
-        return v;
-    }
-    int v = 0;
-    while (isdigit((unsigned char)s[pos]))
-        v = v * 10 + (s[pos++] - '0');
-    return v;
+	if (g_err)
+		return ;
+	g_err = 1;
+	if (g_s[g_pos] == '\0')
+		printf("Unexpected end of input\n");
+	else
+		printf("Unexpected token '%c'\n", g_s[g_pos]);
 }
 
-static int parse_term(void)
+static long	parse_factor(void)
 {
-    int v = parse_factor();
-    while (s[pos] == '*') {
-        pos++;
-        v *= parse_factor();
-    }
-    return v;
+	long	v;
+
+	if (g_err)
+		return (0);
+	if (g_s[g_pos] == '(')
+	{
+		g_pos++;
+		v = parse_expr();
+		if (g_err)
+			return (0);
+		if (g_s[g_pos] != ')')
+		{
+			report_error();
+			return (0);
+		}
+		g_pos++;
+		return (v);
+	}
+	if (isdigit((unsigned char)g_s[g_pos]))
+	{
+		v = g_s[g_pos] - '0';
+		g_pos++;
+		if (isdigit((unsigned char)g_s[g_pos]))
+		{
+			report_error();
+			return (0);
+		}
+		return (v);
+	}
+	report_error();
+	return (0);
 }
 
-static int parse_expr(void)
+static long	parse_term(void)
 {
-    int v = parse_term();
-    while (s[pos] == '+') {
-        pos++;
-        v += parse_term();
-    }
-    return v;
+	long	v;
+
+	v = parse_factor();
+	while (!g_err && g_s[g_pos] == '*')
+	{
+		g_pos++;
+		v *= parse_factor();
+	}
+	return (v);
 }
 
-int main(int ac, char **av)
+static long	parse_expr(void)
 {
-    if (ac != 2) return 1;
-    s = av[1];
-    printf("%d\n", parse_expr());
-    return 0;
+	long	v;
+
+	v = parse_term();
+	while (!g_err && g_s[g_pos] == '+')
+	{
+		g_pos++;
+		v += parse_term();
+	}
+	return (v);
+}
+
+int	main(int ac, char **av)
+{
+	long	res;
+
+	if (ac != 2)
+		return (1);
+	g_s = av[1];
+	g_pos = 0;
+	g_err = 0;
+	res = parse_expr();
+	if (!g_err && g_s[g_pos] != '\0')
+		report_error();
+	if (g_err)
+		return (1);
+	printf("%ld\n", res);
+	return (0);
 }

@@ -60,6 +60,42 @@ fixed_tests:
   stdout: '5
 
     '
+- name: edge_null_str
+  expr: atoi_base(NULL, 10)
+  stdout: '0
+
+    '
+  tier: edge
+- name: edge_invalid_base_bounds
+  expr: atoi_base("42", 1) + atoi_base("42", 17)
+  stdout: '0
+
+    '
+  tier: edge
+- name: edge_int_max_base10
+  expr: atoi_base("2147483647", 10)
+  stdout: '2147483647
+
+    '
+  tier: edge
+- name: edge_int_min_base10
+  expr: atoi_base("-2147483648", 10)
+  stdout: '-2147483648
+
+    '
+  tier: edge
+- name: edge_int_max_hex
+  expr: atoi_base("7fffffff", 16)
+  stdout: '2147483647
+
+    '
+  tier: edge
+- name: edge_int_min_hex
+  expr: atoi_base("-80000000", 16)
+  stdout: '-2147483648
+
+    '
+  tier: edge
 oracle_tests:
 - name: edge_atoi_base_numeric
   source: "int atoi_base(const char *str, int str_base);\nint main(void)\n{\n    if\
@@ -87,20 +123,8 @@ folder_examples:
     \  stdout: '26\n\n    '\noracle_tests:\n- name: edge_atoi_base_numeric\n  source:\
     \ \"int atoi_base(const "
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval atoi_base
-  perturbed_input:
-  - atoi_base_near_arg_1
-  - atoi_base_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_atoi_base_T03
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: atoi_base("1a", 16) -> 26
-  perturbed_input: btoi_base("1a", 16) -> 26
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+  perturbed_input: atoi_base("1b", 17)

@@ -75,8 +75,8 @@ fixed_tests:
 - name: near_ex_too_many_args
   tier: near_example
   args:
-  - near_arg_1
-  - near_arg_2
+  - arg1
+  - arg2
   expected: '
 
     '
@@ -84,7 +84,7 @@ subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./decimal_to_binary "2" | cat -e
-  args: &id001
+  args:
   - '2'
   expected: '10
 
@@ -93,7 +93,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./decimal_to_binary "5" | cat -e
-  args: &id002
+  args:
   - '5'
   expected: '101
 
@@ -102,7 +102,7 @@ subject_examples:
 - id: subj_ex_03
   origin: subject.en.txt
   command: ./decimal_to_binary "545" | cat -e
-  args: &id003
+  args:
   - '545'
   expected: '1000100001
 
@@ -111,7 +111,7 @@ subject_examples:
 - id: subj_ex_04
   origin: subject.en.txt
   command: ./decimal_to_binary "" | cat -e
-  args: &id004
+  args:
   - ''
   expected: '
 
@@ -139,72 +139,59 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - '2'
   perturbed_input:
   - '3'
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - '2'
   perturbed_input:
   - '  2  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - '5'
   perturbed_input:
   - '6'
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - '5'
   perturbed_input:
   - '  5  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - '545'
   perturbed_input:
   - '546'
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - '545'
   perturbed_input:
   - '  545  '
 - id: near_subj_04_lexical_shift
   derived_from: subj_ex_04
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id004
+  original_input:
+  - ''
   perturbed_input:
   - ' '
 - id: near_subj_04_whitespace_envelope
   derived_from: subj_ex_04
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id004
+  original_input:
+  - ''
   perturbed_input:
   - '    '
-- id: near_folder_01_boundary_neighbor
-  derived_from: cur_decimal_to_binary_T06
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/decimal_to_binary/generator.py)
-  original_input: Dynamic generation rule via valid_decimal_test()
-  perturbed_input: Eynamic generation rule via valid_decima
-- id: near_folder_02_boundary_neighbor
-  derived_from: cur_decimal_to_binary_T07
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/decimal_to_binary/generator.py)
-  original_input: Dynamic generation rule via invalid_input_test()
-  perturbed_input: Eynamic generation rule via invalid_inpu
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Boundary conditions and extreme values in `decimal_to_binary`
-  input: Boundary test vector for decimal_to_binary
-  expected: Conform to subject specifications
-- name: edge_02_M
-  code: '[M]'
-  title: Memory hygiene and leak checks in `decimal_to_binary`
-  input: Run decimal_to_binary with leak checks enabled
-  expected: 0 bytes leaked

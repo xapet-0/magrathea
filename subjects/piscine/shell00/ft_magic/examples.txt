@@ -1,1 +1,2 @@
-[pool_ft_magic_T01] Input: `sh ft_magic.sh` (standard shell environment)  ==>  Expected: *(none)*
+# No examples in official PDF.
+# Use `man file, man 5 magic` and consult subject.en.txt for the exact specification.

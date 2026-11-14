@@ -8,7 +8,7 @@ Write a program that takes a string and prints characters at even indices (0, 2,
 newline.
 
 Requirements:
-    - If the number of arguments is invalid, the program must display a newline (or the specified error message) and exit cleanly.
+    - If the number of arguments is invalid, the program must display a newline and exit cleanly.
     - Your program will be compiled with: cc -Wall -Wextra -Werror.
 
 Examples:
@@ -18,5 +18,3 @@ $> ./index_case | cat -e
 $
 $> ./index_case "a1b2c3" | cat -e
 A1B2C3$
-$> ./index_case | cat -e
-$

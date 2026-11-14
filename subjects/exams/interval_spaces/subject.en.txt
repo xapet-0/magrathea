@@ -3,12 +3,12 @@ Expected files   : interval_spaces.c
 Allowed functions: write
 --------------------------------------------------------------------------------
 
-create a program that writes three whitespaces between each character in an argument,
+Create a program that writes three spaces between each character in a string argument.
 
-if the number of arguments is different than 2 the program will return a newline
+If the number of arguments is different from 1, the program prints only a newline.
 
+Examples:
 $> ./interval_spaces "abc" | cat -e
 a   b   c$
 $> ./interval_spaces "dubO a POIL" "ok" | cat -e
 $
-==========================================================================================

@@ -1,7 +1,9 @@
-# Examples for colle02 (from official subject specification)
-
 Examples:
-$> printf "o---o\n|   |\no---o\n" | ./colle02 | cat -e
-[colle-00] [5] [3]$
-$> printf "invalid\n" | ./colle02 | cat -e
-aucune$
+$> ./colle-2 42 | cat -e
+forty two$
+$> ./colle-2 0 | cat -e
+zero$
+$> ./colle-2 100000 | cat -e
+one hundred thousand$
+$> ./colle-2 -42 | cat -e
+Error$

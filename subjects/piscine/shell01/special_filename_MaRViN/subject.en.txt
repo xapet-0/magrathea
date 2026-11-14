@@ -4,19 +4,12 @@ Expected files   : "\?$*'MaRViN'*$?\"
 Allowed functions: None
 --------------------------------------------------------------------------------
 
-MAC.sh
-Turn-in directory: ex04/
-Files to turn in:MAC.sh
-Allowed functions:None
-• Write a command line that displays your machine’s MAC addresses, with each
-address followed by a line break.
-• man ifconfig
-• Collaboration is key to success!
-
-Requirements:
-    - Your solution must be POSIX-compliant (/bin/sh) and handle spaces, tabs, and special characters safely.
-    - Do not leave temporary files behind in the working directory.
+• Create a file containing only "42", and nothing else.
+• The file name must be:
+  "\?$*'MaRViN'*$?\"
 
 Examples:
-$> ./special_filename_MaRViN | cat -e
-$
+$> ls -lRa *MaRV* | cat -e
+-rw---xr-- 1 75355 32015 2 Oct 2 12:21 "\?$*'MaRViN'*$?\"$
+$> cat '"\?$*'\''MaRViN'\''*$?\"'
+42

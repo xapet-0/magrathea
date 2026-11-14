@@ -52,40 +52,30 @@ fixed_tests:
 - name: near_ex_too_many_args
   tier: near_example
   args:
-  - near_arg_1
-  - near_arg_2
+  - arg1
+  - arg2
   expected: '
 
     '
-- name: test_08_arg_auto
+- name: edge_rp_single_char
   args:
-  - ''
-  - ''
-  tier: baseline
-  stdout: '
+  - a
+  stdout: 'a
 
     '
-- name: test_09_arg_auto
+  tier: edge_case
+- name: edge_rp_digits
   args:
-  - '42'
-  - '1337'
-  tier: baseline
-  stdout: '
+  - '12345'
+  stdout: '54321
 
     '
-- name: test_10_arg_auto
-  args:
-  - pad
-  - test
-  tier: baseline
-  stdout: '
-
-    '
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./rev_print "zaz" | cat -e
-  args: &id001
+  args:
   - zaz
   expected: 'zaz
 
@@ -94,7 +84,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./rev_print "dub0 a POIL" | cat -e
-  args: &id002
+  args:
   - dub0 a POIL
   expected: 'LIOP a 0bud
 
@@ -162,42 +152,46 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - zaz
   perturbed_input:
   - zbz
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - zaz
   perturbed_input:
   - '  zaz  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - dub0 a POIL
   perturbed_input:
   - eub0 a POIL
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - dub0 a POIL
   perturbed_input:
   - '  dub0 a POIL  '
 - id: near_subj_03_arity_perturbation
   derived_from: subj_ex_03
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./rev_print | cat -e
   perturbed_input:
-  - rev_print_near_arg_1
-  - rev_print_near_arg_2
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_rev_print_T05
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rev_print/tester.sh)
   original_input: ./rev_print "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
-  perturbed_input: ./sev_print "wNcOre Un ExEmPle Pas Facil
+  perturbed_input: ./rev_print 'xNcOre Un ExEmPle Pas Facilw a Ecrirw ' x f
 - id: near_folder_02_boundary_neighbor
   derived_from: can_rev_print_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/rev_print/tester.sh)
   original_input: ./rev_print "   "
-  perturbed_input: ./sev_print "   "
+  perturbed_input: ./rev_print '   !'

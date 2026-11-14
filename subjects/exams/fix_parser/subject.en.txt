@@ -1,10 +1,9 @@
 Assignment name  : fix_parser
 Expected files   : fix_parser.c
-Allowed functions: isdigit
-Version          : 1
+Allowed functions: printf, write, isdigit, strlen, atoi
 --------------------------------------------------------------------------------
 
-copy and fix the code below. so it check if an input is correct or not
+Copy and fix the code below so it checks if an arithmetic expression string is valid or not.
 
 #include <stdio.h>
 #include <ctype.h>
@@ -28,7 +27,7 @@ int is_valid_expression(const char *str) {
             while (str[i] == ' ') i++;
             if (!isnumber(str[i])) return 1;
         }
-        else if (str[i] == '') {
+        else if (str[i] == ' ') {
             i++;
         }
         else {
@@ -39,9 +38,8 @@ int is_valid_expression(const char *str) {
     return 1;
 }
 
-examples:
-
-$>./validator "5+3*2" --> true (1)
-$>./validator "10 / 2" --> true (1)
-$>./validator "7 + * 3" --> false (0)
-$>./validator "abc"     --> false (0)
+Examples:
+    is_valid_expression("5+3*2") -> 1
+    is_valid_expression("10 / 2") -> 1
+    is_valid_expression("7 + * 3") -> 0
+    is_valid_expression("abc") -> 0

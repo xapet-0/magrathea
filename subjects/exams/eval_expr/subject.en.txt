@@ -1,5 +1,5 @@
 Assignment name  : eval_expr
-Expected files   : Makefile, *.c, *.h
+Expected files   : eval_expr.c
 Allowed functions: write, malloc, free
 --------------------------------------------------------------------------------
 

@@ -56,40 +56,37 @@ fixed_tests:
 - name: near_ex_too_many_args
   tier: near_example
   args:
-  - near_arg_1
-  - near_arg_2
+  - arg1
+  - arg2
   expected: '
 
     '
-- name: test_08_arg_auto
+- name: edge_sv_unsupported_type
+  args:
+  - long
+  expected: '
+
+    '
+  tier: edge_case
+- name: edge_sv_trailing_space
+  args:
+  - 'int '
+  expected: '
+
+    '
+  tier: edge_case
+- name: edge_sv_empty
   args:
   - ''
-  - ''
-  tier: baseline
-  stdout: '
+  expected: '
 
     '
-- name: test_09_arg_auto
-  args:
-  - '42'
-  - '1337'
-  tier: baseline
-  stdout: '
-
-    '
-- name: test_10_arg_auto
-  args:
-  - pad
-  - test
-  tier: baseline
-  stdout: '
-
-    '
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: ./size_variable 'int' | cat -e
-  args: &id001
+  command: ./size_variables 'int' | cat -e
+  args:
   - int
   expected: '4 bytes
 
@@ -97,8 +94,8 @@ subject_examples:
   cat_e: true
 - id: subj_ex_02
   origin: subject.en.txt
-  command: ./size_variable 'char' | cat -e
-  args: &id002
+  command: ./size_variables 'char' | cat -e
+  args:
   - char
   expected: '1 bytes
 
@@ -106,8 +103,8 @@ subject_examples:
   cat_e: true
 - id: subj_ex_03
   origin: subject.en.txt
-  command: ./size_variable 'float' | cat -e
-  args: &id003
+  command: ./size_variables 'float' | cat -e
+  args:
   - float
   expected: '4 bytes
 
@@ -115,8 +112,8 @@ subject_examples:
   cat_e: true
 - id: subj_ex_04
   origin: subject.en.txt
-  command: ./size_variable 'double'| cat -e
-  args: &id004
+  command: ./size_variables 'double' | cat -e
+  args:
   - double
   expected: '8 bytes
 
@@ -124,7 +121,7 @@ subject_examples:
   cat_e: true
 - id: subj_ex_05
   origin: subject.en.txt
-  command: ./size_variable 'tryu'| cat -e
+  command: ./size_variables 'tryu' | cat -e
   args:
   - tryu
   expected: '
@@ -133,7 +130,7 @@ subject_examples:
   cat_e: true
 - id: subj_ex_06
   origin: subject.en.txt
-  command: ./size_variable "" | cat -e
+  command: ./size_variables "" | cat -e
   args:
   - ''
   expected: '
@@ -174,82 +171,59 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - int
   perturbed_input:
   - jnt
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - int
   perturbed_input:
   - '  int  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - char
   perturbed_input:
   - dhar
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - char
   perturbed_input:
   - '  char  '
 - id: near_subj_03_lexical_shift
   derived_from: subj_ex_03
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id003
+  original_input:
+  - float
   perturbed_input:
   - gloat
 - id: near_subj_03_whitespace_envelope
   derived_from: subj_ex_03
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id003
+  original_input:
+  - float
   perturbed_input:
   - '  float  '
 - id: near_subj_04_lexical_shift
   derived_from: subj_ex_04
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id004
+  original_input:
+  - double
   perturbed_input:
   - eouble
 - id: near_subj_04_whitespace_envelope
   derived_from: subj_ex_04
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id004
+  original_input:
+  - double
   perturbed_input:
   - '  double  '
-- id: near_folder_01_boundary_neighbor
-  derived_from: cur_size_variables_T07
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/size_variables/generator.py)
-  original_input: Dynamic generation rule via random_string()
-  perturbed_input: Eynamic generation rule via random_strin
-- id: near_folder_02_boundary_neighbor
-  derived_from: cur_size_variables_T08
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/size_variables/generator.py)
-  original_input: Dynamic generation rule via int_test()
-  perturbed_input: Eynamic generation rule via int_test()
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Extreme boundary values (INT_MIN, INT_MAX, 0, 1, -1) in `size_variables`
-  input: size_variables(INT_MIN), size_variables(0), size_variables(1)
-  expected: Correct mathematical result without signed overflow UB
-- name: edge_02_S
-  code: '[S]'
-  title: Arithmetic overflow and infinite recursion protection in `size_variables`
-  input: Run size_variables with large inputs
-  expected: Safe return or termination without stack overflow
-- name: edge_03_B
-  code: '[B]'
-  title: Zero factorial and power edge cases in `size_variables`
-  input: size_variables(0)
-  expected: Canonical mathematical result for 0
-- name: edge_04_T
-  code: '[T]'
-  title: Time complexity guard against exponential runtime in `size_variables`
-  input: Call size_variables on large prime or composite integer
-  expected: Execute within 0.5s limit without timing out

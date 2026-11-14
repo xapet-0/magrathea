@@ -1,24 +1,3 @@
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Empty array (size = 0), single element, and NULL pointer in `volume_histogram`
-  input: volume_histogram(tab, 0) and volume_histogram(NULL, 0)
-  expected: Safe return without memory violation
-- name: edge_02_B
-  code: '[B]'
-  title: Array with duplicate elements and all elements identical in `volume_histogram`
-  input: volume_histogram([5, 5, 5, 5], 4)
-  expected: Preserve stable sort or return correct count
-- name: edge_03_B
-  code: '[B]'
-  title: Array already sorted in reverse order in `volume_histogram`
-  input: volume_histogram([9, 8, 7, 6, 5], 5)
-  expected: Properly sort array with no missing elements
-- name: edge_04_T
-  code: '[T]'
-  title: Performance verification on large array in `volume_histogram`
-  input: Run volume_histogram on array of 10,000 elements
-  expected: Complete within timeout limit
 fixed_tests:
 - name: test_01_h_5
   expr: volume_histogram(h, 5)
@@ -108,24 +87,7 @@ folder_examples:
   input: volume_histogram_MAIN.c
   origin: subject_folder/volume_histogram_MAIN.c
 mode: c_function
-near_examples:
-- derived_from: subj_ex_01
-  id: near_subj_01_arity_perturbation
-  original_input: eval volume_histogram
-  perturbed_input:
-  - volume_histogram_near_arg_1
-  - volume_histogram_near_arg_2
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-- derived_from: can_volume_histogram_T05
-  id: near_folder_01_boundary_neighbor
-  original_input: Compiled and run with volume_histogram_MAIN.c
-  perturbed_input: Dompiled and run with volume_histogram_M
-  strategy: Neighbouring perturbation of folder example (subject_folder/volume_histogram_MAIN.c)
-- derived_from: folder_fixture_02
-  id: near_folder_02_boundary_neighbor
-  original_input: volume_histogram_MAIN.c
-  perturbed_input: wolume_histogram_MAIN.c
-  strategy: Neighbouring perturbation of folder example (subject_folder/volume_histogram_MAIN.c)
+near_examples: []
 subject_examples:
 - args: []
   cat_e: false

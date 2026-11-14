@@ -32,69 +32,54 @@ fixed_tests:
   stdout: '4
 
     '
-- name: test_05_arg_auto
+- name: edge_ex_sentence_len_35
+  env:
+    FT_LINE: '42 Piscine Exam Shell: hello world!'
   args: []
-  tier: baseline
-  stdout: '17
+  stdout: '35
 
     '
-- name: test_06_arg_auto
-  args:
-  - extra
-  tier: baseline
-  stdout: '17
+  tier: edge_case
+- name: edge_ex_spaces_and_tabs
+  env:
+    FT_LINE: "  a\tb  "
+  args: []
+  stdout: '7
 
     '
-- name: test_07_arg_auto
-  args:
-  - a
-  - b
-  tier: baseline
-  stdout: '17
+  tier: edge_case
+- name: edge_ex_single_char
+  env:
+    FT_LINE: Z
+  args: []
+  stdout: '1
 
     '
-- name: test_08_arg_auto
-  args:
-  - '1'
-  - '2'
-  - '3'
-  tier: baseline
-  stdout: '17
+  tier: edge_case
+- name: edge_ex_punctuation
+  env:
+    FT_LINE: '!@#$%^&*()_+'
+  args: []
+  stdout: '12
 
     '
-- name: test_09_arg_auto
-  args:
-  - --help
-  tier: baseline
-  stdout: '17
-
-    '
-- name: test_10_arg_auto
-  args:
-  - -v
-  tier: baseline
-  stdout: '17
-
-    '
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: echo $FT_LINE
-  args: &id001
-  - $FT_LINE
-  expected: 'Les stagiaires du staff ne sentent pas toujours tres bon.
-
-    '
+  command: export FT_LINE="Les putes, c'est comme les chevilles, ca enfle."
+  args:
+  - FT_LINE=Les putes, c'est comme les chevilles, ca enfle.
+  expected: ''
   cat_e: false
 - id: subj_ex_02
   origin: subject.en.txt
-  command: zsh strlen.sh
-  args: &id002
-  - strlen.sh
-  expected: '57
+  command: ./strlen.sh | cat -e
+  args: []
+  expected: '48
 
     '
-  cat_e: false
+  cat_e: true
 folder_examples:
 - id: sh_strlen_sh_T01
   origin: subject_folder/tests.yml (fixed_tests)
@@ -113,37 +98,14 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - FT_LINE=Les putes, c'est comme les chevilles, ca enfle.
   perturbed_input:
-  - $GT_LINE
+  - GT_LINE=Les putes, c'est comme les chevilles, ca enfle.
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - FT_LINE=Les putes, c'est comme les chevilles, ca enfle.
   perturbed_input:
-  - '  $FT_LINE  '
-- id: near_subj_02_lexical_shift
-  derived_from: subj_ex_02
-  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
-    strcmp(argv[1])
-  original_input: *id002
-  perturbed_input:
-  - ttrlen.sh
-- id: near_subj_02_whitespace_envelope
-  derived_from: subj_ex_02
-  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
-  perturbed_input:
-  - '  strlen.sh  '
-- id: near_folder_01_boundary_neighbor
-  derived_from: sh_strlen_sh_T01
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: '`sh strlen_sh.sh` (standard shell environment)'
-  perturbed_input: '`th strlen_sh.sh` (standard shell enviro'
-- id: near_folder_02_boundary_neighbor
-  derived_from: sh_strlen_sh_T02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: '`sh strlen_sh.sh` (standard shell environment)'
-  perturbed_input: '`th strlen_sh.sh` (standard shell enviro'
+  - '  FT_LINE=Les putes, c''est comme les chevilles, ca enfle.  '

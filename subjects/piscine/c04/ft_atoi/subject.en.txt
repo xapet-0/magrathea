@@ -4,18 +4,17 @@ Expected files   : ft_atoi.c
 Allowed functions: None
 --------------------------------------------------------------------------------
 
-• Write a function that converts the initial portion of the string pointed to bystr into its
+• Write a function that converts the initial portion of the string pointed to by str into its
 integer representation.
 • The string may begin with an arbitrary amount of whitespace (as determined by isspace(3)).
-• The string may be preceded by an arbitrary number of‘+’ and ‘-’ signs. A ‘-’ sign
-will invert the result depending on whether the number of‘-’ signs is odd or even.
+• The string may be preceded by an arbitrary number of '+' and '-' signs. A '-' sign
+will invert the result depending on whether the number of '-' signs is odd or even.
 • The function should then process any consecutive digits in base 10.
 • The function reads the string until a non-conforming character is encountered and returns
 the number obtained so far.
-• Overflowandunderflowdonotneedtobehandled; the function’sreturnvalueisundefined
+• Overflow and underflow do not need to be handled; the function's return value is undefined
 in such cases.
-• Example Program Output :
-$>./a.out " ---+--+1234ab567"
--1234
+• Example:
+    ft_atoi(" ---+--+1234ab567") -> -1234
 • The function should be prototyped as follows:
 int ft_atoi(char *str);

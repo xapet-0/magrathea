@@ -32,6 +32,20 @@ static char	*read_all(int fd)
 	return (buf);
 }
 
+static int	valid_hdr(t_map *m)
+{
+	if (m->empty < 32 || m->empty > 126)
+		return (0);
+	if (m->oider < 32 || m->oider > 126)
+		return (0);
+	if (m->full < 32 || m->full > 126)
+		return (0);
+	if (m->empty == m->oider || m->empty == m->full
+		|| m->oider == m->full)
+		return (0);
+	return (m->rows > 0);
+}
+
 static int	parse_header(char *buf, t_map *m, int *hdr_end)
 {
 	int	i;
@@ -40,7 +54,7 @@ static int	parse_header(char *buf, t_map *m, int *hdr_end)
 	l = 0;
 	while (buf[l] && buf[l] != '\n')
 		l++;
-	if (l < 4)
+	if (l < 4 || buf[l] != '\n')
 		return (0);
 	m->empty = buf[l - 3];
 	m->oider = buf[l - 2];
@@ -54,7 +68,7 @@ static int	parse_header(char *buf, t_map *m, int *hdr_end)
 		m->rows = m->rows * 10 + (buf[i++] - '0');
 	}
 	*hdr_end = l + 1;
-	return (m->rows > 0);
+	return (valid_hdr(m));
 }
 
 static void	process_fd(int fd)

@@ -61,6 +61,46 @@ fixed_tests:
   stdout: '0
 
     '
+- name: edge_both_empty
+  call: 'printf("%s\n", s ? s : "(null)"); free(s)'
+  stdout: '
+
+    '
+  tier: edge
+  setup:
+  - char *s = add_binary("", "")
+- name: edge_both_null
+  call: 'printf("%s\n", s ? s : "(null)"); free(s)'
+  stdout: '
+
+    '
+  tier: edge
+  setup:
+  - char *s = add_binary(NULL, NULL)
+- name: edge_first_null
+  call: 'printf("%s\n", s ? s : "(null)"); free(s)'
+  stdout: '1011
+
+    '
+  tier: edge
+  setup:
+  - char *s = add_binary(NULL, "1011")
+- name: edge_second_empty
+  call: 'printf("%s\n", s ? s : "(null)"); free(s)'
+  stdout: '1101
+
+    '
+  tier: edge
+  setup:
+  - char *s = add_binary("1101", "")
+- name: stress_33bit_carry
+  call: 'printf("%s\n", s ? s : "(null)"); free(s)'
+  stdout: '100000000000000000000000000000000
+
+    '
+  tier: stress
+  setup:
+  - char *s = add_binary("11111111111111111111111111111111", "1")
 oracle_tests:
 - name: oracle_add_binary_edges
   source: "\nint main(void)\n{\n    char *r1 = add_binary(\"11\", \"1\");\n    char\
@@ -91,20 +131,8 @@ folder_examples:
     11\", \"1\")\n  call: printf(\"%s\\n\", s); free(s)\n  stdout: '100\n\n    '\n\
     - setup:\n  - char *s ="
 near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval add_binary
-  perturbed_input:
-  - add_binary_near_arg_1
-  - add_binary_near_arg_2
 - id: near_folder_01_boundary_neighbor
   derived_from: e1337_add_binary_T07
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: add_binary("11", "1")      -> "100"
-  perturbed_input: bdd_binary("11", "1")      -> "100"
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+  perturbed_input: add_binary("12", "2")

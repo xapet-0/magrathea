@@ -2,25 +2,27 @@ project: ft_boolean.h
 scale_version: 1337HUB-v4.2
 stop_on_first_failure: true
 zero_tolerance_gates:
-- segfault
-- memory_leak
+- compile_error
 - norme_error
-- forbidden_function
+- missing_include_guard
 sections:
 - id: preliminaries
-  title: 'Step 1: Preliminaries & Vogsphere Integrity Check'
+  title: 'Step 1: Preliminaries & Header Norm Check'
   points: 20
   checks:
-  - Clone official Vogsphere repository into an empty folder.
-  - Verify no malicious shell aliases or unauthorized files exist.
-  - Run norminette / shnorm and verify clean compilation with -Wall -Wextra -Werror.
+  - Verify expected header (ft_boolean.h) exists with proper include guards and no
+    unauthorized files.
+  - Run `norminette -R CheckDefine` and verify clean inclusion in a test driver compiled
+    with `cc -Wall -Wextra -Werror`.
 - id: explain_before_checking
   title: 'Step 2: Conceptual Defense (Explain Before Checking)'
   points: 30
   checks:
-  - Student explains data structures and control flow before executing tests.
+  - Student explains include guards, macro parameter parenthesization, and declarations/typedefs
+    before testing.
 - id: live_mutation
-  title: 'Step 3: Live Mutation & Edge-Case Verification'
+  title: 'Step 3: Macro Expansion & Driver Verification'
   points: 50
   checks:
-  - Inject a live boundary modification on the spot and verify deterministic behavior.
+  - Include the header twice and test tricky expressions (operator precedence, signed
+    boundaries) for deterministic behavior.

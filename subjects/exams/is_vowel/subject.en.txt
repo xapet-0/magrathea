@@ -1,17 +1,16 @@
-Assignment name  : is_vowel_v1
-Expected files   : is_vowel_v1.c
-Allowed functions: 
-Version          : v1
+Assignment name  : is_vowel
+Expected files   : is_vowel.c
+Allowed functions: None
 --------------------------------------------------------------------------------
 
-Write a function that check if a character is a vowel or not;
+Write a function that checks if a character is an English vowel ('a', 'e', 'i',
+'o', 'u', uppercase or lowercase).
 
 Your function must be declared as follows:
-    int is_vowel(char c):
+    int is_vowel(char c);
 
-Example:
-
-    $> is_vowel('a') = 1
-    $> is_vowel('U') = 1
-    $> is_vowel('P') = 0
-    $> is_vowel ('z') = 0
+Examples:
+    is_vowel('a') -> 1
+    is_vowel('U') -> 1
+    is_vowel('P') -> 0
+    is_vowel('z') -> 0

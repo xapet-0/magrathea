@@ -89,8 +89,8 @@ fixed_tests:
 - name: near_ex_too_many_args
   tier: near_example
   args:
-  - near_arg_1
-  - near_arg_2
+  - arg1
+  - arg2
   expected: '
 
     '
@@ -98,7 +98,7 @@ subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./alpha_mirror "abc"
-  args: &id001
+  args:
   - abc
   expected: 'zyx
 
@@ -107,7 +107,7 @@ subject_examples:
 - id: subj_ex_02
   origin: subject.en.txt
   command: ./alpha_mirror "My horse is Amazing." | cat -e
-  args: &id002
+  args:
   - My horse is Amazing.
   expected: 'Nb slihv rh Znzarmt.
 
@@ -175,42 +175,46 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - abc
   perturbed_input:
   - bbc
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - abc
   perturbed_input:
   - '  abc  '
 - id: near_subj_02_lexical_shift
   derived_from: subj_ex_02
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id002
+  original_input:
+  - My horse is Amazing.
   perturbed_input:
   - Ny horse is Amazing.
 - id: near_subj_02_whitespace_envelope
   derived_from: subj_ex_02
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id002
+  original_input:
+  - My horse is Amazing.
   perturbed_input:
   - '  My horse is Amazing.  '
 - id: near_subj_03_arity_perturbation
   derived_from: subj_ex_03
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
+  strategy: Invoke binary with unexpected arguments to verify argc guard
   original_input: ./alpha_mirror | cat -e
   perturbed_input:
-  - alpha_mirror_near_arg_1
-  - alpha_mirror_near_arg_2
+  - arg1
+  - arg2
 - id: near_folder_01_boundary_neighbor
   derived_from: can_alpha_mirror_T10
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/alpha_mirror/tester.sh)
   original_input: ./alpha_mirror "wNcOre Un ExEmPle Pas Facilw a Ecrirw " "w" "e"
-  perturbed_input: ./blpha_mirror "wNcOre Un ExEmPle Pas Fa
+  perturbed_input: ./alpha_mirror 'xNcOre Un ExEmPle Pas Facilw a Ecrirw ' x f
 - id: near_folder_02_boundary_neighbor
   derived_from: can_alpha_mirror_T11
   strategy: Neighbouring perturbation of folder example (subject_folder/42ExamPractice/alpha_mirror/tester.sh)
   original_input: ./alpha_mirror "   "
-  perturbed_input: ./blpha_mirror "   "
+  perturbed_input: ./alpha_mirror '   !'

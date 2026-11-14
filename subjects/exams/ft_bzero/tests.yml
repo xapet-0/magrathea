@@ -112,22 +112,4 @@ folder_examples:
   expected: "fixed_tests:\n- setup:\n  - char buf[6] = \"abcde\"\n  - ft_bzero(buf,\
     \ 3)\n  call: printf(\"%d,%d,%d,%d\\n\", buf[0], buf[1], buf[2], buf[3])\n  stdout:\
     \ '0,0,0,100\n\n    '"
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_bzero
-  perturbed_input:
-  - ft_bzero_near_arg_1
-  - ft_bzero_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: e1337_ft_bzero_T05
-  strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
-  original_input: char buf[6] = "abcde"; ft_bzero(buf, 3); printf("%d,%d,%d,%d\n",
-    buf[0], buf[1], buf[2], buf[3])
-  perturbed_input: dhar buf[6] = "abcde"; ft_bzero(buf, 3);
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+near_examples: []

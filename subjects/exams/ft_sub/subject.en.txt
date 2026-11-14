@@ -3,16 +3,12 @@ Expected files   : ft_sub.c
 Allowed functions: None
 --------------------------------------------------------------------------------
 
-project name :ft_subtract.c
+Create a function that subtracts an integer a from an integer pointed to by ptr.
 
------------------------------------------------------------------
+Your function must be declared as follows:
 
-create a function that subtracts an integer from an integer pointed by a pointer.the parameters are an integer and a pointer pointing to an integer.
+void	ft_sub(int a, int *ptr);
 
-it should be prototyped as such
-
-void    ft_subtract(int a, int *ptr)
-
-[cur_ft_sub_T01] Input: printf("%d\n", x)  ==>  Expected: 42\n
-[cur_ft_sub_T02] Input: printf("%d\n", x)  ==>  Expected: -10\n
-[cur_ft_sub_T03] Input: printf("%d\n", x)  ==>  Expected: 0\n
+Examples:
+    int x = 50; ft_sub(8, &x); -> x == 42
+    int x = -5; ft_sub(5, &x); -> x == -10

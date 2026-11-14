@@ -6,12 +6,12 @@ fixed_tests:
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: ./id_rsa_pub | cat -e
+  command: cat id_rsa_pub
   args: []
-  expected: '
+  expected: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB... user@host
 
     '
-  cat_e: true
+  cat_e: false
 folder_examples:
 - id: folder_ex_01
   origin: subject_folder/examples.txt
@@ -20,13 +20,13 @@ folder_examples:
 near_examples:
 - id: near_subj_01_arity_perturbation
   derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: ./id_rsa_pub | cat -e
+  strategy: Perturb public key header / format around subject.en.txt example
+  original_input: cat id_rsa_pub
   perturbed_input:
-  - id_rsa_pub_near_arg_1
-  - id_rsa_pub_near_arg_2
+  - id_rsa_pub_ed25519
+  - id_rsa_pub_private_key_rejected
 - id: near_folder_01_boundary_neighbor
   derived_from: folder_ex_01
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: id_rsa_pub baseline folder fixture
-  perturbed_input: jd_rsa_pub baseline folder fixture
+  perturbed_input: id_rsa_pub empty key fixture

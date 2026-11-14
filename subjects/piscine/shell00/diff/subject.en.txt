@@ -6,15 +6,9 @@ Allowed functions: None
 
 [RESOURCES ATTACHED]: resources/shell00/ex07/a and resources/shell00/ex07/sw.diff
 (Also available as resources/shell00/ex07/resources.tar.gz)
-Command hint: patch a -i sw.diff -o b  (Remember: turn in ONLY 'b' inside ex07/!)
 
-Exercise 07: diff
-Exercise 07
-Turn-in directory: ex07/
-Files to turn in: b
-Allowed functions: None
 • Create a file named b, so that:
-%>cat -e a
+%> cat -e a
 STARWARS$
 Episode IV, A NEW HOPE It is a period of civil war.$
 $
@@ -27,11 +21,5 @@ $
 Pursued by the Empire 's sinister agents, Princess Leia races home aboard her starship, custodian
 of the stolen plans that can save her people and restore freedom to the galaxy...$
 $
-%>diff a b > sw.diff
+%> diff a b > sw.diff
 • man patch
-• Don’t blindly trust any source, always test, verify, and
-validate your results yourself!
-
-Examples:
-$> ./diff | cat -e
-$

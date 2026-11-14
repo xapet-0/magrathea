@@ -1,6 +1,7 @@
 mode: c_program
 fixed_tests:
 - name: cur_list_trait_T01
+  expected_stderr: ''
   description: 'Functional verification of input: `[''0'', ''-5'', ''8'', ''7'']`'
   args:
   - '0'
@@ -38,52 +39,42 @@ fixed_tests:
   expected: "List: 0 \nSum: 0\nMax: 0\nCount: 1\n"
   category: Edge Case
   tier: baseline
-- name: test_06_arg_auto
+- name: edge_lt_all_negative
   args:
-  - '1'
-  - '2'
-  - '3'
-  - '4'
-  tier: baseline
-  stdout: "List: 1 2 3 4 \nSum: 10\nMax: 4\nCount: 4\n"
-- name: test_07_arg_auto
+  - '-10'
+  - '-2'
+  - '-5'
+  expected: "List: -10 -2 -5 \nSum: -17\nMax: -2\nCount: 3\n"
+  tier: edge_case
+- name: edge_lt_mixed_pos_neg
   args:
-  - '0'
-  - '0'
-  - '0'
-  - '0'
-  tier: baseline
-  stdout: "List: 0 0 0 0 \nSum: 0\nMax: 0\nCount: 4\n"
-- name: test_08_arg_auto
-  args:
-  - '-1'
   - '5'
-  - '10'
-  - '20'
-  tier: baseline
-  stdout: "List: -1 5 10 20 \nSum: 34\nMax: 20\nCount: 4\n"
-- name: test_09_arg_auto
+  - '-3'
+  - '5'
+  expected: "List: 5 -3 5 \nSum: 7\nMax: 5\nCount: 3\n"
+  tier: edge_case
+- name: edge_lt_single_zero
   args:
-  - '42'
-  - '1337'
-  - '100'
-  - '200'
-  tier: baseline
-  stdout: "List: 42 1337 100 200 \nSum: 1679\nMax: 1337\nCount: 4\n"
-- name: test_10_arg_auto
-  args:
-  - '1'
-  - '2'
-  - '3'
-  tier: baseline
-  stdout: "List: 1 2 3 \nSum: 6\nMax: 3\nCount: 3\n"
+  - '0'
+  expected: "List: 0 \nSum: 0\nMax: 0\nCount: 1\n"
+  tier: edge_case
+- name: edge_lt_no_args
+  args: []
+  expected: ''
+  expected_stderr: ''
+  expected_returncode: 1
+  tier: edge_case
 subject_examples:
 - id: subj_ex_01
-  origin: subject.en.txt (contract specification)
-  command: eval list_trait
-  args: []
-  expected: Conform to subject.en.txt prototype and output specification
-  cat_e: false
+  origin: subject.en.txt
+  command: ./list_trait 0 -5 8 7 | cat -e
+  args:
+  - '0'
+  - '-5'
+  - '8'
+  - '7'
+  expected: "List: 0 -5 8 7 \nSum: 10\nMax: 8\nCount: 4\n"
+  cat_e: true
 folder_examples:
 - id: cur_list_trait_T06
   origin: subject_folder/deepthought/corrections/exams/list_trait/generator.py
@@ -110,41 +101,30 @@ folder_examples:
   input: Dynamic generation rule via basic_test5()
   expected: Deterministic output validated by Deepthought oracle
 near_examples:
-- id: near_subj_01_arity_perturbation
+- id: near_subj_01_lexical_shift
   derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval list_trait
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
+  - '0'
+  - '-5'
+  - '8'
+  - '7'
   perturbed_input:
-  - list_trait_near_arg_1
-  - list_trait_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: cur_list_trait_T06
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/list_trait/generator.py)
-  original_input: Dynamic generation rule via basic_test()
-  perturbed_input: Eynamic generation rule via basic_test()
-- id: near_folder_02_boundary_neighbor
-  derived_from: cur_list_trait_T07
-  strategy: Neighbouring perturbation of folder example (subject_folder/deepthought/corrections/exams/list_trait/generator.py)
-  original_input: Dynamic generation rule via basic_test1()
-  perturbed_input: Eynamic generation rule via basic_test1(
-edge_cases:
-- name: edge_01_B
-  code: '[B]'
-  title: Empty list (NULL) and single-node list in `list_trait`
-  input: list_trait(NULL, ...)
-  expected: Safely return NULL or 0 without dereferencing NULL pointer
-- name: edge_02_M
-  code: '[M]'
-  title: Zero node leaks and use-after-free prevention in `list_trait`
-  input: Execute list_trait under leak detection (DT_CHECK_LEAKS=1)
-  expected: 0 bytes leaked and valid node pointers
-- name: edge_03_B
-  code: '[B]'
-  title: All elements matching condition or identical in `list_trait`
-  input: Pass list where every element matches filter or deletion predicate
-  expected: Properly update list head pointer without dangling references
-- name: edge_04_B
-  code: '[B]'
-  title: Cycle detection and self-referencing nodes in `list_trait`
-  input: Pass cyclical linked list to list_trait
-  expected: Terminate correctly or detect loop without infinite iteration
+  - '1'
+  - '-6'
+  - '9'
+  - '8'
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - '0'
+  - '-5'
+  - '8'
+  - '7'
+  perturbed_input:
+  - '  0  '
+  - '-5'
+  - '8'
+  - '7'

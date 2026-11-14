@@ -26,12 +26,13 @@ int	check_valid(char *base)
 		return (0);
 	while (base[i] != '\0')
 	{
+		if (base[i] == '+' || base[i] == '-' || base[i] == ' '
+			|| (base[i] >= '\t' && base[i] <= '\r'))
+			return (0);
 		j = i + 1;
 		while (base[j] != '\0')
 		{
-			if (base[i] == base[j] || base[j] == '+' || base[j] == '-'
-				|| base[j] == ' ' || base[j] == '\t' || base[j] == '\n'
-				|| base[j] == '\v' || base[j] == '\f' || base[j] == '\r')
+			if (base[i] == base[j])
 				return (0);
 			j++;
 		}

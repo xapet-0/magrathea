@@ -1,3 +1,2 @@
-Examples:
-$> ./ft.h | cat -e
-$
+# No examples in official PDF.
+# Use `man cc` and consult subject.en.txt for the exact specification.

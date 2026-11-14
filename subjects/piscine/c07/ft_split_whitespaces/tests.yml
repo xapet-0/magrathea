@@ -1,9 +1,12 @@
 mode: c_function
+check_leaks: true
+support_code: "static void dt_free_str_arr(char **w) {\n    int i = 0;\n    if (!w)\
+  \ return;\n    while (w[i]) free(w[i++]);\n    free(w);\n}\n"
 fixed_tests:
 - name: cur_ft_split_whitespaces_T01
   description: 'Functional verification of input: `char **w = ft_split_whitespaces("  hello\twor`'
   call: char **w = ft_split_whitespaces("  hello\tworld\n42 "); for (int i=0; w[i];
-    i++) printf("%s\n", w[i]);
+    i++) printf("%s\n", w[i]); dt_free_str_arr(w);
   stdout: 'hello
 
     world
@@ -16,7 +19,7 @@ fixed_tests:
 - name: cur_ft_split_whitespaces_T02
   description: 'Functional verification of input: `char **w = ft_split_whitespaces("   \t\n
     "); `'
-  call: char **w = ft_split_whitespaces("   \t\n "); printf("%d\n", w[0] == 0);
+  call: char **w = ft_split_whitespaces("   \t\n "); printf("%d\n", w[0] == 0); dt_free_str_arr(w);
   stdout: '1
 
     '
@@ -26,7 +29,7 @@ fixed_tests:
   description: 'Functional verification of input: `char **w = ft_split_whitespaces("single");
     pr`'
   call: char **w = ft_split_whitespaces("single"); printf("%s\|%d\n", w[0], w[1] ==
-    0);
+    0); dt_free_str_arr(w);
   stdout: 'single|1
 
     '
@@ -36,47 +39,47 @@ fixed_tests:
   description: 'Functional verification of input: `char **w = ft_split_whitespaces("a
     b c d"); p`'
   call: char **w = ft_split_whitespaces("a b c d"); printf("%s,%s,%s,%s,%d\n", w[0],
-    w[1], w[2], w[3], w[4] == 0);
+    w[1], w[2], w[3], w[4] == 0); dt_free_str_arr(w);
   stdout: 'a,b,c,d,1
 
     '
   category: Edge Case
   tier: baseline
 - name: test_05_empty_string
-  call: char **w = ft_split_whitespaces(""); printf("%d\n", w[0] == 0);
+  call: char **w = ft_split_whitespaces(""); printf("%d\n", w[0] == 0); dt_free_str_arr(w);
   tier: edge
   stdout: '1
 
     '
 - name: test_06_tabs_only
-  call: char **w = ft_split_whitespaces("\t\t\t"); printf("%d\n", w[0] == 0);
+  call: char **w = ft_split_whitespaces("\t\t\t"); printf("%d\n", w[0] == 0); dt_free_str_arr(w);
   tier: edge
   stdout: '1
 
     '
 - name: test_07_newlines_only
-  call: char **w = ft_split_whitespaces("\n\n"); printf("%d\n", w[0] == 0);
+  call: char **w = ft_split_whitespaces("\n\n"); printf("%d\n", w[0] == 0); dt_free_str_arr(w);
   tier: edge
   stdout: '1
 
     '
 - name: test_08_leading_and_trailing_spaces
   call: char **w = ft_split_whitespaces("   first   second   "); printf("%s|%s|%d\n",
-    w[0], w[1], w[2] == 0);
+    w[0], w[1], w[2] == 0); dt_free_str_arr(w);
   tier: baseline
   stdout: 'first|second|1
 
     '
 - name: test_09_newlines_between_words
   call: char **w = ft_split_whitespaces("one\ntwo\nthree"); printf("%s,%s,%s,%d\n",
-    w[0], w[1], w[2], w[3] == 0);
+    w[0], w[1], w[2], w[3] == 0); dt_free_str_arr(w);
   tier: baseline
   stdout: 'one,two,three,1
 
     '
 - name: test_10_five_words_mixed_ws
   call: char **w = ft_split_whitespaces(" \t 1 \n 2 \t 3   4 \n 5 "); for(int i=0;w[i];i++)
-    printf("[%s]",w[i]); printf("\n");
+    printf("[%s]",w[i]); printf("\n"); dt_free_str_arr(w);
   tier: stress
   stdout: '[1][2][3][4][5]
 
@@ -103,25 +106,4 @@ folder_examples:
   input: char **w = ft_split_whitespaces("single"); printf("%s\|%d\n", w[0], w[1]
     == 0);
   expected: single\|1\n
-near_examples:
-- id: near_subj_01_arity_perturbation
-  derived_from: subj_ex_01
-  strategy: Perturb argument count / adjacent input around subject.en.txt example
-  original_input: eval ft_split_whitespaces
-  perturbed_input:
-  - ft_split_whitespaces_near_arg_1
-  - ft_split_whitespaces_near_arg_2
-- id: near_folder_01_boundary_neighbor
-  derived_from: cur_ft_split_whitespaces_T01
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: char **w = ft_split_whitespaces("  hello\tworld\n42 "); for (int
-    i=0; w[i]; i++) printf("%s\n", w[i]);
-  perturbed_input: dhar **w = ft_split_whitespaces("  hello
-- id: near_folder_02_boundary_neighbor
-  derived_from: cur_ft_split_whitespaces_T02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml
-    (fixed_tests))
-  original_input: char **w = ft_split_whitespaces("   \t\n "); printf("%d\n", w[0]
-    == 0);
-  perturbed_input: dhar **w = ft_split_whitespaces("   \t\n
+near_examples: []

@@ -86,11 +86,32 @@ mode: shell
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
-  command: ls -lRa *MaRV* | cat -e
-  args: &id001
-  - -lRa
-  - '*MaRV*'
-  expected: '-rw---xr-- 1 75355 32015 2 Oct 2 12:21 "\?$* ''MaRViN''*$?\"
+  command: ls -l | cat -e
+  args:
+  - -l
+  expected: 'total 4
+
+    -rw-rw-r-- 1 eagle eagle ** ** 15 15:46 skip.sh
+
+    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 tata
+
+    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 titi
+
+    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 toto
+
+    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 tutu
+
+    '
+  cat_e: true
+- id: subj_ex_02
+  origin: subject.en.txt
+  command: ./skip.sh | cat -e
+  args: []
+  expected: 'total 4
+
+    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 tata
+
+    -rw-rw-r-- 1 eagle eagle ** ** 15 15:41 toto
 
     '
   cat_e: true
@@ -100,23 +121,23 @@ folder_examples:
   input: skip.sh baseline folder fixture
   expected: Matches reference correction
 near_examples:
-- id: near_subj_01_lexical_shift
-  derived_from: subj_ex_01
-  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
-    strcmp(argv[1])
-  original_input: *id001
-  perturbed_input:
-  - -mRa
-  - '*NaRV*'
-- id: near_subj_01_whitespace_envelope
-  derived_from: subj_ex_01
-  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
-  perturbed_input:
-  - '  -lRa  '
-  - '*MaRV*'
 - id: near_folder_01_boundary_neighbor
   derived_from: folder_ex_01
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: skip.sh baseline folder fixture
-  perturbed_input: tkip.sh baseline folder fixture
+  perturbed_input: skip.sh odd-count folder fixture
+- id: near_subj_01_lexical_shift
+  derived_from: subj_ex_01
+  strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
+    strcmp(argv[1])
+  original_input:
+  - -l
+  perturbed_input:
+  - -m
+- id: near_subj_01_whitespace_envelope
+  derived_from: subj_ex_01
+  strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
+  original_input:
+  - -l
+  perturbed_input:
+  - '  -l  '

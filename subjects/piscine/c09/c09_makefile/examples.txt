@@ -1,3 +1,2 @@
-Examples:
-$> ./c09_makefile | cat -e
-$
+# No examples in official PDF.
+# Use `man 1 make, man cc, man 1 ar` and consult subject.en.txt for the exact specification.

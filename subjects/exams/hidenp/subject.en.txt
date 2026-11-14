@@ -23,4 +23,3 @@ $>./hidenp "abc" "btarc" | cat -e
 0$
 $>./hidenp | cat -e
 $
-$>

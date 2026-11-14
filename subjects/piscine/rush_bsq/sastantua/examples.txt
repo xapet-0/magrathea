@@ -1,7 +1,2 @@
-# Examples for sastantua (from official subject specification)
-
-Examples:
-    sastantua(0); sastantua(1)
-    Output: /*\
- /***\
-/**|**\
+# No examples in official PDF.
+# Use `man 2 write, man cc` and consult subject.en.txt for the exact specification.

@@ -1,3 +1,2 @@
-Examples:
-$> ./ft_strlen | cat -e
-$
+# No examples in official PDF.
+# Use `man 3 strlen` and consult subject.en.txt for the exact specification.

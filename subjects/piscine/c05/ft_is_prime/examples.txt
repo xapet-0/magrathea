@@ -1,7 +1,2 @@
-# Examples for ft_is_prime (from official subject specification)
-
-Examples:
-    ft_is_prime(-42) -> 0
-    ft_is_prime(0) -> 0
-    ft_is_prime(1) -> 0
-    ft_is_prime(2) -> 1
+# No examples in official PDF.
+# Use `man cc` and consult subject.en.txt for the exact specification.

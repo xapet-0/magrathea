@@ -44,76 +44,34 @@ fixed_tests:
   - " \t "
   stdout: "  \n"
   tier: baseline
-- name: test_06_arg_auto
-  args:
-  - '1'
-  - '2'
-  - '3'
-  tier: baseline
-  stdout: '11
-
-    22
-
-    33
-
-    '
-- name: test_07_arg_auto
+- name: edge_we_mixed_lengths
   args:
   - a
-  - b
-  - c
-  tier: baseline
+  - ab
+  - ''
+  - hello!
   stdout: 'aa
 
-    bb
+    ab
 
-    cc
+
+    h!
 
     '
-- name: test_08_arg_auto
+  tier: edge_case
+- name: edge_we_single_word
   args:
-  - '10'
-  - '20'
-  - '30'
-  tier: baseline
-  stdout: '10
-
-    20
-
-    30
+  - solo
+  stdout: 'so
 
     '
-- name: test_09_arg_auto
-  args:
-  - '42'
-  - '1337'
-  - school
-  tier: baseline
-  stdout: '42
-
-    17
-
-    sl
-
-    '
-- name: test_10_arg_auto
-  args:
-  - one
-  - two
-  - ''
-  tier: baseline
-  stdout: 'oe
-
-    to
-
-
-    '
+  tier: edge_case
 mode: c_program
 subject_examples:
 - id: subj_ex_01
   origin: subject.en.txt
   command: ./word_edges hello test a | cat -e
-  args: &id001
+  args:
   - hello
   - test
   - a
@@ -144,7 +102,10 @@ near_examples:
   derived_from: subj_ex_01
   strategy: Perturb characters/numbers of subject.en.txt example to defeat hardcoded
     strcmp(argv[1])
-  original_input: *id001
+  original_input:
+  - hello
+  - test
+  - a
   perturbed_input:
   - iello
   - uest
@@ -152,7 +113,10 @@ near_examples:
 - id: near_subj_01_whitespace_envelope
   derived_from: subj_ex_01
   strategy: Wrap subject.en.txt example in leading/trailing spaces & tabs
-  original_input: *id001
+  original_input:
+  - hello
+  - test
+  - a
   perturbed_input:
   - '  hello  '
   - test
@@ -161,9 +125,4 @@ near_examples:
   derived_from: e1337_word_edges_T06
   strategy: Neighbouring perturbation of folder example (subject_folder/examples.txt)
   original_input: ./word_edges hello test a \| cat -e
-  perturbed_input: ./xord_edges hello test a \| cat -e
-- id: near_folder_02_boundary_neighbor
-  derived_from: folder_fixture_02
-  strategy: Neighbouring perturbation of folder example (subject_folder/tests.yml)
-  original_input: tests.yml
-  perturbed_input: uests.yml
+  perturbed_input: ./word_edges iello uest b | cat -e

@@ -1,3 +1,2 @@
-Examples:
-$> ./ft_print_numbers | cat -e
-$
+# No examples in official PDF.
+# Use `man 2 write, man ascii` and consult subject.en.txt for the exact specification.

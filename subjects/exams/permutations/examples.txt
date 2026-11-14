@@ -1,14 +1,9 @@
-# Examples for permutations (from official subject specification)
-
-example this should work:
-
+Examples:
 $> ./permutations a | cat -e
 a$
-
 $> ./permutations ab | cat -e
 ab$
 ba$
-
 $> ./permutations abc | cat -e
 abc$
 acb$

@@ -13,44 +13,70 @@ expected_stdout: 'Richard: This looks like another boring day.
   Richard: My job here is done!
 
   '
-must_not_compile: []
-fixed_tests:
-- name: cpp_module_01_canonical_driver
-  main_code: ''
-  expected: ''
-- name: cpp_module_01_coplien_and_const_contract
-  main_code: ''
-  expected: ''
-- name: cpp_module_01_boundary_and_state_invariants
-  main_code: ''
-  expected: ''
-- name: cpp_module_01_destructor_and_resource_lifecycle
-  main_code: ''
-  expected: ''
-- name: test_05_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_06_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_07_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_08_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_09_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-- name: test_10_auto_main
-  main_code: ''
-  tier: stress
-  stdout: __CAPTURE__
-subject_examples: []
+must_not_compile:
+- '#include "Warlock.hpp"
+
+  int main() { Warlock bob; return 0; }
+
+  '
+- '#include "Warlock.hpp"
+
+  int main() { Warlock a("A", "B"); Warlock b(a); return 0; }
+
+  '
+- '#include "Warlock.hpp"
+
+  int main() { Warlock a("A", "B"); Warlock b("C", "D"); b = a; return 0; }
+
+  '
+- '#include "ASpell.hpp"
+
+  int main() { ASpell s("Fwoosh", "fwooshed"); return 0; }
+
+  '
+- '#include "ATarget.hpp"
+
+  int main() { ATarget t("Dummy"); return 0; }
+
+  '
+extra_cpp_tests:
+- name: cpp01_const_contracts_clone_and_missing_spells
+  main_cpp: "#include \"Warlock.hpp\"\n#include \"ASpell.hpp\"\n#include \"ATarget.hpp\"\
+    \n#include \"Fwoosh.hpp\"\n#include \"Dummy.hpp\"\n\nint main()\n{\n  Warlock\
+    \ w(\"Merlin\", \"Enchanter\");\n  const Dummy d;\n  Fwoosh f;\n  const ASpell\
+    \ *cf = &f;\n  ASpell *cloned = cf->clone();\n  std::cout << cf->getName() <<\
+    \ \":\" << cf->getEffects() << \":\" << d.getType() << std::endl;\n  cloned->launch(d);\n\
+    \  d.getHitBySpell(*cf);\n  w.forgetSpell(\"Unknown\");\n  w.launchSpell(\"Unknown\"\
+    , d);\n  w.learnSpell(&f);\n  w.learnSpell(&f);\n  w.launchSpell(\"Fwoosh\", d);\n\
+    \  w.forgetSpell(\"Fwoosh\");\n  w.launchSpell(\"Fwoosh\", d);\n  delete cloned;\n\
+    \  return 0;\n}\n"
+  expected_stdout: 'Merlin: This looks like another boring day.
+
+    Fwoosh:fwooshed:Target Practice Dummy
+
+    Target Practice Dummy has been fwooshed!
+
+    Target Practice Dummy has been fwooshed!
+
+    Target Practice Dummy has been fwooshed!
+
+    Merlin: My job here is done!
+
+    '
+subject_examples:
+- id: subj_ex_01
+  origin: subject.en.txt
+  command: ./a.out | cat -e
+  args: []
+  expected: 'Richard: This looks like another boring day.
+
+    Richard: I am Richard, the Titled!
+
+    Target Practice Dummy has been fwooshed!
+
+    Richard: My job here is done!
+
+    '
+  cat_e: true
 folder_examples: []
 near_examples: []
