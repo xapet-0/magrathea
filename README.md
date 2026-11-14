@@ -162,13 +162,28 @@ Dual-mode TUI/REPL and direct CLI for browsing the 439-exercise catalog, inspect
 | | `q` | Return from pager to prompt. |
 
 **Turn-In Rules ("The 42 way"):**
-* Read subjects directly in [`subjects/piscine/<module>/<ex>/subject.en.txt`](subjects/piscine/) (or via `subject <ex>`), create `<module>/<exNN>/` yourself, and write your solution file inside it:
-  ```bash
-  mkdir -p workspace/piscine/c00/ex00
-  $EDITOR workspace/piscine/c00/ex00/ft_putchar.c
-  ./bin/moulinette ft_putchar
-  ./bin/moulinette c00
-  ```
+* In the module header (`subject : subjects/piscine/c00/<name>/subject.en.txt` and `turn-in : workspace/piscine/c00/<ex>/`), `<ex>` refers to the **EX** column (`ex00`..`ex08`) and `<name>` refers to the **ASSIGNMENT** column (e.g., `ft_putchar`), relative to the repository root:
+  * **Subject path (e.g. `ex00` / `ft_putchar`):** [`subjects/piscine/c00/ft_putchar/subject.en.txt`](subjects/piscine/c00/ft_putchar/subject.en.txt) (`~/Desktop/magrathea/subjects/piscine/c00/ft_putchar/subject.en.txt`)
+  * **Turn-in folder path (e.g. `ex00`):** `~/Desktop/magrathea/workspace/piscine/c00/ex00/`
+* **Fastest ways to open subjects or create turn-in folders without typing full paths:**
+  1. Inside `moulinette (piscine/c00)>`:
+     ```text
+     subject ex00      # Display the subject
+     init ex00         # Create turn-in folder + starter stub (or: init c00 for all ex00..ex08)
+     ```
+  2. Directly from your terminal (from any directory):
+     ```bash
+     moulinette subject c00/ex00
+     moulinette init c00/ex00
+     cd ~/Desktop/magrathea/workspace/piscine/c00/ex00
+     ```
+  3. Or manually create `<module>/<exNN>/` and write your solution file inside it:
+     ```bash
+     mkdir -p workspace/piscine/c00/ex00
+     $EDITOR workspace/piscine/c00/ex00/ft_putchar.c
+     ./bin/moulinette ft_putchar
+     ./bin/moulinette c00
+     ```
 * Grader resolution checks `--dir <path>`, then an active `<exNN>/` / `<module>/` directory you are standing inside (useful for cloned Piscine repos), then `workspace/piscine/<module>/<exNN>/` (or `workspace/exams/<ex>/` for exams).
 * Shared names go to Piscine first (`--exam` flips priority); equal-claim names like `ft_putnbr` (`c00` and `c04`) require explicit qualification (`c00/ft_putnbr` or `c04/ft_putnbr`).
 * Validated XP is credited once per exercise in `workspace/xp_ledger.json`; `--xp-ledger`, `--self-test`, and `--json` do not modify your profile ledger. Traces are saved in `workspace/traces/`.
