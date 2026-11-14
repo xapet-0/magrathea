@@ -4,17 +4,17 @@
 Runs the official 42 norminette (https://github.com/42school/norminette), shipped unmodified in
 third_party/norminette/: same tool, same verdict as at school, nothing to install.
 
-The official tool needs Python 3.10 or newer. When no such interpreter is found, or when this file
-has been copied away from the kit, the small built-in checker below is used instead. It knows only
-a part of the Norm and says so on every run. MAGRATHEA_NORMINETTE=builtin forces it.
+The official tool needs Python 3.10 or newer. There is no imitation fallback: when it cannot run,
+this command says why and exits 127. `./install.sh` installs what is missing on any system.
 """
+
 from __future__ import annotations
+
 import os
-import re
+from pathlib import Path
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 OFFICIAL_MIN_PYTHON = (3, 10)
 OFFICIAL_TIMEOUT_SEC = 60.0
@@ -28,13 +28,14 @@ _PYTHON_FOR_OFFICIAL: list[str | None] = []
 
 
 def official_dir() -> Path:
+    """Return the path to the bundled official 42 norminette package directory."""
     return Path(__file__).resolve().parents[1] / "third_party" / "norminette"
 
 
 def official_version() -> str | None:
     """Version of the shipped official norminette, read from its dist-info folder."""
     for info in sorted(official_dir().glob("norminette-*.dist-info")):
-        return info.name[len("norminette-"):-len(".dist-info")]
+        return info.name[len("norminette-") : -len(".dist-info")]
     return None
 
 
@@ -47,13 +48,20 @@ def _python_for_official() -> str | None:
         found = sys.executable
     else:
         probe = f"import sys; raise SystemExit(0 if sys.version_info >= {OFFICIAL_MIN_PYTHON!r} else 1)"
-        names = [f"python3.{minor}" for minor in range(19, OFFICIAL_MIN_PYTHON[1] - 1, -1)] + ["python3", "python"]
+        names = [
+            f"python3.{minor}" for minor in range(19, OFFICIAL_MIN_PYTHON[1] - 1, -1)
+        ] + ["python3", "python"]
         for name in names:
             cand = shutil.which(name)
             if not cand:
                 continue
             try:
-                if subprocess.run([cand, "-c", probe], capture_output=True, timeout=10).returncode == 0:
+                if (
+                    subprocess.run(
+                        [cand, "-c", probe], capture_output=True, timeout=10
+                    ).returncode
+                    == 0
+                ):
                     found = cand
                     break
             except (OSError, subprocess.SubprocessError):
@@ -64,8 +72,6 @@ def _python_for_official() -> str | None:
 
 def official_command() -> tuple[list[str] | None, str]:
     """(argv prefix that runs the official norminette, '') or (None, why it cannot run here)."""
-    if os.environ.get("MAGRATHEA_NORMINETTE", "").strip().lower() == "builtin":
-        return None, "MAGRATHEA_NORMINETTE=builtin"
     if not (official_dir() / "norminette" / "__main__.py").is_file():
         return None, "third_party/norminette is not next to this file"
     python = _python_for_official()
@@ -90,8 +96,13 @@ def run_official(
     args = [*cmd, "--no-colors", "-R", rule, *[str(f) for f in files]]
     try:
         proc = subprocess.run(
-            args, cwd=str(cwd) if cwd else None, capture_output=True, text=True, errors="replace",
-            timeout=OFFICIAL_TIMEOUT_SEC, stdin=subprocess.DEVNULL,
+            args,
+            cwd=str(cwd) if cwd else None,
+            capture_output=True,
+            text=True,
+            errors="replace",
+            timeout=OFFICIAL_TIMEOUT_SEC,
+            stdin=subprocess.DEVNULL,
         )
     except subprocess.TimeoutExpired:
         return False, f"norminette did not finish within {OFFICIAL_TIMEOUT_SEC:.0f}s"
@@ -100,246 +111,30 @@ def run_official(
     out = (proc.stdout + proc.stderr).strip()
     return (proc.returncode == 0 and "Error!" not in out), out
 
-HEADER_RE = re.compile(r"^/\* \*{74} \*/$")
-
-
-def mask_comments_and_literals(lines: list[str]) -> list[tuple[str, int | None]]:
-    """Return (masked_code_line, wrong_scope_comment_col) for each line, preserving column offsets."""
-    results: list[tuple[str, int | None]] = []
-    in_block_comment = False
-    for line in lines:
-        chars = list(line)
-        n = len(line)
-        i = 0
-        in_str = False
-        in_chr = False
-        cpp_comment_col: int | None = None
-        while i < n:
-            if in_block_comment:
-                if i + 1 < n and line[i] == "*" and line[i + 1] == "/":
-                    chars[i] = " "
-                    chars[i + 1] = " "
-                    in_block_comment = False
-                    i += 2
-                else:
-                    chars[i] = " "
-                    i += 1
-            elif in_str:
-                if line[i] == "\\" and i + 1 < n:
-                    chars[i] = " "
-                    chars[i + 1] = " "
-                    i += 2
-                elif line[i] == '"':
-                    in_str = False
-                    i += 1
-                else:
-                    chars[i] = " "
-                    i += 1
-            elif in_chr:
-                if line[i] == "\\" and i + 1 < n:
-                    chars[i] = " "
-                    chars[i + 1] = " "
-                    i += 2
-                elif line[i] == "'":
-                    in_chr = False
-                    i += 1
-                else:
-                    chars[i] = " "
-                    i += 1
-            else:
-                if i + 1 < n and line[i] == "/" and line[i + 1] == "*":
-                    chars[i] = " "
-                    chars[i + 1] = " "
-                    in_block_comment = True
-                    i += 2
-                elif i + 1 < n and line[i] == "/" and line[i + 1] == "/":
-                    cpp_comment_col = i + 1
-                    for k in range(i, n):
-                        chars[k] = " "
-                    break
-                elif line[i] == '"':
-                    in_str = True
-                    i += 1
-                elif line[i] == "'":
-                    in_chr = True
-                    i += 1
-                else:
-                    i += 1
-        results.append(("".join(chars), cpp_comment_col))
-    return results
-
-
-def check_file(path: Path, flags: list[str]) -> list[str]:
-    errors: list[str] = []
-    try:
-        text = path.read_text(encoding="utf-8", errors="replace")
-    except Exception as exc:
-        return [f"Error: CANNOT_READ_FILE (line: 1, col: 1):\t{exc}"]
-    lines = text.splitlines()
-
-    # 1. 42 Header check (11 lines standard 42 header)
-    if len(lines) < 11 or not HEADER_RE.match(lines[0]) or not HEADER_RE.match(lines[10]):
-        errors.append("Error: INVALID_HEADER       (line:   1, col:   1):\tMissing or invalid 42 header")
-
-    masked_lines = mask_comments_and_literals(lines)
-
-    # 2. Scan lines for forbidden keywords & formatting
-    in_func = False
-    seen_stmt = False
-    func_lines = 0
-    func_count = 0
-    brace_depth = 0
-    sig_buf = ""
-    sig_start_line = 1
-    for idx, line in enumerate(lines, start=1):
-        if idx <= 11 and HEADER_RE.match(lines[0]):
-            continue
-        code_line, cpp_col = masked_lines[idx - 1]
-        if len(line.expandtabs(4)) > 80:
-            errors.append(f"Error: LINE_TOO_LONG        (line: {idx:3d}, col:  81):\tline too long")
-        if line.endswith(" ") or line.endswith("\t"):
-            errors.append(f"Error: SPC_BEFORE_NL        (line: {idx:3d}, col: {len(line):3d}):\tspace before newline")
-        if cpp_col is not None:
-            errors.append(f"Error: WRONG_SCOPE_COMMENT  (line: {idx:3d}, col: {cpp_col:3d}):\tComment is invalid in this scope")
-        cs_rules = [
-            (r"\bfor\s*\(", "FORBIDDEN_CS         (line: {idx:3d}, col: {col:3d}):\tForbidden control structure: for"),
-            (r"\bswitch\s*\(", "FORBIDDEN_CS         (line: {idx:3d}, col: {col:3d}):\tForbidden control structure: switch"),
-            (r"\bcase\b\s*[^:]+:", "FORBIDDEN_CS         (line: {idx:3d}, col: {col:3d}):\tForbidden control structure: case"),
-            (r"\bdo\s*(?:\{|$)", "FORBIDDEN_CS         (line: {idx:3d}, col: {col:3d}):\tForbidden control structure: do...while"),
-            (r"\bgoto\b", "FORBIDDEN_CS         (line: {idx:3d}, col: {col:3d}):\tForbidden control structure: goto"),
-        ]
-        if path.suffix == ".c":
-            cs_rules.append(
-                (r"\?[^:]+:", "TERNARY_FBIDDEN      (line: {idx:3d}, col: {col:3d}):\tTernaries are forbidden")
-            )
-        for kw, rule in cs_rules:
-            m = re.search(kw, code_line)
-            if m:
-                col = m.start() + 1
-                errors.append("Error: " + rule.format(idx=idx, col=col))
-        if not in_func and not code_line.lstrip().startswith("#"):
-            if "(" in code_line or sig_buf:
-                if not sig_buf:
-                    sig_start_line = idx
-                sig_buf += " " + code_line.strip()
-                if ")" in sig_buf:
-                    m_args = re.search(r"\((.*)\)\s*(?:;|\{)?\s*$", sig_buf)
-                    if m_args:
-                        depth = 0
-                        top_commas = 0
-                        for ch in m_args.group(1):
-                            if ch == "(":
-                                depth += 1
-                            elif ch == ")":
-                                depth = max(0, depth - 1)
-                            elif ch == "," and depth == 0:
-                                top_commas += 1
-                        if top_commas >= 4:
-                            errors.append(f"Error: TOO_MANY_ARGS        (line: {sig_start_line:3d}, col:   1):\tFunction has more than 4 arguments")
-                    sig_buf = ""
-            else:
-                sig_buf = ""
-        is_func_open = not in_func and (
-            line.startswith("{")
-            or (
-                not line.startswith(("\t", " ", "#", "/", "*"))
-                and not code_line.lstrip().startswith(("typedef", "struct", "enum", "union"))
-                and code_line.rstrip().endswith("{")
-                and "(" in code_line
-            )
-        )
-        if is_func_open:
-            if not line.startswith("{"):
-                errors.append(f"Error: BRACE_NEWLINE        (line: {idx:3d}, col: {len(line):3d}):\tExpected newline before brace")
-            in_func = True
-            seen_stmt = False
-            func_lines = 0
-            func_count += 1
-            sig_buf = ""
-            brace_depth = code_line.count("{") - code_line.count("}")
-            if func_count > 5 and path.suffix == ".c":
-                errors.append(f"Error: TOO_MANY_FUNCS       (line: {idx:3d}, col:   1):\tToo many functions in file")
-            if brace_depth <= 0:
-                in_func = False
-        elif in_func:
-            delta = code_line.count("{") - code_line.count("}")
-            if brace_depth + delta <= 0:
-                in_func = False
-                brace_depth = 0
-                if func_lines > 25:
-                    errors.append(f"Error: TOO_MANY_LINES       (line: {idx:3d}, col:   1):\tFunction has more than 25 lines ({func_lines})")
-            else:
-                brace_depth += delta
-                func_lines += 1
-            is_decl = bool(
-                re.match(
-                    r"^\t(?:static\s+|const\s+|unsigned\s+|signed\s+)*(?:int|char|long|short|size_t|void|float|double|t_\w+|struct\s+\w+)\s+",
-                    code_line,
-                )
-            )
-            if is_decl:
-                m_vla = re.search(r"\b\w+\s*\[\s*([a-zA-Z_]\w*)\s*\]", code_line)
-                if m_vla:
-                    dim = m_vla.group(1)
-                    is_macro = bool(re.match(r"^_*[A-Z][A-Z0-9_]*$", dim))
-                    if dim != "sizeof" and not is_macro and any(c.islower() for c in dim):
-                        col_v = m_vla.start() + 1
-                        errors.append(f"Error: VLA_FORBIDDEN        (line: {idx:3d}, col: {col_v:3d}):\tVariable length array forbidden")
-            m_decl_assign = re.match(
-                r"^\t(?:static\s+|const\s+|unsigned\s+|signed\s+)*(?:int|char|long|short|size_t|void|float|double|t_\w+|struct\s+\w+)\s+\**\w+\s*=",
-                code_line,
-            )
-            if m_decl_assign:
-                errors.append(f"Error: DECL_ASSIGN_LINE     (line: {idx:3d}, col:   2):\tDeclaration and assignation on a single line")
-            if is_decl and seen_stmt:
-                errors.append(f"Error: MIXED_DECL_CODE      (line: {idx:3d}, col:   2):\tVariable declaration not at start of function")
-            elif code_line.strip() and not is_decl:
-                seen_stmt = True
-    return errors
 
 def main() -> int:
+    """Run the bundled official 42 norminette CLI on user arguments."""
     args = sys.argv[1:]
     cmd, why_not = official_command()
     if cmd is not None:
-        if "--no-colors" not in args and (os.environ.get("NO_COLOR") or not sys.stdout.isatty()):
+        if "--no-colors" not in args and (
+            os.environ.get("NO_COLOR") or not sys.stdout.isatty()
+        ):
             args = ["--no-colors", *args]
         try:
             return subprocess.call([*cmd, *args])
         except KeyboardInterrupt:
             return 130
-    builtin_note = f"built-in checker, a part of the Norm only (official norminette not used: {why_not})"
-    flags = [a for a in args if a.startswith("-")]
-    files = [a for a in args if not a.startswith("-") and a != "CheckForbiddenSourceHeader" and a != "CheckDefine"]
-    if "--help" in flags or "-h" in flags:
-        print(f"usage: norminette [-h] [-v] [-R RULE] [file ...]\n{builtin_note}")
-        return 0
-    if "--version" in flags or "-v" in flags:
-        print(f"norminette: {builtin_note}")
-        return 0
-    print(f"norminette: {builtin_note}", file=sys.stderr)
-    if not files:
-        files = [
-            str(p)
-            for p in sorted(Path(".").rglob("*.[ch]"))
-            if p.name != "sandbox_harness.c"
-        ]
-    any_err = False
-    for f in files:
-        p = Path(f)
-        if p.is_dir():
-            sub_files = sorted(list(p.rglob("*.c")) + list(p.rglob("*.h")))
-        else:
-            sub_files = [p]
-        for sp in sub_files:
-            errs = check_file(sp, flags)
-            if errs:
-                any_err = True
-                print(f"{sp.name}: Error!")
-                for e in errs:
-                    print(f"    {e}")
-            else:
-                print(f"{sp.name}: OK!")
-    return 1 if any_err else 0
+    print(
+        f"norminette: the official 42 norminette cannot run here: {why_not}",
+        file=sys.stderr,
+    )
+    print(
+        "norminette: fix: run ./install.sh from the magrathea folder (it installs Python 3.10+ if needed)",
+        file=sys.stderr,
+    )
+    return 127
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

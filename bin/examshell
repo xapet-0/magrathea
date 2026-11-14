@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""1337 / 42 Authentic ExamShell v0.1.1 — Pro Edition with Live 5-Gate Scorecard, Auto-Scaffolder, Pre-Flight Check & Vogsphere Engine."""
+"""1337 / 42 ExamShell v0.1.1 — Interactive exam session and grading harness."""
+
 from __future__ import annotations
 
 import argparse
 import cmd
+from collections.abc import Callable, Sequence
 import contextlib
 import datetime as dt
-import getpass
 import io
 import json
 import os
+from pathlib import Path
 import random
 import re
 import select
@@ -20,21 +22,32 @@ import signal
 import subprocess
 import sys
 import termios
+import textwrap
 import threading
 import time
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Sequence
+from typing import Any
+
+import yaml
 
 _SELF_DIR = Path(__file__).resolve().parent
 KIT_ROOT = _SELF_DIR if (_SELF_DIR / "pools").exists() else _SELF_DIR.parent
 if str(KIT_ROOT) not in sys.path:
     sys.path.insert(0, str(KIT_ROOT))
 
-import yaml
-from deepthought.catalog import validate_duration_seconds
-from deepthought.grader import GradeReport, _build_sandbox_preexec, grade_subject
-from deepthought.progression import load_student_profile
-from deepthought.ui_theme import (
+from deepthought.catalog import validate_duration_seconds  # noqa: E402
+from deepthought.grader import (  # noqa: E402
+    TRACE_MODES,
+    GradeReport,
+    _build_sandbox_preexec,
+    add_trace_mode_arguments,
+    grade_subject,
+    parse_trace_mode_arg,
+)
+from deepthought.progression import load_student_profile  # noqa: E402
+from deepthought.scorecard import (  # noqa: E402
+    render_five_gate_scorecard as _shared_render_scorecard,
+)
+from deepthought.ui_theme import (  # noqa: E402
     ANSI_ESCAPE_RE,
     PALETTES,
     ThemeEngine,
@@ -43,93 +56,125 @@ from deepthought.ui_theme import (
     render_viewport_frame,
     visible_len,
 )
-from deepthought.vogsphere import collect_pushed_files, init_vogsphere_repo
+from deepthought.vogsphere import (  # noqa: E402
+    collect_pushed_files,
+    init_vogsphere_repo,
+)
 
+NORMAL_MODE_ALLOWLIST = frozenset(
+    {
+        "status",
+        "subject",
+        "sub",
+        "grademe",
+        "trace",
+        "logs",
+        "diagnostics",
+        "more",
+        "pager",
+        "finish",
+        "exit",
+        "quit",
+        "EOF",
+        "help",
+        "tools",
+        "tool",
+        "guidelines",
+        "rules",
+        "?",
+        "klist",
+        "kinit",
+        "ssh_key",
+        "clear",
+        "cls",
+        "clean",
+        "history",
+        "time",
+    }
+)
 
-NORMAL_MODE_ALLOWLIST = frozenset({
-    "status",
-    "subject",
-    "sub",
-    "grademe",
-    "trace",
-    "logs",
-    "diagnostics",
-    "more",
-    "pager",
-    "finish",
-    "exit",
-    "quit",
-    "EOF",
-    "help",
-    "tools",
-    "tool",
-    "guidelines",
-    "rules",
-    "?",
-    "klist",
-    "kinit",
-    "ssh_key",
-    "clear",
-    "cls",
-    "clean",
-    "history",
-    "time",
-})
+SPECIAL_PRACTICE_COMMANDS = frozenset(
+    {
+        "hint",
+        "solve",
+        "solution",
+        "check",
+        "test",
+        "run",
+        "init",
+        "scaffold",
+        "edit",
+        "vim",
+        "nano",
+        "code",
+        "push",
+        "list",
+        "level",
+        "reroll",
+        "next",
+        "assign",
+        "cooldown",
+        "remove_grade_time",
+        "force_success",
+        "norm",
+        "enable",
+        "disable",
+        "theme",
+        "sessions",
+        "menu",
+        "diff",
+    }
+)
 
-SPECIAL_PRACTICE_COMMANDS = frozenset({
-    "hint",
-    "solve",
-    "solution",
-    "check",
-    "test",
-    "run",
-    "init",
-    "scaffold",
-    "edit",
-    "vim",
-    "nano",
-    "code",
-    "push",
-    "list",
-    "level",
-    "reroll",
-    "next",
-    "assign",
-    "cooldown",
-    "remove_grade_time",
-    "force_success",
-    "norm",
-    "enable",
-    "disable",
-    "theme",
-    "sessions",
-    "menu",
-    "diff",
-})
-
-SESSION_STATES = frozenset({
-    "not_started",
-    "running",
-    "expired",
-    "passed",
-    "failed",
-    "abandoned",
-})
+SESSION_STATES = frozenset(
+    {
+        "not_started",
+        "running",
+        "expired",
+        "passed",
+        "failed",
+        "abandoned",
+    }
+)
 
 
 # System trees that must never be wiped, even via a subdirectory such as
 # /usr/local (an exact-match check alone would let those through).
 _SYSTEM_DIRS = (
-    Path("/bin"), Path("/sbin"), Path("/usr"), Path("/etc"), Path("/var"),
-    Path("/lib"), Path("/lib64"), Path("/opt"), Path("/dev"), Path("/proc"),
-    Path("/sys"), Path("/root"), Path("/boot"), Path("/run"),
+    Path("/bin"),
+    Path("/sbin"),
+    Path("/usr"),
+    Path("/etc"),
+    Path("/var"),
+    Path("/lib"),
+    Path("/lib64"),
+    Path("/opt"),
+    Path("/dev"),
+    Path("/proc"),
+    Path("/sys"),
+    Path("/root"),
+    Path("/boot"),
+    Path("/run"),
 )
 # User data folders inside $HOME: wiping these would destroy the student's
 # own files, so they are refused even though they are inside $HOME.
 _HOME_DATA_DIRS = (
-    "Documents", "Desktop", "Downloads", "Pictures", "Music", "Videos",
-    "Public", "Templates", ".ssh", ".gnupg", ".config", ".local", ".cache",
-    ".mozilla", ".vscode", ".docker",
+    "Documents",
+    "Desktop",
+    "Downloads",
+    "Pictures",
+    "Music",
+    "Videos",
+    "Public",
+    "Templates",
+    ".ssh",
+    ".gnupg",
+    ".config",
+    ".local",
+    ".cache",
+    ".mozilla",
+    ".vscode",
+    ".docker",
 )
 _ASSIGNMENT_SLUG_RE = re.compile(r"^[a-z0-9_]+$")
 
@@ -144,10 +189,14 @@ def validate_safe_basedir(basedir: Path | str) -> Path:
     """
     raw_str = str(basedir).strip() if basedir is not None else ""
     if not raw_str or raw_str in {".", ".."}:
-        raise ValueError(f"Unsafe exam-basedir {raw_str!r}: path cannot be empty or relative '.'/'..'.")
+        raise ValueError(
+            f"Unsafe exam-basedir {raw_str!r}: path cannot be empty or relative '.'/'..'."
+        )
     expanded = Path(raw_str).expanduser()
     if expanded.is_symlink():
-        raise ValueError(f"Unsafe exam-basedir '{expanded}': refusing to use or wipe a symlinked basedir.")
+        raise ValueError(
+            f"Unsafe exam-basedir '{expanded}': refusing to use or wipe a symlinked basedir."
+        )
     resolved = expanded.resolve(strict=False)
     home_resolved = Path.home().resolve(strict=False)
     kit_resolved = KIT_ROOT.resolve(strict=False)
@@ -160,22 +209,34 @@ def validate_safe_basedir(basedir: Path | str) -> Path:
         *_SYSTEM_DIRS,
     }
     if resolved in forbidden_exact:
-        raise ValueError(f"Unsafe exam-basedir '{resolved}': refusing to use protected directory.")
+        raise ValueError(
+            f"Unsafe exam-basedir '{resolved}': refusing to use protected directory."
+        )
     for sys_dir in _SYSTEM_DIRS:
         if sys_dir in resolved.parents:
-            raise ValueError(f"Unsafe exam-basedir '{resolved}': refusing to use a path inside system directory '{sys_dir}'.")
+            raise ValueError(
+                f"Unsafe exam-basedir '{resolved}': refusing to use a path inside system directory '{sys_dir}'."
+            )
     for data_name in _HOME_DATA_DIRS:
         data_dir = home_resolved / data_name
         if resolved == data_dir or data_dir in resolved.parents:
-            raise ValueError(f"Unsafe exam-basedir '{resolved}': refusing to use or wipe your '{data_name}' folder. Pick a dedicated folder such as ~/exam-basedir.")
+            raise ValueError(
+                f"Unsafe exam-basedir '{resolved}': refusing to use or wipe your '{data_name}' folder. Pick a dedicated folder such as ~/exam-basedir."
+            )
     if resolved in home_resolved.parents or resolved in kit_resolved.parents:
-        raise ValueError(f"Unsafe exam-basedir '{resolved}': path is an ancestor of $HOME or repository root.")
+        raise ValueError(
+            f"Unsafe exam-basedir '{resolved}': path is an ancestor of $HOME or repository root."
+        )
     allowed_kit_tmp_roots = (
         (kit_resolved / "build" / "test-homes").resolve(strict=False),
         (kit_resolved / "workspace" / ".tmp_exec").resolve(strict=False),
     )
-    if kit_resolved in resolved.parents and not any(r in resolved.parents for r in allowed_kit_tmp_roots):
-        raise ValueError(f"Unsafe exam-basedir '{resolved}': basedir cannot be inside the repository tree '{kit_resolved}'.")
+    if kit_resolved in resolved.parents and not any(
+        r in resolved.parents for r in allowed_kit_tmp_roots
+    ):
+        raise ValueError(
+            f"Unsafe exam-basedir '{resolved}': basedir cannot be inside the repository tree '{kit_resolved}'."
+        )
     return resolved
 
 
@@ -185,7 +246,9 @@ def default_clock() -> dt.datetime:
     if fake:
         try:
             if fake.replace(".", "", 1).lstrip("-").isdigit():
-                return dt.datetime.fromtimestamp(float(fake), tz=dt.timezone.utc).astimezone()
+                return dt.datetime.fromtimestamp(
+                    float(fake), tz=dt.timezone.utc
+                ).astimezone()
             parsed = dt.datetime.fromisoformat(fake)
             if parsed.tzinfo is None:
                 parsed = parsed.replace(tzinfo=dt.datetime.now().astimezone().tzinfo)
@@ -207,10 +270,13 @@ def _on_sigwinch(signum: int, frame: Any) -> None:
 
 
 def is_interactive_tty() -> bool:
+    """Return True when both stdin and real stdout are interactive TTYs."""
     return bool(sys.stdin.isatty() and _REAL_STDOUT.isatty())
 
 
-def _write_viewport_frame(lines: Sequence[str], prompt: str, cols: int, rows: int) -> int:
+def _write_viewport_frame(
+    lines: Sequence[str], prompt: str, cols: int, rows: int
+) -> int:
     """Render lines + prompt without blank-line padding and record the active prompt row."""
     global _ACTIVE_PROMPT_ROW
     safe_rows = max(10, rows)
@@ -232,7 +298,7 @@ class TerminalSessionGuard:
         self.orig_termios: list[Any] | None = None
         self.prev_winch: Any = None
 
-    def __enter__(self) -> "TerminalSessionGuard":
+    def __enter__(self) -> TerminalSessionGuard:
         if not self.active:
             return self
         try:
@@ -292,7 +358,9 @@ def _read_next_tty_byte(fd: int, timeout_s: float = 0.15) -> int | None:
     return _TTY_RX_BUF.pop(0)
 
 
-def _draw_bottom_prompt_line(prompt: str, buf_str: str, cursor_pos: int, cols: int, rows: int) -> None:
+def _draw_bottom_prompt_line(
+    prompt: str, buf_str: str, cursor_pos: int, cols: int, rows: int
+) -> None:
     safe_cols = max(40, cols)
     safe_rows = max(10, rows)
     prompt_row = min(safe_rows, max(1, _ACTIVE_PROMPT_ROW))
@@ -307,7 +375,9 @@ def _draw_bottom_prompt_line(prompt: str, buf_str: str, cursor_pos: int, cols: i
         vis_buf = buf_str[start : start + avail]
         cur_offset = cursor_pos - start
     target_col = min(safe_cols, p_vlen + cur_offset + 1)
-    _REAL_STDOUT.write(f"\033[{prompt_row};1H\033[K{p_clip}{vis_buf}\033[{prompt_row};{target_col}H")
+    _REAL_STDOUT.write(
+        f"\033[{prompt_row};1H\033[K{p_clip}{vis_buf}\033[{prompt_row};{target_col}H"
+    )
     _REAL_STDOUT.flush()
 
 
@@ -399,7 +469,9 @@ def _read_tty_line(
                 if cursor_pos < len(buf):
                     buf.pop(cursor_pos)
                     cols, rows = theme.term_size()
-                    _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                    _draw_bottom_prompt_line(
+                        prompt, "".join(buf), cursor_pos, cols, rows
+                    )
                 continue
 
             if b == 12:  # Ctrl+L
@@ -416,7 +488,9 @@ def _read_tty_line(
                     buf.pop(cursor_pos - 1)
                     cursor_pos -= 1
                     cols, rows = theme.term_size()
-                    _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                    _draw_bottom_prompt_line(
+                        prompt, "".join(buf), cursor_pos, cols, rows
+                    )
                 continue
 
             if b == 9:  # Tab
@@ -425,7 +499,9 @@ def _read_tty_line(
                     buf = list(new_s)
                     cursor_pos = new_pos
                     cols, rows = theme.term_size()
-                    _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                    _draw_bottom_prompt_line(
+                        prompt, "".join(buf), cursor_pos, cols, rows
+                    )
                 continue
 
             if b == 27:  # ESC sequence
@@ -440,39 +516,57 @@ def _read_tty_line(
                             buf = list(hist_list[hist_idx])
                             cursor_pos = len(buf)
                             cols, rows = theme.term_size()
-                            _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                            _draw_bottom_prompt_line(
+                                prompt, "".join(buf), cursor_pos, cols, rows
+                            )
                     elif b2 == ord("B"):  # Down arrow
                         if hist_idx < len(hist_list):
                             hist_idx += 1
-                            new_val = saved_draft if hist_idx == len(hist_list) else hist_list[hist_idx]
+                            new_val = (
+                                saved_draft
+                                if hist_idx == len(hist_list)
+                                else hist_list[hist_idx]
+                            )
                             buf = list(new_val)
                             cursor_pos = len(buf)
                             cols, rows = theme.term_size()
-                            _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                            _draw_bottom_prompt_line(
+                                prompt, "".join(buf), cursor_pos, cols, rows
+                            )
                     elif b2 == ord("C"):  # Right arrow
                         if cursor_pos < len(buf):
                             cursor_pos += 1
                             cols, rows = theme.term_size()
-                            _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                            _draw_bottom_prompt_line(
+                                prompt, "".join(buf), cursor_pos, cols, rows
+                            )
                     elif b2 == ord("D"):  # Left arrow
                         if cursor_pos > 0:
                             cursor_pos -= 1
                             cols, rows = theme.term_size()
-                            _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                            _draw_bottom_prompt_line(
+                                prompt, "".join(buf), cursor_pos, cols, rows
+                            )
                     elif b2 == ord("H"):  # Home
                         cursor_pos = 0
                         cols, rows = theme.term_size()
-                        _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                        _draw_bottom_prompt_line(
+                            prompt, "".join(buf), cursor_pos, cols, rows
+                        )
                     elif b2 == ord("F"):  # End
                         cursor_pos = len(buf)
                         cols, rows = theme.term_size()
-                        _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                        _draw_bottom_prompt_line(
+                            prompt, "".join(buf), cursor_pos, cols, rows
+                        )
                     elif b2 == ord("3"):  # Delete (\x1b[3~)
                         _ = _read_next_tty_byte(fd, timeout_s=0.02)
                         if cursor_pos < len(buf):
                             buf.pop(cursor_pos)
                             cols, rows = theme.term_size()
-                            _draw_bottom_prompt_line(prompt, "".join(buf), cursor_pos, cols, rows)
+                            _draw_bottom_prompt_line(
+                                prompt, "".join(buf), cursor_pos, cols, rows
+                            )
                 continue
 
             if b >= 32:
@@ -579,6 +673,7 @@ SHORTHAND_POOL_ALIASES = {
 
 
 def resolve_pool_slug(raw_pool: str) -> str:
+    """Resolve a shorthand exam pool name to its canonical pool slug."""
     key = raw_pool.strip().lower()
     if key in SHORTHAND_POOL_ALIASES:
         return SHORTHAND_POOL_ALIASES[key]
@@ -591,11 +686,11 @@ def resolve_pool_slug(raw_pool: str) -> str:
     return raw_pool
 
 
-
 DEFAULT_LOGIN = os.environ.get("USER") or os.environ.get("LOGNAME") or "student"
 
 
 def build_42_header(filename: str, login: str = DEFAULT_LOGIN) -> str:
+    """Generate a 42-formatted C comment header for filename and login."""
     now_s = dt.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
     fn_pad = f"{filename[:41]:<41}"
     lg_pad = f"{login[:8]:<8}"
@@ -621,7 +716,8 @@ def build_42_header(filename: str, login: str = DEFAULT_LOGIN) -> str:
     )
 
 
-def parse_subject_disk_metadata(subject_file: Path) -> Dict[str, str]:
+def parse_subject_disk_metadata(subject_file: Path) -> dict[str, str]:
+    """Extract assignment metadata fields from a subject.en.txt file."""
     info = {
         "assignment_name": "Unknown",
         "expected_files": "Unknown",
@@ -631,16 +727,28 @@ def parse_subject_disk_metadata(subject_file: Path) -> Dict[str, str]:
     if not subject_file.exists():
         return info
     text = subject_file.read_text(encoding="utf-8", errors="replace")
-    m_name = re.search(r"^Assignment name[ \t]*:[ \t]*([^\n]*)", text, re.MULTILINE | re.IGNORECASE)
+    m_name = re.search(
+        r"^Assignment name[ \t]*:[ \t]*([^\n]*)", text, re.MULTILINE | re.IGNORECASE
+    )
     if m_name and m_name.group(1).strip():
         info["assignment_name"] = m_name.group(1).strip()
-    m_files = re.search(r"^(?:Expected files|Files to turn in)[ \t]*:[ \t]*([^\n]*)", text, re.MULTILINE | re.IGNORECASE)
+    m_files = re.search(
+        r"^(?:Expected files|Files to turn in)[ \t]*:[ \t]*([^\n]*)",
+        text,
+        re.MULTILINE | re.IGNORECASE,
+    )
     if m_files and m_files.group(1).strip():
         info["expected_files"] = m_files.group(1).strip()
-    m_allow = re.search(r"^Allowed (?:functions|commands)[ \t]*:[ \t]*([^\n]*)", text, re.MULTILINE | re.IGNORECASE)
+    m_allow = re.search(
+        r"^Allowed (?:functions|commands)[ \t]*:[ \t]*([^\n]*)",
+        text,
+        re.MULTILINE | re.IGNORECASE,
+    )
     if m_allow:
         val = m_allow.group(1).strip()
-        info["allowed_functions"] = val if (val and not val.startswith("---")) else "None"
+        info["allowed_functions"] = (
+            val if (val and not val.startswith("---")) else "None"
+        )
     for line_s in text.splitlines():
         s = line_s.strip()
         if s.endswith(");") and "(" in s and not s.startswith(("$>", "//", "/*", "*")):
@@ -665,44 +773,17 @@ def parse_subject_disk_metadata(subject_file: Path) -> Dict[str, str]:
     return info
 
 
-def render_five_gate_scorecard(report: GradeReport, theme: ThemeEngine, norm_enabled: bool = False) -> str:
-    st = report.status
-    g1_fail = "Nothing turned in" in st or "main() in function" in st or "Extraneous file" in st
-    g2_fail = "Cheating" in st or "Norme error" in st
-    g3_fail = st == "Does not compile" or "Makefile" in st
-    g4_fail = any(k in st for k in ("Segmentation fault", "Bus error", "Abort", "Floating point", "Timeout", "Output limit", "Redzone KO", "Leak KO", "Free KO", "Strict KO", "Exit 42", "Exit 43"))
-    g5_fail = not report.passed and not (g1_fail or g2_fail or g3_fail or g4_fail)
-
-    gates = [
-        ("Gate 1", "Turn-in Files & Entry-Point Check (no leftover main)", not g1_fail, g1_fail),
-        (
-            "Gate 2",
-            f"ELF Symbol Whitelist (nm -u){' + 42 Norminette' if norm_enabled else ''}",
-            not (g1_fail or g2_fail),
-            g2_fail,
-        ),
-        ("Gate 3", "Strict Compilation (cc -Wall -Wextra -Werror)", not (g1_fail or g2_fail or g3_fail), g3_fail),
-        ("Gate 4", "Process Sandbox, 2.0s Timeout & Signal Isolation", not (g1_fail or g2_fail or g3_fail or g4_fail), g4_fail),
-        ("Gate 5", "Deepthought Torture Matrix & cat -e Diff Oracle", report.passed, g5_fail),
-    ]
-    lines = [theme.c("  5-GATE MOULINETTE PIPELINE SCORECARD:", "primary", "bold")]
-    stopped = False
-    for g_id, g_desc, is_ok, is_fail in gates:
-        if stopped:
-            badge = theme.c("[SKIP]", "muted")
-            desc_s = theme.c(g_desc, "muted")
-        elif is_fail:
-            badge = theme.c("[FAIL]", "err", "bold")
-            desc_s = theme.c(f"{g_desc}  <-- {st}", "err", "bold")
-            stopped = True
-        elif is_ok:
-            badge = theme.c("[PASS]", "ok", "bold")
-            desc_s = g_desc
-        else:
-            badge = theme.c("[SKIP]", "muted")
-            desc_s = theme.c(g_desc, "muted")
-        lines.append(f"    {badge} {theme.c(g_id, 'accent', 'bold')}: {desc_s}")
-    return "\n".join(lines)
+def render_five_gate_scorecard(
+    report: GradeReport, theme: ThemeEngine, norm_enabled: bool = False
+) -> str:
+    """Render the 5-gate exam scorecard in badge style."""
+    return _shared_render_scorecard(
+        report,
+        theme,
+        is_exam=True,
+        norm_enabled=norm_enabled,
+        style="badges",
+    )
 
 
 MAX_RUN_OUTPUT_BYTES = 256 * 1024
@@ -774,7 +855,9 @@ def _run_bounded_subprocess(
         finally:
             sel.close()
             try:
-                os.killpg(proc.pid, signal.SIGKILL)  # also kills children that outlived a normal exit
+                os.killpg(
+                    proc.pid, signal.SIGKILL
+                )  # also kills children that outlived a normal exit
             except (ProcessLookupError, PermissionError):
                 pass
             proc.wait()
@@ -788,6 +871,8 @@ def _run_bounded_subprocess(
 
 
 class ExamShell(cmd.Cmd):
+    """Interactive 42/1337 ExamShell command loop and session manager."""
+
     def __init__(
         self,
         pool: str,
@@ -804,6 +889,10 @@ class ExamShell(cmd.Cmd):
         duration_override: int | None = None,
         defer_init_basedir: bool = False,
         fresh_confirmed: bool = False,
+        trace_mode: str = "real",
+        explicit_trace_mode: str | None = None,
+        cooldown_mode: str = "real",
+        explicit_cooldown_mode: str | None = None,
     ) -> None:
         super().__init__()
         self._custom_clock = clock_fn is not None
@@ -817,9 +906,17 @@ class ExamShell(cmd.Cmd):
         self.seed = seed
         self.login = login
         self.rng = random.Random(seed)
-        self.use_plain = no_color or bool(os.environ.get("NO_COLOR")) or (not sys.stdout.isatty() and os.environ.get("FORCE_COLOR") != "1")
+        self.use_plain = (
+            no_color
+            or bool(os.environ.get("NO_COLOR"))
+            or (not sys.stdout.isatty() and os.environ.get("FORCE_COLOR") != "1")
+        )
         self.theme = ThemeEngine("plain" if self.use_plain else theme_name)
-        self.prompt = self.theme.c("examshell> ", "primary", "bold") if not self.use_plain else "examshell> "
+        self.prompt = (
+            self.theme.c("examshell> ", "primary", "bold")
+            if not self.use_plain
+            else "examshell> "
+        )
         self.norm_enabled = False
         self.resumed = False
         self.last_exit_code = 0
@@ -838,18 +935,34 @@ class ExamShell(cmd.Cmd):
         self._viewport_active: bool = False
         self._real_stdout = sys.stdout
         # Non-interactive runs must never wipe an existing basedir silently.
-        self.fresh_confirmed = bool(fresh_confirmed or os.environ.get("EXAMSHELL_ALLOW_WIPE") == "1")
+        self.fresh_confirmed = bool(
+            fresh_confirmed or os.environ.get("EXAMSHELL_ALLOW_WIPE") == "1"
+        )
 
-        pool_file = Path(self.raw_pool) if Path(self.raw_pool).is_file() else (KIT_ROOT / "pools" / "exams" / f"{self.pool}.yml")
+        pool_file = (
+            Path(self.raw_pool)
+            if Path(self.raw_pool).is_file()
+            else (KIT_ROOT / "pools" / "exams" / f"{self.pool}.yml")
+        )
         if not pool_file.exists():
-            available = sorted(p.stem for p in (KIT_ROOT / "pools" / "exams").glob("*.yml"))
-            raise SystemExit(f"Unknown exam pool '{pool}'. Available: {', '.join(available)}")
+            available = sorted(
+                p.stem for p in (KIT_ROOT / "pools" / "exams").glob("*.yml")
+            )
+            raise SystemExit(
+                f"Unknown exam pool '{pool}'. Available: {', '.join(available)}"
+            )
         self.manifest = yaml.safe_load(pool_file.read_text(encoding="utf-8"))
         self.levels: list[dict] = self.manifest["levels"]
 
         is_final = "final" in self.pool.lower() or "final" in self.raw_pool.lower()
-        raw_dur = duration_override if duration_override is not None else self.manifest.get("duration_seconds", 28800 if is_final else 14400)
-        self.duration_sec = validate_duration_seconds(raw_dur, context=f"exam pool '{self.pool}'")
+        raw_dur = (
+            duration_override
+            if duration_override is not None
+            else self.manifest.get("duration_seconds", 28800 if is_final else 14400)
+        )
+        self.duration_sec = validate_duration_seconds(
+            raw_dur, context=f"exam pool '{self.pool}'"
+        )
 
         self.custom_basedir = basedir is not None
         raw_basedir = basedir if basedir is not None else (Path.home() / "exam-basedir")
@@ -869,7 +982,10 @@ class ExamShell(cmd.Cmd):
                 if isinstance(raw_state, dict) and "start_ts" in raw_state:
                     loaded_state = raw_state
             except Exception as exc:
-                print(f"Warning: Corrupted session file at {self.session_file} ({exc}). Starting fresh session.", file=sys.stderr)
+                print(
+                    f"Warning: Corrupted session file at {self.session_file} ({exc}). Starting fresh session.",
+                    file=sys.stderr,
+                )
                 loaded_state = None
 
         if loaded_state is not None:
@@ -885,7 +1001,9 @@ class ExamShell(cmd.Cmd):
                     f"Error: Cannot resume a '{saved_lbl}' mode session in '{self.explicit_mode}' mode. "
                     f"Use --mode {saved_lbl} or --fresh."
                 )
-            self.current_idx = max(0, min(len(self.levels) - 1, int(state.get("current_idx", 0))))
+            self.current_idx = max(
+                0, min(len(self.levels) - 1, int(state.get("current_idx", 0)))
+            )
             self.grade = int(state.get("grade", 0))
             self.attempts = int(state.get("attempts", 0))
             if "start_at" in state:
@@ -898,26 +1016,50 @@ class ExamShell(cmd.Cmd):
                     self.start_ts = float(state.get("start_ts", self._now_ts()))
             else:
                 self.start_ts = float(state.get("start_ts", self._now_ts()))
-            self.duration_sec = validate_duration_seconds(state.get("duration_sec", self.duration_sec), context="resumed session")
+            self.duration_sec = validate_duration_seconds(
+                state.get("duration_sec", self.duration_sec), context="resumed session"
+            )
             saved_assignment = str(state.get("current_assignment", "") or "")
             if saved_assignment and self._is_valid_assignment_slug(saved_assignment):
                 self.current_assignment = saved_assignment
             else:
                 if saved_assignment:
-                    print(f"Warning: Ignoring invalid saved assignment {saved_assignment!r} in session file; picking a new one.", file=sys.stderr)
+                    print(
+                        f"Warning: Ignoring invalid saved assignment {saved_assignment!r} in session file; picking a new one.",
+                        file=sys.stderr,
+                    )
                 self.current_assignment = self._pick_assignment()
             self.history: list[str] = list(state.get("history", []))
             self.cmd_history = list(state.get("cmd_history", []))
             self.level_records: list[dict] = list(state.get("level_records", []))
             self.norm_enabled = bool(state.get("norm_enabled", False))
-            self.cooldown_step = int(state.get("cooldown_step", 30))
+            saved_tm = str(state.get("trace_mode", "real")).strip().lower()
+            req_tm = (
+                explicit_trace_mode if explicit_trace_mode in TRACE_MODES else saved_tm
+            )
+            self.trace_mode = req_tm if req_tm in TRACE_MODES else "real"
+            saved_cm = str(state.get("cooldown_mode", "real")).strip().lower()
+            req_cm = (
+                explicit_cooldown_mode
+                if explicit_cooldown_mode in {"real", "linear"}
+                else saved_cm
+            )
+            self.cooldown_mode = req_cm if req_cm in {"real", "linear"} else "real"
+            self.cooldown_base = max(1, int(state.get("cooldown_base", 60)))
+            self.cooldown_step = max(1, int(state.get("cooldown_step", 30)))
             self.cooldown_enabled = bool(state.get("cooldown_enabled", True))
             self.next_grademe_ts = float(state.get("next_grademe_ts", 0.0))
             self.last_penalty_sec = int(state.get("last_penalty_sec", 0))
             saved_lifecycle = str(state.get("lifecycle_state", "running"))
-            if saved_lifecycle == "abandoned" and not self._is_expired() and self.grade < 100:
+            if (
+                saved_lifecycle == "abandoned"
+                and not self._is_expired()
+                and self.grade < 100
+            ):
                 saved_lifecycle = "running"
-            self.lifecycle_state = saved_lifecycle if saved_lifecycle in SESSION_STATES else "running"
+            self.lifecycle_state = (
+                saved_lifecycle if saved_lifecycle in SESSION_STATES else "running"
+            )
             self._refresh_lifecycle_state()
         else:
             if level is not None:
@@ -931,6 +1073,11 @@ class ExamShell(cmd.Cmd):
             self.history = []
             self.cmd_history = []
             self.level_records = []
+            init_tm = explicit_trace_mode or trace_mode
+            self.trace_mode = init_tm if init_tm in TRACE_MODES else "real"
+            init_cm = explicit_cooldown_mode or cooldown_mode
+            self.cooldown_mode = init_cm if init_cm in {"real", "linear"} else "real"
+            self.cooldown_base = 60
             self.cooldown_step = 30
             self.cooldown_enabled = True
             self.next_grademe_ts = 0.0
@@ -954,7 +1101,10 @@ class ExamShell(cmd.Cmd):
         clone_lines = (
             ["Your Git repository is already present. Reusing it..."]
             if resumed
-            else ["The Git repository is not cloned yet. Cloning...", f"Cloning into '{self.rendu_dir}'..."]
+            else [
+                "The Git repository is not cloned yet. Cloning...",
+                f"Cloning into '{self.rendu_dir}'...",
+            ]
         )
         self.setup_logs = [
             "Selecting project...",
@@ -962,10 +1112,10 @@ class ExamShell(cmd.Cmd):
             "Ensuring your Git repository for this exam is present and correct...",
             *clone_lines,
             f"vogsphere: (INFO) Transaction ID : {tx_id}",
-            "vogsphere: (INFO) Please mention this ID in any ticket you create concerning this transaction",
-            f"vogsphere: (INFO) This transaction has been started at {server_now}, server time.",
-            "vogsphere: (INFO) Rights will be determined using this time, so do NOT cut the connection.",
-            f"vogsphere: (INFO) It appears you are {self.login}. If that's not true, check your Kerberos tickets (klist)",
+            "vogsphere: (INFO) Cite this ID in any ticket about this transaction",
+            f"vogsphere: (INFO) Started at {server_now}, server time.",
+            "vogsphere: (INFO) Rights use this time; do NOT cut the connection.",
+            f"vogsphere: (INFO) Principal: {self.login} (check tickets with klist)",
             "vogsphere: (INFO) You have read and write rights on this repository",
             "",
             f"Your git repository was successfully cloned to {self.rendu_dir}",
@@ -981,7 +1131,10 @@ class ExamShell(cmd.Cmd):
             rendu_link = Path.home() / "rendu"
             try:
                 if rendu_link.is_symlink() or rendu_link.exists():
-                    if rendu_link.is_symlink() and rendu_link.resolve() != self.rendu_dir.resolve():
+                    if (
+                        rendu_link.is_symlink()
+                        and rendu_link.resolve() != self.rendu_dir.resolve()
+                    ):
                         rendu_link.unlink()
                         rendu_link.symlink_to(self.rendu_dir)
                 else:
@@ -1034,7 +1187,11 @@ class ExamShell(cmd.Cmd):
         return self.lifecycle_state
 
     def _update_prompt(self) -> None:
-        self.prompt = self.theme.c("examshell> ", "primary", "bold") if not self.use_plain else "examshell> "
+        self.prompt = (
+            self.theme.c("examshell> ", "primary", "bold")
+            if not self.use_plain
+            else "examshell> "
+        )
 
     def _build_persistent_status_header(self, cols: int) -> list[str]:
         """Build the 4-row Persistent Status Header fixed at Rows 1..4 of examshell v0.1.1."""
@@ -1049,23 +1206,33 @@ class ExamShell(cmd.Cmd):
         rem_hms = self._format_hms()
         ends = self._expires_dt().strftime("%H:%M")
 
+        w = max(40, min(79, cols))
         if cols < 72:
             r1 = f"examshell v0.1.1 | {mode_lbl} | {self.pool} [{state_lbl}]"
             r2 = f"User:{self.login} | Lvl:{lvl_num} | Grade:{self.grade}/100 | {self.current_assignment}"
             r3 = f"Local Clock: {local_clock_str} | Remaining: {rem_hms}"
         else:
-            r1 = f"examshell v0.1.1 | Mode: {mode_lbl} | Exam: {self.pool} | State: {state_lbl}"
+            mode_short = "PRACTICE" if self.practice else "NORMAL EXAM"
+            r1 = f"examshell v0.1.1 | Mode: {mode_short} | Exam: {self.pool} [{state_lbl}]"
             r2 = (
-                f"Student: {self.login}@1337.MA | Level: {lvl_num} | Grade: {self.grade}/100 "
-                f"| Assignment: {self.current_assignment} ({pts} pts)"
+                f"Student: {self.login} | Lvl: {lvl_num} | Grade: {self.grade}/100 "
+                f"| {self.current_assignment} ({pts}p)"
             )
             r3 = f"Local Clock: {local_clock_str} | Remaining: {rem_hms} | Ends at {ends}"
-        r4 = "=" * max(40, min(80, cols))
+        r4 = "=" * w
         return [
-            t.c(clip_visible(r1, cols), "primary", "bold") if not self.use_plain else clip_visible(r1, cols),
-            t.c(clip_visible(r2, cols), "secondary", "bold") if not self.use_plain else clip_visible(r2, cols),
-            t.c(clip_visible(r3, cols), "warn" if self.practice else "ok", "bold") if not self.use_plain else clip_visible(r3, cols),
-            t.c(clip_visible(r4, cols), "border") if not self.use_plain else clip_visible(r4, cols),
+            t.c(clip_visible(r1, w), "primary", "bold")
+            if not self.use_plain
+            else clip_visible(r1, w),
+            t.c(clip_visible(r2, w), "secondary", "bold")
+            if not self.use_plain
+            else clip_visible(r2, w),
+            t.c(clip_visible(r3, w), "warn" if self.practice else "ok", "bold")
+            if not self.use_plain
+            else clip_visible(r3, w),
+            t.c(clip_visible(r4, w), "border")
+            if not self.use_plain
+            else clip_visible(r4, w),
         ]
 
     def _tick_persistent_clock(self) -> None:
@@ -1077,7 +1244,8 @@ class ExamShell(cmd.Cmd):
         try:
             t = self.theme
             cols, rows = t.term_size()
-            hdr = self._build_persistent_status_header(cols)
+            w = max(40, min(79, cols))
+            hdr = self._build_persistent_status_header(w)
             row3 = hdr[2]
             hms = self._format_hms()
             rem_human = self._format_timer()
@@ -1088,31 +1256,49 @@ class ExamShell(cmd.Cmd):
             em, es = divmod(em_r, 60)
             elapsed_hms = f"{eh:02d}:{em:02d}:{es:02d}"
 
-            updates = [f"\033]0;examshell | {self.current_assignment} | rem {hms}\007\0337\033[3;1H\033[K{row3}"]
+            updates = [
+                f"\033]0;examshell | {self.current_assignment} | rem {hms}\007\0337\033[3;1H\033[K{row3}"
+            ]
             content_budget = max(3, rows - 6)
-            vis_limit = content_budget if len(self._content_lines) <= content_budget else max(1, content_budget - 1)
+            vis_limit = (
+                content_budget
+                if len(self._content_lines) <= content_budget
+                else max(1, content_budget - 1)
+            )
             for idx, line in enumerate(self._content_lines[:vis_limit]):
                 plain = ANSI_ESCAPE_RE.sub("", str(line)).strip()
                 screen_row = 5 + idx
                 if plain.startswith("Current local time:"):
-                    new_ln = clip_visible(f"Current local time: {local_clock_str}  (Elapsed: {elapsed_hms})", cols)
+                    new_ln = clip_visible(
+                        f"Current local time: {local_clock_str}  (Elapsed: {elapsed_hms})",
+                        w,
+                    )
                     self._content_lines[idx] = new_ln
                     updates.append(f"\033[{screen_row};1H\033[K{new_ln}")
                 elif plain.startswith("Current local time   :"):
-                    new_ln = clip_visible(f"Current local time   : {local_clock_str}", cols)
+                    new_ln = clip_visible(
+                        f"Current local time   : {local_clock_str}", w
+                    )
                     self._content_lines[idx] = new_ln
                     updates.append(f"\033[{screen_row};1H\033[K{new_ln}")
                 elif plain.startswith("Elapsed session time :"):
-                    new_ln = clip_visible(f"Elapsed session time : {elapsed_hms} ({el_sec}s)", cols)
+                    new_ln = clip_visible(
+                        f"Elapsed session time : {elapsed_hms} ({el_sec}s)", w
+                    )
                     self._content_lines[idx] = new_ln
                     updates.append(f"\033[{screen_row};1H\033[K{new_ln}")
                 elif plain.startswith("You have ") and "remaining" in plain:
                     role = "warn" if self._remaining_seconds() < 1800 else "ok"
-                    new_ln = clip_visible(f"You have {t.c(rem_human, role, 'bold')} remaining ({hms})", cols)
+                    new_ln = clip_visible(
+                        f"You have {t.c(rem_human, role, 'bold')} remaining ({hms})",
+                        w,
+                    )
                     self._content_lines[idx] = new_ln
                     updates.append(f"\033[{screen_row};1H\033[K{new_ln}")
                 elif plain.startswith("Remaining exam time  :"):
-                    new_ln = clip_visible(f"Remaining exam time  : {rem_human} ({hms})", cols)
+                    new_ln = clip_visible(
+                        f"Remaining exam time  : {rem_human} ({hms})", w
+                    )
                     self._content_lines[idx] = new_ln
                     updates.append(f"\033[{screen_row};1H\033[K{new_ln}")
 
@@ -1122,19 +1308,25 @@ class ExamShell(cmd.Cmd):
         except Exception:
             pass
 
-    def _render_shell_viewport(self, current_input: str = "", cursor_pos: int = 0, prompt_override: str | None = None) -> None:
+    def _render_shell_viewport(
+        self,
+        current_input: str = "",
+        cursor_pos: int = 0,
+        prompt_override: str | None = None,
+    ) -> None:
         """Render the complete examshell v0.1.1 viewport fitted strictly to `cols x rows` with prompt directly below content."""
         if not self._viewport_active or not is_interactive_tty():
             return
         t = self.theme
         cols, rows = t.term_size()
-        hdr_lines = self._build_persistent_status_header(cols)
+        w = max(40, min(79, cols))
+        hdr_lines = self._build_persistent_status_header(w)
         content_budget = max(3, rows - 6)  # Rows 5 .. rows - 2
 
         raw_content: list[str] = []
         for line in self._content_lines:
-            for sub in (str(line).splitlines() or [""]):
-                raw_content.append(clip_visible(sub, cols))
+            for sub in str(line).splitlines() or [""]:
+                raw_content.append(clip_visible(sub, w))
 
         if len(raw_content) <= content_budget:
             fitted_content = raw_content
@@ -1143,7 +1335,7 @@ class ExamShell(cmd.Cmd):
             more_notice = t.c(
                 clip_visible(
                     f"[Showing {keep}/{len(raw_content)} lines — run 'more' or '<cmd> --pager' to scroll full output]",
-                    cols,
+                    w,
                 ),
                 "warn",
                 "bold",
@@ -1154,36 +1346,58 @@ class ExamShell(cmd.Cmd):
             footer_raw = self._footer_notice
             self._footer_notice = ""
         elif self.practice:
-            footer_raw = "Practice: status | subject | init | check | run | push | grademe | trace | logs | clear | clean | finish"
+            footer_raw = "Practice: status | subject | init | check | run | push | grademe | finish"
         else:
             footer_raw = (
-                f"{t.muted('Commands:')} {t.accent('status')} | {t.accent('grademe')} | {t.accent('finish')}  "
+                f"{t.muted('Commands:')} {t.accent('status')} | {t.accent('grademe')} | {t.accent('finish')} "
                 f"{t.muted('(type')} {t.accent('tools')} {t.muted('or')} {t.accent('help')} {t.muted('for extra commands)')}"
                 if not self.use_plain
-                else "Commands: status | grademe | finish  (type 'tools' or 'help' for extra commands)"
+                else "Commands: status | grademe | finish (type 'tools' or 'help' for extra commands)"
             )
-        footer_line = clip_visible(footer_raw, cols) if (not self.use_plain and not self._footer_notice and not self.practice) else (t.c(clip_visible(footer_raw, cols), "muted") if not self.use_plain else clip_visible(footer_raw, cols))
+        footer_line = (
+            clip_visible(footer_raw, w)
+            if (not self.use_plain and not self._footer_notice and not self.practice)
+            else (
+                t.c(clip_visible(footer_raw, w), "muted")
+                if not self.use_plain
+                else clip_visible(footer_raw, w)
+            )
+        )
 
         active_prompt = prompt_override if prompt_override is not None else self.prompt
-        _write_viewport_frame([*hdr_lines, *fitted_content, footer_line], active_prompt, cols, rows)
+        _write_viewport_frame(
+            [*hdr_lines, *fitted_content, footer_line], active_prompt, cols, rows
+        )
         if current_input:
-            _draw_bottom_prompt_line(active_prompt, current_input, cursor_pos, cols, rows)
+            _draw_bottom_prompt_line(
+                active_prompt, current_input, cursor_pos, cols, rows
+            )
 
-    def _prompt_confirm_line(self, prompt_text: str, extra_lines: Sequence[str] | None = None) -> str:
+    def _prompt_confirm_line(
+        self, prompt_text: str, extra_lines: Sequence[str] | None = None
+    ) -> str:
         return self._prompt_in_viewport(prompt_text, extra_lines=extra_lines)
 
-    def _prompt_in_viewport(self, prompt_text: str, extra_lines: Sequence[str] | None = None) -> str:
+    def _prompt_in_viewport(
+        self, prompt_text: str, extra_lines: Sequence[str] | None = None
+    ) -> str:
         """Prompt for confirmation directly below content while keeping the examshell viewport intact."""
         if not (self._viewport_active and is_interactive_tty()):
             return input(prompt_text)
         if extra_lines is not None:
             self._content_lines = list(extra_lines)
-        styled_prompt = self.theme.c(prompt_text, "warn", "bold") if not self.use_plain else prompt_text
+        styled_prompt = (
+            self.theme.c(prompt_text, "warn", "bold")
+            if not self.use_plain
+            else prompt_text
+        )
         self._render_shell_viewport(prompt_override=styled_prompt)
         return _read_tty_line(
             styled_prompt,
             self.theme,
-            redraw_fn=lambda buf, pos: self._render_shell_viewport(buf, pos, prompt_override=styled_prompt),
+            redraw_fn=lambda buf, pos: self._render_shell_viewport(
+                buf, pos, prompt_override=styled_prompt
+            ),
             tick_fn=self._tick_persistent_clock,
         )
 
@@ -1212,11 +1426,14 @@ class ExamShell(cmd.Cmd):
         def _render_pager_view(cur_buf: str = "", cur_pos: int = 0) -> tuple[int, int]:
             nonlocal offset
             cols, rows = self.theme.term_size()
-            hdr_lines = self._build_persistent_status_header(cols)
+            w = max(40, min(79, cols))
+            hdr_lines = self._build_persistent_status_header(w)
             page_size = max(3, rows - 6)
             max_offset = max(0, len(expanded) - page_size)
             offset = max(0, min(offset, max_offset))
-            chunk = [clip_visible(ln, cols) for ln in expanded[offset : offset + page_size]]
+            chunk = [
+                clip_visible(ln, w) for ln in expanded[offset : offset + page_size]
+            ]
             start_n = offset + 1
             end_n = min(len(expanded), offset + page_size)
             footer_str = (
@@ -1224,11 +1441,13 @@ class ExamShell(cmd.Cmd):
                 "| j/Enter/Space=down, k=up, g=top, G=bottom, q=return to examshell>"
             )
             footer_line = (
-                self.theme.c(clip_visible(footer_str, cols), "secondary", "bold")
+                self.theme.c(clip_visible(footer_str, w), "secondary", "bold")
                 if not self.use_plain
-                else clip_visible(footer_str, cols)
+                else clip_visible(footer_str, w)
             )
-            _write_viewport_frame([*hdr_lines, *chunk, footer_line], pager_prompt, cols, rows)
+            _write_viewport_frame(
+                [*hdr_lines, *chunk, footer_line], pager_prompt, cols, rows
+            )
             if cur_buf:
                 _draw_bottom_prompt_line(pager_prompt, cur_buf, cur_pos, cols, rows)
             return page_size, max_offset
@@ -1283,7 +1502,9 @@ class ExamShell(cmd.Cmd):
         comp_fn = getattr(self, f"complete_{cmd_name}", None)
         if comp_fn is None:
             return buf_str, cursor_pos
-        matches = sorted(set(comp_fn(arg_prefix, prefix, len(cmd_name) + 1, cursor_pos)))
+        matches = sorted(
+            set(comp_fn(arg_prefix, prefix, len(cmd_name) + 1, cursor_pos))
+        )
         if len(matches) == 1:
             new_prefix = f"{cmd_name} {matches[0]}"
             return new_prefix + suffix, len(new_prefix)
@@ -1303,10 +1524,12 @@ class ExamShell(cmd.Cmd):
         self._waiting_for_input = False
 
     def precmd(self, line: str) -> str:
+        """Mark input loop busy before executing a command line."""
         self._waiting_for_input = False
         return line
 
     def postcmd(self, stop: bool, line: str) -> bool:
+        """Refresh prompt and input-waiting state after executing a command."""
         self._update_prompt()
         self._waiting_for_input = not stop
         return stop
@@ -1315,27 +1538,14 @@ class ExamShell(cmd.Cmd):
         validate_safe_basedir(self.exam_basedir)
         if self.exam_basedir.exists():
             if self.exam_basedir.is_symlink():
-                raise ValueError(f"Unsafe exam-basedir '{self.exam_basedir}': refusing to remove symlink.")
+                raise ValueError(
+                    f"Unsafe exam-basedir '{self.exam_basedir}': refusing to remove symlink."
+                )
             shutil.rmtree(self.exam_basedir)
         self.exam_basedir.mkdir(parents=True, exist_ok=True)
         self.traces_dir.mkdir(parents=True, exist_ok=True)
         self.subjects_dir.mkdir(parents=True, exist_ok=True)
         init_vogsphere_repo(self.exam_basedir)
-        if not self.custom_basedir:
-            self.workspace.mkdir(parents=True, exist_ok=True)
-            for name, target in [
-                ("rendu", self.rendu_dir),
-                ("traces", self.traces_dir),
-                ("subjects", self.subjects_dir),
-                ("vogsphere.git", self.vogsphere_dir),
-            ]:
-                link = self.workspace / name
-                if link.is_symlink() or link.exists():
-                    if link.is_symlink() or link.is_file():
-                        link.unlink()
-                    else:
-                        shutil.rmtree(link)
-                link.symlink_to(target)
 
     def _save_session(self, finished: bool = False) -> None:
         self._refresh_lifecycle_state()
@@ -1359,11 +1569,15 @@ class ExamShell(cmd.Cmd):
             "mode": "practice" if self.practice else "real",
             "lifecycle_state": self.lifecycle_state,
             "norm_enabled": self.norm_enabled,
+            "trace_mode": self.trace_mode,
+            "cooldown_mode": self.cooldown_mode,
+            "cooldown_base": self.cooldown_base,
             "cooldown_step": self.cooldown_step,
             "cooldown_enabled": self.cooldown_enabled,
             "next_grademe_ts": self.next_grademe_ts,
             "last_penalty_sec": self.last_penalty_sec,
-            "finished": finished or self.lifecycle_state in {"passed", "failed", "abandoned", "expired"},
+            "finished": finished
+            or self.lifecycle_state in {"passed", "failed", "abandoned", "expired"},
         }
         self.exam_basedir.mkdir(parents=True, exist_ok=True)
         tmp_file = self.session_file.with_suffix(".json.tmp")
@@ -1373,6 +1587,26 @@ class ExamShell(cmd.Cmd):
     def _reset_cooldown(self) -> None:
         self.next_grademe_ts = 0.0
         self.last_penalty_sec = 0
+
+    def _cooldown_penalty_for_attempt(self, attempt_num: int) -> int:
+        """Compute wait seconds for failed attempt `attempt_num` (1-indexed)."""
+        n = max(1, int(attempt_num))
+        if self.cooldown_mode == "real":
+            return int(self.cooldown_base * (2 ** (n - 1)))
+        return int(n * self.cooldown_step)
+
+    def _cooldown_scale_labels(self) -> tuple[list[str], str]:
+        """Return first-4 formatted penalty labels and progression description."""
+        scales = [
+            self._format_cooldown_short(self._cooldown_penalty_for_attempt(i))
+            for i in range(1, 5)
+        ]
+        rule_desc = (
+            f"x2/fail, {self.cooldown_base}s base"
+            if self.cooldown_mode == "real"
+            else f"+{self.cooldown_step}s/fail, linear"
+        )
+        return scales, rule_desc
 
     def _cooldown_remaining(self) -> int:
         if not self.cooldown_enabled:
@@ -1404,7 +1638,13 @@ class ExamShell(cmd.Cmd):
 
     def _pick_assignment(self) -> str:
         lvl = self.levels[self.current_idx]
-        raw_list = lvl.get("assignments") or lvl.get("subjects") or lvl.get("exercises") or lvl.get("candidates") or []
+        raw_list = (
+            lvl.get("assignments")
+            or lvl.get("subjects")
+            or lvl.get("exercises")
+            or lvl.get("candidates")
+            or []
+        )
         candidates = [c["id"] if isinstance(c, dict) else str(c) for c in raw_list]
         if not candidates:
             return "only_z"
@@ -1417,7 +1657,13 @@ class ExamShell(cmd.Cmd):
         if (KIT_ROOT / "subjects" / "exams" / slug).is_dir():
             return True
         for lvl in self.levels:
-            raw_list = lvl.get("assignments") or lvl.get("subjects") or lvl.get("exercises") or lvl.get("candidates") or []
+            raw_list = (
+                lvl.get("assignments")
+                or lvl.get("subjects")
+                or lvl.get("exercises")
+                or lvl.get("candidates")
+                or []
+            )
             for cand in raw_list:
                 cand_id = cand["id"] if isinstance(cand, dict) else str(cand)
                 if cand_id == slug:
@@ -1431,16 +1677,33 @@ class ExamShell(cmd.Cmd):
         dst_dir = self.subjects_dir / slug
         subjects_resolved = self.subjects_dir.resolve()
         dst_resolved = dst_dir.resolve()
-        if subjects_resolved not in dst_resolved.parents and dst_resolved != subjects_resolved:
-            raise ValueError(f"Refusing to provision outside the subjects folder: {slug!r}.")
+        if (
+            subjects_resolved not in dst_resolved.parents
+            and dst_resolved != subjects_resolved
+        ):
+            raise ValueError(
+                f"Refusing to provision outside the subjects folder: {slug!r}."
+            )
         if dst_dir.exists():
             shutil.rmtree(dst_dir)
         dst_dir.mkdir(parents=True, exist_ok=True)
         subj_txt = src_dir / "subject.en.txt"
         if subj_txt.exists():
             shutil.copy2(subj_txt, dst_dir / "subject.en.txt")
-        for h_item in src_dir.glob("*.h"):
-            shutil.copy2(h_item, dst_dir / h_item.name)
+        internal_meta = {
+            "subject.en.txt",
+            "examples.txt",
+            "meta.yml",
+            "tests.yml",
+            "scale.yml",
+        }
+        for item in sorted(src_dir.iterdir()):
+            if (
+                item.is_file()
+                and not item.name.startswith(".")
+                and item.name not in internal_meta
+            ):
+                shutil.copy2(item, dst_dir / item.name)
         return dst_dir / "subject.en.txt"
 
     def _remaining_seconds(self) -> int:
@@ -1461,9 +1724,9 @@ class ExamShell(cmd.Cmd):
 
     def _rule_line(self, ch: str = "=") -> str:
         if not sys.stdout.isatty() and not os.environ.get("COLUMNS"):
-            return ch * 80
+            return ch * 79
         cols, _ = self.theme.term_size()
-        return ch * max(40, min(88, cols))
+        return ch * max(40, min(79, cols))
 
     def emptyline(self) -> bool:
         """Do not repeat the previous command on an empty line."""
@@ -1471,7 +1734,7 @@ class ExamShell(cmd.Cmd):
         self._update_prompt()
         return False
 
-    def completenames(self, text: str, *ignored) -> List[str]:
+    def completenames(self, text: str, *ignored) -> list[str]:
         """Filter Tab-completed command names by active mode."""
         names = super().completenames(text, *ignored)
         if not self.practice:
@@ -1504,7 +1767,9 @@ class ExamShell(cmd.Cmd):
                 tokens = shlex.split(stripped)
             except ValueError as exc:
                 self.last_exit_code = 2
-                err_msg = self.theme.c(f"Error: Malformed command syntax ({exc}).", "err", "bold")
+                err_msg = self.theme.c(
+                    f"Error: Malformed command syntax ({exc}).", "err", "bold"
+                )
                 if self._viewport_active:
                     self._content_lines = [err_msg]
                     self._render_shell_viewport()
@@ -1514,7 +1779,9 @@ class ExamShell(cmd.Cmd):
             cmd_name = tokens[0] if tokens else ""
             use_pager = "--pager" in tokens
             clean_tokens = [tok for tok in tokens[1:] if tok != "--pager"]
-            arg_str = " ".join(shlex.quote(tok) if " " in tok else tok for tok in clean_tokens)
+            arg_str = " ".join(
+                shlex.quote(tok) if " " in tok else tok for tok in clean_tokens
+            )
         else:
             cmd_name = "EOF"
             arg_str = ""
@@ -1522,12 +1789,22 @@ class ExamShell(cmd.Cmd):
 
         if cmd_name == "?":
             cmd_name = "help"
+        elif cmd_name == "trace-mode":
+            cmd_name = "trace"
+            arg_str = f"mode {arg_str}".strip()
 
         # 0. Anti-spoiler & hint blocker (applies in both real and practice modes):
-        if cmd_name.lower() in {"solve", "solution", "--solve", "--solution", "hint", "--hint"}:
+        if cmd_name.lower() in {
+            "solve",
+            "solution",
+            "--solve",
+            "--solution",
+            "hint",
+            "--hint",
+        }:
             self.last_exit_code = 2
             msg = self.theme.c(
-                f"Error: Command '{cmd_name}' is restricted in normal exam mode. "
+                f"Error: Command '{cmd_name}' is not available. "
                 "Reference solutions and hints are strictly locked in ExamShell to preserve the 42 / 1337 peer-learning methodology. "
                 "Use 'subject' and debug from the Deepthought trace.",
                 "err",
@@ -1544,7 +1821,9 @@ class ExamShell(cmd.Cmd):
         if not self.practice:
             if cmd_name not in NORMAL_MODE_ALLOWLIST:
                 self.last_exit_code = 2
-                if cmd_name in SPECIAL_PRACTICE_COMMANDS or hasattr(self, f"do_{cmd_name}"):
+                if cmd_name in SPECIAL_PRACTICE_COMMANDS or hasattr(
+                    self, f"do_{cmd_name}"
+                ):
                     msg = self.theme.c(
                         f"Error: Command '{cmd_name}' is restricted in normal exam mode. "
                         "Allowed commands: status, subject, grademe, trace, logs, time, history, clear, clean, finish, help.",
@@ -1594,10 +1873,13 @@ class ExamShell(cmd.Cmd):
         self._update_prompt()
         return bool(res)
 
-    def _build_confirmation_screen_lines(self, cols: int, rows: int, notice: str = "") -> list[str]:
+    def _build_confirmation_screen_lines(
+        self, cols: int, rows: int, notice: str = ""
+    ) -> list[str]:
         t = self.theme
-        w = max(40, min(cols, 80))
-        disp_basedir = "~/exam-basedir" if not self.custom_basedir else str(self.exam_basedir)
+        disp_basedir = (
+            "~/exam-basedir" if not self.custom_basedir else str(self.exam_basedir)
+        )
         mode_lbl = "PRACTICE / COACHING MODE" if self.practice else "NORMAL EXAM MODE"
         dur_h, dur_rem = divmod(self.duration_sec, 3600)
         dur_m, _ = divmod(dur_rem, 60)
@@ -1611,7 +1893,11 @@ class ExamShell(cmd.Cmd):
             "",
             t.c("WARNING", "warn", "bold"),
             f"Your exam files will be stored in {t.c(disp_basedir, 'info', 'bold')}",
-            t.c("THIS DIRECTORY WILL BE ENTIRELY EMPTIED BEFORE YOU START", "warn", "bold"),
+            t.c(
+                "THIS DIRECTORY WILL BE ENTIRELY EMPTIED BEFORE YOU START",
+                "warn",
+                "bold",
+            ),
             "So, if you do have important things there, Ctrl-C NOW and back them up",
             "before running this.",
         ]
@@ -1622,42 +1908,65 @@ class ExamShell(cmd.Cmd):
             lines = lines[:budget]
         return lines
 
-    def print_boot_header(self, show_banner: bool = True, print_initial_status: bool = True) -> None:
+    def print_boot_header(
+        self, show_banner: bool = True, print_initial_status: bool = True
+    ) -> None:
+        """Render the ExamShell boot banner and initial session status."""
         t = self.theme
-        disp_basedir = "~/exam-basedir" if not self.custom_basedir else str(self.exam_basedir)
+        disp_basedir = (
+            "~/exam-basedir" if not self.custom_basedir else str(self.exam_basedir)
+        )
 
         if is_interactive_tty():
             if not self.resumed:
                 notice = ""
                 invalid_tries = 0
-                prompt_str = t.c("Confirm? [y/n]: ", "warn", "bold") if not self.use_plain else "Confirm? [y/n]: "
+                prompt_str = (
+                    t.c("Confirm? [y/n]: ", "warn", "bold")
+                    if not self.use_plain
+                    else "Confirm? [y/n]: "
+                )
                 while True:
                     cols, rows = t.term_size()
-                    frame_lines = self._build_confirmation_screen_lines(cols, rows, notice=notice)
+                    frame_lines = self._build_confirmation_screen_lines(
+                        cols, rows, notice=notice
+                    )
                     _write_viewport_frame(frame_lines, prompt_str, cols, rows)
                     try:
-                        ans = _read_tty_line(
-                            prompt_str,
-                            t,
-                            redraw_fn=lambda b, p: _write_viewport_frame(
-                                self._build_confirmation_screen_lines(*t.term_size(), notice=notice),
+                        ans = (
+                            _read_tty_line(
                                 prompt_str,
-                                *t.term_size(),
-                            ),
-                        ).strip().lower()
+                                t,
+                                redraw_fn=lambda b, p: _write_viewport_frame(
+                                    self._build_confirmation_screen_lines(
+                                        *t.term_size(), notice=notice
+                                    ),
+                                    prompt_str,
+                                    *t.term_size(),
+                                ),
+                            )
+                            .strip()
+                            .lower()
+                        )
                     except (EOFError, KeyboardInterrupt):
-                        print(f"\n[examshell] Confirmation cancelled. Existing files in {disp_basedir} were left untouched.")
+                        print(
+                            f"\n[examshell] Confirmation cancelled. Existing files in {disp_basedir} were left untouched."
+                        )
                         raise SystemExit(0)
                     if not ans:
                         continue
                     if ans in {"y", "yes"}:
                         break
                     if ans in {"n", "no", "q", "quit"}:
-                        print(f"[examshell] Confirmation declined. Existing files in {disp_basedir} were left untouched.")
+                        print(
+                            f"[examshell] Confirmation declined. Existing files in {disp_basedir} were left untouched."
+                        )
                         raise SystemExit(0)
                     invalid_tries += 1
                     if invalid_tries >= 3:
-                        print(f"[examshell] Confirmation not granted. Existing files in {disp_basedir} were left untouched.")
+                        print(
+                            f"[examshell] Confirmation not granted. Existing files in {disp_basedir} were left untouched."
+                        )
                         raise SystemExit(1)
                     notice = f"Please answer 'y' (yes) to empty {disp_basedir} and begin, or 'n' (no) to cancel."
                 self._initialize_fresh_workspace()
@@ -1674,8 +1983,6 @@ class ExamShell(cmd.Cmd):
             return
 
         # Non-TTY / redirected execution path (zero terminal-control escape sequences)
-        if show_banner:
-            print(t.startup_banner(version="v0.1.1", mode="practice" if self.practice else "real"))
         print(t.c("examshell v0.1.1", "primary", "bold"))
         print("")
         if self.resumed:
@@ -1688,37 +1995,60 @@ class ExamShell(cmd.Cmd):
         print(t.c("WARNING", "warn", "bold"))
         print(f"Your exam files will be stored in {t.c(disp_basedir, 'info')}")
         print(t.c("THIS DIRECTORY WILL BE ENTIRELY EMPTIED BEFORE YOU START", "warn"))
-        print("So, if you do have important things there, Ctrl-C NOW and back them up before running this.")
+        print("So, if you do have important things there, Ctrl-C NOW and back them up")
+        print("before running this.")
         # Never wipe silently in a script/pipe without explicit --fresh or EXAMSHELL_ALLOW_WIPE=1.
-        basedir_nonempty = self.exam_basedir.is_dir() and any(self.exam_basedir.iterdir())
-        if basedir_nonempty and not self.fresh_confirmed and os.environ.get("EXAMSHELL_REQUIRE_CONFIRM") != "1":
-            print(f"[examshell] Refusing to empty {disp_basedir}: it already contains files.")
-            print("[examshell] Nothing was deleted. To start over, back up what you need, then re-run with --fresh.")
-            print("[examshell] To keep your current exam, re-run with -r (resume) or -c \"status\".")
+        basedir_nonempty = self.exam_basedir.is_dir() and any(
+            self.exam_basedir.iterdir()
+        )
+        if (
+            basedir_nonempty
+            and not self.fresh_confirmed
+            and os.environ.get("EXAMSHELL_REQUIRE_CONFIRM") != "1"
+        ):
+            print(
+                f"[examshell] Refusing to empty {disp_basedir}: it already contains files."
+            )
+            print(
+                "[examshell] Nothing was deleted. To start over, back up what you need, then re-run with --fresh."
+            )
+            print(
+                '[examshell] To keep your current exam, re-run with -r (resume) or -c "status".'
+            )
             raise SystemExit(1)
         need_confirm = os.environ.get("EXAMSHELL_REQUIRE_CONFIRM") == "1"
         if need_confirm:
             try:
                 _ = input("(Press Enter to continue...)").strip()
             except (EOFError, KeyboardInterrupt):
-                print(f"\n[examshell] Cancelled before confirmation. Existing files in {disp_basedir} were left untouched.")
+                print(
+                    f"\n[examshell] Cancelled before confirmation. Existing files in {disp_basedir} were left untouched."
+                )
                 raise SystemExit(0)
             confirmed = False
             for _attempt in range(3):
                 try:
                     ans = input("Confirm? [y/n] ").strip().lower()
                 except (EOFError, KeyboardInterrupt):
-                    print(f"\n[examshell] Confirmation cancelled. Existing files in {disp_basedir} were left untouched.")
+                    print(
+                        f"\n[examshell] Confirmation cancelled. Existing files in {disp_basedir} were left untouched."
+                    )
                     raise SystemExit(0)
                 if ans in {"y", "yes"}:
                     confirmed = True
                     break
                 if ans in {"n", "no", "q", "quit"}:
-                    print(f"[examshell] Confirmation declined. Existing files in {disp_basedir} were left untouched.")
+                    print(
+                        f"[examshell] Confirmation declined. Existing files in {disp_basedir} were left untouched."
+                    )
                     raise SystemExit(0)
-                print(f"Please answer 'y' (yes) to empty {disp_basedir} and begin, or 'n' (no) to cancel.")
+                print(
+                    f"Please answer 'y' (yes) to empty {disp_basedir} and begin, or 'n' (no) to cancel."
+                )
             if not confirmed:
-                print(f"[examshell] Confirmation not granted. Existing files in {disp_basedir} were left untouched.")
+                print(
+                    f"[examshell] Confirmation not granted. Existing files in {disp_basedir} were left untouched."
+                )
                 raise SystemExit(1)
         elif basedir_nonempty:
             print(f"Starting fresh as requested (--fresh): emptying {disp_basedir}.")
@@ -1728,17 +2058,33 @@ class ExamShell(cmd.Cmd):
         self._initialize_fresh_workspace()
         if not self._viewport_active:
             print("The following commands are available to you:")
-            print(f"  {t.accent('status')}: Displays the status of your session, including information about")
+            print(
+                f"  {t.accent('status')}: Displays the status of your session, including information about"
+            )
             print("    your current assignment, and the exam history.")
-            print(f"  {t.accent('grademe')}: Asks the server to grade your current assignment. If you")
-            print("    have done it right, you will gain the points of the current assignment, go")
-            print("    up a level, and try the next one. If you fail, however, you will stay on")
-            print("    the same assignment of the same level to do. So be sure of yourself before")
+            print(
+                f"  {t.accent('grademe')}: Asks the server to grade your current assignment. If you"
+            )
+            print(
+                "    have done it right, you will gain the points of the current assignment, go"
+            )
+            print(
+                "    up a level, and try the next one. If you fail, however, you will stay on"
+            )
+            print(
+                "    the same assignment of the same level to do. So be sure of yourself before"
+            )
             print("    you launch this command !")
-            print(f"  {t.accent('finish')}: Tell the server you are finished with your exam.")
-            print(f"  {t.accent('tools')}:  Display additional helper commands (subject, trace, logs, time, clean...).")
+            print(
+                f"  {t.accent('finish')}: Tell the server you are finished with your exam."
+            )
+            print(
+                f"  {t.accent('tools')}:  Display helper commands (subject, trace, logs, time, clean...)."
+            )
             print("")
-            print("You can log out at any time. If this program tells you you earned points,")
+            print(
+                "You can log out at any time. If this program tells you you earned points,"
+            )
             print("then they will be counted as whatever happens.")
             print("")
         if print_initial_status:
@@ -1765,11 +2111,15 @@ class ExamShell(cmd.Cmd):
         elapsed_hms = f"{eh:02d}:{em:02d}:{es:02d}"
 
         cols, rows = t.term_size()
-        rule = t.c("=" * 80, "border") if cols >= 80 else t.c("=" * max(40, cols), "border")
+        rule = t.c(self._rule_line("="), "border")
         # In the full-screen viewport the persistent header already ends with a rule,
         # and on short terminals blank spacer lines are the first thing to go.
         compact = self._viewport_active and rows < 28
-        mode_desc = "practice mode (Your grade does not count)" if self.practice else "real mode (Your grade will be counted)"
+        mode_desc = (
+            "practice mode (Your grade does not count)"
+            if self.practice
+            else "real mode (Your grade will be counted)"
+        )
 
         if not self._viewport_active:
             print(rule)
@@ -1781,37 +2131,64 @@ class ExamShell(cmd.Cmd):
         for rec in self.level_records:
             by_lvl.setdefault(int(rec["level"]), []).append(rec)
         all_lvls_shown = sorted(set([*by_lvl.keys(), int(lvl_num)]))
-        for l_key in (all_lvls_shown[-2:] if compact else all_lvls_shown):
+        for l_key in all_lvls_shown[-2:] if compact else all_lvls_shown:
             print(f"  Level {l_key}:")
             for rec in by_lvl.get(l_key, [])[-2:] if compact else by_lvl.get(l_key, []):
                 state_lbl = rec["state"]
-                state_col = t.c(f"({state_lbl})", "ok" if state_lbl == "Success" else "err", "bold")
-                print(f"    {rec['attempt']}: {t.c(rec['slug'], 'info')} for {t.c(str(rec['points']), 'info')} potential points {state_col}")
+                state_col = t.c(
+                    f"({state_lbl})", "ok" if state_lbl == "Success" else "err", "bold"
+                )
+                print(
+                    f"    {rec['attempt']}: {t.c(rec['slug'], 'info')} for {t.c(str(rec['points']), 'info')} potential points {state_col}"
+                )
             if l_key == int(lvl_num) and self.grade < 100:
-                print(f"    {self.attempts}: {t.c(self.current_assignment, 'info')} for {t.c(str(pts), 'info')} potential points {t.c('(Current)', 'warn')}")
+                print(
+                    f"    {self.attempts}: {t.c(self.current_assignment, 'info')} for {t.c(str(pts), 'info')} potential points {t.c('(Current)', 'warn')}"
+                )
         if not compact:
             print("")
-        print(f"Your current assignment is {t.c(self.current_assignment, 'info')} for {t.c(str(pts), 'info')} potential points")
-        print(f"It is assignment {t.c(str(self.attempts), 'info')} for level {t.c(str(lvl_num), 'info')}")
-        print(f"The subject is located at: {t.c(f'~/exam-basedir/subjects/{self.current_assignment}', 'info')}")
-        print("You must turn in your files in a subdirectory of your Git repository with the")
-        print(f"same name as the assignment ({t.c(f'~/exam-basedir/rendu/{self.current_assignment}', 'info')}).")
+        print(
+            f"Your current assignment is {t.c(self.current_assignment, 'info')} for {t.c(str(pts), 'info')} potential points"
+        )
+        print(
+            f"It is assignment {t.c(str(self.attempts), 'info')} for level {t.c(str(lvl_num), 'info')}"
+        )
+        print(
+            f"The subject is located at: {t.c(f'~/exam-basedir/subjects/{self.current_assignment}', 'info')}"
+        )
+        print(
+            "You must turn in your files in a subdirectory of your Git repository with the"
+        )
+        print(
+            f"same name as the assignment ({t.c(f'~/exam-basedir/rendu/{self.current_assignment}', 'info')})."
+        )
         print("Of course, you must still push...")
         if not compact:
             print("")
         print(f"Current local time: {local_clock_str}  (Elapsed: {elapsed_hms})")
         print(f"The end date for this exam is: {t.c(end_dt, 'info')}")
-        print(f"You have {t.c(self._format_timer(), 'warn' if self._remaining_seconds() < 1800 else 'ok', 'bold')} remaining ({self._format_hms()})")
+        print(
+            f"You have {t.c(self._format_timer(), 'warn' if self._remaining_seconds() < 1800 else 'ok', 'bold')} remaining ({self._format_hms()})"
+        )
         if self.lifecycle_state == "expired":
-            print(t.status("error", "Time is up. grademe is locked; run 'finish' to close the session."))
+            print(
+                t.status(
+                    "error",
+                    "Time is up. grademe is locked; run 'finish' to close the session.",
+                )
+            )
             return
         if not compact:
             print(rule)
-            print("You can now work on your assignment. When you are sure you're done with it,")
-            print(f'push it to vogsphere, and then use the "{t.c("grademe", "info")}" command to be graded.')
+            print(
+                "You can now work on your assignment. When you are sure you're done with it,"
+            )
+            print(
+                f'push it to vogsphere, and then use the "{t.c("grademe", "info")}" command to be graded.'
+            )
             if not self.practice and not self._viewport_active:
                 print(
-                    f"{t.muted('Commands:')} {t.accent('status')} | {t.accent('grademe')} | {t.accent('finish')}  "
+                    f"{t.muted('Commands:')} {t.accent('status')} | {t.accent('grademe')} | {t.accent('finish')} "
                     f"{t.muted('(type')} {t.accent('tools')} {t.muted('or')} {t.accent('help')} {t.muted('for extra commands)')}"
                 )
 
@@ -1822,7 +2199,7 @@ class ExamShell(cmd.Cmd):
             self._record_setup_logs(resumed=self.resumed)
         for ln in self.setup_logs:
             if ln.startswith("vogsphere: (INFO)"):
-                print(t.c("vogsphere: (INFO)", "info") + ln[len("vogsphere: (INFO)"):])
+                print(t.c("vogsphere: (INFO)", "info") + ln[len("vogsphere: (INFO)") :])
             elif ln.startswith("Your git repository"):
                 print(t.c(ln, "ok"))
             else:
@@ -1835,7 +2212,9 @@ class ExamShell(cmd.Cmd):
     def do_more(self, arg: str) -> None:
         """Open the interactive scrollable pager for the most recent command output (`more` / `pager`)."""
         if not self._full_scroll_lines:
-            print("No previous command output to page. Run 'subject', 'trace', 'logs', or 'status' first.")
+            print(
+                "No previous command output to page. Run 'subject', 'trace', 'logs', or 'status' first."
+            )
             return
         self._run_pager(self._full_scroll_title, self._full_scroll_lines)
 
@@ -1845,7 +2224,10 @@ class ExamShell(cmd.Cmd):
 
     def do_clear(self, arg: str) -> None:
         """Clear previous command output from the Defined Content Area and redraw the current display without altering files or session state."""
-        msg = self.theme.c("[Screen cleared — session state, timer, and workspace files preserved.]", "muted")
+        msg = self.theme.c(
+            "[Screen cleared — session state, timer, and workspace files preserved.]",
+            "muted",
+        )
         self._content_lines = [msg]
         if self._viewport_active and is_interactive_tty():
             self._render_shell_viewport()
@@ -1861,18 +2243,52 @@ class ExamShell(cmd.Cmd):
         t = self.theme
         validate_safe_basedir(self.exam_basedir)
         if not self.rendu_dir.exists():
-            print(t.c(f"[clean] Turn-in directory '{self.rendu_dir}' does not exist yet (0 artifacts removed).", "muted"))
+            print(
+                t.c(
+                    f"[clean] Turn-in directory '{self.rendu_dir}' does not exist yet (0 artifacts removed).",
+                    "muted",
+                )
+            )
             return
         if self.rendu_dir.is_symlink():
             self.last_exit_code = 1
-            print(t.c(f"Error: Refusing to clean symlinked rendu directory '{self.rendu_dir}'.", "err", "bold"))
+            print(
+                t.c(
+                    f"Error: Refusing to clean symlinked rendu directory '{self.rendu_dir}'.",
+                    "err",
+                    "bold",
+                )
+            )
             return
 
         rendu_resolved = self.rendu_dir.resolve()
         dry_run = "--dry-run" in arg.split()
-        artifact_names = {"a.out", "core", ".DS_Store", ".gdb_history", "user_bin", "ref_bin", "user_run"}
+        artifact_names = {
+            "a.out",
+            "core",
+            ".DS_Store",
+            ".gdb_history",
+            "user_bin",
+            "ref_bin",
+            "user_run",
+        }
         artifact_suffixes = {".o", ".obj", ".gch", ".swp", ".swo"}
-        protected_suffixes = {".c", ".h", ".cpp", ".hpp", ".sh", ".py", ".txt", ".md", ".yml", ".json", ".out", ".tmp", ".in", ".dat"}
+        protected_suffixes = {
+            ".c",
+            ".h",
+            ".cpp",
+            ".hpp",
+            ".sh",
+            ".py",
+            ".txt",
+            ".md",
+            ".yml",
+            ".json",
+            ".out",
+            ".tmp",
+            ".in",
+            ".dat",
+        }
 
         removed: list[str] = []
         for cand in sorted(self.rendu_dir.rglob("*")):
@@ -1885,7 +2301,10 @@ class ExamShell(cmd.Cmd):
                 cand_resolved.relative_to(rendu_resolved)
             except Exception:
                 continue
-            if cand.name == "Makefile" or (cand.suffix.lower() in protected_suffixes and cand.name not in artifact_names):
+            if cand.name == "Makefile" or (
+                cand.suffix.lower() in protected_suffixes
+                and cand.name not in artifact_names
+            ):
                 continue
             is_artifact = (
                 cand.name in artifact_names
@@ -1900,9 +2319,16 @@ class ExamShell(cmd.Cmd):
 
         prefix = "[clean --dry-run]" if dry_run else "[clean]"
         if removed:
-            print(t.c(f"{prefix} Removed {len(removed)} generated artifact(s) from {self.rendu_dir}: {', '.join(removed)}", "ok", "bold"))
+            items = ", ".join(removed)
+            msg = f"{prefix} Removed {len(removed)} artifact(s) from rendu/: {items}"
+            print(t.c(clip_visible(msg, 79), "ok", "bold"))
         else:
-            print(t.c(f"{prefix} 0 generated artifacts found in {self.rendu_dir}. Student source files and session state untouched.", "ok"))
+            print(
+                t.c(
+                    f"{prefix} 0 generated artifacts in rendu/. Source files untouched.",
+                    "ok",
+                )
+            )
 
     def do_time(self, arg: str) -> None:
         """Display current local clock, exam start/end timestamps, elapsed duration, and remaining countdown."""
@@ -1916,12 +2342,16 @@ class ExamShell(cmd.Cmd):
         em, es = divmod(em_r, 60)
         rule = self._rule_line("-")
         print(rule)
-        print(f"Current local time   : {now_dt.strftime('%d/%m/%Y %H:%M:%S %Z').strip()}")
+        print(
+            f"Current local time   : {now_dt.strftime('%d/%m/%Y %H:%M:%S %Z').strip()}"
+        )
         print(f"Exam start time      : {start_dt.strftime('%d/%m/%Y %H:%M:%S')}")
         print(f"The end date for exam: {end_dt.strftime('%d/%m/%Y %H:%M:%S')}")
         print(f"Elapsed session time : {eh:02d}:{em:02d}:{es:02d} ({el_sec}s)")
         print(f"Remaining exam time  : {self._format_timer()} ({self._format_hms()})")
-        print(f"Session state        : {t.c(self.lifecycle_state.upper(), 'info', 'bold')}")
+        print(
+            f"Session state        : {t.c(self.lifecycle_state.upper(), 'info', 'bold')}"
+        )
         print(rule)
 
     def do_history(self, arg: str) -> None:
@@ -1953,7 +2383,12 @@ class ExamShell(cmd.Cmd):
             return
         self.last_exit_code = 2
         t = self.theme
-        print(t.c(f"  Error: Unknown command: {line!r}. Type 'help' or 'status' to see available commands.", "warn"))
+        print(
+            t.c(
+                f"  Error: Unknown command: {line!r}. Type 'help' or 'status' to see available commands.",
+                "warn",
+            )
+        )
 
     def do_subject(self, arg: str) -> None:
         """Display the current assignment's subject.en.txt with syntax & header highlighting (`subject [--full|--raw]`)."""
@@ -1964,9 +2399,25 @@ class ExamShell(cmd.Cmd):
         flags = arg.strip().lower().split()
         if "--raw" in flags or "raw" in flags or not self.theme.enabled:
             print(raw_text)
-            return
-        full_flag = "--full" in flags or "full" in flags or "all" in flags
-        print(self.theme.render_subject(raw_text, subject_id=self.current_assignment, full=full_flag))
+        else:
+            full_flag = "--full" in flags or "full" in flags or "all" in flags
+            print(
+                self.theme.render_subject(
+                    raw_text, subject_id=self.current_assignment, full=full_flag
+                )
+            )
+        extras = sorted(
+            p.name
+            for p in subj_file.parent.iterdir()
+            if p.is_file() and p.name != "subject.en.txt" and not p.name.startswith(".")
+        )
+        if extras:
+            print(
+                self.theme.c(
+                    f"Given / subject files in {subj_file.parent}: {', '.join(extras)}",
+                    "muted",
+                )
+            )
 
     def do_sub(self, arg: str) -> None:
         """Alias for `subject`."""
@@ -1976,11 +2427,19 @@ class ExamShell(cmd.Cmd):
         t = self.theme
         subj_file = self._provision_subject_files(self.current_assignment)
         disk_meta = parse_subject_disk_metadata(subj_file)
-        meta_path = KIT_ROOT / "subjects" / "exams" / self.current_assignment / "meta.yml"
-        meta = yaml.safe_load(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+        meta_path = (
+            KIT_ROOT / "subjects" / "exams" / self.current_assignment / "meta.yml"
+        )
+        meta = (
+            yaml.safe_load(meta_path.read_text(encoding="utf-8"))
+            if meta_path.exists()
+            else {}
+        )
 
         exp_files = meta.get("expected_files") or [
-            f.strip() for f in disk_meta["expected_files"].split(",") if f.strip() and f.strip() != "Unknown"
+            f.strip()
+            for f in disk_meta["expected_files"].split(",")
+            if f.strip() and f.strip() != "Unknown"
         ]
         if not exp_files:
             exp_files = [f"{self.current_assignment}.c"]
@@ -1988,17 +2447,52 @@ class ExamShell(cmd.Cmd):
         assign_dir = self.rendu_dir / self.current_assignment
         assign_dir.mkdir(parents=True, exist_ok=True)
 
-        # Copy any helper headers (e.g. ft_list.h) provided by the subject folder
+        # Copy any helper/starter files (e.g. ft_list.h, socket.hpp, square.txt,
+        # vbc.c, tsp.c, ft_scanf.c) provided by the subject folder.
         src_subj_dir = KIT_ROOT / "subjects" / "exams" / self.current_assignment
-        for hf in src_subj_dir.glob("*.h"):
-            dest_h = assign_dir / hf.name
-            if not dest_h.exists():
-                shutil.copy2(hf, dest_h)
+        for ext_pat in ("*.h", "*.hpp"):
+            for hf in sorted(src_subj_dir.glob(ext_pat)):
+                dest_h = assign_dir / hf.name
+                if not dest_h.exists():
+                    shutil.copy2(hf, dest_h)
+        if (src_subj_dir / "square.txt").is_file() and not (
+            assign_dir / "square.txt"
+        ).exists():
+            shutil.copy2(src_subj_dir / "square.txt", assign_dir / "square.txt")
+        starter_names = {f"{self.current_assignment}.c"}
+        if self.current_assignment.startswith("vbc"):
+            starter_names.add("vbc.c")
+        for sname in sorted(starter_names):
+            sfile = src_subj_dir / sname
+            if sfile.is_file() and not (assign_dir / sname).exists():
+                shutil.copy2(sfile, assign_dir / sname)
+        if (
+            self.current_assignment == "mini_serv"
+            and (src_subj_dir / "main.c").is_file()
+        ):
+            dest_ms = assign_dir / "mini_serv.c"
+            if not dest_ms.exists():
+                shutil.copy2(src_subj_dir / "main.c", dest_ms)
 
-        primary_file = assign_dir / exp_files[0]
+        concrete_files: list[str] = []
         for fname in exp_files:
-            if "*" in fname:
+            if fname == "*.c":
+                resolved_c = (
+                    "vbc.c"
+                    if self.current_assignment.startswith("vbc")
+                    else f"{self.current_assignment}.c"
+                )
+                if resolved_c not in concrete_files:
+                    concrete_files.append(resolved_c)
+            elif "*" in fname:
                 continue
+            elif fname not in concrete_files:
+                concrete_files.append(fname)
+        if not concrete_files:
+            concrete_files = [f"{self.current_assignment}.c"]
+
+        primary_file = assign_dir / concrete_files[0]
+        for fname in concrete_files:
             fpath = assign_dir / fname
             if fpath.exists():
                 print(t.c(f"[init] File already exists (preserved): {fpath}", "warn"))
@@ -2007,28 +2501,54 @@ class ExamShell(cmd.Cmd):
             if fname.endswith(".sh"):
                 fpath.write_text("#!/bin/sh\n\n", encoding="utf-8")
                 os.chmod(fpath, 0o755)
-            elif fname.endswith(".h"):
+            elif fname.endswith((".h", ".hpp")):
                 guard = re.sub(r"[^A-Za-z0-9]", "_", fname).upper()
                 fpath.write_text(
-                    build_42_header(fname, self.login) + f"#ifndef {guard}\n# define {guard}\n\n#endif\n",
+                    build_42_header(fname, self.login)
+                    + f"#ifndef {guard}\n# define {guard}\n\n#endif\n",
                     encoding="utf-8",
                 )
+            elif fname.endswith(".cpp"):
+                hdr = build_42_header(fname, self.login)
+                hpp_name = f"{fpath.stem}.hpp"
+                inc_line = (
+                    f'#include "{hpp_name}"\n\n'
+                    if f"{fpath.stem}.hpp" in concrete_files
+                    or (assign_dir / hpp_name).exists()
+                    else "#include <iostream>\n\n"
+                )
+                fpath.write_text(hdr + inc_line, encoding="utf-8")
             elif fname.endswith(".c"):
                 hdr = build_42_header(fname, self.login)
                 allowed = str(disk_meta.get("allowed_functions", ""))
                 includes: list[str] = []
-                if any(fn in allowed for fn in ("write", "read", "close", "fork", "pipe", "dup2", "execve")):
+                if any(
+                    fn in allowed
+                    for fn in (
+                        "write",
+                        "read",
+                        "close",
+                        "fork",
+                        "pipe",
+                        "dup2",
+                        "execve",
+                    )
+                ):
                     includes.append("#include <unistd.h>")
                 if any(fn in allowed for fn in ("malloc", "free", "exit", "atoi")):
                     includes.append("#include <stdlib.h>")
-                if any(fn in allowed for fn in ("printf", "fopen", "getline", "perror")):
+                if any(
+                    fn in allowed for fn in ("printf", "fopen", "getline", "perror")
+                ):
                     includes.append("#include <stdio.h>")
                 if any(fn in allowed for fn in ("open",)):
                     includes.append("#include <fcntl.h>")
                 inc_block = ("\n".join(includes) + "\n\n") if includes else ""
                 proto = disk_meta.get("prototype", "")
                 stype = meta.get("type", "")
-                if stype == "c_function" or (proto and not proto.startswith("None") and "main(" not in proto):
+                if stype == "c_function" or (
+                    proto and not proto.startswith("None") and "main(" not in proto
+                ):
                     sig = proto.rstrip(";")
                     body = f"{sig}\n{{\n\t/* TODO: implement {self.current_assignment} */\n}}\n"
                 else:
@@ -2051,9 +2571,21 @@ class ExamShell(cmd.Cmd):
         """Scaffold (if needed) and open the current assignment's source file in your editor ($EDITOR / vim / code / nano)."""
         t = self.theme
         assign_dir = self.rendu_dir / self.current_assignment
-        c_files = sorted(assign_dir.glob("*.c")) if assign_dir.exists() else []
-        target_file = c_files[0] if c_files else self._scaffold_current_assignment()
-        editor = arg.strip() or os.environ.get("EDITOR") or ("vim" if shutil.which("vim") else "nano")
+        src_files = (
+            [
+                p
+                for pat in ("*.c", "*.cpp", "*.sh", "*.h", "*.hpp")
+                for p in sorted(assign_dir.glob(pat))
+            ]
+            if assign_dir.exists()
+            else []
+        )
+        target_file = src_files[0] if src_files else self._scaffold_current_assignment()
+        editor = (
+            arg.strip()
+            or os.environ.get("EDITOR")
+            or ("vim" if shutil.which("vim") else "nano")
+        )
         cmd = [*shlex.split(editor), str(target_file)]
         print(t.c(f"[edit] Opening {' '.join(cmd)} ...", "accent"))
         try:
@@ -2078,29 +2610,52 @@ class ExamShell(cmd.Cmd):
         self.do_edit("code")
 
     def do_check(self, arg: str) -> None:
+        """[Pre-Flight Check] Run the 5-Gate Moulinette pipeline on local `rendu/<assignment>` WITHOUT using a grademe attempt!"""
         if not self.practice:
             t = self.theme
-            print(t.c("  [examshell] 'check' is only available in practice mode (--mode practice).", "warn"))
+            print(
+                t.c(
+                    "  [examshell] 'check' is only available in practice mode (--mode practice).",
+                    "warn",
+                )
+            )
             return
-        """[Pre-Flight Check] Run the 5-Gate Moulinette pipeline on local `rendu/<assignment>` WITHOUT using a grademe attempt!"""
         t = self.theme
         local_dir = self.rendu_dir / self.current_assignment
-        print(t.c(f"=== PRE-FLIGHT CHECK (Zero Penalty): {self.current_assignment} ===", "primary", "bold"))
+        print(
+            t.c(
+                f"=== PRE-FLIGHT CHECK (Zero Penalty): {self.current_assignment} ===",
+                "primary",
+                "bold",
+            )
+        )
         if not local_dir.exists() or not any(local_dir.iterdir()):
             print(t.c(f"Turn-in directory is empty: {local_dir}", "err", "bold"))
-            print(t.c("Tip: Run `init` or `edit` first to create your starter file!", "accent"))
+            print(
+                t.c(
+                    "Tip: Run `init` or `edit` first to create your starter file!",
+                    "accent",
+                )
+            )
             return
         res = grade_subject(
             KIT_ROOT,
             f"exams/{self.current_assignment}",
             local_dir,
             is_exam=True,
-            strict=False,
+            strict=True,
             enforce_norm=self.norm_enabled,
+            reveal_tests=(self.trace_mode == "helpful"),
         )
         print(render_five_gate_scorecard(res, t, norm_enabled=self.norm_enabled))
         if res.passed:
-            print(t.c(f"\n[PRE-FLIGHT OK] All 5 Gates PASSED! Run `grademe` now to claim your points!", "ok", "bold"))
+            print(
+                t.c(
+                    "\n[PRE-FLIGHT OK] All 5 Gates PASSED! Run `grademe` now to claim your points!",
+                    "ok",
+                    "bold",
+                )
+            )
         else:
             print(t.c(f"\n[PRE-FLIGHT KO] Status: {res.status}", "err", "bold"))
             summary = res.format_exam_trace_summary()
@@ -2117,23 +2672,49 @@ class ExamShell(cmd.Cmd):
     def do_list(self, arg: str) -> None:
         """List all levels and candidate exercises in the current exam pool."""
         t = self.theme
-        print(t.c("=" * 80, "border"))
+        print(t.c(self._rule_line("="), "border"))
         print(t.c(f"  EXAM POOL LEVELS & CANDIDATES: {self.pool}", "primary", "bold"))
-        print(t.c("-" * 80, "border"))
+        print(t.c(self._rule_line("-"), "border"))
         for idx, lvl in enumerate(self.levels):
             lnum = lvl.get("level", idx)
             pts = lvl.get("points", round(100 / max(1, len(self.levels))))
-            raw_c = lvl.get("candidates") or lvl.get("subjects") or lvl.get("assignments") or []
+            raw_c = (
+                lvl.get("candidates")
+                or lvl.get("subjects")
+                or lvl.get("assignments")
+                or []
+            )
             c_names = [c["id"] if isinstance(c, dict) else str(c) for c in raw_c]
             marker = t.c(">>", "ok", "bold") if idx == self.current_idx else "  "
             formatted_c = [
-                t.c(f"[{c}]", "ok", "bold") if (idx == self.current_idx and c == self.current_assignment) else c
+                t.c(f"[{c}]", "ok", "bold")
+                if (idx == self.current_idx and c == self.current_assignment)
+                else c
                 for c in c_names
             ]
-            print(f"{marker} Level {lnum:<2} ({pts:>2} pts): {', '.join(formatted_c)}")
-        print(t.c("-" * 80, "border"))
-        print(t.c("Tip: Use `assign <slug>`, `level <N>`, or `reroll` to switch exercises.", "muted"))
-        print(t.c("=" * 80, "border"))
+            prefix = f"{marker} Level {lnum:<2} ({pts:>2} pts): "
+            indent = " " * visible_len(prefix)
+            cur_line = prefix
+            for idx_c, c_tok in enumerate(formatted_c):
+                sep = ", " if idx_c + 1 < len(formatted_c) else ""
+                piece = c_tok + sep
+                if (
+                    visible_len(cur_line) + visible_len(piece) > 79
+                    and cur_line != prefix
+                ):
+                    print(cur_line.rstrip())
+                    cur_line = indent + piece
+                else:
+                    cur_line += piece
+            print(cur_line.rstrip())
+        print(t.c(self._rule_line("-"), "border"))
+        print(
+            t.c(
+                "Tip: Use `assign <slug>`, `level <N>`, or `reroll` to switch exercises.",
+                "muted",
+            )
+        )
+        print(t.c(self._rule_line("="), "border"))
 
     def do_level(self, arg: str) -> None:
         """Jump directly to a specific level number (`level 0` .. `level N`)."""
@@ -2150,7 +2731,13 @@ class ExamShell(cmd.Cmd):
                 self.current_assignment = self._pick_assignment()
                 self._provision_subject_files(self.current_assignment)
                 self._save_session()
-                print(self.theme.c(f"Switched to Level {lvl.get('level', idx)}: {self.current_assignment}", "ok", "bold"))
+                print(
+                    self.theme.c(
+                        f"Switched to Level {lvl.get('level', idx)}: {self.current_assignment}",
+                        "ok",
+                        "bold",
+                    )
+                )
                 self.do_status("")
                 return
         print(f"Level {target_lvl} not found (valid range: 0..{len(self.levels) - 1}).")
@@ -2158,15 +2745,29 @@ class ExamShell(cmd.Cmd):
     def do_reroll(self, arg: str) -> None:
         """Draw a different random exercise from the current level."""
         lvl = self.levels[self.current_idx]
-        raw_list = lvl.get("assignments") or lvl.get("subjects") or lvl.get("exercises") or lvl.get("candidates") or []
+        raw_list = (
+            lvl.get("assignments")
+            or lvl.get("subjects")
+            or lvl.get("exercises")
+            or lvl.get("candidates")
+            or []
+        )
         candidates = [c["id"] if isinstance(c, dict) else str(c) for c in raw_list]
         others = [c for c in candidates if c != self.current_assignment]
-        self.current_assignment = random.choice(others) if others else self._pick_assignment()
+        self.current_assignment = (
+            random.choice(others) if others else self._pick_assignment()
+        )
         self.attempts = 0
         self._reset_cooldown()
         self._provision_subject_files(self.current_assignment)
         self._save_session()
-        print(self.theme.c(f"Rerolled Level {lvl['level']} assignment -> {self.current_assignment}", "ok", "bold"))
+        print(
+            self.theme.c(
+                f"Rerolled Level {lvl['level']} assignment -> {self.current_assignment}",
+                "ok",
+                "bold",
+            )
+        )
         self.do_status("")
 
     def do_next(self, arg: str) -> None:
@@ -2182,7 +2783,6 @@ class ExamShell(cmd.Cmd):
             print("Theme set to: plain")
             return
         if self.theme.set_theme(name):
-            self.theme.enabled = True
             self.prompt = self.theme.c("examshell> ", "primary", "bold")
             print(self.theme.c(f"Theme switched to '{name}'!", "ok", "bold"))
         else:
@@ -2193,7 +2793,13 @@ class ExamShell(cmd.Cmd):
         if arg.strip().lower() in {"norm", "norminette"}:
             self.norm_enabled = True
             self._save_session()
-            print(self.theme.c("[Norminette Gate] 42 Norm v3/v4 enforcement ENABLED for grademe.", "ok", "bold"))
+            print(
+                self.theme.c(
+                    "[Norminette Gate] 42 Norm v3/v4 enforcement ENABLED for grademe.",
+                    "ok",
+                    "bold",
+                )
+            )
         else:
             print("Usage: enable norm")
 
@@ -2202,7 +2808,13 @@ class ExamShell(cmd.Cmd):
         if arg.strip().lower() in {"norm", "norminette"}:
             self.norm_enabled = False
             self._save_session()
-            print(self.theme.c("[Norminette Gate] 42 Norm v3/v4 enforcement DISABLED (default exam mode).", "warn", "bold"))
+            print(
+                self.theme.c(
+                    "[Norminette Gate] 42 Norm v3/v4 enforcement DISABLED (default exam mode).",
+                    "warn",
+                    "bold",
+                )
+            )
         else:
             print("Usage: disable norm")
 
@@ -2229,8 +2841,10 @@ class ExamShell(cmd.Cmd):
         subprocess.run(
             [
                 "git",
-                "-c", f"user.name={self.login}",
-                "-c", f"user.email={self.login}@student.1337.ma",
+                "-c",
+                f"user.name={self.login}",
+                "-c",
+                f"user.email={self.login}@student.1337.ma",
                 "commit",
                 "-m",
                 f"Submit {self.current_assignment}",
@@ -2238,75 +2852,71 @@ class ExamShell(cmd.Cmd):
             cwd=self.rendu_dir,
             capture_output=True,
         )
-        p_push = subprocess.run(["git", "push", "origin", "master"], cwd=self.rendu_dir, capture_output=True, text=True)
+        p_push = subprocess.run(
+            ["git", "push", "origin", "master"],
+            cwd=self.rendu_dir,
+            capture_output=True,
+            text=True,
+        )
         if p_push.returncode != 0:
-            p_push = subprocess.run(["git", "push", "-u", "origin", "HEAD:master"], cwd=self.rendu_dir, capture_output=True, text=True)
+            p_push = subprocess.run(
+                ["git", "push", "-u", "origin", "HEAD:master"],
+                cwd=self.rendu_dir,
+                capture_output=True,
+                text=True,
+            )
         if p_push.returncode == 0:
-            print(t.c(f"[Vogsphere] Successfully pushed '{self.current_assignment}' from {self.rendu_dir}!", "ok", "bold"))
+            print(
+                t.c(
+                    f"[Vogsphere] Successfully pushed '{self.current_assignment}' from {self.rendu_dir}!",
+                    "ok",
+                    "bold",
+                )
+            )
         else:
             print(t.c(f"[Vogsphere] Push warning: {p_push.stderr.strip()}", "warn"))
 
-    def _apply_reference_solution(self) -> None:
-        self.last_exit_code = 2
-        print(
-            self.theme.c(
-                "Error: Reference solutions are strictly locked. Read 'subject' and debug from 'trace'.",
-                "err",
-                "bold",
-            )
-        )
-
-    def do_solve(self, arg: str) -> None:
-        """Reference solutions are strictly locked."""
-        self.last_exit_code = 2
-        if not self.practice:
-            print(self.theme.c("Error: Command 'solve' is restricted in normal exam mode.", "err", "bold"))
-            return
-        print(
-            self.theme.c(
-                "Error: Reference solutions are strictly locked. Read 'subject' and debug from 'trace'.",
-                "err",
-                "bold",
-            )
-        )
-
-    def do_solution(self, arg: str) -> None:
-        """Reference solutions are strictly locked."""
-        self.last_exit_code = 2
-        if not self.practice:
-            print(self.theme.c("Error: Command 'solution' is restricted in normal exam mode.", "err", "bold"))
-            return
-        print(
-            self.theme.c(
-                "Error: Reference solutions are strictly locked. Read 'subject' and debug from 'trace'.",
-                "err",
-                "bold",
-            )
-        )
-
     def do_run(self, arg: str) -> None:
+        """Compile your code in `rendu/<assignment>` and run it with custom arguments (`run "arg1" "arg2"`)."""
         if not self.practice:
             t = self.theme
-            print(t.c("  [examshell] 'run' is only available in practice mode (--mode practice).", "warn"))
+            print(
+                t.c(
+                    "  [examshell] 'run' is only available in practice mode (--mode practice).",
+                    "warn",
+                )
+            )
             return
-        """Compile your code in `rendu/<assignment>` and run it with custom arguments (`run "arg1" "arg2"`)."""
         import tempfile
+
         from deepthought.grader import has_main_definition
 
         t = self.theme
         local_dir = self.rendu_dir / self.current_assignment
         c_files = sorted(local_dir.glob("*.c")) if local_dir.is_dir() else []
         if not c_files:
-            print(t.c(f"No .c files found in {local_dir}. Run `init` or `edit` first!", "err", "bold"))
+            print(
+                t.c(
+                    f"No .c files found in {local_dir}. Run `init` or `edit` first!",
+                    "err",
+                    "bold",
+                )
+            )
             return
         if not any(has_main_definition(cf) for cf in c_files):
-            print(t.c(f"[run] '{self.current_assignment}' is a C function exercise (no main() in file) -> running 5-Gate test harness:", "accent"))
+            print(
+                t.c(
+                    f"[run] '{self.current_assignment}' is a C function exercise (no main() in file) -> running 5-Gate test harness:",
+                    "accent",
+                )
+            )
             self.do_check(arg)
             return
         try:
             user_args = shlex.split(arg)
         except ValueError:
             user_args = arg.split()
+
         def _cat_e(text: str) -> str:
             rendered = text.replace("\n", "$\n")
             return rendered[:-1] if rendered.endswith("\n") else rendered
@@ -2319,40 +2929,90 @@ class ExamShell(cmd.Cmd):
                     if p.is_file():
                         shutil.copy2(p, work / p.name)
                 subj_dir = KIT_ROOT / "subjects" / "exams" / self.current_assignment
-                for hf in subj_dir.glob("*.h"):
-                    if not (work / hf.name).exists():
-                        shutil.copy2(hf, work / hf.name)
+                for ext_pat in ("*.h", "*.hpp"):
+                    for hf in subj_dir.glob(ext_pat):
+                        if not (work / hf.name).exists():
+                            shutil.copy2(hf, work / hf.name)
+                if (subj_dir / "square.txt").is_file() and not (
+                    work / "square.txt"
+                ).exists():
+                    shutil.copy2(subj_dir / "square.txt", work / "square.txt")
                 exe = work / "user_run"
-                cmd_comp = ["cc", "-Wall", "-Wextra", "-Werror", *[p.name for p in c_files], "-o", str(exe)]
-                print(t.c(f"$> {' '.join(['cc', '-Wall', '-Wextra', '-Werror', *[p.name for p in c_files], '-o', self.current_assignment])}", "accent"))
+                cmd_comp = [
+                    "cc",
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    *[p.name for p in c_files],
+                    "-o",
+                    str(exe),
+                    "-lm",
+                ]
+                print(
+                    t.c(
+                        f"$> {' '.join(['cc', '-Wall', '-Wextra', '-Werror', *[p.name for p in c_files], '-o', self.current_assignment])}",
+                        "accent",
+                    )
+                )
                 # The compiler reads student-controlled input (e.g. `#include </dev/zero>`), so it gets the same bounds.
                 try:
-                    comp_rc, _comp_out, comp_err, comp_timed_out, comp_truncated = _run_bounded_subprocess(
-                        cmd_comp, cwd=work, timeout=RUN_COMPILE_TIMEOUT_S
+                    comp_rc, _comp_out, comp_err, comp_timed_out, comp_truncated = (
+                        _run_bounded_subprocess(
+                            cmd_comp, cwd=work, timeout=RUN_COMPILE_TIMEOUT_S
+                        )
                     )
                 except launch_errors as exc:
                     self.last_exit_code = 1
-                    print(t.c(f"[run] Could not launch the compiler: {exc}", "err", "bold"))
+                    print(
+                        t.c(
+                            f"[run] Could not launch the compiler: {exc}", "err", "bold"
+                        )
+                    )
                     return
                 if comp_timed_out or comp_truncated or comp_rc != 0:
                     self.last_exit_code = 1
                     print(t.c("Compilation failed:", "err", "bold"))
                     if comp_timed_out:
-                        print(t.c(f"Compiler timeout (> {RUN_COMPILE_TIMEOUT_S:.0f}s) — compiler killed.", "err", "bold"))
+                        print(
+                            t.c(
+                                f"Compiler timeout (> {RUN_COMPILE_TIMEOUT_S:.0f}s) — compiler killed.",
+                                "err",
+                                "bold",
+                            )
+                        )
                     elif comp_truncated:
-                        print(t.c(f"Compiler output limit (> {MAX_RUN_OUTPUT_BYTES // 1024} KB) — compiler killed.", "err", "bold"))
+                        print(
+                            t.c(
+                                f"Compiler output limit (> {MAX_RUN_OUTPUT_BYTES // 1024} KB) — compiler killed.",
+                                "err",
+                                "bold",
+                            )
+                        )
                     if comp_err.strip():
                         print(t.c(comp_err.rstrip(), "err"))
                     return
                 quoted = " ".join(shlex.quote(a) for a in user_args)
-                print(t.c(f"$> ./{self.current_assignment} {quoted} | cat -e".rstrip(), "accent"))
+                print(
+                    t.c(
+                        f"$> ./{self.current_assignment} {quoted} | cat -e".rstrip(),
+                        "accent",
+                    )
+                )
                 try:
-                    run_rc, run_out, run_err, timed_out, truncated = _run_bounded_subprocess(
-                        [str(exe), *user_args], cwd=work, timeout=2.0
+                    run_rc, run_out, run_err, timed_out, truncated = (
+                        _run_bounded_subprocess(
+                            [str(exe), *user_args], cwd=work, timeout=2.0
+                        )
                     )
                 except launch_errors as exc:
                     self.last_exit_code = 1
-                    print(t.c(f"[run] Could not execute the compiled program: {exc}", "err", "bold"))
+                    print(
+                        t.c(
+                            f"[run] Could not execute the compiled program: {exc}",
+                            "err",
+                            "bold",
+                        )
+                    )
                     return
                 if truncated or timed_out:
                     # Show the beginning of what was printed before the kill, then the reason.
@@ -2360,11 +3020,28 @@ class ExamShell(cmd.Cmd):
                     if run_out:
                         print(t.c(_cat_e(run_out[:RUN_PREVIEW_CHARS]), "ok"))
                         if len(run_out) > RUN_PREVIEW_CHARS:
-                            print(t.c(f"[... only the first {RUN_PREVIEW_CHARS} characters of the captured stdout are shown]", "muted"))
+                            print(
+                                t.c(
+                                    f"[... only the first {RUN_PREVIEW_CHARS} characters of the captured stdout are shown]",
+                                    "muted",
+                                )
+                            )
                     if truncated:
-                        print(t.c(f"Output limit (> {MAX_RUN_OUTPUT_BYTES // 1024} KB) — program killed, check for infinite print loops!", "err", "bold"))
+                        print(
+                            t.c(
+                                f"Output limit (> {MAX_RUN_OUTPUT_BYTES // 1024} KB) — program killed, check for infinite print loops!",
+                                "err",
+                                "bold",
+                            )
+                        )
                     else:
-                        print(t.c("Timeout (> 2.0s) — check for infinite loops!", "err", "bold"))
+                        print(
+                            t.c(
+                                "Timeout (> 2.0s) — check for infinite loops!",
+                                "err",
+                                "bold",
+                            )
+                        )
                     return
                 cat_e_out = _cat_e(run_out)
                 if cat_e_out:
@@ -2379,7 +3056,6 @@ class ExamShell(cmd.Cmd):
             self.last_exit_code = 130
             print(t.c("[run] Interrupted (^C) — program killed.", "warn", "bold"))
 
-
     def do_grademe(self, arg: str) -> None:
         """Clone strictly from the bare Vogsphere repository and run Deepthought grading (`grademe [--now]`)."""
         t = self.theme
@@ -2388,11 +3064,23 @@ class ExamShell(cmd.Cmd):
             self.lifecycle_state = "expired"
             self.last_exit_code = 1
             self._save_session()
-            print(t.c("Error: Exam time has expired. Grading submissions are no longer accepted.", "err", "bold"))
+            print(
+                t.c(
+                    "Error: Exam time has expired. Grading submissions are no longer accepted.",
+                    "err",
+                    "bold",
+                )
+            )
             return
         if self.lifecycle_state in {"passed", "abandoned", "failed"}:
             self.last_exit_code = 1
-            print(t.c(f"Error: Exam session is already '{self.lifecycle_state}'. Cannot grade further.", "err", "bold"))
+            print(
+                t.c(
+                    f"Error: Exam session is already '{self.lifecycle_state}'. Cannot grade further.",
+                    "err",
+                    "bold",
+                )
+            )
             return
 
         flags = arg.strip().lower().split()
@@ -2411,26 +3099,37 @@ class ExamShell(cmd.Cmd):
 
         rem_wait = self._cooldown_remaining()
         if rem_wait > 0:
-            total_pen = max(rem_wait, self.last_penalty_sec or (max(1, self.attempts) * self.cooldown_step))
-            s1 = self._format_cooldown_short(self.cooldown_step)
-            s2 = self._format_cooldown_short(self.cooldown_step * 2)
-            s3 = self._format_cooldown_short(self.cooldown_step * 3)
-            s4 = self._format_cooldown_short(self.cooldown_step * 4)
+            total_pen = max(
+                rem_wait,
+                self.last_penalty_sec
+                or self._cooldown_penalty_for_attempt(max(1, self.attempts)),
+            )
+            (s1, s2, s3, s4), scale_desc = self._cooldown_scale_labels()
+
             def _build_cd_panel(cur_left: int) -> list[str]:
+                formula = (
+                    f"{self.cooldown_base}s × 2^{max(0, self.attempts - 1)}"
+                    if self.cooldown_mode == "real"
+                    else f"{self.cooldown_step}s × {max(1, self.attempts)}"
+                )
                 cd_rows = [
-                    f"{t.secondary('Assignment      ')} : {t.primary(self.current_assignment)} (Failed attempts on this exercise: {t.warn(str(self.attempts))})",
-                    f"{t.secondary('Current Penalty ')} : {t.warn(self._format_cooldown_human(total_pen))} ({self.cooldown_step}s × {max(1, self.attempts)})",
-                    f"{t.secondary('Remaining Wait  ')} : {t.bold(self._format_cooldown_human(cur_left))}",
-                    f"{t.secondary('Penalty Scale   ')} : Fail #1 = {s1} -> Fail #2 = {s2} -> Fail #3 = {s3} -> Fail #4 = {s4} (+{self.cooldown_step}s each fail)",
-                    f"{t.secondary('Auto-Reset      ')} : Passing the exercise automatically resets the cooldown timer to {t.ok('0s')}!",
+                    f"{t.secondary('Assignment  ')} : {t.primary(self.current_assignment)} (fails: {t.warn(str(self.attempts))})",
+                    f"{t.secondary('Penalty     ')} : {t.warn(self._format_cooldown_human(total_pen))} ({formula})",
+                    f"{t.secondary('Remaining   ')} : {t.bold(self._format_cooldown_human(cur_left))}",
+                    f"{t.secondary('Scale       ')} : {s1} -> {s2} -> {s3} -> {s4} ({scale_desc})",
+                    f"{t.secondary('Auto-Reset  ')} : Passing resets the cooldown timer to {t.ok('0s')}.",
                 ]
-                return t.box_panel("⏳ GRADING COOLDOWN ACTIVE", cd_rows, border_color="warn").splitlines()
+                return t.box_panel(
+                    "⏳ GRADING COOLDOWN ACTIVE", cd_rows, border_color="warn"
+                ).splitlines()
 
             if self._viewport_active and is_interactive_tty():
                 fd = sys.stdin.fileno()
                 old_attrs = termios.tcgetattr(fd)
                 new_attrs = list(old_attrs)
-                new_attrs[3] = new_attrs[3] & ~(termios.ICANON | termios.ECHO | termios.ISIG)
+                new_attrs[3] = new_attrs[3] & ~(
+                    termios.ICANON | termios.ECHO | termios.ISIG
+                )
                 try:
                     termios.tcsetattr(fd, termios.TCSADRAIN, new_attrs)
                     while True:
@@ -2438,8 +3137,14 @@ class ExamShell(cmd.Cmd):
                         if left <= 0:
                             break
                         m, s = divmod(left, 60)
-                        pbar = t.progress_bar(total_pen - left, float(total_pen), width=18)
-                        hint_s = "(Press Ctrl+C to return to prompt & use `check`)" if self.practice else "(Press Ctrl+C to return to prompt)"
+                        pbar = t.progress_bar(
+                            total_pen - left, float(total_pen), width=18
+                        )
+                        hint_s = (
+                            "(Press Ctrl+C to return to prompt & use `check`)"
+                            if self.practice
+                            else "(Press Ctrl+C to return to prompt)"
+                        )
                         prog_line = f"  {t.warn('⏳ Cooldown:')} {pbar} {t.bold(f'{m:02d}:{s:02d}')} remaining {t.muted(hint_s)}"
                         self._content_lines = [*_build_cd_panel(left), "", prog_line]
                         self._render_shell_viewport()
@@ -2450,16 +3155,33 @@ class ExamShell(cmd.Cmd):
                     self.last_exit_code = 130
                     left_now = self._cooldown_remaining()
                     print("\n".join(_build_cd_panel(left_now)))
-                    print(t.c(f"  [Cooldown] Paused wait ({self._format_cooldown_human(left_now)} left in background).", "warn", "bold"))
+                    print(
+                        t.c(
+                            f"  [Cooldown] Paused wait ({self._format_cooldown_human(left_now)} left in background).",
+                            "warn",
+                            "bold",
+                        )
+                    )
                     if self.practice:
-                        print(t.c("  Tip: Use `check` or `run` right now with 0s wait, or `cooldown reset` / `grademe --now` to skip wait.", "muted"))
+                        print(
+                            t.c(
+                                "  Tip: Use `check` or `run` right now with 0s wait, or `cooldown reset` / `grademe --now` to skip wait.",
+                                "muted",
+                            )
+                        )
                     return
                 finally:
                     try:
                         termios.tcsetattr(fd, termios.TCSADRAIN, old_attrs)
                     except Exception:
                         pass
-                print(t.c("  ✓ Cooldown complete! Proceeding with official Deepthought grading...", "ok", "bold"))
+                print(
+                    t.c(
+                        "  ✓ Cooldown complete! Proceeding with official Deepthought grading...",
+                        "ok",
+                        "bold",
+                    )
+                )
             else:
                 print("\n".join(_build_cd_panel(rem_wait)))
                 if sys.stdin.isatty() or "--wait" in flags:
@@ -2469,32 +3191,71 @@ class ExamShell(cmd.Cmd):
                             if left <= 0:
                                 break
                             m, s = divmod(left, 60)
-                            pbar = t.progress_bar(total_pen - left, float(total_pen), width=18)
-                            prompt_hint = "(Press Ctrl+C to return to prompt & use `check`)" if self.practice else "(Press Ctrl+C to return to prompt)"
+                            pbar = t.progress_bar(
+                                total_pen - left, float(total_pen), width=18
+                            )
+                            prompt_hint = (
+                                "(Press Ctrl+C to return to prompt & use `check`)"
+                                if self.practice
+                                else "(Press Ctrl+C to return to prompt)"
+                            )
                             line = f"\r  {t.warn('⏳ Cooldown:')} {pbar} {t.bold(f'{m:02d}:{s:02d}')} remaining {t.muted(prompt_hint)}   "
                             sys.stdout.write(line)
                             sys.stdout.flush()
                             time.sleep(1)
                         sys.stdout.write("\r" + (" " * 96) + "\r")
                         sys.stdout.flush()
-                        print(t.c("  ✓ Cooldown complete! Proceeding with official Deepthought grading...", "ok", "bold"))
+                        print(
+                            t.c(
+                                "  ✓ Cooldown complete! Proceeding with official Deepthought grading...",
+                                "ok",
+                                "bold",
+                            )
+                        )
                     except KeyboardInterrupt:
                         self.last_exit_code = 130
                         sys.stdout.write("\n")
                         sys.stdout.flush()
                         left_now = self._cooldown_remaining()
-                        print(t.c(f"  [Cooldown] Paused wait ({self._format_cooldown_human(left_now)} left in background).", "warn", "bold"))
+                        print(
+                            t.c(
+                                f"  [Cooldown] Paused wait ({self._format_cooldown_human(left_now)} left in background).",
+                                "warn",
+                                "bold",
+                            )
+                        )
                         if self.practice:
-                            print(t.c("  Tip: Use `check` or `run` right now with 0s wait, or `cooldown reset` / `grademe --now` to skip wait.", "muted"))
+                            print(
+                                t.c(
+                                    "  Tip: Use `check` or `run` right now with 0s wait, or `cooldown reset` / `grademe --now` to skip wait.",
+                                    "muted",
+                                )
+                            )
                         return
                 else:
                     # Piped / `-c` execution: never block on the timer and never grade through an active cooldown.
                     self.last_exit_code = 1
-                    print(t.c(f"  [Cooldown] 'grademe' refused: {self._format_cooldown_human(rem_wait)} left. Other commands still work.", "err", "bold"))
+                    print(
+                        t.c(
+                            f"  [Cooldown] 'grademe' refused: {self._format_cooldown_human(rem_wait)} left. Other commands still work.",
+                            "err",
+                            "bold",
+                        )
+                    )
                     if self.practice:
-                        print(t.c("  Tip: Use `check` or `run` meanwhile, `grademe --wait` to block until it ends, or `grademe --now` to skip it.", "muted"))
+                        print(
+                            t.c(
+                                "  Tip: Use `check` or `run` meanwhile, `grademe --wait` to block until it ends, or `grademe --now` to skip it.",
+                                "muted",
+                            )
+                        )
                     else:
-                        print(t.c("  Tip: Use `grademe --wait` to block until the cooldown ends.", "muted"))
+                        print(
+                            t.c(
+                                "  Tip: Use `grademe --wait` to block until the cooldown ends.",
+                                "muted",
+                            )
+                        )
                     return
 
         lvl = self.levels[self.current_idx]
@@ -2511,7 +3272,13 @@ class ExamShell(cmd.Cmd):
         ]
         if is_interactive_tty() and self._viewport_active:
             try:
-                confirm = self._prompt_in_viewport("Are you sure? [y/N]: ", extra_lines=pre_lines).strip().lower()
+                confirm = (
+                    self._prompt_in_viewport(
+                        "Are you sure? [y/N]: ", extra_lines=pre_lines
+                    )
+                    .strip()
+                    .lower()
+                )
             except (EOFError, KeyboardInterrupt):
                 print("Grading request cancelled.")
                 return
@@ -2541,17 +3308,31 @@ class ExamShell(cmd.Cmd):
         print("")
         print(t.c("We will now wait for the job to complete.", "muted"))
         print(t.c("Please be patient, this CAN take several minutes...", "muted"))
-        print(t.c("(10 seconds is fast, 30 seconds is expected, 3 minutes is a maximum)", "muted"))
+        print(
+            t.c(
+                "(10 seconds is fast, 30 seconds is expected, 3 minutes is a maximum)",
+                "muted",
+            )
+        )
         print(t.c("waiting...", "muted"))
 
         while True:
             has_push, pushed_dir = collect_pushed_files(self.vogsphere_dir)
-            cleanup_root = pushed_dir.parent if pushed_dir.name == "repo" else pushed_dir
+            cleanup_root = (
+                pushed_dir.parent if pushed_dir.name == "repo" else pushed_dir
+            )
             try:
                 submit_path = pushed_dir / self.current_assignment
 
                 git_log_proc = subprocess.run(
-                    ["git", f"--git-dir={self.vogsphere_dir}", "log", "--stat", "-n", "5"],
+                    [
+                        "git",
+                        f"--git-dir={self.vogsphere_dir}",
+                        "log",
+                        "--stat",
+                        "-n",
+                        "5",
+                    ],
                     text=True,
                     capture_output=True,
                 )
@@ -2561,7 +3342,11 @@ class ExamShell(cmd.Cmd):
                     git_log_text = "No commits pushed to vogsphere bare repository."
 
                 # STRICT VOGSPHERE ENFORCEMENT: Do NOT fall back to unpushed local files in rendu/!
-                target_dir = submit_path if (has_push and submit_path.exists()) else (pushed_dir / "__missing_submission__")
+                target_dir = (
+                    submit_path
+                    if (has_push and submit_path.exists())
+                    else (pushed_dir / "__missing_submission__")
+                )
                 if not has_push and target_dir.exists():
                     shutil.rmtree(target_dir)
                 try:
@@ -2570,9 +3355,10 @@ class ExamShell(cmd.Cmd):
                         f"exams/{self.current_assignment}",
                         target_dir,
                         is_exam=True,
-                        strict=False,
+                        strict=True,
                         git_log_text=git_log_text,
                         enforce_norm=self.norm_enabled,
+                        reveal_tests=(self.trace_mode == "helpful"),
                     )
                 except FileNotFoundError:
                     from deepthought.grader import build_deepthought_header
@@ -2587,29 +3373,55 @@ class ExamShell(cmd.Cmd):
                         f"{hdr}\n$> ls -la {self.current_assignment}\n"
                         f"ls: {self.current_assignment}: No such file or directory\nNothing turned in\nGrade: 0"
                     )
-                    result = GradeReport(self.current_assignment, False, "Nothing turned in", "Nothing turned in", fallback_trace, "", {})
+                    result = GradeReport(
+                        self.current_assignment,
+                        False,
+                        "Nothing turned in",
+                        "Nothing turned in",
+                        fallback_trace,
+                        "",
+                        {},
+                    )
                 break
             except Exception as exc:
                 print(t.c(">>>>>>>>>> ERROR <<<<<<<<<<", "err", "bold"))
-                print(f"There was an error during the grading job! Specifically:\n  {exc}")
-                print('You can choose to "retry" the grading job, or to "abort" it (draw a new assignment at the same level with no penalty).')
+                print(
+                    f"There was an error during the grading job! Specifically:\n  {exc}"
+                )
+                print(
+                    'You can choose to "retry" the grading job, or to "abort" it (draw a new assignment at the same level with no penalty).'
+                )
                 if not sys.stdin.isatty():
                     return
                 try:
-                    choice = self._prompt_confirm_line("Action [retry/abort]: ").strip().lower()
+                    choice = (
+                        self._prompt_confirm_line("Action [retry/abort]: ")
+                        .strip()
+                        .lower()
+                    )
                 except (EOFError, KeyboardInterrupt):
                     return
                 if choice.startswith("a"):
                     lvl_cands = lvl.get("candidates", [])
-                    others = [c for c in lvl_cands if c != self.current_assignment] or lvl_cands
+                    others = [
+                        c for c in lvl_cands if c != self.current_assignment
+                    ] or lvl_cands
                     self.current_assignment = random.choice(others)
                     self._provision_subject_files(self.current_assignment)
                     self._save_session()
-                    print(t.c(f"Current assignment aborted without penalty. New assignment for level {lvl['level']}: {self.current_assignment}", "ok", "bold"))
+                    print(
+                        t.c(
+                            f"Current assignment aborted without penalty. New assignment for level {lvl['level']}: {self.current_assignment}",
+                            "ok",
+                            "bold",
+                        )
+                    )
                     return
                 print(t.c("Retrying grading job...", "primary"))
             finally:
-                if cleanup_root.exists() and cleanup_root.name.startswith("vogsphere_pull_"):
+                if cleanup_root.exists() and cleanup_root.name.startswith(
+                    "vogsphere_pull_"
+                ):
                     shutil.rmtree(cleanup_root, ignore_errors=True)
 
         full_trace_text = result.trace
@@ -2620,14 +3432,18 @@ class ExamShell(cmd.Cmd):
         trace_path.write_text(full_trace_text, encoding="utf-8")
         alias_trace = self.traces_dir / f"0-0_{self.current_assignment}.trace"
         alias_trace.write_text(full_trace_text, encoding="utf-8")
-        level_slug_trace = self.traces_dir / f"{lvl['level']}-{self.current_assignment}.trace"
+        level_slug_trace = (
+            self.traces_dir / f"{lvl['level']}-{self.current_assignment}.trace"
+        )
         level_slug_trace.write_text(full_trace_text, encoding="utf-8")
         self.attempts += 1
 
         if result.passed:
             self._reset_cooldown()
             self.grade = min(100, self.grade + pts)
-            self.history.append(f"Level {lvl['level']} [{self.current_assignment}]: {result.status} (+{pts} pts)")
+            self.history.append(
+                f"Level {lvl['level']} [{self.current_assignment}]: {result.status} (+{pts} pts)"
+            )
             self.level_records.append(
                 {
                     "level": lvl["level"],
@@ -2641,7 +3457,9 @@ class ExamShell(cmd.Cmd):
             print(t.c(f"You have passed assignment '{self.current_assignment}'!", "ok"))
             print(f"Your new grade is: {self.grade} / 100")
             print(f">>> RESULT: {result.status} — Grade: {self.grade}/100 <<<")
-            print(f"Trace saved to {t.c(f'~/exam-basedir/traces/{trace_name}', 'info')}")
+            print(
+                f"Trace saved to {t.c(f'~/exam-basedir/traces/{trace_name}', 'info')}"
+            )
             print(t.c("✓ Grading cooldown timer has been reset to 0s!", "ok"))
             p_prof = load_student_profile(self.login)
             if p_prof.mark_validated(f"exams/{self.current_assignment}"):
@@ -2652,14 +3470,24 @@ class ExamShell(cmd.Cmd):
                 self.attempts = 0
                 self.current_assignment = self._pick_assignment()
                 self._provision_subject_files(self.current_assignment)
-                print(f"Advancing to Level {self.levels[self.current_idx]['level']}: {self.current_assignment}")
+                print(
+                    f"Advancing to Level {self.levels[self.current_idx]['level']}: {self.current_assignment}"
+                )
             else:
                 self.grade = 100
                 self.lifecycle_state = "passed"
-                print(t.c("CONGRATULATIONS! You have completed all levels of this exam (100/100)!", "ok", "bold"))
+                print(
+                    t.c(
+                        "CONGRATULATIONS! You have completed all levels of this exam (100/100)!",
+                        "ok",
+                        "bold",
+                    )
+                )
         else:
             self.last_exit_code = 1
-            self.history.append(f"Level {lvl['level']} [{self.current_assignment}]: {result.status} (attempt {self.attempts})")
+            self.history.append(
+                f"Level {lvl['level']} [{self.current_assignment}]: {result.status} (attempt {self.attempts})"
+            )
             self.level_records.append(
                 {
                     "level": lvl["level"],
@@ -2671,24 +3499,30 @@ class ExamShell(cmd.Cmd):
             )
             print(t.c(">>>>>>>>>> FAILURE <<<<<<<<<<", "err", "bold"))
             print(t.c("You have failed the assignment.", "err"))
-            detail_s = f" ({result.reason})" if result.reason and result.reason != result.status else ""
-            print(f">>> RESULT: {result.status}{detail_s} — Grade remains {self.grade}/100 <<<")
+            detail_s = (
+                f" ({result.reason})"
+                if result.reason and result.reason != result.status
+                else ""
+            )
+            print(
+                f">>> RESULT: {result.status}{detail_s} — Grade remains {self.grade}/100 <<<"
+            )
             if summary_block:
                 clean_summary = "\n".join(
-                    ln for ln in summary_block.splitlines()
+                    ln
+                    for ln in summary_block.splitlines()
                     if not ln.strip().startswith(">>>>>>>>>> FAILURE")
                 )
                 if clean_summary.strip():
                     print(clean_summary)
-            print(f"Trace saved to {t.c(f'~/exam-basedir/traces/{trace_name}', 'info')}")
+            print(
+                f"Trace saved to {t.c(f'~/exam-basedir/traces/{trace_name}', 'info')}"
+            )
             if self.cooldown_enabled:
-                penalty_sec = self.attempts * self.cooldown_step
+                penalty_sec = self._cooldown_penalty_for_attempt(self.attempts)
                 self.last_penalty_sec = penalty_sec
                 self.next_grademe_ts = self._now_ts() + penalty_sec
-                s1 = self._format_cooldown_short(self.cooldown_step)
-                s2 = self._format_cooldown_short(self.cooldown_step * 2)
-                s3 = self._format_cooldown_short(self.cooldown_step * 3)
-                s4 = self._format_cooldown_short(self.cooldown_step * 4)
+                (s1, s2, s3, s4), scale_desc = self._cooldown_scale_labels()
                 print(
                     t.c(
                         f"⏳ [COOLDOWN PENALTY]: Fail #{self.attempts} -> You must wait {self._format_cooldown_human(penalty_sec)} before your next `grademe`.",
@@ -2698,7 +3532,7 @@ class ExamShell(cmd.Cmd):
                 )
                 print(
                     t.c(
-                        f"   Penalty Scale : 1st fail = {s1} -> 2nd fail = {s2} -> 3rd fail = {s3} -> 4th fail = {s4} (+{self.cooldown_step}s each fail, resets to 0s on pass)",
+                        f"   Penalty Scale : 1st fail = {s1} -> 2nd fail = {s2} -> 3rd fail = {s3} -> 4th fail = {s4} ({scale_desc}, resets to 0s on pass)",
                         "muted",
                     )
                 )
@@ -2710,30 +3544,97 @@ class ExamShell(cmd.Cmd):
             self.do_status("")
 
     def do_trace(self, arg: str) -> None:
-        """Print the most recent Deepthought trace file with syntax coloring."""
-        traces = sorted(self.traces_dir.glob("*.trace"), key=lambda p: p.stat().st_mtime)
+        """Print the last Deepthought trace, or switch trace detail mode (`trace mode [real|helpful]` / `trace-mode [real|helpful]`)."""
+        toks = arg.strip().split()
+        if toks and toks[0].lower() == "mode":
+            new_tm, err_tm = parse_trace_mode_arg(arg)
+            if err_tm:
+                self.last_exit_code = 2
+                print(self.theme.c(err_tm, "warn", "bold"))
+                return
+            if new_tm:
+                self.trace_mode = new_tm
+                self._save_session()
+                desc = (
+                    "42 real (hidden c_function inputs/diffs)"
+                    if new_tm == "real"
+                    else "helpful (unified diffs shown)"
+                )
+                print(
+                    self.theme.c(
+                        f"✓ Trace mode set to '{self.trace_mode}' — {desc}.",
+                        "ok",
+                        "bold",
+                    )
+                )
+                return
+            desc = (
+                "42 real (hidden diffs)"
+                if self.trace_mode == "real"
+                else "helpful (unified diffs)"
+            )
+            print(
+                self.theme.c(
+                    f"Trace mode: {self.trace_mode} ({desc}). Switch: trace-mode [real|helpful]",
+                    "info",
+                )
+            )
+            return
+        traces = sorted(
+            self.traces_dir.glob("*.trace"), key=lambda p: p.stat().st_mtime
+        )
         if not traces:
-            print(self.theme.c("No traces available yet. Run `check` or `grademe` first.", "warn"))
+            print(
+                self.theme.c(
+                    "No traces available yet. Run `check` or `grademe` first.", "warn"
+                )
+            )
             return
         raw_trace = traces[-1].read_text(encoding="utf-8", errors="replace")
         print(self.theme.colorize_trace(raw_trace))
 
     def do_diff(self, arg: str) -> None:
         """Show the unified diff from the most recent failed trace."""
-        traces = sorted(self.traces_dir.glob("*.trace"), key=lambda p: p.stat().st_mtime)
+        traces = sorted(
+            self.traces_dir.glob("*.trace"), key=lambda p: p.stat().st_mtime
+        )
         if not traces:
-            print(self.theme.c("No traces available yet. Run `check` or `grademe` first.", "warn"))
+            print(
+                self.theme.c(
+                    "No traces available yet. Run `check` or `grademe` first.", "warn"
+                )
+            )
             return
         raw_trace = traces[-1].read_text(encoding="utf-8", errors="replace")
         diff_lines = [
-            line for line in raw_trace.splitlines()
-            if line.startswith(("---", "+++", "@@", "-", "+", "$> ./", "$> diff", "Diff ", "Expected", "Actual", "Status :", "Detail :"))
+            line
+            for line in raw_trace.splitlines()
+            if line.startswith(
+                (
+                    "---",
+                    "+++",
+                    "@@",
+                    "-",
+                    "+",
+                    "$> ./",
+                    "$> diff",
+                    "Diff ",
+                    "Expected",
+                    "Actual",
+                    "Status :",
+                    "Detail :",
+                )
+            )
         ]
         if not diff_lines:
             print(self.theme.colorize_trace("\n".join(raw_trace.splitlines()[-25:])))
             return
         colored = self.theme.colorize_trace("\n".join(diff_lines)).splitlines()
-        print(self.theme.box_panel(f"LAST TRACE DIFF — {traces[-1].name}", colored, border_color="primary"))
+        print(
+            self.theme.box_panel(
+                f"LAST TRACE DIFF — {traces[-1].name}", colored, border_color="primary"
+            )
+        )
 
     def do_tool(self, arg: str) -> None:
         """Alias for `tools`."""
@@ -2744,17 +3645,32 @@ class ExamShell(cmd.Cmd):
         g_file = KIT_ROOT / "docs" / "examGUIDELINES.md"
         if g_file.is_file():
             raw = g_file.read_text(encoding="utf-8", errors="replace").rstrip()
-            print(self.theme.box_panel("OFFICIAL 42 EXAM GENERAL & CODING GUIDELINES", raw.splitlines(), border_color="primary"))
+            wrapped_rows: list[str] = []
+            for ln in raw.splitlines():
+                wrapped_rows.extend(textwrap.wrap(ln, width=74) or [""])
+            print(
+                self.theme.box_panel(
+                    "OFFICIAL 42 EXAM GENERAL & CODING GUIDELINES",
+                    wrapped_rows,
+                    border_color="primary",
+                )
+            )
         else:
             rows = [
-                "1. Pure C only (except shell exercises). Respect exact file/directory/function names.",
-                "2. Turn in files inside ~/exam-basedir/rendu/<assignment>/ and push to Vogsphere before grademe.",
-                "3. Programs with explicit files compile with: clang -Wall -Wextra -Werror file1.c ... -o program_name",
-                "4. Programs with *.c *.h compile with:        clang -Wall -Wextra -Werror *.c -o program_name",
-                "5. Single functions compile with:             clang -c -Wall -Wextra -Werror yourfile.c (linked with Deepthought main.c)",
-                "6. Any function not listed in Allowed functions is strictly forbidden (Cheating: -42).",
+                "1. Pure C only (except shell). Respect exact file/function names.",
+                "2. Turn in files in ~/exam-basedir/rendu/<slug>/ and push first.",
+                "3. Explicit files: clang -Wall -Wextra -Werror f1.c -o prog",
+                "4. Wildcard files: clang -Wall -Wextra -Werror *.c -o prog",
+                "5. Single func:    clang -c -Wall -Wextra -Werror f.c (with main.c)",
+                "6. Unlisted functions are forbidden (Cheating: -42).",
             ]
-            print(self.theme.box_panel("OFFICIAL 42 EXAM GENERAL & CODING GUIDELINES", rows, border_color="primary"))
+            print(
+                self.theme.box_panel(
+                    "OFFICIAL 42 EXAM GENERAL & CODING GUIDELINES",
+                    rows,
+                    border_color="primary",
+                )
+            )
 
     def do_rules(self, arg: str) -> None:
         """Alias for `guidelines`."""
@@ -2771,7 +3687,13 @@ class ExamShell(cmd.Cmd):
         if topic and topic not in {"all", "tools", "extra"}:
             if not self.practice and topic not in NORMAL_MODE_ALLOWLIST:
                 self.last_exit_code = 2
-                print(t.c(f"Error: Help topic '{topic}' is restricted in normal exam mode. Available commands: status, grademe, finish, tools (or subject, trace, logs, time, clean, clear, help).", "err", "bold"))
+                print(
+                    t.c(
+                        f"Error: Help topic '{topic}' is restricted in normal exam mode. Available commands: status, grademe, finish, tools (or subject, trace, logs, time, clean, clear, help).",
+                        "err",
+                        "bold",
+                    )
+                )
                 return
             fn = getattr(self, f"do_{topic}", None)
             if fn and fn.__doc__:
@@ -2779,48 +3701,65 @@ class ExamShell(cmd.Cmd):
                     f"{t.secondary('Command')} : {t.cmd(topic)}",
                     f"{t.secondary('Usage  ')} : {fn.__doc__.strip()}",
                 ]
-                print(t.box_panel(f"HELP — {topic.upper()}", lines, border_color="primary"))
+                print(
+                    t.box_panel(
+                        f"HELP — {topic.upper()}", lines, border_color="primary"
+                    )
+                )
                 return
             super().do_help(arg)
             return
 
         rows = [
             t.bold("Core Exam Commands (Official 42 ExamShell):"),
-            f"  {t.accent('status'):<18} Display current level, grade, assignment history, and remaining time",
-            f"  {t.accent('grademe'):<18} Push check & submit your current assignment to Deepthought",
-            f"  {t.accent('finish'):<18} End your exam session and record final score",
+            f"  {pad_visible(t.accent('status'), 16)} Display level, grade, history, and remaining time",
+            f"  {pad_visible(t.accent('grademe'), 16)} Push check & submit current exercise to Deepthought",
+            f"  {pad_visible(t.accent('finish'), 16)} End exam session and record final score",
             "",
             t.bold("Extra Helper Commands (Convenience Tools):"),
-            f"  {t.accent('subject [--pager]'):<18} Display the current assignment subject.en.txt",
-            f"  {t.accent('trace [--pager]'):<18} Display the Deepthought trace & diff of your last grademe",
-            f"  {t.accent('logs [file]'):<18} List or read saved trace files in ~/exam-basedir/traces/",
-            f"  {t.accent('time'):<18} Display session clock, remaining time, and cooldown timer",
-            f"  {t.accent('history'):<18} Display chronological history of your grademe attempts",
-            f"  {t.accent('clean'):<18} Remove compiled binaries/temp files (a.out, *.o) from rendu/",
-            f"  {t.accent('clear'):<18} Clear terminal screen and redraw status",
-            f"  {t.accent('more'):<18} Open interactive scrollable pager (j/k/Space/q) on long output",
-            f"  {t.accent('guidelines'):<18} Display official 42 Exam General & Coding Guidelines",
+            f"  {pad_visible(t.accent('subject'), 16)} Display current assignment subject.en.txt",
+            f"  {pad_visible(t.accent('trace'), 16)} Display Deepthought trace of last grademe",
+            f"  {pad_visible(t.accent('trace-mode'), 16)} Switch trace mode ('real' 42 vs 'helpful' diffs)",
+            f"  {pad_visible(t.accent('logs'), 16)} Display Vogsphere & session setup diagnostics",
+            f"  {pad_visible(t.accent('time'), 16)} Display session clock, remaining time & cooldown",
+            f"  {pad_visible(t.accent('history'), 16)} Display command and grading attempt history",
+            f"  {pad_visible(t.accent('clean'), 16)} Remove compiled artifacts (a.out, *.o) in rendu/",
+            f"  {pad_visible(t.accent('clear'), 16)} Clear terminal screen and redraw status",
+            f"  {pad_visible(t.accent('more'), 16)} Open scrollable pager (j/k/Space/q) on output",
+            f"  {pad_visible(t.accent('guidelines'), 16)} Display 42 Exam General & Coding Guidelines",
         ]
         if self.practice:
             rows.extend(
                 [
                     "",
                     t.bold("Practice Mode Commands (--practice only):"),
-                    f"  {t.ok('check / test'):<18} Instant local Moulinette test (0s cooldown, no git push needed)",
-                    f"  {t.ok('run [args...]'):<18} Compile and run your code with custom arguments",
-                    f"  {t.ok('edit [editor]'):<18} Open current assignment in your editor ($EDITOR / vim)",
-                    f"  {t.ok('push'):<18} Auto-stage, commit, and push rendu/ to Vogsphere",
-                    f"  {t.ok('skip / reroll'):<18} Advance level or draw another assignment at current level",
-                    f"  {t.ok('cooldown reset'):<18} Reset grading cooldown timer to 0s",
+                    f"  {pad_visible(t.ok('init'), 16)} Scaffold starter files in rendu/<assignment>/",
+                    f"  {pad_visible(t.ok('check / test'), 16)} Local 5-Gate check (0s wait, no push needed)",
+                    f"  {pad_visible(t.ok('run [args]'), 16)} Compile and run your code with custom args",
+                    f"  {pad_visible(t.ok('edit [ed]'), 16)} Open current assignment in $EDITOR / vim",
+                    f"  {pad_visible(t.ok('push'), 16)} Stage, commit, and push rendu/ to Vogsphere",
+                    f"  {pad_visible(t.ok('assign <slug>'), 16)} Switch current assignment in practice mode",
+                    f"  {pad_visible(t.ok('reroll / level'), 16)} Draw another exercise or jump to level N",
+                    f"  {pad_visible(t.ok('cooldown'), 16)} Reset or configure cooldown (mode real|linear)",
                 ]
             )
-        print(t.box_panel("EXAMSHELL COMMANDS (CORE + EXTRA TOOLS)", rows, border_color="primary"))
+        print(
+            t.box_panel(
+                "EXAMSHELL COMMANDS (CORE + EXTRA TOOLS)", rows, border_color="primary"
+            )
+        )
 
     def do_assign(self, arg: str) -> None:
         """Set or switch the current assignment slug (e.g., 'assign ft_strlen' or 'assign ft_split')."""
         if not self.practice:
             self.last_exit_code = 2
-            print(self.theme.c("Error: Command 'assign' is restricted in normal exam mode.", "err", "bold"))
+            print(
+                self.theme.c(
+                    "Error: Command 'assign' is restricted in normal exam mode.",
+                    "err",
+                    "bold",
+                )
+            )
             return
         slug = arg.strip()
         if not slug:
@@ -2838,28 +3777,41 @@ class ExamShell(cmd.Cmd):
         print(f"Current assignment set to: {slug}")
         self.do_status("")
 
-    def complete_assign(self, text: str, line: str, begidx: int, endidx: int) -> List[str]:
+    def complete_assign(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
+        """Return exercise slug completions in practice mode."""
         if not self.practice:
             return []
-        all_slugs = sorted(p.name for p in (KIT_ROOT / "subjects" / "exams").iterdir() if p.is_dir())
+        all_slugs = sorted(
+            p.name for p in (KIT_ROOT / "subjects" / "exams").iterdir() if p.is_dir()
+        )
         return [s for s in all_slugs if s.startswith(text)]
 
-    def complete_theme(self, text: str, line: str, begidx: int, endidx: int) -> List[str]:
+    def complete_theme(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
+        """Return color palette completions in practice mode."""
         if not self.practice:
             return []
         opts = [*sorted(PALETTES), "plain"]
         return [o for o in opts if o.startswith(text)]
 
-    def complete_enable(self, text: str, line: str, begidx: int, endidx: int) -> List[str]:
+    def complete_enable(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
+        """Return feature toggle completions for enable in practice mode."""
         if not self.practice:
             return []
         return [o for o in ["norm", "norminette"] if o.startswith(text)]
 
-    def complete_disable(self, text: str, line: str, begidx: int, endidx: int) -> List[str]:
+    def complete_disable(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
+        """Return feature toggle completions for disable in practice mode."""
         if not self.practice:
             return []
         return [o for o in ["norm", "norminette"] if o.startswith(text)]
-
 
     def do_ssh_key(self, arg: str) -> None:
         """Bind or list SSH public keys (id_rsa_pub) for the local bare Vogsphere repository directly in terminal."""
@@ -2875,11 +3827,15 @@ class ExamShell(cmd.Cmd):
                 print(f"  [{idx}] {short}")
             return
         key_path = Path(raw).expanduser()
-        pubkey_text = key_path.read_text(encoding="utf-8") if key_path.is_file() else raw
+        pubkey_text = (
+            key_path.read_text(encoding="utf-8") if key_path.is_file() else raw
+        )
         try:
             info = register_ssh_key(self.vogsphere_dir, pubkey_text, login=self.login)
             print(f"vogsphere: (INFO) Transaction ID : {info['transaction_id']}")
-            print(f"vogsphere: (INFO) SSH Key bound  : {info['key_type']} {info['fingerprint']} ({info['comment']})")
+            print(
+                f"vogsphere: (INFO) SSH Key bound  : {info['key_type']} {info['fingerprint']} ({info['comment']})"
+            )
             print(f"vogsphere: (INFO) Repository URI : {info['vogsphere_uri']}")
             print("vogsphere: (INFO) You have read and write rights on this repository")
         except ValueError as exc:
@@ -2893,21 +3849,33 @@ class ExamShell(cmd.Cmd):
         print(f"Default principal: {self.login}@1337.MA")
         print("")
         print("Valid starting       Expires              Service principal")
-        print(f"{now_dt.strftime('%d/%m/%Y %H:%M:%S')}  {exp_dt.strftime('%d/%m/%Y %H:%M:%S')}  krbtgt/1337.MA@1337.MA")
-        print(f"        renew until {(now_dt + dt.timedelta(days=7)).strftime('%d/%m/%Y %H:%M:%S')}")
+        print(
+            f"{now_dt.strftime('%d/%m/%Y %H:%M:%S')}  {exp_dt.strftime('%d/%m/%Y %H:%M:%S')}  krbtgt/1337.MA@1337.MA"
+        )
+        print(
+            f"        renew until {(now_dt + dt.timedelta(days=7)).strftime('%d/%m/%Y %H:%M:%S')}"
+        )
 
     def do_force_success(self, arg: str) -> None:
         """[Practice Mode] Force current assignment validation and advance to the next level."""
         if not self.practice:
             self.last_exit_code = 2
-            print(self.theme.c("Error: Command 'force_success' is restricted in normal exam mode.", "err", "bold"))
+            print(
+                self.theme.c(
+                    "Error: Command 'force_success' is restricted in normal exam mode.",
+                    "err",
+                    "bold",
+                )
+            )
             return
         lvl = self.levels[self.current_idx]
         pts = lvl.get("points", round(100 / max(1, len(self.levels))))
         cur_attempt = self.attempts
         self._reset_cooldown()
         self.grade = min(100, self.grade + pts)
-        self.history.append(f"Level {lvl['level']} [{self.current_assignment}]: FORCED OK (+{pts} pts)")
+        self.history.append(
+            f"Level {lvl['level']} [{self.current_assignment}]: FORCED OK (+{pts} pts)"
+        )
         self.level_records.append(
             {
                 "level": lvl["level"],
@@ -2925,85 +3893,179 @@ class ExamShell(cmd.Cmd):
             self.attempts = 0
             self.current_assignment = self._pick_assignment()
             self._provision_subject_files(self.current_assignment)
-            print(f"Advancing to Level {self.levels[self.current_idx]['level']}: {self.current_assignment}")
+            print(
+                f"Advancing to Level {self.levels[self.current_idx]['level']}: {self.current_assignment}"
+            )
         else:
             self.grade = 100
             self.lifecycle_state = "passed"
-            print("CONGRATULATIONS! You have completed all levels of this exam (100/100)!")
+            print(
+                "CONGRATULATIONS! You have completed all levels of this exam (100/100)!"
+            )
         self._save_session()
 
     def do_remove_grade_time(self, arg: str) -> None:
         """[Practice Mode] Reset grading wait/cooldown timer between grademe attempts."""
         if not self.practice:
             self.last_exit_code = 2
-            print(self.theme.c("Error: Command 'remove_grade_time' is restricted in normal exam mode.", "err", "bold"))
+            print(
+                self.theme.c(
+                    "Error: Command 'remove_grade_time' is restricted in normal exam mode.",
+                    "err",
+                    "bold",
+                )
+            )
             return
         self._reset_cooldown()
         self._save_session()
-        print(self.theme.c("[VIP Practice] Cooldown timer between grademe requests has been reset to 0s!", "ok", "bold"))
+        print(
+            self.theme.c(
+                "[VIP Practice] Cooldown timer between grademe requests has been reset to 0s!",
+                "ok",
+                "bold",
+            )
+        )
 
     def do_cooldown(self, arg: str) -> None:
-        """View, reset, or configure the progressive grademe failure wait timer (`cooldown [reset|off|on|<seconds>]`)."""
+        """View, reset, or configure the grademe wait timer (`cooldown [mode real|linear|reset|off|on|<sec>]`)."""
         if not self.practice:
             self.last_exit_code = 2
-            print(self.theme.c("Error: Command 'cooldown' is restricted in normal exam mode.", "err", "bold"))
+            print(
+                self.theme.c(
+                    "Error: Command 'cooldown' is restricted in normal exam mode.",
+                    "err",
+                    "bold",
+                )
+            )
             return
         t = self.theme
         sub = arg.strip().lower()
+        toks = sub.split()
+        if toks and toks[0] == "mode":
+            if len(toks) == 1:
+                print(
+                    t.c(
+                        f"Cooldown mode: {self.cooldown_mode} ('real' doubles 1m->2m->4m..., 'linear' adds +{self.cooldown_step}s).",
+                        "info",
+                    )
+                )
+                return
+            if len(toks) == 2 and toks[1] in {"real", "linear"}:
+                self.cooldown_mode = toks[1]
+                self._save_session()
+                (s1, s2, s3, s4), scale_desc = self._cooldown_scale_labels()
+                print(
+                    t.c(
+                        f"✓ Cooldown mode set to '{self.cooldown_mode}' ({s1} -> {s2} -> {s3} -> {s4}; {scale_desc}).",
+                        "ok",
+                        "bold",
+                    )
+                )
+                return
+            self.last_exit_code = 2
+            print(t.c("Usage: cooldown mode [real|linear]", "warn", "bold"))
+            return
+        if sub in {"real", "linear"}:
+            self.cooldown_mode = sub
+            self._save_session()
+            (s1, s2, s3, s4), scale_desc = self._cooldown_scale_labels()
+            print(
+                t.c(
+                    f"✓ Cooldown mode set to '{self.cooldown_mode}' ({s1} -> {s2} -> {s3} -> {s4}; {scale_desc}).",
+                    "ok",
+                    "bold",
+                )
+            )
+            return
         if sub in {"reset", "clear", "0", "skip"}:
             self._reset_cooldown()
             self._save_session()
-            print(t.c("✓ Grading cooldown timer reset to 0s! You can run `grademe` immediately.", "ok", "bold"))
+            print(
+                t.c(
+                    "✓ Grading cooldown timer reset to 0s! You can run `grademe` immediately.",
+                    "ok",
+                    "bold",
+                )
+            )
             return
         if sub in {"off", "disable", "false"}:
             self.cooldown_enabled = False
             self._reset_cooldown()
             self._save_session()
-            print(t.c("✓ Progressive grading cooldown DISABLED (0s wait between grademe attempts).", "warn", "bold"))
+            print(
+                t.c(
+                    "✓ Progressive grading cooldown DISABLED (0s wait between grademe attempts).",
+                    "warn",
+                    "bold",
+                )
+            )
             return
         if sub in {"on", "enable", "true"}:
             self.cooldown_enabled = True
             self._save_session()
-            print(t.c(f"✓ Progressive grading cooldown ENABLED (+{self.cooldown_step}s per failed attempt, resets on pass).", "ok", "bold"))
+            (_, _, _, _), scale_desc = self._cooldown_scale_labels()
+            print(
+                t.c(
+                    f"✓ Progressive grading cooldown ENABLED ({scale_desc}, resets on pass).",
+                    "ok",
+                    "bold",
+                )
+            )
             return
         if sub.isdigit() and int(sub) > 0:
-            self.cooldown_step = int(sub)
+            sec_val = int(sub)
+            if self.cooldown_mode == "real":
+                self.cooldown_base = sec_val
+            else:
+                self.cooldown_step = sec_val
             self._save_session()
-            s1 = self._format_cooldown_short(self.cooldown_step)
-            s2 = self._format_cooldown_short(self.cooldown_step * 2)
-            s3 = self._format_cooldown_short(self.cooldown_step * 3)
-            print(t.c(f"✓ Cooldown step set to {self.cooldown_step}s per failure ({s1} -> {s2} -> {s3} ...).", "ok", "bold"))
+            (s1, s2, s3, s4), scale_desc = self._cooldown_scale_labels()
+            print(
+                t.c(
+                    f"✓ Cooldown base/step set to {sec_val}s ({s1} -> {s2} -> {s3} -> {s4}; {scale_desc}).",
+                    "ok",
+                    "bold",
+                )
+            )
             return
 
         rem = self._cooldown_remaining()
-        next_pen = (self.attempts + 1) * self.cooldown_step
-        s1 = self._format_cooldown_short(self.cooldown_step)
-        s2 = self._format_cooldown_short(self.cooldown_step * 2)
-        s3 = self._format_cooldown_short(self.cooldown_step * 3)
-        s4 = self._format_cooldown_short(self.cooldown_step * 4)
+        next_pen = self._cooldown_penalty_for_attempt(self.attempts + 1)
+        (s1, s2, s3, s4), scale_desc = self._cooldown_scale_labels()
         state_str = (
             t.c("DISABLED (0s wait)", "muted")
             if not self.cooldown_enabled
             else (
-                t.c(f"⏳ WAITING — {self._format_cooldown_human(rem)} remaining", "warn", "bold")
+                t.c(
+                    f"⏳ WAITING — {self._format_cooldown_human(rem)} remaining",
+                    "warn",
+                    "bold",
+                )
                 if rem > 0
                 else t.c("✓ READY (0s wait right now)", "ok", "bold")
             )
         )
         rows = [
-            f"{t.secondary('Cooldown Status  ')} : {state_str}",
-            f"{t.secondary('Current Exercise ')} : {t.primary(self.current_assignment)} (Failed grademe attempts: {t.bold(str(self.attempts))})",
-            f"{t.secondary('Next Fail Penalty')} : {t.warn(self._format_cooldown_human(next_pen))} (Attempt #{self.attempts + 1} if failed)",
-            f"{t.secondary('Progression Scale')} : Fail #1 = {s1} -> Fail #2 = {s2} -> Fail #3 = {s3} -> Fail #4 = {s4} (+{self.cooldown_step}s each fail)",
-            f"{t.secondary('Reset Condition  ')} : Resets to {t.ok('0s')} automatically when you pass the exercise!",
+            f"{t.secondary('Status      ')} : {state_str} [mode: {self.cooldown_mode}]",
+            f"{t.secondary('Exercise    ')} : {t.primary(self.current_assignment)} (failed attempts: {t.bold(str(self.attempts))})",
+            f"{t.secondary('Next Penalty')} : {t.warn(self._format_cooldown_human(next_pen))} (attempt #{self.attempts + 1})",
+            f"{t.secondary('Scale       ')} : {s1} -> {s2} -> {s3} -> {s4} ({scale_desc})",
+            f"{t.secondary('Auto-Reset  ')} : Resets to {t.ok('0s')} when you pass the exercise.",
             "",
-            t.bold("Quick Cooldown Commands:"),
-            f"  {pad_visible(t.cmd('cooldown reset'), 24)} Clear active wait timer to 0s immediately (alias: {t.cmd('remove_grade_time')})",
-            f"  {pad_visible(t.cmd('cooldown off') + ' / ' + t.cmd('on'), 24)} Disable or enable progressive wait penalties for this session",
-            f"  {pad_visible(t.cmd('cooldown 30'), 24)} Set base wait increment in seconds (default: 30s)",
-            f"  {pad_visible(t.cmd('grademe --now'), 24)} Grade immediately and bypass any active cooldown timer",
+            t.bold("Cooldown Commands:"),
+            f"  {pad_visible(t.cmd('cooldown mode real|linear'), 26)} Switch 42 real (1m->2m) vs linear (+30s)",
+            f"  {pad_visible(t.cmd('cooldown reset'), 26)} Clear wait timer to 0s immediately",
+            f"  {pad_visible(t.cmd('cooldown off / on'), 26)} Disable or enable wait penalties",
+            f"  {pad_visible(t.cmd('cooldown 60'), 26)} Set base/step wait in seconds",
+            f"  {pad_visible(t.cmd('grademe --now'), 26)} Grade immediately (bypass active wait)",
         ]
-        print(t.box_panel("GRADING COOLDOWN TIMER — PRO CONTROL PANEL", rows, border_color="primary"))
+        print(
+            t.box_panel(
+                "GRADING COOLDOWN TIMER",
+                rows,
+                border_color="primary",
+            )
+        )
 
     def do_kinit(self, arg: str) -> None:
         """Simulate `kinit [student_login]` Kerberos TGT acquisition for @1337.MA (never stores or echoes passwords)."""
@@ -3015,7 +4077,9 @@ class ExamShell(cmd.Cmd):
         print("[LOCAL SIMULATION — Kerberos TGT Acquisition]")
         if prompt_pw and sys.stdin.isatty():
             try:
-                _ = _read_masked_password(f"Password for {login}@1337.MA (simulated, hidden): ")
+                _ = _read_masked_password(
+                    f"Password for {login}@1337.MA (simulated, hidden): "
+                )
             except (EOFError, KeyboardInterrupt):
                 print("")
                 return
@@ -3042,7 +4106,13 @@ class ExamShell(cmd.Cmd):
         ]
         if is_interactive_tty() and self._viewport_active:
             try:
-                ans = self._prompt_in_viewport("Are you finished? [y/N]: ", extra_lines=finish_lines).strip().lower()
+                ans = (
+                    self._prompt_in_viewport(
+                        "Are you finished? [y/N]: ", extra_lines=finish_lines
+                    )
+                    .strip()
+                    .lower()
+                )
             except (EOFError, KeyboardInterrupt):
                 print("Finish cancelled. Session remains active.")
                 return False
@@ -3068,12 +4138,15 @@ class ExamShell(cmd.Cmd):
         return True
 
     def do_exit(self, arg: str) -> bool:
+        """Exit the ExamShell session."""
         return self.do_finish(arg)
 
     def do_quit(self, arg: str) -> bool:
+        """Quit the ExamShell session."""
         return self.do_finish(arg)
 
-    def do_EOF(self, arg: str) -> bool:
+    def do_EOF(self, arg: str) -> bool:  # noqa: N802
+        """Handle Ctrl-D (EOF) by finishing the ExamShell session."""
         if not (is_interactive_tty() and self._viewport_active):
             print("")
         return self.do_finish(arg)
@@ -3093,8 +4166,8 @@ def _describe_pool_levels(slug: str, fallback: str = "Levels") -> tuple[str, str
             return dur_str, fallback
         n = len(levels)
         pts = levels[0].get("points", round(100 / n))
-        total_ex = sum(len(l.get("candidates") or []) for l in levels)
-        return dur_str, f"{n} Levels (0..{n - 1}, {pts} pts/lvl, {total_ex} exercises)"
+        total_ex = sum(len(lvl.get("candidates") or []) for lvl in levels)
+        return dur_str, f"{n} lvls (0..{n - 1}, {pts}p/lvl, {total_ex} ex)"
     except Exception:
         return "4h (14400s)", fallback
 
@@ -3115,7 +4188,14 @@ SESSION_TRACKS = (
 def _pool_facts(slug: str) -> tuple[str, str, str, str]:
     """(duration, levels, points per level, exercises) read from pools/exams/<slug>.yml; '?' when unknown."""
     try:
-        data = yaml.safe_load((KIT_ROOT / "pools" / "exams" / f"{slug}.yml").read_text(encoding="utf-8")) or {}
+        data = (
+            yaml.safe_load(
+                (KIT_ROOT / "pools" / "exams" / f"{slug}.yml").read_text(
+                    encoding="utf-8"
+                )
+            )
+            or {}
+        )
     except Exception:
         return "?", "?", "?", "?"
     secs = int(data.get("duration_seconds") or 0)
@@ -3125,13 +4205,19 @@ def _pool_facts(slug: str) -> tuple[str, str, str, str]:
     n = len(levels)
     pts = str(levels[0].get("points", round(100 / n))) if n else "?"
     total = sum(len(lv.get("candidates") or []) for lv in levels)
-    return (dur if secs else "?"), (str(n) if n else "?"), pts, (str(total) if n else "?")
+    return (
+        (dur if secs else "?"),
+        (str(n) if n else "?"),
+        pts,
+        (str(total) if n else "?"),
+    )
 
 
 def print_session_selection_table(login: str = DEFAULT_LOGIN) -> None:
+    """Print the plain-text exam session selection table."""
     t = ThemeEngine("plain")
     cols, _ = t.term_size()
-    w = max(44, min(80, cols))
+    w = max(44, min(79, cols))
     print("=" * w)
     print("EXAM SESSION SELECTION")
     print("-" * w)
@@ -3145,12 +4231,22 @@ def print_session_selection_table(login: str = DEFAULT_LOGIN) -> None:
         print("  2   C Piscine Exam 02     08h00m  [LOCKED]")
         print("  3   C Piscine Final Exam  10h00m  [LOCKED]")
     else:
-        print("  ID   Session Name                  Rank / Cursus        Duration   Status")
-        print("  --   ---------------------------   ------------------   --------   -----------")
-        print("  0    C Piscine Exam 00             C Piscine            06h 00m    [COMPLETED]")
-        print("  1    C Piscine Exam 01             C Piscine            06h 00m    [AVAILABLE]")
-        print("  2    C Piscine Exam 02             C Piscine            08h 00m    [LOCKED]")
-        print("  3    C Piscine Final Exam          C Piscine            10h 00m    [LOCKED]")
+        print("  ID  Session Name                 Rank / Cursus       Duration  Status")
+        print(
+            "  --  ---------------------------  ------------------  --------  -----------"
+        )
+        print(
+            "  0   C Piscine Exam 00            C Piscine           06h 00m   [COMPLETED]"
+        )
+        print(
+            "  1   C Piscine Exam 01            C Piscine           06h 00m   [AVAILABLE]"
+        )
+        print(
+            "  2   C Piscine Exam 02            C Piscine           08h 00m   [LOCKED]"
+        )
+        print(
+            "  3   C Piscine Final Exam         C Piscine           10h 00m   [LOCKED]"
+        )
     print("")
     print("-" * w)
     print("Select session ID to launch (or 'q' to quit): 1")
@@ -3158,10 +4254,10 @@ def print_session_selection_table(login: str = DEFAULT_LOGIN) -> None:
 
 
 def print_official_menu(theme: ThemeEngine | None = None) -> None:
+    """Render the official exam tracks menu without startup banner bloat."""
     t = theme or ThemeEngine("plain" if os.environ.get("NO_COLOR") else "42-cluster")
     cols, _ = t.term_size()
-    w = max(44, min(88, cols))
-    print(t.startup_banner(version="v0.1.1", mode="real", width=w))
+    w = max(44, min(79, cols))
     print("=" * w)
     print("  42 / 1337 OFFICIAL EXAMSHELL v0.1.1 — AVAILABLE EXAM TRACKS (--menu)")
     print("=" * w)
@@ -3172,12 +4268,12 @@ def print_official_menu(theme: ThemeEngine | None = None) -> None:
         ("c_piscine_final_exam", "C Piscine Final Exam"),
     ]
     print("  [PISCINE PART — OFFICIAL 42 / 1337 C PISCINE EXAMS]")
-    for idx, (slug, title) in enumerate(official_piscine, 1):
+    for idx, (slug, _title) in enumerate(official_piscine, 1):
         dur, lvls = _describe_pool_levels(slug, "Levels")
-        if cols < 76:
-            print(f"  {idx}) {slug} ({dur}) — {lvls}")
+        if cols < 72:
+            print(clip_visible(f"  {idx}) {slug} ({dur}) — {lvls}", w))
         else:
-            print(f"    {idx}) {slug:<22} | {title:<22} | Duration: {dur:<12} | {lvls}")
+            print(clip_visible(f"  {idx}) {slug:<20} | {dur:<11} | {lvls}", w))
     print("-" * w)
     print("  [STUD_PART — COMMON CORE EXAMS (SEPARATED)]")
     common_core = [
@@ -3187,12 +4283,12 @@ def print_official_menu(theme: ThemeEngine | None = None) -> None:
         ("rank05", "Common Core Exam Rank 05"),
         ("rank06", "Common Core Exam Rank 06"),
     ]
-    for idx, (slug, title) in enumerate(common_core, 5):
+    for idx, (slug, _title) in enumerate(common_core, 5):
         dur, lvls = _describe_pool_levels(slug, "Levels")
-        if cols < 76:
-            print(f"  {idx}) {slug} ({dur}) — {lvls}")
+        if cols < 72:
+            print(clip_visible(f"  {idx}) {slug} ({dur}) — {lvls}", w))
         else:
-            print(f"    {idx}) {slug:<22} | {title:<24} | Duration: {dur:<12} | {lvls}")
+            print(clip_visible(f"  {idx}) {slug:<20} | {dur:<11} | {lvls}", w))
     print("=" * w)
 
 
@@ -3209,17 +4305,29 @@ def interactive_identity_screen(
     status_notice = ""
 
     def _build_stage1_lines(cols: int, rows: int) -> list[str]:
-        w = max(40, min(88, cols))
+        w = max(40, min(79, cols))
         lines: list[str] = []
-        banner_lines = theme.startup_banner(version="v0.1.1", mode=mode, width=w, height=rows).splitlines()
+        banner_lines = theme.startup_banner(
+            version="v0.1.1", mode=mode, width=w, height=rows
+        ).splitlines()
         if rows >= 18:
             lines.extend(banner_lines)
         else:
             lines.extend(banner_lines[:4])
-        lines.append(theme.c("  [STAGE 1/4: IDENTITY — LOCAL KERBEROS / VOGSPHERE SESSION]", "primary", "bold"))
+        lines.append(
+            theme.c(
+                "  [STAGE 1/4: IDENTITY — LOCAL KERBEROS / VOGSPHERE SESSION]",
+                "primary",
+                "bold",
+            )
+        )
         lines.append(theme.c("-" * w, "border"))
-        lines.append(f"  Principal  : {theme.c(f'{active_login}@1337.MA', 'ok', 'bold')} [LOCAL SIMULATION]")
-        lines.append(f"  Active Mode: {theme.c(mode_lbl, 'warn' if mode == 'practice' else 'ok', 'bold')}")
+        lines.append(
+            f"  Principal  : {theme.c(f'{active_login}@1337.MA', 'ok', 'bold')} [LOCAL SIMULATION]"
+        )
+        lines.append(
+            f"  Active Mode: {theme.c(mode_lbl, 'warn' if mode == 'practice' else 'ok', 'bold')}"
+        )
         lines.append(f"  Workspace  : {theme.c(disp_basedir, 'info')}")
         if status_notice:
             lines.append(f"  Status     : {status_notice}")
@@ -3229,7 +4337,9 @@ def interactive_identity_screen(
         else:
             lines.extend([""] * (budget - len(lines)))
         footer = theme.c(
-            clip_visible("Enter=Exam Selection | kinit <login>=Switch User | q=Quit", cols),
+            clip_visible(
+                "Enter=Exam Selection | kinit <login>=Switch User | q=Quit", cols
+            ),
             "muted",
         )
         lines.append(footer)
@@ -3238,20 +4348,34 @@ def interactive_identity_screen(
     while True:
         cols, rows = theme.term_size()
         prompt_str = (
-            theme.c(f"Identity [{active_login}] (Enter=continue, 'kinit <login>', q=quit): ", "primary", "bold")
+            theme.c(
+                f"Identity [{active_login}] (Enter=continue, 'kinit <login>', q=quit): ",
+                "primary",
+                "bold",
+            )
             if theme.enabled
             else f"Identity [{active_login}] (Enter=continue, 'kinit <login>', q=quit): "
         )
-        sys.stdout.write(render_viewport_frame(_build_stage1_lines(cols, rows), prompt_str, cols, rows))
+        sys.stdout.write(
+            render_viewport_frame(
+                _build_stage1_lines(cols, rows), prompt_str, cols, rows
+            )
+        )
         sys.stdout.flush()
         try:
             raw = _read_tty_line(
                 prompt_str,
                 theme,
-                redraw_fn=lambda b, p: sys.stdout.write(
-                    render_viewport_frame(_build_stage1_lines(*theme.term_size()), prompt_str, *theme.term_size())
-                )
-                or sys.stdout.flush(),
+                redraw_fn=lambda b, p: (
+                    sys.stdout.write(
+                        render_viewport_frame(
+                            _build_stage1_lines(*theme.term_size()),
+                            prompt_str,
+                            *theme.term_size(),
+                        )
+                    )
+                    or sys.stdout.flush()
+                ),
             ).strip()
         except (EOFError, KeyboardInterrupt):
             raise SystemExit(0)
@@ -3298,8 +4422,11 @@ def interactive_select_pool(
     basedir: Path | None = None,
     mode: str = "real",
 ) -> tuple[str, bool, bool, str]:
-    """EXAM SESSION SELECTION — msfconsole-style session table read from pools/exams/*.yml."""
-    choices = [(slug, title, track, *_pool_facts(slug)) for slug, title, track in SESSION_TRACKS]
+    """EXAM SESSION SELECTION — Classic 42 Bocal session table read from pools/exams/*.yml."""
+    choices = [
+        (slug, title, track, *_pool_facts(slug))
+        for slug, title, track in SESSION_TRACKS
+    ]
 
     sess_file = (basedir or (Path.home() / "exam-basedir")) / ".session.json"
     saved_session: dict | None = None
@@ -3318,48 +4445,72 @@ def interactive_select_pool(
     prompt_range = f"0-{len(choices)}" if saved_session else f"1-{len(choices)}"
 
     def _build_stage2_lines(cols: int, rows: int) -> tuple[list[str], int]:
+        """Build bounded Stage 2 exam session selector lines and total page count."""
         nonlocal page
-        w = max(40, min(80, cols))
-        mode_tag = "practice / coaching" if mode == "practice" else "normal exam"
-        piscine_n = sum(1 for c in choices if c[2] == "piscine")
-        stats = theme.stats_block(
-            [
-                "examshell v0.1.1 - 42 / 1337 exam environment",
-                f"{len(choices)} sessions - {piscine_n} piscine - {len(choices) - piscine_n} common core",
-                f"Principal: {active_login}@1337.MA - mode: {mode_tag}",
-            ],
-            width=w,
+        w = max(40, min(79, cols))
+        mode_tag = mode.lower()
+        banner = theme.tool_banner(
+            "examshell",
+            w,
+            tagline=f"42 / 1337 Exam Shell (v0.1.1 | {mode_tag} mode | {active_login})",
+        )
+        hdr_line = clip_visible(
+            theme.c(
+                f"examshell v0.1.1 — 42 / 1337 Exam Shell ({mode_tag} mode | {active_login})",
+                "primary",
+                "bold",
+            ),
+            w,
         )
         resume_ln: list[str] = []
         if saved_session:
-            resume_ln = [clip_visible(theme.status(
-                "status",
-                f"Unfinished session: {saved_session.get('pool', '?')} "
-                f"(grade {saved_session.get('grade', 0)}/100, on {saved_session.get('current_assignment', '?')}). "
-                f"Type {theme.c('0', 'ok', 'bold')} to resume.",
-            ), cols)]
+            resume_ln = [
+                clip_visible(
+                    theme.status(
+                        "status",
+                        f"Unfinished session: {saved_session.get('pool', '?')} "
+                        f"(grade {saved_session.get('grade', 0)}/100, on {saved_session.get('current_assignment', '?')}). "
+                        f"Type {theme.c('0', 'ok', 'bold')} to resume.",
+                    ),
+                    w,
+                )
+            ]
         wide = cols >= 72
-        headers = ["#", "Exam", "Track", "Time", "Levels", "Pts/Lvl", "Exercises"] if wide else ["#", "Exam", "Time", "Lvls"]
+        headers = (
+            ["#", "Exam", "Track", "Time", "Levels", "Pts/Lvl", "Exercises"]
+            if wide
+            else ["#", "Exam", "Time", "Lvls"]
+        )
 
         def _row(i: int, c: tuple) -> list[str]:
             slug, title, track, dur, lvls, pts, exs = c
-            return [str(i), title, track, dur, lvls, pts, exs] if wide else [str(i), title, dur, lvls]
+            return (
+                [str(i), title, track, dur, lvls, pts, exs]
+                if wide
+                else [str(i), title, dur, lvls]
+            )
 
-        footer = clip_visible(theme.status(
-            "status", f"Type a number [{prompt_range}], 'kinit <login>', 'n'/'p' to page, or 'q' to quit."
-        ), cols)
-        tail = ([notice] if notice else []) + [footer]
-        banner = theme.tool_banner("examshell", w, tagline="Don't Panic. Deepthought is watching.")
+        footer = clip_visible(
+            theme.status(
+                "status",
+                f"Type a number [{prompt_range}], 'kinit <login>', 'n'/'p' to page, or 'q' to quit.",
+            ),
+            w,
+        )
+        tail = ([clip_visible(notice, w)] if notice else []) + [footer]
         all_rows = [_row(i, c) for i, c in enumerate(choices, 1)]
         budget = rows - 1  # last row is the prompt
 
-        def _compose(full: bool, with_banner: bool, sub_rows: list[list[str]], title: str) -> list[str]:
-            tbl = theme.table(title, headers, sub_rows, max_width=cols)
+        def _compose(
+            full: bool, with_banner: bool, sub_rows: list[list[str]], title: str
+        ) -> list[str]:
+            tbl = theme.table(title, headers, sub_rows, max_width=w)
             if not full:
-                tbl = [tbl[0], *tbl[3:]]  # drop '=' underline and blank on tiny screens
-                return [stats[0], *resume_ln, *tbl, *tail]
-            out = [*banner, ""] if with_banner else []
-            return [*out, *stats, "", *resume_ln, *tbl, "", *tail]
+                tbl = [tbl[1], *tbl[3:]]  # drop '=' and '-' frame rules on tiny screens
+                return [hdr_line, *resume_ln, *tbl, *tail]
+            if with_banner and banner:
+                return [*banner, "", *resume_ln, *tbl, "", *tail]
+            return [hdr_line, "", *resume_ln, *tbl, "", *tail]
 
         title = "EXAM SESSION SELECTION"
         for full, with_banner in ((True, True), (True, False), (False, False)):
@@ -3375,7 +4526,9 @@ def interactive_select_pool(
         total_pages = max(1, (len(all_rows) + per_page - 1) // per_page)
         page = page % total_pages
         sub = all_rows[page * per_page : (page + 1) * per_page]
-        return _compose(False, False, sub, f"{title} - Page {page + 1}/{total_pages}")[:budget], total_pages
+        return _compose(False, False, sub, f"{title} - Page {page + 1}/{total_pages}")[
+            :budget
+        ], total_pages
 
     while True:
         cols, rows = theme.term_size()
@@ -3395,7 +4548,9 @@ def interactive_select_pool(
                 prompt_str,
                 theme,
                 redraw_fn=lambda b, p: _write_viewport_frame(
-                    _build_stage2_lines(*theme.term_size())[0], prompt_str, *theme.term_size()
+                    _build_stage2_lines(*theme.term_size())[0],
+                    prompt_str,
+                    *theme.term_size(),
                 ),
             ).strip()
         except (EOFError, KeyboardInterrupt):
@@ -3431,42 +4586,127 @@ def interactive_select_pool(
                 )
             except (EOFError, KeyboardInterrupt):
                 continue
-            notice = theme.status("good", f"Kerberos ticket initialized for {active_login}@1337.MA (local simulation)")
+            notice = theme.status(
+                "good",
+                f"Kerberos ticket initialized for {active_login}@1337.MA (local simulation)",
+            )
             continue
         if low in {"q", "quit", "exit"}:
             raise SystemExit(0)
         if not raw:
             raw = default_choice
         if raw == "0" and saved_session:
-            return str(saved_session.get("pool", choices[0][0])), False, True, active_login
+            return (
+                str(saved_session.get("pool", choices[0][0])),
+                False,
+                True,
+                active_login,
+            )
         if raw.isdigit() and 1 <= int(raw) <= len(choices):
             return choices[int(raw) - 1][0], False, False, active_login
         resolved_cand = resolve_pool_slug(raw)
-        cand_file = Path(raw) if Path(raw).is_file() else (KIT_ROOT / "pools" / "exams" / f"{resolved_cand}.yml")
+        cand_file = (
+            Path(raw)
+            if Path(raw).is_file()
+            else (KIT_ROOT / "pools" / "exams" / f"{resolved_cand}.yml")
+        )
         if cand_file.exists():
             return raw, False, False, active_login
-        notice = theme.status("error", f"Unknown session '{raw}'. Pick a number from the table or a pool slug.")
+        notice = theme.status(
+            "error",
+            f"Unknown session '{raw}'. Pick a number from the table or a pool slug.",
+        )
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="42 / 1337 Authentic ExamShell v0.1.1 — Pro Edition")
-    parser.add_argument("pool", nargs="?", default=None, help="Exam pool ID (e.g. c_piscine_exam_00, exam00, examfinal)")
-    parser.add_argument("-p", "--pool", dest="pool_flag", default=None, help="Exam pool ID")
-    parser.add_argument("-m", "--menu", action="store_true", help="Display official exam tracks menu and exit")
-    parser.add_argument("--mode", choices=["real", "test", "practice"], default=None, help="Session mode (default: real)")
-    parser.add_argument("--practice", action="store_true", help="Enable special practice/coaching mode (alias for --mode practice)")
-    parser.add_argument("--duration", type=int, default=None, help="Override exam duration in seconds (> 0)")
-    parser.add_argument("-l", "--level", type=int, default=None, help="Starting exam level")
-    parser.add_argument("-s", "--seed", type=int, default=42, help="Random seed for candidate pool draw")
-    parser.add_argument("--login", default=DEFAULT_LOGIN, help="Student login (defaults to $USER)")
-    parser.add_argument("-b", "--basedir", "--workspace", dest="basedir", type=Path, default=None, help="Custom exam-basedir path")
+    """CLI entrypoint for ExamShell."""
+    parser = argparse.ArgumentParser(
+        description="42 / 1337 ExamShell v0.1.1 — interactive exam session and grading harness"
+    )
+    parser.add_argument(
+        "pool",
+        nargs="?",
+        default=None,
+        help="Exam pool ID (e.g. c_piscine_exam_00, exam00, examfinal)",
+    )
+    parser.add_argument(
+        "-p", "--pool", dest="pool_flag", default=None, help="Exam pool ID"
+    )
+    parser.add_argument(
+        "-m",
+        "--menu",
+        action="store_true",
+        help="Display official exam tracks menu and exit",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["real", "test", "practice"],
+        default=None,
+        help="Session mode (default: real)",
+    )
+    parser.add_argument(
+        "--practice",
+        action="store_true",
+        help="Enable special practice/coaching mode (alias for --mode practice)",
+    )
+    parser.add_argument(
+        "--duration",
+        type=int,
+        default=None,
+        help="Override exam duration in seconds (> 0)",
+    )
+    parser.add_argument(
+        "-l", "--level", type=int, default=None, help="Starting exam level"
+    )
+    parser.add_argument(
+        "-s", "--seed", type=int, default=42, help="Random seed for candidate pool draw"
+    )
+    parser.add_argument(
+        "--login", default=DEFAULT_LOGIN, help="Student login (defaults to $USER)"
+    )
+    parser.add_argument(
+        "-b",
+        "--basedir",
+        "--workspace",
+        dest="basedir",
+        type=Path,
+        default=None,
+        help="Custom exam-basedir path",
+    )
     parser.add_argument("--fresh", action="store_true", help="Force fresh session")
-    parser.add_argument("-r", "--resume", action="store_true", help="Resume existing session in basedir")
-    parser.add_argument("-t", "--theme", default="42-cluster", choices=sorted(PALETTES), help="Color theme")
-    parser.add_argument("-c", "--command", dest="command", default=None, help="Execute a single examshell command and exit")
+    parser.add_argument(
+        "-r", "--resume", action="store_true", help="Resume existing session in basedir"
+    )
+    parser.add_argument(
+        "-t",
+        "--theme",
+        default="42-cluster",
+        choices=sorted(PALETTES),
+        help="Color theme",
+    )
+    parser.add_argument(
+        "-c",
+        "--command",
+        dest="command",
+        default=None,
+        help="Execute a single examshell command and exit",
+    )
+    add_trace_mode_arguments(parser, default=None)
+    parser.add_argument(
+        "--cooldown-mode",
+        choices=("real", "linear"),
+        default=None,
+        help="Cooldown progression on failed grademe: 'real' (42 exponential 1m->2m->4m..., default) or 'linear' (+30s)",
+    )
     parser.add_argument("--no-color", action="store_true", help="Disable ANSI colors")
-    if any(arg.split("=", 1)[0].strip().lower() in {"--solution", "--solve", "solution", "solve"} for arg in sys.argv[1:]):
-        print("Error: Reference solutions are strictly locked in ExamShell to preserve the 42 / 1337 peer-learning methodology. Use 'subject' and debug from the Deepthought trace.")
+    if any(
+        arg.split("=", 1)[0].strip().lower()
+        in {"--solution", "--solve", "solution", "solve"}
+        for arg in sys.argv[1:]
+    ):
+        print(
+            "Error: Reference solutions are strictly locked in ExamShell to preserve the 42 / 1337 peer-learning methodology. Use 'subject' and debug from the Deepthought trace."
+        )
         return 2
     args = parser.parse_args()
 
@@ -3506,14 +4746,18 @@ def main() -> int:
 
     with TerminalSessionGuard():
         if os.environ.get("EXAMSHELL_SIMULATE_CRASH") == "startup":
-            raise RuntimeError("Simulated startup crash for terminal restoration verification")
+            raise RuntimeError(
+                "Simulated startup crash for terminal restoration verification"
+            )
 
         if raw_pool_arg is None and not resume_flag and is_interactive_tty():
-            raw_pool_arg, extra_prac, picked_resume, active_login = interactive_select_pool(
-                t_sel,
-                login=active_login,
-                basedir=Path(args.basedir) if args.basedir else None,
-                mode="practice" if practice_flag else "real",
+            raw_pool_arg, extra_prac, picked_resume, active_login = (
+                interactive_select_pool(
+                    t_sel,
+                    login=active_login,
+                    basedir=Path(args.basedir) if args.basedir else None,
+                    mode="practice" if practice_flag else "real",
+                )
             )
             showed_menu_banner = True
             practice_flag = practice_flag or extra_prac
@@ -3522,13 +4766,19 @@ def main() -> int:
 
         pool_id = raw_pool_arg or "c_piscine_exam_00"
         resolved_pool = resolve_pool_slug(pool_id)
-        pool_path = Path(pool_id) if Path(pool_id).is_file() else (KIT_ROOT / "pools" / "exams" / f"{resolved_pool}.yml")
+        pool_path = (
+            Path(pool_id)
+            if Path(pool_id).is_file()
+            else (KIT_ROOT / "pools" / "exams" / f"{resolved_pool}.yml")
+        )
         if not pool_path.exists():
             print(f"Error: Unknown exam pool '{pool_id}'. Available in pools/exams/:")
             for p in sorted((KIT_ROOT / "pools" / "exams").glob("*.yml")):
                 print("  -", p.stem)
             return 1
 
+        explicit_trace_mode = "helpful" if args.helpful else args.trace_mode
+        explicit_cooldown_mode = args.cooldown_mode
         try:
             shell = ExamShell(
                 pool=pool_id,
@@ -3544,6 +4794,10 @@ def main() -> int:
                 duration_override=args.duration,
                 defer_init_basedir=True,
                 fresh_confirmed=bool(args.fresh),
+                trace_mode=explicit_trace_mode or "real",
+                explicit_trace_mode=explicit_trace_mode,
+                cooldown_mode=explicit_cooldown_mode or "real",
+                explicit_cooldown_mode=explicit_cooldown_mode,
             )
         except ValueError as exc:
             print(f"Error: {exc}", file=sys.stderr)
@@ -3554,7 +4808,9 @@ def main() -> int:
             for ln in str(args.command).splitlines()
             if ln.strip()
         )
-        shell.print_boot_header(show_banner=not showed_menu_banner, print_initial_status=not has_status_cmd)
+        shell.print_boot_header(
+            show_banner=not showed_menu_banner, print_initial_status=not has_status_cmd
+        )
         if args.command is not None:
             for raw_ln in str(args.command).splitlines():
                 cmd_line = raw_ln.strip()
@@ -3589,7 +4845,9 @@ def main() -> int:
                 cmd_line = _read_tty_line(
                     shell.prompt,
                     shell.theme,
-                    redraw_fn=lambda buf_s, cur_p: shell._render_shell_viewport(buf_s, cur_p),
+                    redraw_fn=lambda buf_s, cur_p: shell._render_shell_viewport(
+                        buf_s, cur_p
+                    ),
                     tick_fn=shell._tick_persistent_clock,
                     clear_fn=_handle_ctrl_l,
                     ctrl_c_fn=_handle_ctrl_c,
@@ -3604,8 +4862,13 @@ def main() -> int:
                 cmd_line = "EOF"
 
             shell._waiting_for_input = False
-            if cmd_line.strip() == "__simulate_crash__" and os.environ.get("EXAMSHELL_SIMULATE_CRASH") == "1":
-                raise RuntimeError("Simulated runtime exception inside STAGE 4/4: EXAM SHELL")
+            if (
+                cmd_line.strip() == "__simulate_crash__"
+                and os.environ.get("EXAMSHELL_SIMULATE_CRASH") == "1"
+            ):
+                raise RuntimeError(
+                    "Simulated runtime exception inside STAGE 4/4: EXAM SHELL"
+                )
             if shell.onecmd(cmd_line):
                 break
     return 0
@@ -3613,4 +4876,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -72,6 +72,30 @@ render_single_iface() {
     return 1
 }
 
+find_system_ifconfig() {
+    self_dir="$(cd -- "$(dirname -- "$0")" 2>/dev/null && pwd -P)"
+    self_real="$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")"
+    rem="${PATH:-}:/sbin:/usr/sbin:/bin:/usr/bin:"
+    while [ -n "${rem}" ]; do
+        dir="${rem%%:*}"
+        rem="${rem#*:}"
+        [ -z "${dir}" ] && continue
+        cand="${dir%/}/ifconfig"
+        [ -x "${cand}" ] || continue
+        cand_dir="$(cd -- "${dir}" 2>/dev/null && pwd -P)"
+        if [ -n "${self_dir}" ] && [ "${cand_dir}" = "${self_dir}" ]; then
+            continue
+        fi
+        cand_real="$(readlink -f "${cand}" 2>/dev/null || printf '%s' "$cand")"
+        if [ "${cand_real}" = "${self_real}" ] || [ "$cand_real" = "$0" ]; then
+            continue
+        fi
+        printf '%s\n' "${cand}"
+        return 0
+    done
+    return 1
+}
+
 main() {
     fam="all"
     req=""
@@ -99,4 +123,17 @@ main() {
     render_lo "lo0" "${fam}"
 }
 
+if [ "${DT_IFCONFIG_DELEGATING:-0}" = "1" ]; then
+    printf 'ifconfig: delegation loop detected\n' >&2
+    exit 127
+fi
+if [ "${DT_SANDBOX_IFCONFIG:-0}" != "1" ] && [ -z "${DT_MOCK_ETHER:-}" ]; then
+    if [ -z "${DT_MOCK_ETHER2:-}" ]; then
+        if SYS_IFCONFIG="$(find_system_ifconfig)"; then
+            export DT_IFCONFIG_DELEGATING=1
+            exec "${SYS_IFCONFIG}" "$@"
+        fi
+        DT_LIVE_IFCONFIG="${DT_LIVE_IFCONFIG:-1}"
+    fi
+fi
 main "$@"

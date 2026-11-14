@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Moulinette CLI Pro — 42 / 1337 Piscine & Exam Grader with 5-Gate Scorecard, Live Watch, Auto-Scaffolder & Catalog Explorer."""
+"""Moulinette — 42 / 1337 Piscine & Exam Grader with 5-Gate Scorecard, Live Watch, Scaffolder & Catalog Explorer."""
+
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable, Iterator
 import contextlib
 import datetime as dt
 import functools
+import io
 import json
 import os
+from pathlib import Path
 import re
 import shlex
 import shutil
@@ -15,8 +19,9 @@ import signal
 import subprocess
 import sys
 import time
-from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
+
+import yaml
 
 try:
     import readline
@@ -40,10 +45,28 @@ KIT_ROOT = (
 if str(KIT_ROOT) not in sys.path:
     sys.path.insert(0, str(KIT_ROOT))
 
-import yaml
-from deepthought.grader import GradeReport, grade_subject
-from deepthought.progression import XPTracker, load_student_profile
-from deepthought.ui_theme import PALETTES, ThemeEngine
+from deepthought.grader import (  # noqa: E402
+    TRACE_MODES,
+    GradeReport,
+    add_trace_mode_arguments,
+    get_executable_temp_root,
+    grade_subject,
+    parse_trace_mode_arg,
+    resolve_trace_mode,
+)
+from deepthought.progression import (  # noqa: E402
+    XPTracker,
+    compute_42_level,
+    load_student_profile,
+)
+from deepthought.scorecard import render_five_gate_scorecard, tilde_path  # noqa: E402
+from deepthought.ui_theme import (  # noqa: E402
+    PALETTES,
+    ThemeEngine,
+    ViewportSession,
+    clip_visible,
+    is_viewport_tty,
+)
 
 DEFAULT_LOGIN = os.environ.get("USER") or os.environ.get("LOGNAME") or "student"
 _YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
@@ -57,67 +80,72 @@ _IGNORED_WATCH_SUFFIXES = (".swp", ".swo", ".swn", ".tmp", ".bak", "~")
 
 
 def fast_load_yaml(path: Path) -> dict[str, Any]:
+    """Load a YAML file into a dictionary, returning an empty dict on error."""
     if not path.is_file():
         return {}
     try:
-        data = yaml.load(path.read_text(encoding="utf-8", errors="replace"), Loader=_YAML_LOADER)
+        data = yaml.load(
+            path.read_text(encoding="utf-8", errors="replace"), Loader=_YAML_LOADER
+        )
         return data if isinstance(data, dict) else {}
     except Exception:
         return {}
 
 
-def tilde_path(p: Path | str) -> str:
-    """Format an absolute path using UNIX '~' shorthand for $HOME (e.g. ~/Downloads/...)."""
-    try:
-        resolved = str(Path(p).expanduser().resolve())
-    except Exception:
-        resolved = str(p)
-    home = str(Path.home())
-    if resolved == home:
-        return "~"
-    if resolved.startswith(home + "/"):
-        return "~" + resolved[len(home):]
-    return resolved
-
-
 def rl_safe_prompt(prompt_text: str) -> str:
-    """Wrap ANSI escape sequences in \x01 and \x02 using a callable (Python 3.14 safe) so GNU Readline calculates width accurately."""
+    r"""Wrap ANSI escape sequences in \x01 and \x02 using a callable (Python 3.14 safe) so GNU Readline calculates width accurately."""
     if not sys.stdin.isatty() or readline is None:
         return prompt_text
     return _ANSI_SEQ_RE.sub(lambda m: "\x01" + m.group(0) + "\x02", prompt_text)
 
 
-@contextlib.contextmanager
-def interactive_terminal_screen(enabled: bool = True) -> Iterator[None]:
-    """
-    Use Alternate Screen Buffer (\033[?1049h / \033[?1049l) for interactive sessions unless disabled.
-    Guarantees a 100% clean viewport locked at Row 1 without wiping prior shell scrollback history.
-    """
-    use_alt = (
-        enabled
-        and sys.stdout.isatty()
-        and not os.environ.get("MOULINETTE_NO_CLEAR")
-        and os.environ.get("TERM", "dumb") != "dumb"
-    )
-    if use_alt:
-        sys.stdout.write(
-            "\033[?1049h\033[?1007l\033[H\033[2J"
-            "\033]0;moulinette — 42 / 1337 Deepthought Grader\007"
-        )
-        sys.stdout.flush()
-    try:
-        yield
-    finally:
-        if use_alt:
-            sys.stdout.write("\033[?1007h\033[?1049l\033]0;\007")
-            sys.stdout.flush()
+def interactive_terminal_screen(enabled: bool = True) -> ViewportSession:
+    """Return an examshell-style bounded alternate-screen viewport session."""
+    return ViewportSession(enabled=enabled)
 
 
 def clear_viewport() -> None:
-    """Clear current visible screen viewport cleanly and move cursor home (Row 1, Col 1)."""
-    if sys.stdout.isatty() and not os.environ.get("MOULINETTE_NO_CLEAR"):
-        sys.stdout.write("\033[H\033[2J")
-        sys.stdout.flush()
+    """Clear current viewport via ANSI home+erase when stdout is an interactive non-dumb TTY."""
+    if (
+        not sys.stdout.isatty()
+        or os.environ.get("TERM", "dumb") == "dumb"
+        or os.environ.get("MOULINETTE_NO_CLEAR")
+    ):
+        return
+    sys.stdout.write("\033[H\033[2J")
+    sys.stdout.flush()
+
+
+def _run_subprocess(cmd: list[str]) -> int:
+    """Run a child process directly, or capture its output when stdout is redirected into the viewport."""
+    if sys.stdout is sys.__stdout__:
+        return subprocess.call(cmd)
+    proc = subprocess.run(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False
+    )
+    if proc.stdout:
+        sys.stdout.write(proc.stdout)
+    return proc.returncode
+
+
+def _emit_with_pager(text: str, use_pager: bool = False) -> None:
+    """Print text directly, or pipe through $PAGER ('less -FR') when use_pager=True on a live uncaptured TTY."""
+    if (
+        use_pager
+        and sys.stdin.isatty()
+        and sys.stdout is sys.__stdout__
+        and sys.stdout.isatty()
+        and os.environ.get("TERM", "dumb") != "dumb"
+    ):
+        pager = shlex.split(os.environ.get("PAGER", "").strip() or "less -FR")
+        if pager and shutil.which(pager[0]):
+            try:
+                subprocess.run(pager, input=text, text=True, check=False)
+                return
+            except OSError:
+                pass
+    if text:
+        print(text, end="" if text.endswith("\n") else "\n")
 
 
 def parse_subject_disk_metadata(subject_file: Path) -> dict[str, str]:
@@ -138,11 +166,15 @@ def parse_subject_disk_metadata(subject_file: Path) -> dict[str, str]:
         if m_assign:
             info["assignment_name"] = m_assign.group(1).strip()
             continue
-        m_files = re.match(r"^(?:Expected files|Files to turn in)\s*:\s*(.+)$", stripped, re.IGNORECASE)
+        m_files = re.match(
+            r"^(?:Expected files|Files to turn in)\s*:\s*(.+)$", stripped, re.IGNORECASE
+        )
         if m_files:
             info["expected_files"] = m_files.group(1).strip()
             continue
-        m_funcs = re.match(r"^Allowed (?:functions|commands)\s*:\s*(.+)$", stripped, re.IGNORECASE)
+        m_funcs = re.match(
+            r"^Allowed (?:functions|commands)\s*:\s*(.+)$", stripped, re.IGNORECASE
+        )
         if m_funcs:
             info["allowed_functions"] = m_funcs.group(1).strip()
             continue
@@ -178,20 +210,27 @@ def norm_function_stubs(prototype: str) -> str:
             line, depth, cut = lines[-1], 0, -1
             for idx, ch in enumerate(line):
                 depth += (ch == "(") - (ch == ")")
-                if ch == "," and depth == 1 and _norm_visual_width(line[: idx + 1]) <= 80:
+                if (
+                    ch == ","
+                    and depth == 1
+                    and _norm_visual_width(line[: idx + 1]) <= 80
+                ):
                     cut = idx
             if cut < 0:
                 break
-            lines[-1:] = [line[: cut + 1], "\t\t" + line[cut + 1:].lstrip()]
+            lines[-1:] = [line[: cut + 1], "\t\t" + line[cut + 1 :].lstrip()]
         stubs.append("\n".join(lines) + "\n{\n}\n")
     return "\n".join(stubs)
 
 
 def build_42_header(filename: str, login: str = DEFAULT_LOGIN) -> str:
+    """Generate a 42-formatted C comment header for filename and login."""
     now_s = dt.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
     fn_pad = f"{filename[:41]:<41}"
     lg_pad = f"{login[:8]:<8}"
-    by_login = login[:12]      # a longer login would push the line past 80 columns (Norm: INVALID_HEADER)
+    by_login = login[
+        :12
+    ]  # a longer login would push the line past 80 columns (Norm: INVALID_HEADER)
     by_pad = f"By: {by_login} <{by_login}@student.1337.ma>"
     by_line = f"/*   {by_pad:<47}+#+  +:+       +#+        */"
     cr_line = f"/*   Created: {now_s} by {lg_pad}          #+#    #+#             */"
@@ -215,6 +254,7 @@ def build_42_header(filename: str, login: str = DEFAULT_LOGIN) -> str:
 
 
 def get_piscine_modules() -> set[str]:
+    """Return the set of available Piscine module slugs."""
     piscine_dir = KIT_ROOT / "pools" / "piscine"
     if not piscine_dir.is_dir():
         return set()
@@ -234,9 +274,17 @@ def ensure_workspace_directories() -> None:
             mod_dir.mkdir(parents=True, exist_ok=True)
             data = fast_load_yaml(pool_file)
             for idx, ex in enumerate(data.get("exercises") or []):
-                raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
+                raw_id = (
+                    (ex.get("subject_id") or ex.get("id") or "")
+                    if isinstance(ex, dict)
+                    else str(ex)
+                )
                 ex_id = Path(raw_id).name
-                ex_code = ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}"
+                ex_code = (
+                    ex.get("ex", f"ex{idx:02d}")
+                    if isinstance(ex, dict)
+                    else f"ex{idx:02d}"
+                )
                 (mod_dir / ex_id).mkdir(parents=True, exist_ok=True)
                 ex_link = mod_dir / ex_code
                 if not ex_link.exists():
@@ -263,8 +311,12 @@ def normalise_exercise_name(subject: str) -> str:
     parts = [part for part in raw.split("/") if part]
     if not parts:
         raise ExerciseLookupError("Empty exercise name.")
-    if any(part in {".", ".."} for part in parts) or any(ch in _FORBIDDEN_NAME_CHARS for ch in raw):
-        raise ExerciseLookupError(f"Invalid exercise name '{raw}'. Names are literal: no '..', no wildcards.")
+    if any(part in {".", ".."} for part in parts) or any(
+        ch in _FORBIDDEN_NAME_CHARS for ch in raw
+    ):
+        raise ExerciseLookupError(
+            f"Invalid exercise name '{raw}'. Names are literal: no '..', no wildcards."
+        )
     return "/".join(parts)
 
 
@@ -290,7 +342,9 @@ def _piscine_candidates(name: str) -> tuple[list[str], list[str]]:
     return exact, prefixed
 
 
-def resolve_piscine_or_exam_subject(subject: str, prefer_exam: bool = False) -> tuple[str, bool]:
+def resolve_piscine_or_exam_subject(
+    subject: str, prefer_exam: bool = False
+) -> tuple[str, bool]:
     """Resolve what the student typed to exactly one exercise.
 
     Accepted forms: 'piscine/<mod>/<ex>', 'exams/<ex>', '<mod>/<ex>', or a bare '<ex>'.
@@ -326,7 +380,9 @@ def resolve_piscine_or_exam_subject(subject: str, prefer_exam: bool = False) -> 
             return tier[0], False
         if len(tier) > 1:
             choices = ", ".join(short_exercise_label(c) for c in tier)
-            raise ExerciseLookupError(f"'{clean}' is ambiguous: {choices}. Name the module.")
+            raise ExerciseLookupError(
+                f"'{clean}' is ambiguous: {choices}. Name the module."
+            )
     if has_exam:
         return f"exams/{clean}", True
     return clean, False
@@ -337,7 +393,10 @@ def find_exercise_namesakes(resolved: str) -> list[str]:
     leaf = _MODULE_PREFIX_RE.sub("", Path(resolved).name)
     exact, prefixed = _piscine_candidates(leaf)
     others = [c for c in (*exact, *prefixed) if c != resolved]
-    if _is_exercise_dir(KIT_ROOT / "subjects" / "exams" / leaf) and resolved != f"exams/{leaf}":
+    if (
+        _is_exercise_dir(KIT_ROOT / "subjects" / "exams" / leaf)
+        and resolved != f"exams/{leaf}"
+    ):
         others.append(f"exams/{leaf}")
     return [short_exercise_label(c) for c in others]
 
@@ -365,10 +424,14 @@ def suggest_exercise(target: str, limit: int = 3) -> list[str]:
     return difflib.get_close_matches(clean, _all_exercise_names(), n=limit, cutoff=0.55)
 
 
-def resolve_exercise_or_report(target: str, theme: ThemeEngine, prefer_exam: bool = False) -> tuple[str, bool] | None:
+def resolve_exercise_or_report(
+    target: str, theme: ThemeEngine, prefer_exam: bool = False
+) -> tuple[str, bool] | None:
     """Resolve an exercise or print one precise error line and return None."""
     try:
-        resolved, is_exam = resolve_piscine_or_exam_subject(str(target), prefer_exam=prefer_exam)
+        resolved, is_exam = resolve_piscine_or_exam_subject(
+            str(target), prefer_exam=prefer_exam
+        )
     except ExerciseLookupError as exc:
         print(theme.c(f"Error: {exc}", "err", "bold"))
         return None
@@ -377,40 +440,101 @@ def resolve_exercise_or_report(target: str, theme: ThemeEngine, prefer_exam: boo
         suggestions = suggest_exercise(str(target))
         if suggestions:
             print(theme.c(f"       Did you mean: {', '.join(suggestions)}?", "warn"))
-        print(theme.c("       Browse with 'list', or type 'help' for commands.", "muted"))
+        print(
+            theme.c("       Browse with 'list', or type 'help' for commands.", "muted")
+        )
         return None
     return resolved, is_exam
 
 
 def print_guide(theme: ThemeEngine, exercise: str | None = None) -> int:
     """Beginner walkthrough: the whole workflow in plain steps, with real paths."""
-    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold('How to work with moulinette (start here)')}")
+    print(
+        f"{theme.c('===>', 'accent', 'bold')} {theme.bold('How to work with moulinette (start here)')}"
+    )
     print("")
-    print(theme.c("  You write code in your own folders. Moulinette only reads and grades them.", "secondary"))
+    print(
+        theme.c(
+            "  You write code in your own folders. Moulinette only reads and grades them.",
+            "secondary",
+        )
+    )
     print("")
     print(theme.c("  1. Read the subject", "primary", "bold"))
-    print(theme.c("     Type:  subject <exercise>          (example: subject ft_putchar)", "secondary"))
-    print(theme.c("     It shows the files to create, the allowed functions, and examples.", "muted"))
+    print(
+        theme.c(
+            "     Type:  subject <exercise>          (example: subject ft_putchar)",
+            "secondary",
+        )
+    )
+    print(
+        theme.c(
+            "     It shows the files to create, the allowed functions, and examples.",
+            "muted",
+        )
+    )
     print("")
     print(theme.c("  2. Create your folder (both workflows work)", "primary", "bold"))
-    print(theme.c("     Workspace: workspace/piscine/<module>/exNN/ (ready for editing)", "secondary"))
-    print(theme.c("     Manual 42: mkdir <module>/<exNN>/<file>    (example: c00/ex00/ft_putchar.c)", "secondary"))
+    print(
+        theme.c(
+            "     Workspace: workspace/piscine/<module>/exNN/ (ready for editing)",
+            "secondary",
+        )
+    )
+    print(
+        theme.c(
+            "     Manual 42: mkdir <module>/<exNN>/<file>   (example: c00/ex00/ft_putchar.c)",
+            "secondary",
+        )
+    )
     print(theme.c("     Exam     : workspace/exams/<exercise>/", "secondary"))
-    print(theme.c("     Shortcut : init <exercise> creates starter stubs (optional).", "muted"))
+    print(
+        theme.c(
+            "     Shortcut : init <exercise> creates starter stubs (optional).", "muted"
+        )
+    )
     print("")
     print(theme.c("  3. Write your code", "primary", "bold"))
-    print(theme.c("     Edit the file with your editor (vim, emacs, vscode...).", "secondary"))
-    print(theme.c("     Tip: 'watch <exercise>' re-grades automatically every time you save.", "muted"))
+    print(
+        theme.c(
+            "     Edit the file with your editor (vim, emacs, vscode...).", "secondary"
+        )
+    )
+    print(
+        theme.c(
+            "     Tip: 'watch <exercise>' re-grades automatically every time you save.",
+            "muted",
+        )
+    )
     print("")
     print(theme.c("  4. Grade it", "primary", "bold"))
-    print(theme.c("     Type:  <exercise>                  (example: ft_putchar)", "secondary"))
-    print(theme.c("     The 5 gates run: files, allowed functions, compilation, safety, tests.", "muted"))
+    print(
+        theme.c(
+            "     Type:  <exercise>                  (example: ft_putchar)", "secondary"
+        )
+    )
+    print(
+        theme.c(
+            "     The 5 gates run: files, allowed functions, compilation, safety, tests.",
+            "muted",
+        )
+    )
     print("")
     print(theme.c("  5. Read the result", "primary", "bold"))
-    print(theme.c("     OK  = validated, XP earned once.  KO = read 'trace' for the full report,", "secondary"))
+    print(
+        theme.c(
+            "     OK  = validated, XP earned once.  KO = read 'trace' for the full report,",
+            "secondary",
+        )
+    )
     print(theme.c("     fix the first failing gate, then grade again.", "secondary"))
     print("")
-    print(theme.c("  Stuck? Type 'doctor' to check your setup, 'help' for all commands,", "muted"))
+    print(
+        theme.c(
+            "  Stuck? Type 'doctor' to check your setup, 'help' for all commands,",
+            "muted",
+        )
+    )
     print(theme.c("  'list' to browse exercises, 'xp' to see your progress.", "muted"))
     if exercise:
         print("")
@@ -419,53 +543,302 @@ def print_guide(theme: ThemeEngine, exercise: str | None = None) -> int:
         if found is not None:
             resolved = found[0]
             leaf = _MODULE_PREFIX_RE.sub("", Path(resolved).name)
-            turnin = tilde_path(resolve_submission_dir(None, leaf, resolved_subject=resolved))
-            print(theme.c(f"  Subject : {tilde_path(KIT_ROOT / 'subjects' / resolved / 'subject.en.txt')}", "secondary"))
+            sub_dir = resolve_submission_dir(None, leaf, resolved_subject=resolved)
+            try:
+                turnin = str(sub_dir.relative_to(KIT_ROOT))
+            except ValueError:
+                turnin = tilde_path(sub_dir)
+            subj_rel = f"subjects/{resolved}/subject.en.txt"
+            print(theme.c(f"  Subject : {subj_rel}", "secondary"))
             print(theme.c(f"  Turn-in : {turnin}/", "accent"))
     print("")
     return 0
+
+
+DoctorCheck = tuple[bool, str, str, bool]
+
+
+def _probe_tool_group(tools: tuple[str, ...]) -> tuple[list[str], list[str]]:
+    """Return ``(present, missing)`` tool names checked via ``shutil.which``."""
+    present: list[str] = []
+    missing: list[str] = []
+    for tool in tools:
+        if shutil.which(tool):
+            present.append(tool)
+        else:
+            missing.append(tool)
+    return present, missing
+
+
+def _probe_norminette() -> DoctorCheck:
+    """Verify the bundled official 42 norminette CLI executes cleanly."""
+    norm_bin = KIT_ROOT / "bin" / "norminette"
+    if not norm_bin.is_file():
+        return (
+            False,
+            "bin/norminette: not found",
+            "The kit folder looks incomplete; check bin/norminette.",
+            False,
+        )
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(norm_bin), "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        ver_out = (proc.stdout or "").strip()
+        note_err = (proc.stderr or "").strip()
+        if proc.returncode == 0 and ver_out:
+            short_ver = ver_out.split(",")[0].strip()
+            return (True, f"42 {short_ver} (official AST checker)", "", False)
+        reason = note_err or ver_out or "official norminette cannot run"
+        return (
+            False,
+            f"42 norminette: {reason}",
+            "Run ./install.sh: it installs Python 3.10+ so the official norminette can run.",
+            True,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return (
+            False,
+            f"42 norminette check failed: {exc}",
+            "Verify bin/norminette permissions.",
+            False,
+        )
+
+
+def _probe_man_environment() -> DoctorCheck:
+    """Detect missing or Debian/Ubuntu-minimized man pages (see unminimize)."""
+    man_path = shutil.which("man")
+    minimized = (
+        Path("/etc/dpkg/dpkg.cfg.d/excludes").is_file()
+        or Path("/etc/dpkg/dpkg.cfg.d/excludes.dpkg-tmp").is_file()
+        or Path("/usr/bin/man.REAL").exists()
+    )
+    if not man_path:
+        return (
+            False,
+            "man pages: 'man' command not installed",
+            "Optional: install man-db (or run 'sudo unminimize' on minimized Ubuntu).",
+            False,
+        )
+    if minimized:
+        return (
+            False,
+            "man pages appear stripped/minimized (dpkg excludes active)",
+            "Optional: run 'sudo unminimize' (or ./bocal/unminimize_man_restore.sh) to restore offline man pages.",
+            False,
+        )
+    return (True, f"man pages available: {man_path}", "", False)
+
+
+def _probe_kernel_tools_wrapper() -> DoctorCheck | None:
+    """Flag Ubuntu's kernel-matched linux-tools wrapper when perf mismatches uname -r."""
+    if not sys.platform.startswith("linux"):
+        return None
+    perf_path = shutil.which("perf")
+    if not perf_path:
+        return None
+    try:
+        head = Path(perf_path).read_text(encoding="utf-8", errors="ignore")[:1024]
+    except OSError:
+        return None
+    if "/usr/lib/linux-tools" not in head:
+        return None
+    kver = os.uname().release
+    if (Path("/usr/lib/linux-tools") / kver / "perf").exists():
+        return (True, f"linux-tools matched for kernel {kver}", "", False)
+    return (
+        False,
+        f"linux-tools wrapper found ({perf_path}) without kernel {kver} binary",
+        f"Optional: install 'linux-tools-{kver}' or run ./bocal/ktool_dispatch.sh if profiling.",
+        False,
+    )
 
 
 def print_doctor(theme: ThemeEngine) -> int:
     """Plain-language environment check: what the grader needs, and whether it is there."""
     print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold('Setup check (doctor)')}")
     print("")
-    checks: list[tuple[bool, str, str, bool]] = []
-    python_ok = sys.version_info >= (3, 8)
-    checks.append((python_ok, f"Python {sys.version_info.major}.{sys.version_info.minor} (need 3.8+)", "Install Python 3.8 or newer." if not python_ok else "", True))
-    for tool in ("gcc", "cc", "clang"):
-        found_tool = shutil.which(tool)
-        if found_tool:
-            checks.append((True, f"{tool}: {found_tool}", "", True))
-            break
-    else:
-        checks.append((False, "C compiler (gcc/cc/clang): not found", "Install a C compiler, e.g. 'sudo apt install gcc' on Debian/Ubuntu.", True))
+    checks: list[DoctorCheck] = []
 
-    norm_bin = KIT_ROOT / "bin" / "norminette"
-    if norm_bin.is_file():
-        try:
-            proc = subprocess.run([sys.executable, str(norm_bin), "--version"], capture_output=True, text=True, timeout=5)
-            ver_out = (proc.stdout or "").strip()
-            note_err = (proc.stderr or "").strip()
-            if proc.returncode == 0 and ver_out and "built-in checker" not in note_err and "built-in checker" not in ver_out:
-                checks.append((True, f"42 {ver_out} (official AST checker)", "", False))
-            else:
-                reason = note_err or ver_out or "built-in checker only"
-                checks.append((False, f"42 norminette: {reason}", "Install Python 3.10+ for official 42 norminette rules (built-in fallback remains active).", False))
-        except (OSError, subprocess.SubprocessError) as exc:
-            checks.append((False, f"42 norminette check failed: {exc}", "Verify bin/norminette permissions.", False))
-    else:
-        checks.append((False, "bin/norminette: not found", "The kit folder looks incomplete; check bin/norminette.", False))
+    python_ok = sys.version_info >= (3, 10)
+    checks.append(
+        (
+            python_ok,
+            f"Python {sys.version_info.major}.{sys.version_info.minor} (need 3.10+)",
+            "Install Python 3.10 or newer (or run ./install.sh)."
+            if not python_ok
+            else "",
+            True,
+        )
+    )
+    checks.append(
+        (
+            hasattr(yaml, "safe_load"),
+            f"PyYAML {getattr(yaml, '__version__', 'installed')}",
+            "Install PyYAML (pip install pyyaml).",
+            True,
+        )
+    )
 
-    checks.append(((KIT_ROOT / "subjects").is_dir(), "Exercise subjects are present", "The kit folder looks incomplete; re-clone magrathea.", True))
+    c_compilers = [(t, shutil.which(t)) for t in ("gcc", "cc", "clang")]
+    found_c = [(t, p) for t, p in c_compilers if p]
+    if found_c:
+        primary_c, primary_c_path = found_c[0]
+        checks.append((True, f"{primary_c}: {primary_c_path}", "", True))
+    else:
+        checks.append(
+            (
+                False,
+                "C compiler (gcc/cc/clang): not found",
+                "Install a C compiler, e.g. 'sudo apt install gcc' on Debian/Ubuntu.",
+                True,
+            )
+        )
+
+    has_gcc = bool(shutil.which("gcc"))
+    has_clang = bool(shutil.which("clang"))
+    if has_gcc and has_clang:
+        checks.append(
+            (True, "Dual-compiler strict check ready (gcc + clang)", "", False)
+        )
+    elif found_c:
+        missing_alt = "clang" if has_gcc else "gcc"
+        checks.append(
+            (
+                False,
+                f"Dual-compiler check: {missing_alt} not installed (single-compiler mode)",
+                f"Optional: install {missing_alt} to enable dual-compiler checks under --strict.",
+                False,
+            )
+        )
+
+    cxx_found = next(
+        ((t, shutil.which(t)) for t in ("c++", "g++", "clang++") if shutil.which(t)),
+        None,
+    )
+    if cxx_found:
+        checks.append(
+            (True, f"C++ compiler ({cxx_found[0]}): {cxx_found[1]}", "", False)
+        )
+    else:
+        checks.append(
+            (
+                False,
+                "C++ compiler (c++/g++/clang++): not found",
+                "Optional: install g++ or clang++ for C++ exam exercises (e.g. mini_db).",
+                False,
+            )
+        )
+
+    _, missing_core = _probe_tool_group(("git", "nm", "diff", "make", "bc", "tar"))
+    if not missing_core:
+        checks.append(
+            (True, "Core grader tools: git, nm, diff, make, bc, tar", "", True)
+        )
+    else:
+        pkg_map = {"nm": "binutils", "diff": "diffutils"}
+        pkgs = " ".join(dict.fromkeys(pkg_map.get(t, t) for t in missing_core))
+        checks.append(
+            (
+                False,
+                f"Core grader tools missing: {', '.join(missing_core)}",
+                f"Install missing packages ({pkgs}) or run ./install.sh.",
+                True,
+            )
+        )
+
+    _, missing_sh = _probe_tool_group(("sh", "find", "grep", "sed", "awk", "file"))
+    if not missing_sh:
+        checks.append(
+            (True, "Shell & POSIX utilities: sh, find, grep, sed, awk, file", "", True)
+        )
+    else:
+        checks.append(
+            (
+                False,
+                f"Shell utilities missing: {', '.join(missing_sh)}",
+                "Install standard POSIX/GNU shell utilities (findutils, grep, sed, gawk, file).",
+                True,
+            )
+        )
+
+    checks.append(_probe_norminette())
+    checks.append(_probe_man_environment())
+
+    valgrind_path = shutil.which("valgrind")
+    if valgrind_path:
+        checks.append(
+            (
+                True,
+                f"valgrind: {valgrind_path} (extra heap checking available)",
+                "",
+                False,
+            )
+        )
+    else:
+        checks.append(
+            (
+                False,
+                "valgrind: not installed (built-in DT_CHECK_LEAKS hook active)",
+                "Optional: install valgrind for extra local leak debugging.",
+                False,
+            )
+        )
+
+    ktool_chk = _probe_kernel_tools_wrapper()
+    if ktool_chk is not None:
+        checks.append(ktool_chk)
+
+    checks.append(
+        (
+            (KIT_ROOT / "subjects").is_dir(),
+            "Exercise subjects are present",
+            "The kit folder looks incomplete; re-clone magrathea.",
+            True,
+        )
+    )
+
+    exec_tmp = get_executable_temp_root(KIT_ROOT)
+    exec_ok = (
+        exec_tmp.is_dir()
+        and not exec_tmp.is_symlink()
+        and os.access(exec_tmp, os.W_OK | os.X_OK)
+    )
+    checks.append(
+        (
+            exec_ok,
+            f"Executable temp root (execve): {tilde_path(exec_tmp)}",
+            "Ensure TMPDIR or workspace/ allows executing compiled binaries.",
+            True,
+        )
+    )
+
     ws = KIT_ROOT / "workspace"
     try:
         ws.mkdir(parents=True, exist_ok=True)
         ws_writable = os.access(ws, os.W_OK)
     except OSError:
         ws_writable = False
-    checks.append((ws_writable, f"Workspace writable: {tilde_path(ws)}", "Check folder permissions.", True))
-    checks.append((os.access(str(Path.home()), os.W_OK), f"Home folder writable: {tilde_path(Path.home())}", "Check $HOME permissions.", True))
+    checks.append(
+        (
+            ws_writable,
+            f"Workspace writable: {tilde_path(ws)}",
+            "Check folder permissions.",
+            True,
+        )
+    )
+    checks.append(
+        (
+            os.access(str(Path.home()), os.W_OK),
+            f"Home folder writable: {tilde_path(Path.home())}",
+            "Check $HOME permissions.",
+            True,
+        )
+    )
+
     all_ok = True
     for ok, label, fix, required in checks:
         if ok:
@@ -481,7 +854,12 @@ def print_doctor(theme: ThemeEngine) -> int:
                 all_ok = False
     print("")
     if all_ok:
-        print(theme.c("  All good. Type 'list' to browse, or 'guide' for the step-by-step.", "ok"))
+        print(
+            theme.c(
+                "  All good. Type 'list' to browse, or 'guide' for the step-by-step.",
+                "ok",
+            )
+        )
     else:
         print(theme.c("  Fix the items above, then run 'doctor' again.", "warn"))
     print("")
@@ -490,7 +868,11 @@ def print_doctor(theme: ThemeEngine) -> int:
 
 def expected_turnin_files(resolved_subject: str, slug_leaf: str) -> list[str]:
     """Files the subject asks for, as declared in meta.yml (falls back to '<name>.c')."""
-    meta = fast_load_yaml(KIT_ROOT / "subjects" / resolved_subject / "meta.yml") if resolved_subject else {}
+    meta = (
+        fast_load_yaml(KIT_ROOT / "subjects" / resolved_subject / "meta.yml")
+        if resolved_subject
+        else {}
+    )
     declared = [str(f) for f in (meta.get("expected_files") or []) if str(f).strip()]
     return declared or [f"{slug_leaf}.c"]
 
@@ -502,9 +884,15 @@ def piscine_exercise_slot(resolved_subject: str) -> tuple[str, str] | None:
         return None
     pool = fast_load_yaml(KIT_ROOT / "pools" / "piscine" / f"{parts[1]}.yml")
     for idx, ex in enumerate(pool.get("exercises") or []):
-        raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
+        raw_id = (
+            (ex.get("subject_id") or ex.get("id") or "")
+            if isinstance(ex, dict)
+            else str(ex)
+        )
         if Path(raw_id).name == parts[2]:
-            return parts[1], str(ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}")
+            return parts[1], str(
+                ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}"
+            )
     return None
 
 
@@ -526,7 +914,10 @@ def find_module_repo(mod_slug: str) -> Path:
     cwd = Path.cwd().resolve()
     kit = KIT_ROOT.resolve()
     workspace_repo = kit / "workspace" / "piscine" / mod_slug
-    if cwd == kit or any(tree == cwd or tree in cwd.parents for tree in (kit / "subjects", kit / "corrections", kit / "pools")):
+    if cwd == kit or any(
+        tree == cwd or tree in cwd.parents
+        for tree in (kit / "subjects", kit / "corrections", kit / "pools")
+    ):
         return workspace_repo
     if cwd.name.lower() == mod_slug:
         return cwd
@@ -534,12 +925,16 @@ def find_module_repo(mod_slug: str) -> Path:
         return cwd.parent
     if (cwd / mod_slug).is_dir():
         return (cwd / mod_slug).resolve()
-    if cwd.name.lower() not in get_piscine_modules() and any(d.is_dir() for d in cwd.glob("ex[0-9][0-9]")):
+    if cwd.name.lower() not in get_piscine_modules() and any(
+        d.is_dir() for d in cwd.glob("ex[0-9][0-9]")
+    ):
         return cwd
     return workspace_repo
 
 
-def resolve_submission_dir(explicit_dir: str | None, slug_leaf: str, resolved_subject: str = "") -> Path:
+def resolve_submission_dir(
+    explicit_dir: str | None, slug_leaf: str, resolved_subject: str = ""
+) -> Path:
     """Where the turn-in is read from.
 
     --dir wins. Otherwise, for a Piscine exercise, the 42 layout is the reference: the exercise lives
@@ -554,10 +949,14 @@ def resolve_submission_dir(explicit_dir: str | None, slug_leaf: str, resolved_su
     if explicit_dir is not None:
         return Path(explicit_dir).expanduser().resolve()
     cwd = Path.cwd().resolve()
-    is_kit_root = (cwd == KIT_ROOT.resolve())
+    is_kit_root = cwd == KIT_ROOT.resolve()
     names = {f"{slug_leaf}.c", f"{slug_leaf}.sh", f"{slug_leaf}.h"}
     if resolved_subject:
-        names.update(f for f in expected_turnin_files(resolved_subject, slug_leaf) if "*" not in f)
+        names.update(
+            f
+            for f in expected_turnin_files(resolved_subject, slug_leaf)
+            if "*" not in f
+        )
 
     def _holds_turnin(directory: Path) -> bool:
         return any((directory / name).is_file() for name in names)
@@ -572,10 +971,13 @@ def resolve_submission_dir(explicit_dir: str | None, slug_leaf: str, resolved_su
     if slot is not None:
         mod_slug, ex_code = slot
         repo = find_module_repo(mod_slug)
+        # Keep the exNN name the subject asks for ("Turn-in directory : ex00/"): never dereference
+        # an ex00 -> ft_putchar link, or the path shown contradicts the subject.
+        repo = repo.resolve()
         for sub_name in (ex_code, Path(resolved_subject).name, slug_leaf):
             if (repo / sub_name).is_dir():
-                return (repo / sub_name).resolve()
-        return (repo / ex_code).resolve()
+                return repo / sub_name
+        return repo / ex_code
 
     if not is_kit_root and (cwd / slug_leaf).is_dir():
         return (cwd / slug_leaf).resolve()
@@ -592,40 +994,8 @@ def resolve_submission_dir(explicit_dir: str | None, slug_leaf: str, resolved_su
     return (KIT_ROOT / "workspace" / target_rel).resolve()
 
 
-def render_five_gate_scorecard(report: GradeReport, theme: ThemeEngine, is_exam: bool = False, norm_enabled: bool = False) -> str:
-    st = report.status
-    g1_fail = "Nothing turned in" in st or "main() in function" in st or "Extraneous file" in st
-    g2_fail = "Cheating" in st or "Norme error" in st
-    g3_fail = st.startswith("Does not compile") or "Makefile" in st
-    g4_fail = any(k in st for k in ("Segmentation fault", "Bus error", "Abort", "Floating point", "Timeout", "Output limit", "Redzone KO", "Leak KO", "Free KO", "Strict KO", "Exit 42", "Exit 43"))
-    g5_fail = not report.passed and not (g1_fail or g2_fail or g3_fail or g4_fail)
-
-    norm_tag = " + norminette" if (not is_exam or norm_enabled) else ""
-    gates = [
-        ("gate 1", "turn-in files & entry point", not g1_fail, g1_fail),
-        ("gate 2", f"elf symbol whitelist (nm -u){norm_tag}", not (g1_fail or g2_fail), g2_fail),
-        ("gate 3", "strict compilation (cc -Wall -Wextra -Werror)", not (g1_fail or g2_fail or g3_fail), g3_fail),
-        ("gate 4", "process sandbox & signal isolation", not (g1_fail or g2_fail or g3_fail or g4_fail), g4_fail),
-        ("gate 5", "deepthought torture matrix & cat -e diff", report.passed, g5_fail),
-    ]
-    lines = [f"{theme.c('===>', 'accent', 'bold')} {theme.bold('5-gate moulinette pipeline')}"]
-    stopped = False
-    for g_id, g_desc, is_ok, is_fail in gates:
-        dots = "." * max(2, 48 - len(g_desc))
-        if stopped:
-            status_s = theme.c("SKIP", "muted")
-        elif is_fail:
-            status_s = f"{theme.c('KO', 'err', 'bold')} ({st})"
-            stopped = True
-        elif is_ok:
-            status_s = theme.c("OK", "ok", "bold")
-        else:
-            status_s = theme.c("SKIP", "muted")
-        lines.append(f"  {theme.c(g_id, 'muted')}  {g_desc} {theme.c(dots, 'muted')} {status_s}")
-    return "\n".join(lines)
-
-
 def colorize_trace(trace_text: str, theme: ThemeEngine) -> str:
+    """Apply theme colors to a Deepthought grading trace."""
     if theme.name == "plain":
         return trace_text
     out: list[str] = []
@@ -637,7 +1007,12 @@ def colorize_trace(trace_text: str, theme: ThemeEngine) -> str:
                 out.append(theme.c(line, "err", "bold"))
             else:
                 out.append(theme.c(line, "primary", "bold"))
-        elif line.startswith(">>>>>>>>>> FAILURE") or "Cheating (-42)" in line or "Diff KO :(" in line or "Norme error" in line:
+        elif (
+            line.startswith(">>>>>>>>>> FAILURE")
+            or "Cheating (-42)" in line
+            or "Diff KO :(" in line
+            or "Norme error" in line
+        ):
             out.append(theme.c(line, "err", "bold"))
         elif "Diff OK :D" in line or line == "OK" or line.endswith(": OK!"):
             out.append(theme.c(line, "ok", "bold"))
@@ -652,7 +1027,22 @@ def colorize_trace(trace_text: str, theme: ThemeEngine) -> str:
     return "\n".join(out)
 
 
-def _format_preview_exercises(exs: list[str], max_width: int = 62) -> str:
+def _format_preview_exercises(
+    exs: list[str],
+    max_width: int = 56,
+    max_items: int = 4,
+) -> str:
+    """Format an exercise preview list bounded by character budget and item count.
+
+    Args:
+        exs: Exercise directory or slug names in display order.
+        max_width: Maximum visible width in characters for the preview cell.
+        max_items: Maximum number of leading exercise names before collapsing.
+
+    Returns:
+        A comma-separated preview string with a trailing ``(+N more)`` suffix
+        when truncated.
+    """
     cleaned = [_MODULE_PREFIX_RE.sub("", e) for e in exs]
     shown: list[str] = []
     cur_len = 0
@@ -660,11 +1050,137 @@ def _format_preview_exercises(exs: list[str], max_width: int = 62) -> str:
         rem = len(cleaned) - idx
         suffix = f" (+{rem} more)" if rem > 0 else ""
         add_len = len(name) + (2 if shown else 0)
-        if shown and (cur_len + add_len + len(suffix) > max_width or len(shown) >= 4):
+        if shown and (
+            cur_len + add_len + len(suffix) > max_width or len(shown) >= max_items
+        ):
             return ", ".join(shown) + f" (+{rem} more)"
         shown.append(name)
         cur_len += add_len
     return ", ".join(shown)
+
+
+def _fit_three_columns(
+    budget: int,
+    mins: tuple[int, int, int],
+    natural: tuple[int, int, int],
+    caps: tuple[int, int, int],
+) -> tuple[int, int, int]:
+    """Allocate widths for three flexible columns within an integer budget.
+
+    Args:
+        budget: Total column budget shared across all three columns.
+        mins: Minimum allowed widths for ``(ASSIGNMENT, FILES, ALLOWED)``.
+        natural: Unclipped content widths for each column.
+        caps: Maximum allowed widths for each column.
+
+    Returns:
+        Allocated ``(width_0, width_1, width_2)`` column widths.
+    """
+    widths = [max(mins[i], min(natural[i], caps[i])) for i in range(3)]
+    while sum(widths) > budget:
+        reducible = [i for i in (2, 1, 0) if widths[i] > mins[i]]
+        if not reducible:
+            break
+        widest = max(reducible, key=lambda idx: (widths[idx] - mins[idx], idx))
+        widths[widest] -= 1
+    return widths[0], widths[1], widths[2]
+
+
+def _print_table(
+    headers: tuple[str, ...],
+    rows: list[tuple[str, ...]],
+    widths: tuple[int, ...],
+    aligns: tuple[str, ...],
+    styles: tuple[tuple[str, ...], ...],
+    theme: ThemeEngine,
+) -> None:
+    """Render an ANSI-aware aligned column table.
+
+    Args:
+        headers: Column header labels.
+        rows: Table body tuples aligned one-to-one with ``headers``.
+        widths: Column widths in characters.
+        aligns: Alignment specifier (``"<"`` or ``">"``) per column.
+        styles: Theme style role tuples per column (``("_done",)`` maps OK/dim).
+        theme: Active theme engine used to style headers, rules, and cells.
+    """
+    last_idx = len(headers) - 1
+    hdr_cells = [
+        h
+        if (i == last_idx and a == "<")
+        else (f"{h:>{w}}" if a == ">" else f"{h:<{w}}")
+        for i, (h, w, a) in enumerate(zip(headers, widths, aligns))
+    ]
+    print(theme.c("  ".join(hdr_cells), "primary", "bold"))
+    print(theme.c("  ".join("-" * w for w in widths), "secondary"))
+    for row in rows:
+        cells: list[str] = []
+        for idx, (val, w, a, st) in enumerate(zip(row, widths, aligns, styles)):
+            is_last = idx == len(row) - 1
+            text = clip_cell(val, w)
+            padded = (
+                text
+                if (is_last and a == "<")
+                else (f"{text:>{w}}" if a == ">" else f"{text:<{w}}")
+            )
+            if st == ("_done",):
+                st = ("ok", "bold") if val == "OK" else ("muted",)
+            cells.append(theme.c(padded, *st) if st else padded)
+        print("  ".join(cells))
+
+
+def _print_exercise_table(
+    rows: list[tuple[str, str, str, str, str, str]],
+    first_hdr: str,
+    first_min: int,
+    score_hdr: str,
+    table_max: int,
+    theme: ThemeEngine,
+) -> None:
+    """Render a compact 6-column exercise table capped at 79 columns.
+
+    Args:
+        rows: Tuples of ``(slot, assignment, files, allowed, score, done)``.
+        first_hdr: Header label for column 0 (``"EX"`` or ``"#"``).
+        first_min: Minimum width for column 0.
+        score_hdr: Header label for column 4 (``"XP"`` or ``"PTS"``).
+        table_max: Upper column bound requested by caller.
+        theme: Active theme engine for styling output.
+    """
+    effective_max = min(79, max(40, table_max))
+    first_w = max([first_min, *(len(r[0]) for r in rows)])
+    score_w = max([3, *(len(r[4]) for r in rows)])
+    done_w = 2
+    overhead = first_w + score_w + done_w + 10
+    natural = tuple(
+        max([m, *(len(r[i]) for r in rows)]) for i, m in ((1, 10), (2, 12), (3, 7))
+    )
+    caps = (
+        max(38, effective_max // 2),
+        max(52, effective_max // 2),
+        max(52, effective_max // 2),
+    )
+    name_w, files_w, allow_w = _fit_three_columns(
+        max(29, effective_max - overhead),
+        (10, 12, 7),
+        natural,  # type: ignore[arg-type]
+        caps,
+    )
+    _print_table(
+        (first_hdr, "ASSIGNMENT", "FILES", "ALLOWED", score_hdr, "OK"),
+        rows,
+        (first_w, name_w, files_w, allow_w, score_w, done_w),
+        ("<", "<", "<", "<", ">", "<"),
+        (
+            ("accent", "bold"),
+            ("primary", "bold"),
+            (),
+            ("secondary",),
+            ("warn",),
+            ("_done",),
+        ),
+        theme,
+    )
 
 
 _EXAM_TRACK_ALIASES = {
@@ -691,6 +1207,7 @@ _EXAM_TRACK_ALIASES = {
 
 
 def resolve_exam_track_name(name: str) -> str | None:
+    """Resolve an exam track alias to its canonical pool stem."""
     low = name.strip().lower()
     mapped = _EXAM_TRACK_ALIASES.get(low, low)
     if (KIT_ROOT / "pools" / "exams" / f"{mapped}.yml").is_file():
@@ -699,8 +1216,15 @@ def resolve_exam_track_name(name: str) -> str | None:
 
 
 OFFICIAL_EXAM_TRACKS = [
-    "c_piscine_exam_00", "c_piscine_exam_01", "c_piscine_exam_02", "c_piscine_final_exam",
-    "rank02", "rank03", "rank04", "rank05", "rank06",
+    "c_piscine_exam_00",
+    "c_piscine_exam_01",
+    "c_piscine_exam_02",
+    "c_piscine_final_exam",
+    "rank02",
+    "rank03",
+    "rank04",
+    "rank05",
+    "rank06",
 ]
 
 
@@ -709,16 +1233,30 @@ def catalog_counts() -> tuple[int, int, int, int]:
     """(piscine modules, piscine exercises, exam tracks shown, exam exercises), counted on disk."""
     subj = KIT_ROOT / "subjects"
     mods = len(get_piscine_modules())
-    piscine_exs = sum(1 for _ in (subj / "piscine").glob("*/*/meta.yml")) if (subj / "piscine").is_dir() else 0
-    tracks = sum(1 for t in OFFICIAL_EXAM_TRACKS if (KIT_ROOT / "pools" / "exams" / f"{t}.yml").is_file())
-    exam_exs = sum(1 for _ in (subj / "exams").glob("*/meta.yml")) if (subj / "exams").is_dir() else 0
+    piscine_exs = (
+        sum(1 for _ in (subj / "piscine").glob("*/*/meta.yml"))
+        if (subj / "piscine").is_dir()
+        else 0
+    )
+    tracks = sum(
+        1
+        for t in OFFICIAL_EXAM_TRACKS
+        if (KIT_ROOT / "pools" / "exams" / f"{t}.yml").is_file()
+    )
+    exam_exs = (
+        sum(1 for _ in (subj / "exams").glob("*/meta.yml"))
+        if (subj / "exams").is_dir()
+        else 0
+    )
     return mods, piscine_exs, tracks, exam_exs
 
 
 def load_validated_exercises() -> set[str]:
     """Exercises already validated by the student, from the default XP ledger (empty when there is none)."""
     try:
-        data = json.loads((KIT_ROOT / "workspace" / "xp_ledger.json").read_text(encoding="utf-8"))
+        data = json.loads(
+            (KIT_ROOT / "workspace" / "xp_ledger.json").read_text(encoding="utf-8")
+        )
         return set((data.get("validated_exercises") or {}).keys())
     except (OSError, ValueError, AttributeError):
         return set()
@@ -726,42 +1264,170 @@ def load_validated_exercises() -> set[str]:
 
 def home_note(*shown_paths: str) -> str:
     """Explain '~' only when a displayed path actually uses it."""
-    return f"  (~ = {Path.home()})" if any(str(sp).startswith("~") for sp in shown_paths) else ""
+    return (
+        f"  (~ = {Path.home()})"
+        if any(str(sp).startswith("~") for sp in shown_paths)
+        else ""
+    )
 
 
 def clip_cell(text: str, width: int) -> str:
+    """Truncate text to width characters with a trailing ellipsis if needed."""
     return text if len(text) <= width else text[: max(1, width - 1)] + "…"
 
 
-def print_sections_menu(theme: ThemeEngine) -> None:
-    """Render the Spartan 2-section root catalog selector (1: piscine, 2: piscine exam). Fits 80 columns."""
-    mods, piscine_exs, tracks, exam_exs = catalog_counts()
-    print(f"{theme.c('===>', 'accent', 'bold')} {theme.c('42 / 1337 catalog sections', 'primary', 'bold')}")
-    print("")
-    print(theme.c(f"{'#':<3}  {'SECTION':<14}  {'CONTENT':<22}  {'DESCRIPTION'}", "bold"))
-    print(theme.c(f"{'---':<3}  {'-' * 14}  {'-' * 22}  {'-' * 34}", "muted"))
-    print(
-        f"{theme.c('1  ', 'muted')}  "
-        f"{theme.c('piscine'.ljust(14), 'accent', 'bold')}  "
-        f"{theme.c(f'{mods} modules ({piscine_exs} exs)'.ljust(22), 'secondary')}  "
-        f"{theme.c('c00..c13, shell00..01, rush, bsq', 'muted')}"
-    )
-    print(
-        f"{theme.c('2  ', 'muted')}  "
-        f"{theme.c('piscine exam'.ljust(14), 'accent', 'bold')}  "
-        f"{theme.c(f'{tracks} tracks ({exam_exs} exs)'.ljust(22), 'secondary')}  "
-        f"{theme.c('exam 00..final, rank 02..06', 'muted')}"
-    )
-    print("")
-    print(theme.c("tip: 'piscine' (1) or 'exams' (2) to browse, or an exercise name to grade it.", "muted"))
+def _rel_or_tilde(path: Path) -> str:
+    """Return a repo-relative path inside ``KIT_ROOT``, else ``tilde_path``.
 
+    Args:
+        path: Target filesystem path to format for display.
 
-def print_catalog_list(target: str | None, theme: ThemeEngine, max_rows: int | None = None) -> int:
-    """Print a catalog view. Every line fits 80 columns as long as the kit path does.
-
-    max_rows is the room available on screen: when a table would not fit, the two path lines are left out
-    so that the rows (the names to type) stay visible.
+    Returns:
+        Path relative to ``KIT_ROOT`` when inside the kit, otherwise tilde-shortened.
     """
+    resolved = path.resolve()
+    kit_resolved = KIT_ROOT.resolve()
+    try:
+        return str(resolved.relative_to(kit_resolved))
+    except ValueError:
+        return tilde_path(resolved)
+
+
+def _catalog_banner(title: str, width: int, theme: ThemeEngine) -> str:
+    """Format a single-line Classic 42 ``=`` section bar within ``width`` columns.
+
+    Args:
+        title: Section title shown inside the bar.
+        width: Target upper width bound from the caller.
+        theme: Active theme engine for styling the borders and title.
+
+    Returns:
+        Single-line banner string capped at ``min(78, max(40, width))`` columns.
+    """
+    cap = min(78, max(40, width))
+    title_txt = clip_cell(title, cap - 6)
+    fill = max(3, cap - len(title_txt) - 3)
+    return (
+        f"{theme.c('=', 'secondary')} "
+        f"{theme.c(title_txt, 'primary', 'bold')} "
+        f"{theme.c('=' * fill, 'secondary')}"
+    )
+
+
+def _format_catalog_meta_line(
+    label: str,
+    value: str,
+    hint: str,
+    max_width: int,
+    theme: ThemeEngine,
+) -> str:
+    """Format an aligned metadata line with distinct label, value, and hint contrast.
+
+    Args:
+        label: Leading aligned field prefix (for example ``"  subject : "``).
+        value: Primary value or path string.
+        hint: Optional trailing helper text dropped if ``max_width`` is tight.
+        max_width: Hard visible column cap for the rendered line.
+        theme: Active theme engine for ANSI color styling.
+
+    Returns:
+        Styled single line guaranteed not to exceed ``max_width`` visible columns.
+    """
+    if hint and len(label) + len(value) + len(hint) <= max_width:
+        return f"{theme.c(label, 'secondary')}{value}{theme.c(hint, 'muted')}"
+    val = value
+    home_str = str(Path.home())
+    if len(label) + len(val) > max_width and val.startswith(home_str + "/"):
+        val = "~" + val[len(home_str) :]
+    avail = max(1, max_width - len(label))
+    val = clip_cell(val, avail)
+    return f"{theme.c(label, 'secondary')}{val}"
+
+
+def print_sections_menu(theme: ThemeEngine, include_nav: bool = True) -> None:
+    """Render the Spartan 2-section root catalog selector (1: piscine, 2: piscine exam)."""
+    mods, piscine_exs, tracks, exam_exs = catalog_counts()
+    term_cols, _ = theme.term_size()
+    table_max = min(79, max(40, term_cols - 1))
+    print(_catalog_banner("42 / 1337 catalog sections", table_max, theme))
+    _print_table(
+        ("#", "SECTION", "CONTENT", "DESCRIPTION"),
+        [
+            (
+                "1",
+                "piscine",
+                f"{mods} modules ({piscine_exs} exs)",
+                "c00..c13, shell00..01, rush, bsq",
+            ),
+            (
+                "2",
+                "piscine exam",
+                f"{tracks} tracks ({exam_exs} exs)",
+                "exam 00..final, rank 02..06",
+            ),
+        ],
+        (3, 14, 22, 34),
+        ("<", "<", "<", "<"),
+        (("muted",), ("accent", "bold"), ("secondary",), ("muted",)),
+        theme,
+    )
+    if include_nav:
+        print(
+            theme.c("nav: piscine (1) | exams (2) | <exercise> (grade) | help", "muted")
+        )
+
+
+def _fit_catalog_path_line(
+    prefix: str,
+    abs_or_tilde: str,
+    suffix: str,
+    max_width: int,
+) -> str:
+    """Format a catalog metadata path line without exceeding ``max_width`` columns.
+
+    Args:
+        prefix: Leading label prefix such as ``"     subject: "``.
+        abs_or_tilde: Displayed path (already processed with ``tilde_path``).
+        suffix: Optional trailing helper text (e.g. ``"(or: subject ...)"``).
+        max_width: Hard column cap for the rendered line.
+
+    Returns:
+        A single line guaranteed to fit within ``max_width`` characters.
+    """
+    candidates = [
+        f"{prefix}{abs_or_tilde}{suffix}",
+        f"{prefix}{abs_or_tilde}",
+    ]
+    home_str = str(Path.home())
+    rel_kit = tilde_path(KIT_ROOT)
+    if abs_or_tilde.startswith(rel_kit + "/"):
+        short_path = abs_or_tilde[len(rel_kit) + 1 :]
+        candidates.append(f"{prefix}{short_path}{suffix}")
+        candidates.append(f"{prefix}{short_path}")
+    elif abs_or_tilde.startswith(home_str + "/"):
+        short_path = "~" + abs_or_tilde[len(home_str) :]
+        candidates.append(f"{prefix}{short_path}")
+    for cand in candidates:
+        if len(cand) <= max_width:
+            return cand
+    return clip_cell(candidates[-1], max_width)
+
+
+def print_catalog_list(
+    target: str | None, theme: ThemeEngine, max_rows: int | None = None
+) -> int:
+    """Print a compact 80-column catalog view bounded to at most 79 columns.
+
+    Args:
+        target: Optional module, exam track, ``"piscine"``, or ``"exams"`` filter.
+        theme: Active theme engine for styled output.
+        max_rows: Optional vertical row budget used by the interactive viewport.
+
+    Returns:
+        Exit status code (``0`` on success, ``1`` if the target is unknown).
+    """
+    term_cols, _ = theme.term_size()
+    table_max = min(79, max(40, term_cols - 1))
     piscine_dir = KIT_ROOT / "pools" / "piscine"
     validated = load_validated_exercises()
     exam_dir = KIT_ROOT / "pools" / "exams"
@@ -778,7 +1444,16 @@ def print_catalog_list(target: str | None, theme: ThemeEngine, max_rows: int | N
             selected_lvl_idx = int(lvl_part)
 
     exam_file = None
-    if track_query and track_query not in {"piscine", "piscines", "exam", "exams", "piscine exam", "piscine_exam", "all", "__all__"}:
+    if track_query and track_query not in {
+        "piscine",
+        "piscines",
+        "exam",
+        "exams",
+        "piscine exam",
+        "piscine_exam",
+        "all",
+        "__all__",
+    }:
         resolved_trk = resolve_exam_track_name(track_query)
         candidates = [
             resolved_trk or track_query,
@@ -796,54 +1471,129 @@ def print_catalog_list(target: str | None, theme: ThemeEngine, max_rows: int | N
         data = fast_load_yaml(exam_file)
         title = data.get("display_name") or data.get("name") or exam_file.stem
         dur_s = data.get("duration_seconds", 14400)
-        dur_h = dur_s // 3600
-        dur_m = (dur_s % 3600) // 60
+        dur_h, dur_m = dur_s // 3600, (dur_s % 3600) // 60
         levels = data.get("levels", [])
         total_candidates = sum(len(lvl.get("candidates", [])) for lvl in levels)
 
         # Sub-case 1A: Inside a specific level of the exam track (e.g. level0)
         if selected_lvl_idx is not None:
-            matched_lvl = next((lvl for lvl in levels if int(lvl.get("level", -1)) == selected_lvl_idx), None)
+            matched_lvl = next(
+                (
+                    lvl
+                    for lvl in levels
+                    if int(lvl.get("level", -1)) == selected_lvl_idx
+                ),
+                None,
+            )
             if not matched_lvl and 0 <= selected_lvl_idx < len(levels):
                 matched_lvl = levels[selected_lvl_idx]
             if matched_lvl:
                 lvl_num = matched_lvl.get("level", selected_lvl_idx)
                 pts = matched_lvl.get("points", 100 // max(1, len(levels)))
                 cands = matched_lvl.get("candidates", [])
-                subj_base = tilde_path(KIT_ROOT / "subjects" / "exams")
-                ws_base = tilde_path(KIT_ROOT / "workspace" / "exams")
-                print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'{exam_file.stem} / level{lvl_num} ({len(cands)} candidates | {pts} pts each)', 'primary', 'bold')}")
+                subj_base = _rel_or_tilde(KIT_ROOT / "subjects" / "exams")
+                ws_base = _rel_or_tilde(KIT_ROOT / "workspace" / "exams")
+                print(
+                    _catalog_banner(
+                        f"{exam_file.stem} / level{lvl_num} ({len(cands)} candidates | {pts} pts each)",
+                        table_max,
+                        theme,
+                    )
+                )
                 if max_rows is None or len(cands) + 5 <= max_rows:
-                    print(theme.c(f"     subject: {subj_base}/<ex>/subject.en.txt", "muted"))
-                    print(theme.c(f"     turn-in: {ws_base}/<ex>/{home_note(subj_base, ws_base)}", "muted"))
-                print(theme.c(f"{'#':<3}  {'ASSIGNMENT':<24}  {'FILES':<20}  {'ALLOWED':<14}  {'PTS':>3}  {'DONE':<4}", "bold"))
-                print(theme.c(f"{'---':<3}  {'-' * 24}  {'-' * 20}  {'-' * 14}  {'---':>3}  {'----':<4}", "muted"))
+                    print(
+                        _format_catalog_meta_line(
+                            "  subject : ",
+                            f"{subj_base}/<ex>/subject.en.txt",
+                            "  (or: subject <ex>)",
+                            table_max,
+                            theme,
+                        )
+                    )
+                    print(
+                        _format_catalog_meta_line(
+                            "  turn-in : ",
+                            f"{ws_base}/<ex>/",
+                            home_note(subj_base, ws_base),
+                            table_max,
+                            theme,
+                        )
+                    )
+                ex_rows: list[tuple[str, str, str, str, str, str]] = []
+                pts_s = str(pts)
                 for idx, ex_id in enumerate(cands, 1):
                     m_path = KIT_ROOT / "subjects" / "exams" / ex_id / "meta.yml"
                     meta = fast_load_yaml(m_path) if m_path.exists() else {}
-                    exp = clip_cell(", ".join(meta.get("expected_files") or [f"{ex_id}.c"]), 20)
-                    allow = clip_cell(", ".join(meta.get("allowed_functions") or ["None"]), 14)
-                    disp = clip_cell(str(ex_id), 24)
-                    done = theme.c("OK  ", "ok", "bold") if f"exams/{ex_id}" in validated else theme.c("-   ", "muted")
-                    print(f"{theme.c(f'{idx:<3}', 'muted')}  {theme.c(f'{disp:<24}', 'primary', 'bold')}  {theme.c(f'{exp:<20}', 'secondary')}  {theme.c(f'{allow:<14}', 'muted')}  {pts:>3}  {done}")
+                    exp_raw = ", ".join(meta.get("expected_files") or [f"{ex_id}.c"])
+                    allow_raw = ", ".join(meta.get("allowed_functions") or ["None"])
+                    done_s = "OK" if f"exams/{ex_id}" in validated else "-"
+                    ex_rows.append(
+                        (str(idx), str(ex_id), exp_raw, allow_raw, pts_s, done_s)
+                    )
+                _print_exercise_table(ex_rows, "#", 3, "PTS", table_max, theme)
                 return 0
 
-        # Sub-case 1B: Compact Level Table (1 row per level, matching piscine module table style)
-        subj_base = tilde_path(KIT_ROOT / "subjects" / "exams")
-        ws_base = tilde_path(KIT_ROOT / "workspace" / "exams")
-        print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'exam track: {exam_file.stem} ({title})', 'primary', 'bold')}")
-        print(theme.c(f"     duration: {dur_h:02d}h {dur_m:02d}m | levels: {len(levels)} ({total_candidates} exs)", "muted"))
-        print(theme.c(f"     subject: {subj_base}/<ex>/subject.en.txt", "muted"))
-        print(theme.c(f"     turn-in: {ws_base}/<ex>/{home_note(subj_base, ws_base)}", "muted"))
-        print(theme.c(f"{'LEVEL':<8}  {'PTS':>4}  {'COUNT':>5}  {'EXERCISES'}", "bold"))
-        print(theme.c(f"{'--------':<8}  {'----':>4}  {'-----':>5}  {'---------------------------------------------------------'}", "muted"))
+        # Sub-case 1B: Compact Level Table (1 row per level)
+        subj_base = _rel_or_tilde(KIT_ROOT / "subjects" / "exams")
+        ws_base = _rel_or_tilde(KIT_ROOT / "workspace" / "exams")
+        print(
+            _catalog_banner(
+                f"exam track: {exam_file.stem} ({title})",
+                table_max,
+                theme,
+            )
+        )
+        print(
+            _format_catalog_meta_line(
+                "  duration: ",
+                f"{dur_h:02d}h {dur_m:02d}m | levels: {len(levels)} ({total_candidates} exs)",
+                "",
+                table_max,
+                theme,
+            )
+        )
+        if max_rows is None or len(levels) + 6 <= max_rows:
+            print(
+                _format_catalog_meta_line(
+                    "  subject : ",
+                    f"{subj_base}/NAME/subject.en.txt",
+                    "  (NAME = an exercise below)",
+                    table_max,
+                    theme,
+                )
+            )
+            print(
+                _format_catalog_meta_line(
+                    "  turn-in : ",
+                    f"{ws_base}/NAME/",
+                    home_note(subj_base, ws_base),
+                    table_max,
+                    theme,
+                )
+            )
+        preview_w = max(36, min(table_max - 22, 56))
+        level_rows: list[tuple[str, ...]] = []
         for lvl in levels:
             lvl_num = lvl.get("level", 0)
             pts = lvl.get("points", 100 // max(1, len(levels)))
             cands = [str(c) for c in (lvl.get("candidates") or [])]
-            preview = _format_preview_exercises(cands, max_width=56)
-            lvl_tag = f"level{lvl_num}"
-            print(f"{theme.c(f'{lvl_tag:<8}', 'accent', 'bold')}  {pts:>4}  {len(cands):>5}  {theme.c(preview, 'secondary')}")
+            level_rows.append(
+                (
+                    f"level{lvl_num}",
+                    str(pts),
+                    str(len(cands)),
+                    _format_preview_exercises(cands, max_width=preview_w, max_items=4),
+                )
+            )
+        rule_w = max(len("EXERCISES"), min(table_max - 22, 57))
+        _print_table(
+            ("LEVEL", "PTS", "COUNT", "EXERCISES"),
+            level_rows,
+            (7, 4, 5, rule_w),
+            ("<", ">", ">", "<"),
+            (("accent", "bold"), (), (), ("secondary",)),
+            theme,
+        )
         return 0
 
     # Case 2: Specific Piscine Module (with rush00..02 / bsq support)
@@ -854,103 +1604,232 @@ def print_catalog_list(target: str | None, theme: ThemeEngine, max_rows: int | N
         data = fast_load_yaml(pool_file)
         title = data.get("display_name") or data.get("title") or target_clean
         exs = data.get("exercises") or []
-        subj_mod = tilde_path(KIT_ROOT / "subjects" / "piscine" / target_clean)
-        ws_mod = tilde_path(find_module_repo(target_clean))
-        print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'piscine module: {target_clean} ({title})', 'primary', 'bold')}")
-        if max_rows is None or len(exs) + 5 <= max_rows:
-            print(theme.c(f"     subject: {subj_mod}/<ASSIGNMENT>/subject.en.txt", "muted"))
-            print(theme.c(f"     turn-in: {ws_mod}/<EX>/<FILES>{home_note(subj_mod, ws_mod)}", "muted"))
+        subj_mod = _rel_or_tilde(KIT_ROOT / "subjects" / "piscine" / target_clean)
+        ws_mod = _rel_or_tilde(find_module_repo(target_clean))
+        print(
+            _catalog_banner(
+                f"piscine module: {target_clean} ({title})",
+                table_max,
+                theme,
+            )
+        )
+        if (max_rows is None or len(exs) + 5 <= max_rows) and exs:
+            first_ex = (
+                str(exs[0].get("ex", "ex00")) if isinstance(exs[0], dict) else "ex00"
+            )
+            last_default = f"ex{len(exs) - 1:02d}"
+            last_ex = (
+                str(exs[-1].get("ex", last_default))
+                if isinstance(exs[-1], dict)
+                else last_default
+            )
+            slot_range = first_ex if first_ex == last_ex else f"{first_ex}..{last_ex}"
+            print(
+                _format_catalog_meta_line(
+                    "  subject : ",
+                    f"{subj_mod}/<name>/subject.en.txt",
+                    "  (or: subject <ex>)",
+                    table_max,
+                    theme,
+                )
+            )
+            print(
+                _format_catalog_meta_line(
+                    "  turn-in : ",
+                    f"{ws_mod}/<ex>/",
+                    f"  (folders: {slot_range}){home_note(subj_mod, ws_mod)}",
+                    table_max,
+                    theme,
+                )
+            )
         rows: list[tuple[str, str, str, str, str, str]] = []
         for idx, ex in enumerate(exs):
-            raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
+            raw_id = (
+                (ex.get("subject_id") or ex.get("id") or "")
+                if isinstance(ex, dict)
+                else str(ex)
+            )
             ex_id = Path(raw_id).name
-            ex_label = ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}"
-            m_path = KIT_ROOT / "subjects" / "piscine" / target_clean / ex_id / "meta.yml"
+            ex_label = (
+                ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}"
+            )
+            m_path = (
+                KIT_ROOT / "subjects" / "piscine" / target_clean / ex_id / "meta.yml"
+            )
             meta = fast_load_yaml(m_path) if m_path.exists() else {}
             clean_leaf = _MODULE_PREFIX_RE.sub("", ex_id)
-            exp = ", ".join(str(f) for f in (meta.get("expected_files") or [f"{clean_leaf}.c"]))
-            allow = ", ".join(str(f) for f in (meta.get("allowed_functions") or ["None"]))
-            xp = (ex.get("xp") if isinstance(ex, dict) else None) or meta.get("xp", 100)
-            is_done = f"piscine/{target_clean}/{ex_id}" in validated
-            rows.append((str(ex_label), clean_leaf, exp, allow, str(xp), "OK" if is_done else "-"))
-        name_w = max([10, *(len(r[1]) for r in rows)])
-        files_w = max(12, min(24, 46 - name_w))
-        print(theme.c(f"{'EX':<4}  {'ASSIGNMENT':<{name_w}}  {'FILES':<{files_w}}  {'ALLOWED':<12}  {'XP':>3}  {'DONE':<4}", "bold"))
-        print(theme.c(f"{'----':<4}  {'-' * name_w}  {'-' * files_w}  {'-' * 12}  {'---':>3}  {'----':<4}", "muted"))
-        for ex_label, leaf, exp, allow, xp_s, done_s in rows:
-            done = theme.c(f"{done_s:<4}", "ok", "bold") if done_s == "OK" else theme.c(f"{done_s:<4}", "muted")
-            print(
-                f"{theme.c(f'{ex_label:<4}', 'muted')}  {theme.c(f'{leaf:<{name_w}}', 'primary', 'bold')}  "
-                f"{theme.c(f'{clip_cell(exp, files_w):<{files_w}}', 'secondary')}  {theme.c(f'{clip_cell(allow, 12):<12}', 'muted')}  {xp_s:>3}  {done}"
+            exp = ", ".join(
+                str(f) for f in (meta.get("expected_files") or [f"{clean_leaf}.c"])
             )
+            allow = ", ".join(
+                str(f) for f in (meta.get("allowed_functions") or ["None"])
+            )
+            xp = (ex.get("xp") if isinstance(ex, dict) else None) or meta.get("xp", 100)
+            rows.append(
+                (
+                    str(ex_label),
+                    clean_leaf,
+                    exp,
+                    allow,
+                    str(xp),
+                    "OK" if f"piscine/{target_clean}/{ex_id}" in validated else "-",
+                )
+            )
+        _print_exercise_table(rows, "EX", 4, "XP", table_max, theme)
         return 0
 
-    visible_exam_pools = [exam_dir / f"{trk}.yml" for trk in OFFICIAL_EXAM_TRACKS if (exam_dir / f"{trk}.yml").exists()]
+    visible_exam_pools = [
+        exam_dir / f"{trk}.yml"
+        for trk in OFFICIAL_EXAM_TRACKS
+        if (exam_dir / f"{trk}.yml").exists()
+    ]
 
     # Case 3: Target is "piscine" or "piscines"
     if target_clean in {"piscine", "piscines"}:
-        print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'42 / 1337 c piscine catalog ({len(piscine_pools)} modules | {catalog_counts()[1]} exercises)', 'primary', 'bold')}")
-        print(theme.c(f"{'MODULE':<10}  {'COUNT':>5}  {'EXERCISES'}", "bold"))
-        print(theme.c(f"{'----------':<10}  {'-----':>5}  {'---------------------------------------------------------'}", "muted"))
+        preview_w = max(36, min(table_max - 19, 56))
+        mod_rows: list[tuple[str, ...]] = []
         for p in piscine_pools:
             data = fast_load_yaml(p)
-            exs = [Path((e.get("subject_id") or e.get("id") or "") if isinstance(e, dict) else str(e)).name for e in (data.get("exercises") or [])]
-            preview = _format_preview_exercises(exs, max_width=56)
-            print(f"{theme.c(f'{p.stem:<10}', 'accent', 'bold')}  {len(exs):>5}  {theme.c(preview, 'secondary')}")
+            exs = [
+                Path(
+                    (e.get("subject_id") or e.get("id") or "")
+                    if isinstance(e, dict)
+                    else str(e)
+                ).name
+                for e in (data.get("exercises") or [])
+            ]
+            mod_rows.append(
+                (
+                    p.stem,
+                    str(len(exs)),
+                    _format_preview_exercises(exs, max_width=preview_w, max_items=4),
+                )
+            )
+        rule_w = max(len("EXERCISES"), min(table_max - 19, 57))
+        print(
+            _catalog_banner(
+                f"42 / 1337 c piscine catalog ({len(piscine_pools)} modules | {catalog_counts()[1]} exercises)",
+                table_max,
+                theme,
+            )
+        )
+        _print_table(
+            ("MODULE", "COUNT", "EXERCISES"),
+            mod_rows,
+            (10, 5, rule_w),
+            ("<", ">", "<"),
+            (("accent", "bold"), (), ("secondary",)),
+            theme,
+        )
         return 0
 
     # Case 4: Target is "exams", "exam", or "piscine exam"
     if target_clean in {"exam", "exams", "piscine exam", "piscine_exam"}:
-        print(f"{theme.c('===>', 'accent', 'bold')} {theme.c(f'piscine exam ({len(visible_exam_pools)} tracks | {catalog_counts()[3]} exercises)', 'primary', 'bold')}")
-        print(theme.c(f"{'TRACK':<24}  {'DUR':<4}  {'LVL':>3}  {'POOL':>4}  {'NAME'}", "bold"))
-        print(theme.c(f"{'------------------------':<24}  {'----':<4}  {'---':>3}  {'----':>4}  {'----------------------------------'}", "muted"))
+        exam_rows: list[tuple[str, ...]] = []
         for p in visible_exam_pools:
             data = fast_load_yaml(p)
             levels = data.get("levels", [])
             dur_h = data.get("duration_seconds", 14400) // 3600
             cands = sum(len(lvl.get("candidates", [])) for lvl in levels)
-            title = data.get("display_name") or p.stem
-            if len(title) > 34:
-                title = title[:33] + "…"
-            print(f"{theme.c(f'{p.stem:<24}', 'accent', 'bold')}  {dur_h:02d}h   {len(levels):>3}  {cands:>4}  {theme.c(title, 'secondary')}")
+            exam_rows.append(
+                (
+                    p.stem,
+                    f"{dur_h:02d}h",
+                    str(len(levels)),
+                    str(cands),
+                    str(data.get("display_name") or p.stem),
+                )
+            )
+        rule_w = max(len("NAME"), min(table_max - 43, 34))
+        print(
+            _catalog_banner(
+                f"piscine exam ({len(visible_exam_pools)} tracks | {catalog_counts()[3]} exercises)",
+                table_max,
+                theme,
+            )
+        )
+        _print_table(
+            ("TRACK", "DUR", "LVL", "POOL", "NAME"),
+            exam_rows,
+            (24, 4, 3, 4, rule_w),
+            ("<", "<", ">", ">", "<"),
+            (("accent", "bold"), (), (), (), ("secondary",)),
+            theme,
+        )
         return 0
 
-    # Case 5: Unknown specific target filter
     if target_clean and target_clean not in {"list", "__all__", "all"}:
         print(theme.c(f"moulinette: unknown catalog target '{target}'", "err", "bold"))
         return 1
 
-    # Case 6: Default complete catalog
     print_sections_menu(theme)
     return 0
 
 
-def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: ThemeEngine, prefer_exam: bool = False, verbose: bool = True) -> int:
+def scaffold_exercise_workspace(
+    target: str,
+    dest_override: str | None,
+    theme: ThemeEngine,
+    prefer_exam: bool = False,
+    verbose: bool = True,
+) -> int:
+    """Create starter workspace directories and files for an exercise or module."""
     pool_file = KIT_ROOT / "pools" / "piscine" / f"{target.strip().lower()}.yml"
     if pool_file.exists():
         mod = target.strip().lower()
         data = fast_load_yaml(pool_file)
-        base_out = Path(dest_override).expanduser().resolve() if dest_override else find_module_repo(mod)
+        base_out = (
+            Path(dest_override).expanduser().resolve()
+            if dest_override
+            else find_module_repo(mod)
+        )
         base_out.mkdir(parents=True, exist_ok=True)
         exs = data.get("exercises") or []
         for idx, ex in enumerate(exs):
-            raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
+            raw_id = (
+                (ex.get("subject_id") or ex.get("id") or "")
+                if isinstance(ex, dict)
+                else str(ex)
+            )
             ex_id = Path(raw_id).name
-            ex_code = ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}"
+            ex_code = (
+                ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}"
+            )
             slot_dir = base_out / ex_code
             named_dir = base_out / ex_id
             # A fresh exercise gets <module>/<exNN>/ (the 42 layout). An older folder named after the
             # exercise is kept and reached through an exNN link.
-            ex_out = named_dir if (named_dir.is_dir() and not slot_dir.exists()) else slot_dir
-            scaffold_exercise_workspace(f"{mod}/{ex_id}", str(ex_out), theme, prefer_exam=prefer_exam, verbose=False)
+            ex_out = (
+                named_dir
+                if (named_dir.is_dir() and not slot_dir.exists())
+                else slot_dir
+            )
+            scaffold_exercise_workspace(
+                f"{mod}/{ex_id}",
+                str(ex_out),
+                theme,
+                prefer_exam=prefer_exam,
+                verbose=False,
+            )
             ex_code_link = base_out / ex_code
             if not ex_code_link.exists():
                 try:
                     ex_code_link.symlink_to(ex_id)
                 except OSError:
                     pass
-        print(theme.c(f"[OK] Module '{mod}' scaffolded: {len(exs)} exercises ready in {tilde_path(base_out)}", "ok", "bold"))
-        print(theme.c(f"     Grade entire module with: ./bin/moulinette {mod} --dir {tilde_path(base_out)}", "muted"))
+        print(
+            theme.c(
+                f"[OK] Module '{mod}' scaffolded: {len(exs)} exercises ready in {tilde_path(base_out)}",
+                "ok",
+                "bold",
+            )
+        )
+        print(
+            theme.c(
+                f"     Grade entire module with: ./bin/moulinette {mod} --dir {tilde_path(base_out)}",
+                "muted",
+            )
+        )
         return 0
 
     found = resolve_exercise_or_report(target, theme, prefer_exam=prefer_exam)
@@ -966,31 +1845,63 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
     elif slot is not None:
         # The very folder the grader reads: <module>/<exNN>/ (the 42 layout), or an older folder
         # named after the exercise when the student already has one.
-        out_dir = resolve_submission_dir(None, _MODULE_PREFIX_RE.sub("", Path(resolved).name), resolved_subject=resolved)
+        out_dir = resolve_submission_dir(
+            None,
+            _MODULE_PREFIX_RE.sub("", Path(resolved).name),
+            resolved_subject=resolved,
+        )
     else:
         out_dir = KIT_ROOT / "workspace" / resolved
     out_dir.mkdir(parents=True, exist_ok=True)
 
     wanted_files = [str(f) for f in (meta.get("expected_files") or [])]
-    for hf in subj_dir.glob("*.h"):
-        # A header that is the whole exercise (C 08 ft_abs.h, ft_point.h) is the student's to write.
-        if wanted_files == [hf.name]:
-            continue
-        if not (out_dir / hf.name).exists():
-            shutil.copy2(hf, out_dir / hf.name)
-    for extra_f in ("resources.tar.gz", "a", "sw.diff"):
-        if (subj_dir / extra_f).exists() and not (out_dir / extra_f).exists():
-            shutil.copy2(subj_dir / extra_f, out_dir / extra_f)
+    for ext_pat in ("*.h", "*.hpp"):
+        for hf in sorted(subj_dir.glob(ext_pat)):
+            # A header that is the whole exercise (C 08 ft_abs.h, ft_point.h) is the student's to write.
+            if wanted_files == [hf.name]:
+                continue
+            if not (out_dir / hf.name).exists():
+                shutil.copy2(hf, out_dir / hf.name)
 
     clean_leaf = _MODULE_PREFIX_RE.sub("", subj_dir.name)
+    for extra_f in (
+        "resources.tar.gz",
+        "a",
+        "sw.diff",
+        "square.txt",
+        "vbc.c",
+        "tsp.c",
+        "ft_scanf.c",
+        f"{clean_leaf}.c",
+    ):
+        if (subj_dir / extra_f).exists() and not (out_dir / extra_f).exists():
+            shutil.copy2(subj_dir / extra_f, out_dir / extra_f)
+    if (
+        clean_leaf == "mini_serv"
+        and (subj_dir / "main.c").exists()
+        and not (out_dir / "mini_serv.c").exists()
+    ):
+        shutil.copy2(subj_dir / "main.c", out_dir / "mini_serv.c")
+
     exp_files = meta.get("expected_files") or [f"{clean_leaf}.c"]
     proto = str(meta.get("prototype") or "")
     allowed = meta.get("allowed_functions") or []
     stype = meta.get("type", "")
 
+    concrete_files: list[str] = []
     for fname in exp_files:
-        if "*" in fname:
+        if fname == "*.c":
+            resolved_c = "vbc.c" if clean_leaf.startswith("vbc") else f"{clean_leaf}.c"
+            if resolved_c not in concrete_files:
+                concrete_files.append(resolved_c)
+        elif "*" in fname:
             continue
+        elif fname not in concrete_files:
+            concrete_files.append(fname)
+    if not concrete_files:
+        concrete_files = [f"{clean_leaf}.c"]
+
+    for fname in concrete_files:
         fpath = out_dir / fname
         if fpath.exists():
             continue
@@ -998,9 +1909,23 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
         if fname.endswith(".sh"):
             fpath.write_text("#!/bin/sh\n\n", encoding="utf-8")
             os.chmod(fpath, 0o755)
-        elif fname.endswith(".h"):
+        elif fname.endswith((".h", ".hpp")):
             guard = re.sub(r"[^A-Za-z0-9]", "_", fname).upper()
-            fpath.write_text(build_42_header(fname) + f"\n#ifndef {guard}\n# define {guard}\n\n#endif\n", encoding="utf-8")
+            fpath.write_text(
+                build_42_header(fname)
+                + f"\n#ifndef {guard}\n# define {guard}\n\n#endif\n",
+                encoding="utf-8",
+            )
+        elif fname.endswith(".cpp"):
+            hdr = build_42_header(fname) + "\n"
+            hpp_name = f"{fpath.stem}.hpp"
+            inc_line = (
+                f'#include "{hpp_name}"\n\n'
+                if f"{fpath.stem}.hpp" in concrete_files
+                or (out_dir / hpp_name).exists()
+                else "#include <iostream>\n\n"
+            )
+            fpath.write_text(hdr + inc_line, encoding="utf-8")
         elif fname.endswith(".c"):
             hdr = build_42_header(fname) + "\n"
             incs: list[str] = []
@@ -1016,23 +1941,28 @@ def scaffold_exercise_workspace(target: str, dest_override: str | None, theme: T
             fpath.write_text(hdr + inc_s + body, encoding="utf-8")
 
     t_out = tilde_path(out_dir)
-    t_subj = tilde_path(subj_dir / "subject.en.txt")
-    primary_f = exp_files[0] if exp_files else f"{clean_leaf}.c"
+    t_subj = f"subjects/{resolved}/subject.en.txt"
+    primary_f = concrete_files[0] if concrete_files else f"{clean_leaf}.c"
     if verbose:
-        print(theme.c("=" * 80, "border"))
+        print(theme.c("=" * 79, "border"))
         print(theme.c(f"  SCAFFOLDED WORKSPACE READY: {resolved}", "ok", "bold"))
-        print(theme.c("-" * 80, "border"))
-        print(f"  Turn-In Folder  : {theme.c(t_out + '/', 'accent', 'bold')}{theme.c(home_note(t_out), 'muted')}")
+        print(theme.c("-" * 79, "border"))
+        print(
+            f"  Turn-In Folder  : {theme.c(t_out + '/', 'accent', 'bold')}{theme.c(home_note(t_out), 'muted')}"
+        )
         print(f"  Subject File    : {theme.c(t_subj, 'secondary')}")
         print(f"  Expected Files  : {', '.join(exp_files)}")
         print(f"  Allowed Funcs   : {', '.join(allowed) if allowed else 'None'}")
         print(f"  1) Edit Code    : {theme.c(f'vim {t_out}/{primary_f}', 'accent')}")
-        print(f"  2) Grade Now    : type {theme.c(clean_leaf, 'primary', 'bold')} here in moulinette (no git push needed)")
-        print(theme.c("=" * 80, "border"))
+        print(
+            f"  2) Grade Now    : type {theme.c(clean_leaf, 'primary', 'bold')} here in moulinette (no git push needed)"
+        )
+        print(theme.c("=" * 79, "border"))
     return 0
 
 
 def snapshot_workspace_state(directory: Path) -> dict[str, tuple[int, int]]:
+    """Capture file mtime and size pairs across a directory tree for watch mode."""
     state: dict[str, tuple[int, int]] = {}
     if not directory.exists():
         return state
@@ -1066,9 +1996,17 @@ def handle_subject_inspection(
     show_hint: bool = False,
     theme: ThemeEngine,
     prefer_exam: bool = False,
+    raw_target: str | None = None,
+    use_pager: bool = False,
 ) -> int:
+    """Display an exercise subject and turn-in path in the terminal or pager."""
     if show_hint:
-        print(theme.status("error", "Reference solutions and hints are strictly locked. Use 'subject <ex>' and debug from the Deepthought trace."))
+        print(
+            theme.status(
+                "error",
+                "Reference solutions and hints are strictly locked. Use 'subject <ex>' and debug from the Deepthought trace.",
+            )
+        )
         return 2
     found = resolve_exercise_or_report(str(subject_arg), theme, prefer_exam=prefer_exam)
     if found is None:
@@ -1089,14 +2027,60 @@ def handle_subject_inspection(
         primary_f = str(exp_s[0]) if exp_s else f"{clean_leaf}.c"
         t_subj = tilde_path(s_file)
         t_turnin = tilde_path(turnin_dir)
-        print(theme.render_subject(s_file.read_text(encoding="utf-8", errors="replace"), subject_id=clean_leaf))
-        print(theme.c(f"     subject : {t_subj}", "muted"))
-        print(theme.c(f"     turn-in : {t_turnin}/{primary_f}{home_note(t_turnin)}", "accent"))
-        print(theme.c(f"     grade   : '{clean_leaf}', once that file exists", "muted"))
+        out_lines: list[str] = [
+            theme.render_subject(
+                s_file.read_text(encoding="utf-8", errors="replace"),
+                subject_id=clean_leaf,
+            ),
+            theme.c(f"     subject : {t_subj}", "muted"),
+        ]
+        internal_meta = {
+            "subject.en.txt",
+            "examples.txt",
+            "meta.yml",
+            "tests.yml",
+            "scale.yml",
+        }
+        given_files = sorted(
+            p.relative_to(s_file.parent).as_posix()
+            for p in s_file.parent.rglob("*")
+            if p.is_file()
+            and not p.name.startswith(".")
+            and p.name not in internal_meta
+            and p.suffix.lower() != ".pdf"
+        )
+        if given_files:
+            out_lines.append(
+                theme.c(
+                    f"     given   : {', '.join(given_files)}  (in {tilde_path(s_file.parent)})",
+                    "muted",
+                )
+            )
+        out_lines.append(
+            theme.c(
+                f"     turn-in : {t_turnin}/{primary_f}{home_note(t_turnin)}", "accent"
+            )
+        )
+        out_lines.append(
+            theme.c(f"     grade   : '{clean_leaf}', once that file exists", "muted")
+        )
+        if "/" not in str(
+            raw_target if raw_target is not None else subject_arg
+        ).strip().strip("/"):
+            namesakes = find_exercise_namesakes(rel_subj)
+            if namesakes:
+                out_lines.append(
+                    theme.c(
+                        f"     also    : {', '.join(namesakes)}  (specify module/<ex> or --exam)",
+                        "muted",
+                    )
+                )
+        _emit_with_pager("\n".join(out_lines), use_pager=use_pager)
     return 0
 
 
 def resolve_module_slug(module_id: str) -> str:
+    """Resolve a Piscine module alias to its canonical pool slug."""
     slug = module_id.lower().strip()
     alias_file = KIT_ROOT / "pools/official_42_slugs.yml"
     if alias_file.exists():
@@ -1106,28 +2090,60 @@ def resolve_module_slug(module_id: str) -> str:
 
 
 def print_student_progression(theme: ThemeEngine, xp_ledger: str | None) -> None:
-    """The 'xp' view: profile totals, then what the ledger holds, wrapped to 80 columns."""
-    ledger_p = Path(xp_ledger) if xp_ledger else (KIT_ROOT / "workspace" / "xp_ledger.json")
+    """The 'xp' view: workspace ledger totals (matching grade runs) and persistent profile totals."""
+    ledger_p = (
+        Path(xp_ledger) if xp_ledger else (KIT_ROOT / "workspace" / "xp_ledger.json")
+    )
     prof = load_student_profile()
-    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold(f'Student Progression ({prof.login})')}")
-    print(f"     Total XP : {getattr(prof, 'total_xp', getattr(prof, 'xp', 0))} XP  |  Level : {prof.level:.2f}")
-    if not ledger_p.is_file():
-        print("     Validated: 0 exercise(s)")
+    prof_xp = int(getattr(prof, "total_xp", getattr(prof, "xp", 0)) or 0)
+    prof_level = float(getattr(prof, "level", 0.0) or 0.0)
+    ws_xp = 0
+    ws_level = 0.0
+    ordered: list[str] = []
+    ledger_err = ""
+    if ledger_p.is_file():
+        try:
+            ldata = json.loads(ledger_p.read_text(encoding="utf-8"))
+            ws_xp = int(ldata.get("total_xp", 0) or 0)
+            ws_level = float(ldata.get("level", compute_42_level(ws_xp)) or 0.0)
+            validated = (
+                ldata.get("validated_exercises")
+                or ldata.get("validated_subjects")
+                or {}
+            )
+            ordered = sorted(
+                validated,
+                key=lambda k: (
+                    (validated[k] or {}).get("first_passed_at", 0)
+                    if isinstance(validated[k], dict)
+                    else 0
+                ),
+            )
+        except (OSError, ValueError, AttributeError, TypeError):
+            ledger_err = f"ledger unreadable ({tilde_path(ledger_p)})"
+
+    print(
+        f"{theme.c('===>', 'accent', 'bold')} {theme.bold(f'Progression ({prof.login})')}"
+    )
+    print(
+        f"     Workspace : {ws_xp} XP  |  Level : {ws_level:.2f}  |  Validated : {len(ordered)} exercise(s)"
+    )
+    if prof_xp != ws_xp:
+        print(
+            theme.c(
+                f"     Profile   : {prof_xp} XP  |  Level : {prof_level:.2f}  (~/.42_student_profile.json)",
+                "muted",
+            )
+        )
+    if ledger_err:
+        print(theme.c(f"     Ledger    : {ledger_err}", "warn"))
         return
-    try:
-        ldata = json.loads(ledger_p.read_text(encoding="utf-8"))
-        validated = ldata.get("validated_exercises") or ldata.get("validated_subjects") or {}
-        ordered = sorted(validated, key=lambda k: (validated[k] or {}).get("first_passed_at", 0) if isinstance(validated[k], dict) else 0)
-    except (OSError, ValueError, AttributeError, TypeError):
-        print(theme.c(f"     Validated: ledger unreadable ({tilde_path(ledger_p)})", "warn"))
-        return
-    print(f"     Validated: {len(ordered)} exercise(s)")
-    line = "     Latest   :"
-    for label in (short_exercise_label(k) for k in reversed(ordered[-12:])):
-        if len(line) + len(label) + 2 > 79:
-            break
-        line += f" {label},"
     if ordered:
+        line = "     Latest    :"
+        for label in (short_exercise_label(k) for k in reversed(ordered[-12:])):
+            if len(line) + len(label) + 2 > 79:
+                break
+            line += f" {label},"
         print(line.rstrip(","))
 
 
@@ -1168,7 +2184,12 @@ _XP_STATUS_TEXT = {
 
 def trace_archive_path(resolved_subject: str) -> Path:
     """Where the last full trace of an exercise is kept (the interactive screen cannot scroll back)."""
-    return KIT_ROOT / "workspace" / "traces" / (resolved_subject.replace("/", "__").replace(" ", "_") + ".trace")
+    return (
+        KIT_ROOT
+        / "workspace"
+        / "traces"
+        / (resolved_subject.replace("/", "__").replace(" ", "_") + ".trace")
+    )
 
 
 LAST_TRACE_FILE: Path | None = None
@@ -1187,16 +2208,29 @@ def evaluate_exercise_or_module(
     trace_out: str | None,
     xp_ledger: str | None,
     theme: ThemeEngine,
+    trace_mode: str = "real",
+    on_watch_frame: Callable[[str], None] | None = None,
 ) -> int:
+    """Grade a single exercise or full Piscine module, optionally in watch mode."""
+    resolved_tm = trace_mode if trace_mode in TRACE_MODES else "real"
     if module_arg:
         if explicit_dir:
             target_dir = Path(explicit_dir).expanduser().resolve()
         else:
             target_dir = find_module_repo(resolve_module_slug(module_arg))
-        cmd = [sys.executable, str(KIT_ROOT / "bin" / "deepthought"), module_arg, "--dir", str(target_dir), *deepthought_theme_args(theme)]
+        cmd = [
+            sys.executable,
+            str(KIT_ROOT / "bin" / "deepthought"),
+            module_arg,
+            "--dir",
+            str(target_dir),
+            "--trace-mode",
+            resolved_tm,
+            *deepthought_theme_args(theme),
+        ]
         if strict_flag:
             cmd.append("--strict")
-        return subprocess.call(cmd)
+        return _run_subprocess(cmd)
 
     if not subject_arg:
         return 1
@@ -1210,13 +2244,21 @@ def evaluate_exercise_or_module(
     resolved_subject, default_is_exam = found
     is_exam = True if exam_flag else default_is_exam
     slug_leaf = _MODULE_PREFIX_RE.sub("", Path(resolved_subject).name)
-    submit_dir = resolve_submission_dir(explicit_dir, slug_leaf, resolved_subject=resolved_subject)
+    submit_dir = resolve_submission_dir(
+        explicit_dir, slug_leaf, resolved_subject=resolved_subject
+    )
     if "/" not in str(subject_arg).strip().strip("/"):
         namesakes = find_exercise_namesakes(resolved_subject)
         if namesakes:
-            print(theme.c(f"note: grading {short_exercise_label(resolved_subject)}. Same name elsewhere: {', '.join(namesakes)}.", "warn"))
+            print(
+                theme.c(
+                    f"note: grading {short_exercise_label(resolved_subject)}. Same name elsewhere: {', '.join(namesakes)}.",
+                    "warn",
+                )
+            )
 
     def run_single_grade() -> GradeReport | None:
+        """Execute a single grading pass and write the trace artifact."""
         global LAST_TRACE_FILE
         try:
             res = grade_subject(
@@ -1226,14 +2268,26 @@ def evaluate_exercise_or_module(
                 is_exam=is_exam,
                 strict=strict_flag or (not is_exam),
                 enforce_norm=norm_flag,
+                reveal_tests=(resolved_tm == "helpful"),
             )
         except FileNotFoundError as exc:
             # The exercise itself was validated above, so this is the environment, not the student.
             if exc.filename is None:
                 print(theme.c(f"Error: cannot grade {slug_leaf}: {exc}", "err", "bold"))
                 return None
-            print(theme.c(f"Error: cannot grade {slug_leaf}: '{exc.filename}' not found on this machine.", "err", "bold"))
-            print(theme.c("       The grader needs it. This is an environment problem, not your code.", "muted"))
+            print(
+                theme.c(
+                    f"Error: cannot grade {slug_leaf}: '{exc.filename}' not found on this machine.",
+                    "err",
+                    "bold",
+                )
+            )
+            print(
+                theme.c(
+                    "       The grader needs it. This is an environment problem, not your code.",
+                    "muted",
+                )
+            )
             return None
         except OSError as exc:
             print(theme.c(f"Error: cannot grade {slug_leaf}: {exc}", "err", "bold"))
@@ -1248,7 +2302,10 @@ def evaluate_exercise_or_module(
 
         # XP rules: the default ledger is the only one that feeds the student profile. A reference
         # solution (self-test) or an alternative --xp-ledger is recorded apart and never credits it.
-        is_corr_eval = (KIT_ROOT / "corrections").resolve() in [submit_dir.resolve(), *submit_dir.resolve().parents]
+        is_corr_eval = (KIT_ROOT / "corrections").resolve() in [
+            submit_dir.resolve(),
+            *submit_dir.resolve().parents,
+        ]
         if xp_ledger:
             ledger_path = Path(xp_ledger)
         elif is_corr_eval:
@@ -1278,32 +2335,62 @@ def evaluate_exercise_or_module(
 
         print(colorize_trace(res.trace, theme))
         print("")
-        print(render_five_gate_scorecard(res, theme, is_exam=is_exam, norm_enabled=norm_flag))
-        summary_block = res.format_exam_trace_summary(include_coaching=is_practice)
-        if not res.passed and summary_block:
-            print(summary_block)
-        status_colored = theme.c(f"{res.status} ({res.grade}/100)", "ok" if res.passed else "err", "bold")
+        print(
+            render_five_gate_scorecard(
+                res, theme, is_exam=is_exam, norm_enabled=norm_flag
+            )
+        )
+        if not res.passed and (
+            res.is_infrastructure_error or (is_practice and res.trap_diagnostic)
+        ):
+            summary_block = res.format_exam_trace_summary(include_coaching=is_practice)
+            if summary_block:
+                print(summary_block)
+        status_colored = theme.c(
+            f"{res.status} ({res.grade}/100)", "ok" if res.passed else "err", "bold"
+        )
         print(f"\nSummary: {res.subject_id} -> {status_colored}")
         if xp_res is None:
-            print(theme.c(f"XP Progression: not recorded ({xp_error}) [{ledger_path}]", "warn"))
+            print(
+                theme.c(
+                    f"XP Progression: not recorded ({xp_error}) [{ledger_path}]", "warn"
+                )
+            )
         elif is_corr_eval:
-            print(theme.c("XP Progression: self-test of the reference solution, student XP unchanged", "muted"))
+            print(
+                theme.c(
+                    "XP Progression: self-test of the reference solution, student XP unchanged",
+                    "muted",
+                )
+            )
         else:
-            note = _XP_STATUS_TEXT.get(xp_res.status_code, str(xp_res.status_code).lower())
+            note = _XP_STATUS_TEXT.get(
+                xp_res.status_code, str(xp_res.status_code).lower()
+            )
             if xp_ledger:
                 note += ", alternative ledger: student profile unchanged"
-            print(f"XP Progression: +{xp_res.awarded_xp} XP (Total: {xp_res.total_xp} XP | Level {xp_res.level:.2f}) - {note}")
+            print(
+                f"XP Progression: +{xp_res.awarded_xp} XP (Total: {xp_res.total_xp} XP | Level {xp_res.level:.2f}) - {note}"
+            )
 
         if "Nothing turned in" in res.status:
             wanted = ", ".join(expected_turnin_files(rel_subj, slug_leaf))
             print(theme.c(f"     expected : {wanted}", "accent"))
             print(theme.c(f"     in       : {tilde_path(submit_dir)}/", "accent"))
-            print(theme.c("     rule     : the folders are yours to create. Elsewhere: --dir <path>", "muted"))
+            print(
+                theme.c(
+                    "     rule     : the folders are yours to create. Elsewhere: --dir <path>",
+                    "muted",
+                )
+            )
 
         try:
             archive = trace_archive_path(resolved_subject)
             archive.parent.mkdir(parents=True, exist_ok=True)
-            archive.write_text(res.trace, encoding="utf-8")
+            trace_out_text = (
+                res.trace if res.trace.endswith("\n") else (res.trace + "\n")
+            )
+            archive.write_text(trace_out_text, encoding="utf-8")
             LAST_TRACE_FILE = archive
             print(theme.c(f"     trace    : {tilde_path(archive)}", "muted"))
         except OSError:
@@ -1312,11 +2399,24 @@ def evaluate_exercise_or_module(
             try:
                 Path(trace_out).expanduser().write_text(res.trace, encoding="utf-8")
             except OSError as exc:
-                print(theme.c(f"Error: --trace-out: cannot write '{trace_out}': {exc.strerror or exc}", "err", "bold"))
+                print(
+                    theme.c(
+                        f"Error: --trace-out: cannot write '{trace_out}': {exc.strerror or exc}",
+                        "err",
+                        "bold",
+                    )
+                )
         return res
 
     if watch_flag:
-        print(theme.c(f"[Watch Mode] Watching {submit_dir} for changes (Ctrl+C to stop)...", "primary", "bold"))
+        if on_watch_frame is None:
+            print(
+                theme.c(
+                    f"[Watch Mode] Watching {submit_dir} for changes (Ctrl+C to stop)...",
+                    "primary",
+                    "bold",
+                )
+            )
         last_state: dict[str, tuple[int, int]] | None = None
         try:
             while True:
@@ -1326,13 +2426,38 @@ def evaluate_exercise_or_module(
                         time.sleep(0.15)
                         cur_state = snapshot_workspace_state(submit_dir)
                     last_state = cur_state
-                    print(theme.c("\n" + "=" * 80, "border"))
-                    print(theme.c(f"[Watch Mode] File change detected at {time.strftime('%H:%M:%S')} — Running Moulinette...", "accent", "bold"))
-                    if run_single_grade() is None:
-                        return 1
+                    if on_watch_frame is not None:
+                        wbuf = io.StringIO()
+                        with (
+                            contextlib.redirect_stdout(wbuf),
+                            contextlib.redirect_stderr(wbuf),
+                        ):
+                            print(
+                                theme.c(
+                                    f"[Watch Mode] {tilde_path(submit_dir)} | {time.strftime('%H:%M:%S')} (Ctrl+C stops)",
+                                    "accent",
+                                    "bold",
+                                )
+                            )
+                            res_w = run_single_grade()
+                        on_watch_frame(wbuf.getvalue())
+                        if res_w is None:
+                            return 1
+                    else:
+                        print(theme.c("\n" + "=" * 80, "border"))
+                        print(
+                            theme.c(
+                                f"[Watch Mode] File change detected at {time.strftime('%H:%M:%S')} — Running Moulinette...",
+                                "accent",
+                                "bold",
+                            )
+                        )
+                        if run_single_grade() is None:
+                            return 1
                 time.sleep(0.5)
         except KeyboardInterrupt:
-            print("\nStopped watch mode.")
+            if on_watch_frame is None:
+                print("\nStopped watch mode.")
             return 0
 
     res = run_single_grade()
@@ -1341,14 +2466,47 @@ def evaluate_exercise_or_module(
     return 0 if res.passed else 1
 
 
-def setup_readline_completer(piscine_mods: set[str]) -> None:
-    if readline is None or not sys.stdin.isatty():
-        return
-    exam_tracks = {p.stem for p in (KIT_ROOT / "pools" / "exams").glob("*.yml")} if (KIT_ROOT / "pools" / "exams").is_dir() else set()
+def build_completion_vocab(piscine_mods: set[str]) -> list[str]:
+    """Return sorted command, module, exam-track, and exercise names for REPL Tab completion."""
+    exam_tracks = (
+        {p.stem for p in (KIT_ROOT / "pools" / "exams").glob("*.yml")}
+        if (KIT_ROOT / "pools" / "exams").is_dir()
+        else set()
+    )
     commands = {
-        "piscine", "piscine_exam", "back", "forward", "home", "list", "subject",
-        "init", "watch", "grade", "trace", "xp", "clear", "cls", "help", "quit", "exit",
-        "--back", "--forward", "--list", "--init", "--show-subject", "--watch", "--strict", "--exam",
+        "piscine",
+        "exams",
+        "piscine_exam",
+        "back",
+        "forward",
+        "home",
+        "list",
+        "subject",
+        "init",
+        "watch",
+        "grade",
+        "trace",
+        "trace-mode",
+        "more",
+        "less",
+        "xp",
+        "guide",
+        "doctor",
+        "clear",
+        "cls",
+        "help",
+        "quit",
+        "exit",
+        "--back",
+        "--forward",
+        "--list",
+        "--init",
+        "--show-subject",
+        "--watch",
+        "--strict",
+        "--exam",
+        "--alt-screen",
+        "--scrollback",
     }
     exercises: set[str] = set()
     subj_root = KIT_ROOT / "subjects"
@@ -1361,8 +2519,14 @@ def setup_readline_completer(piscine_mods: set[str]) -> None:
             if ex_dir.is_dir():
                 exercises.add(ex_dir.name)
                 exercises.add(_MODULE_PREFIX_RE.sub("", ex_dir.name))
+    return sorted(commands | piscine_mods | exam_tracks | exercises)
 
-    vocab = sorted(commands | piscine_mods | exam_tracks | exercises)
+
+def setup_readline_completer(piscine_mods: set[str]) -> list[str]:
+    """Configure GNU Readline tab completion for Moulinette REPL commands."""
+    vocab = build_completion_vocab(piscine_mods)
+    if readline is None or not sys.stdin.isatty():
+        return vocab
 
     def _completer(text: str, state: int) -> str | None:
         matches = [w for w in vocab if w.startswith(text)]
@@ -1374,10 +2538,11 @@ def setup_readline_completer(piscine_mods: set[str]) -> None:
         readline.parse_and_bind("bind ^I rl_complete")
     else:
         readline.parse_and_bind("tab: complete")
+    return vocab
 
 
 def resolve_exercise_in_nav_context(target: str, nav_stack: list[str]) -> str:
-    """Resolve an exercise name or 'exNN' code relative to the active navigation stack."""
+    """Resolve an exercise name, 'exNN' code, or row number relative to the active navigation stack."""
     clean = target.strip().strip("/")
     if not clean or any(part in {".", ".."} for part in clean.split("/")):
         return clean
@@ -1386,190 +2551,592 @@ def resolve_exercise_in_nav_context(target: str, nav_stack: list[str]) -> str:
         pool_file = KIT_ROOT / "pools" / "piscine" / f"{mod}.yml"
         if pool_file.is_file():
             data = fast_load_yaml(pool_file)
+            norm_clean = f"ex{int(clean):02d}" if clean.isdigit() else clean.lower()
             for idx, ex in enumerate(data.get("exercises") or []):
-                raw_id = (ex.get("subject_id") or ex.get("id") or "") if isinstance(ex, dict) else str(ex)
+                raw_id = (
+                    (ex.get("subject_id") or ex.get("id") or "")
+                    if isinstance(ex, dict)
+                    else str(ex)
+                )
                 ex_id = Path(raw_id).name
-                ex_code = (ex.get("ex", f"ex{idx:02d}") if isinstance(ex, dict) else f"ex{idx:02d}").lower()
+                ex_code = (
+                    ex.get("ex", f"ex{idx:02d}")
+                    if isinstance(ex, dict)
+                    else f"ex{idx:02d}"
+                ).lower()
                 clean_leaf = _MODULE_PREFIX_RE.sub("", ex_id)
-                if clean.lower() in {ex_code, ex_id.lower(), clean_leaf.lower()}:
+                if norm_clean in {ex_code, ex_id.lower(), clean_leaf.lower()}:
                     return f"piscine/{mod}/{ex_id}"
     if nav_stack and nav_stack[0] == "piscine exam":
+        if len(nav_stack) == 3 and clean.isdigit():
+            trk_file = KIT_ROOT / "pools" / "exams" / f"{nav_stack[1]}.yml"
+            lvl_num_s = nav_stack[2].replace("level", "").strip()
+            if trk_file.is_file() and lvl_num_s.isdigit():
+                levels = fast_load_yaml(trk_file).get("levels") or []
+                lvl_idx = int(lvl_num_s)
+                matched = next(
+                    (lvl for lvl in levels if int(lvl.get("level", -1)) == lvl_idx),
+                    None,
+                )
+                cands = (
+                    [str(c) for c in (matched.get("candidates") or [])]
+                    if matched
+                    else []
+                )
+                row_i = int(clean)
+                if 1 <= row_i <= len(cands):
+                    return f"exams/{cands[row_i - 1]}"
         if _is_exercise_dir(KIT_ROOT / "subjects" / "exams" / clean):
             return f"exams/{clean}"
     return clean
 
 
-def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is_practice: bool) -> int:
+def interactive_moulinette_repl(
+    args: argparse.Namespace, theme: ThemeEngine, is_practice: bool
+) -> int:
+    """Run the interactive Moulinette catalog explorer and grading REPL."""
     piscine_mods = get_piscine_modules()
     ensure_workspace_directories()
-    setup_readline_completer(piscine_mods)
+    completion_vocab = setup_readline_completer(piscine_mods)
 
     nav_stack: list[str] = []
     back_stack: list[list[str]] = []
     forward_stack: list[list[str]] = []
 
-    view = {"is_catalog": False}
-
-    def _screen_rows() -> int:
-        """Rows left for a catalog table once the nav line and the prompt are accounted for."""
-        _, lines = theme.term_size()
-        return max(8, lines - 3)
-
-    def _render_banner_header(full: bool = False) -> None:
-        """The emblem is shown on the home screen only. Every other screen keeps its rows for content:
-        the interactive view has no scrollback, so whatever scrolls off the top is lost."""
-        view["is_catalog"] = False
-        if not full:
-            return
-        cols, _ = theme.term_size()
-        w = max(40, min(80, cols))
-        mods, piscine_exs, tracks, exam_exs = catalog_counts()
-        banner = theme.tool_banner("moulinette", w, tagline="Don't Panic. Deepthought is judging your code.")
-        stats = theme.stats_block(
-            [
-                "moulinette v0.1.1 - 42 / 1337 Deepthought Grading Engine",
-                f"{mods} piscine modules ({piscine_exs} exs) - {tracks} exam tracks ({exam_exs} exs)",
-                "5-gate pipeline: norminette, symbols, gcc -Werror, canary, diff",
-            ],
-            width=w,
+    explicit_scrollback = bool(
+        getattr(args, "scrollback", False)
+        or os.environ.get("MOULINETTE_SCROLLBACK") == "1"
+        or os.environ.get("MOULINETTE_NO_CLEAR")
+        or (
+            os.environ.get("MOULINETTE_ALT_SCREEN") == "0"
+            and not getattr(args, "alt_screen", False)
         )
-        if banner:
-            for b in banner:
-                print(b)
-            print("")
-        for s in stats:
-            print(s)
-        print("")
-        print(theme.status("status", "Type an exercise (ft_putchar), a section, 'help' for commands, 'q' to quit."))
-        print("")
+    )
+    use_viewport = is_viewport_tty() and not explicit_scrollback
+    active_trace_mode = resolve_trace_mode(args)
+    cmd_history: list[str] = []
 
-    def _render_current_context() -> None:
-        clear_viewport()
-        _render_banner_header(full=not nav_stack)
-        rows = _screen_rows()
+    state: dict[str, Any] = {
+        "mode": "catalog",
+        "is_catalog": True,
+        "output_title": "",
+        "output_lines": [],
+        "last_title": "catalog",
+        "last_lines": [],
+        "notice": "",
+    }
 
-        if not nav_stack:
-            print_sections_menu(theme)
-        elif nav_stack == ["piscine"]:
-            print_catalog_list("piscine", theme, max_rows=rows)
-            print("")
-            print(theme.c("nav: <module> (c00) opens it | grade <module> evaluates it | back | help", "muted"))
-        elif len(nav_stack) == 2 and nav_stack[0] == "piscine":
-            mod_name = nav_stack[1]
-            print_catalog_list(mod_name, theme, max_rows=rows)
-            print("")
-            print(theme.c(f"nav: <exercise> or exNN grades | subject <ex> | grade ({mod_name}) | back | help", "muted"))
-        elif nav_stack == ["piscine exam"]:
-            print_catalog_list("piscine exam", theme, max_rows=rows)
-            print("")
-            print(theme.c("nav: <track> (rank02) opens it | back | help", "muted"))
-        elif len(nav_stack) == 2 and nav_stack[0] == "piscine exam":
-            print_catalog_list(nav_stack[1], theme, max_rows=rows)
-            print("")
-            print(theme.c("nav: level<N> or <N> opens a level | <exercise> grades | back | help", "muted"))
-        elif len(nav_stack) == 3 and nav_stack[0] == "piscine exam":
-            trk_name, lvl_tag = nav_stack[1], nav_stack[2]
-            lvl_num = lvl_tag.replace("level", "").strip()
-            print_catalog_list(f"{trk_name}:{lvl_num}", theme, max_rows=rows)
-            print("")
-            print(theme.c("nav: <exercise> grades (exam mode) | subject <ex> | <N> | back | help", "muted"))
-        view["is_catalog"] = True
+    with interactive_terminal_screen(enabled=use_viewport) as vp:
+        vp_active = isinstance(vp, ViewportSession) and vp.active
 
-    def _navigate_to(target_path: list[str]) -> None:
-        if target_path != nav_stack:
-            back_stack.append(list(nav_stack))
-            forward_stack.clear()
-            nav_stack[:] = list(target_path)
-        _render_current_context()
+        def _view_label() -> str:
+            return "/".join(nav_stack) if nav_stack else "catalog"
 
-    def _go_back() -> None:
-        if back_stack:
-            forward_stack.append(list(nav_stack))
-            nav_stack[:] = back_stack.pop()
-        elif nav_stack:
-            forward_stack.append(list(nav_stack))
-            nav_stack.pop()
-        _render_current_context()
+        def _screen_rows() -> int:
+            _, lines = theme.term_size()
+            return max(8, lines - 3)
 
-    def _go_forward() -> None:
-        if forward_stack:
-            back_stack.append(list(nav_stack))
-            nav_stack[:] = forward_stack.pop()
-            _render_current_context()
-        else:
-            print(theme.c("Already at the latest forward view.", "muted"))
+        def _print_startup_line() -> None:
+            mods, piscine_exs, tracks, exam_exs = catalog_counts()
+            print(
+                theme.c(
+                    f"moulinette — {mods} piscine ({piscine_exs} exs) | {tracks} exams ({exam_exs} exs) | '1' piscine | '2' exams | 'help' | 'q'",
+                    "muted",
+                )
+            )
 
-    def _guarded(func: Any, *f_args: Any, **f_kwargs: Any) -> Any:
-        """Run one command; a failure ends that command, not the session."""
-        try:
-            return func(*f_args, **f_kwargs)
-        except ExerciseLookupError as exc:
-            print(theme.c(f"Error: {exc}", "err", "bold"))
-        except Exception as exc:  # noqa: BLE001 - the session must survive a faulty command
-            if os.environ.get("MOULINETTE_DEBUG"):
-                raise
-            print(theme.c(f"Internal error: {type(exc).__name__}: {exc}", "err", "bold"))
-            print(theme.c("Session kept alive. Set MOULINETTE_DEBUG=1 for the traceback.", "muted"))
-        return 1
+        def _default_nav_hint() -> str:
+            """Return the context-appropriate bottom navigation hint within 79 columns."""
+            if state["mode"] == "output":
+                return "nav: back/list (catalog) | more/less (page) | trace | help | q"
+            if not nav_stack:
+                return "nav: piscine (1) | exams (2) | <exercise> (grade) | help"
+            if nav_stack == ["piscine"]:
+                return "nav: <module> (c00) opens it | grade <module> evaluates it | back | help"
+            if len(nav_stack) == 2 and nav_stack[0] == "piscine":
+                return f"nav: <ex> grades | subject <ex> | init <ex> | grade ({nav_stack[1]}) | back"
+            if nav_stack == ["piscine exam"]:
+                return "nav: <track> (rank02, exam00) opens it | back | help"
+            if len(nav_stack) == 2 and nav_stack[0] == "piscine exam":
+                return (
+                    "nav: level<N> opens a level | <exercise> grades it | back | help"
+                )
+            return "nav: <exercise> grades | subject <ex> | init <ex> | back | help"
 
-    def _show_last_trace() -> None:
-        if LAST_TRACE_FILE is None or not LAST_TRACE_FILE.is_file():
-            print(theme.c("No trace yet: grade an exercise first.", "warn", "bold"))
-            print("")
-            return
-        pager = shlex.split(os.environ.get("PAGER") or "less -R")
-        if pager and shutil.which(pager[0]):
-            try:
-                subprocess.call([*pager, str(LAST_TRACE_FILE)])
-                _render_current_context()
+        def _current_prompt(for_readline: bool | None = None) -> str:
+            """Build the interactive prompt reflecting the current navigation path."""
+            label = (
+                "moulinette> "
+                if not nav_stack
+                else f"moulinette ({'/'.join(nav_stack)})> "
+            )
+            styled = theme.c(label, "primary", "bold")
+            use_rl = (not vp_active) if for_readline is None else for_readline
+            return rl_safe_prompt(styled) if use_rl else styled
+
+        def _viewport_header(_cols: int) -> list[str]:
+            """Return empty top chrome so catalog subviews and command output start cleanly."""
+            return []
+
+        def _emit_catalog_for_context(rows_budget: int | None) -> None:
+            """Emit the catalog listing corresponding to the current navigation stack."""
+            if not nav_stack:
+                print_sections_menu(theme, include_nav=not vp_active)
+            elif nav_stack == ["piscine"]:
+                print_catalog_list("piscine", theme, max_rows=rows_budget)
+            elif len(nav_stack) == 2 and nav_stack[0] == "piscine":
+                print_catalog_list(nav_stack[1], theme, max_rows=rows_budget)
+            elif nav_stack == ["piscine exam"]:
+                print_catalog_list("piscine exam", theme, max_rows=rows_budget)
+            elif len(nav_stack) == 2 and nav_stack[0] == "piscine exam":
+                print_catalog_list(nav_stack[1], theme, max_rows=rows_budget)
+            elif len(nav_stack) == 3 and nav_stack[0] == "piscine exam":
+                lvl_num = nav_stack[2].replace("level", "").strip()
+                print_catalog_list(
+                    f"{nav_stack[1]}:{lvl_num}", theme, max_rows=rows_budget
+                )
+
+        def _home_banner_lines(
+            cols: int,
+            max_body: int,
+            section_lines: list[str],
+        ) -> list[str]:
+            """Prepend the 42 emblem banner on the root catalog screen when space permits.
+
+            Args:
+                cols: Terminal column count.
+                max_body: Available body row budget inside the viewport.
+                section_lines: Pre-rendered catalog section rows.
+
+            Returns:
+                Lines combining the 42 emblem banner and section rows when they fit,
+                or ``section_lines`` alone on compact heights.
+            """
+            w = min(79, max(40, cols - 1))
+            banner = theme.tool_banner(
+                "moulinette",
+                w,
+                tagline="42 / 1337 Deepthought Grader (v0.1.1)",
+            )
+            if banner and len(banner) + 1 + len(section_lines) <= max_body:
+                return [*banner, "", *section_lines]
+            return section_lines
+
+        def _render_viewport() -> None:
+            """Render the current catalog or output view inside the bounded terminal viewport."""
+            if not vp_active or vp is None:
                 return
-            except OSError:
-                pass
-        print(theme.c(f"No pager available. Read it with: cat {tilde_path(LAST_TRACE_FILE)}", "warn"))
-        print("")
+            cols, rows = theme.term_size()
+            hdr = _viewport_header(cols)
+            max_body = max(2, rows - len(hdr) - 2)
+            if state["mode"] == "catalog":
+                cbuf = io.StringIO()
+                with contextlib.redirect_stdout(cbuf):
+                    _emit_catalog_for_context(max_body)
+                raw_body = cbuf.getvalue().rstrip("\n").splitlines()
+                if (
+                    not nav_stack
+                    and raw_body
+                    and _ANSI_SEQ_RE.sub("", raw_body[-1]).lstrip().startswith("nav:")
+                ):
+                    raw_body.pop()
+                while raw_body and not raw_body[-1].strip():
+                    raw_body.pop()
+                if not nav_stack:
+                    raw_body = _home_banner_lines(cols, max_body, raw_body)
+                state["last_lines"] = raw_body
+                state["last_title"] = _view_label()
+            else:
+                raw_body = list(state["output_lines"])
 
-    def _current_prompt() -> str:
-        if not nav_stack:
-            label = "moulinette (grade)> "
-        else:
-            label = f"moulinette ({'/'.join(nav_stack)})> "
-        return rl_safe_prompt(theme.c(label, "primary", "bold"))
+            if len(raw_body) <= max_body:
+                visible_body = list(raw_body)
+                default_footer = theme.c(_default_nav_hint(), "muted")
+            else:
+                keep = max(1, max_body - 1)
+                overflow = theme.c(
+                    f"[Showing {keep}/{len(raw_body)} lines — type 'more' to page, or 'less']",
+                    "warn",
+                    "bold",
+                )
+                visible_body = [*raw_body[:keep], overflow]
+                hidden_summary = next(
+                    (
+                        ln
+                        for ln in reversed(raw_body[keep:])
+                        if ln.lstrip().startswith("Summary:")
+                    ),
+                    None,
+                )
+                if hidden_summary:
+                    default_footer = (
+                        f"{hidden_summary} {theme.c('| more | list', 'muted')}"
+                    )
+                else:
+                    default_footer = theme.c(_default_nav_hint(), "muted")
 
-    def _on_sigwinch(signum: int, frame: Any) -> None:
-        if view["is_catalog"]:
-            _render_current_context()
-        if readline is not None:
+            notice_str = str(state["notice"] or "")
+            footer = clip_visible(
+                notice_str if notice_str else default_footer, min(79, cols - 1)
+            )
+            vp.write_frame(
+                [*hdr, *visible_body, footer],
+                _current_prompt(for_readline=False),
+                cols,
+                rows,
+            )
+
+        def _render_current_context(clear: bool = False) -> None:
+            state["mode"] = "catalog"
+            state["is_catalog"] = True
+            state["notice"] = ""
+            if vp_active:
+                _render_viewport()
+                return
+            if clear:
+                clear_viewport()
+                if not nav_stack:
+                    _print_startup_line()
+            _emit_catalog_for_context(_screen_rows())
+            if nav_stack:
+                print(theme.c(_default_nav_hint(), "muted"))
+
+        def _set_notice(msg: str) -> None:
+            if vp_active:
+                state["notice"] = msg
+                _render_viewport()
+            else:
+                print(msg)
+
+        def _run_captured(title: str, fn: Callable[[], Any]) -> Any:
+            if not vp_active:
+                return fn()
+            obuf = io.StringIO()
+            with contextlib.redirect_stdout(obuf), contextlib.redirect_stderr(obuf):
+                res = fn()
+            raw_out = obuf.getvalue().rstrip("\n")
+            lines = raw_out.splitlines() if raw_out else []
+            if lines:
+                state["mode"] = "output"
+                state["is_catalog"] = False
+                state["output_title"] = title
+                state["output_lines"] = lines
+                state["last_title"] = title
+                state["last_lines"] = lines
+                state["notice"] = ""
+                _render_viewport()
+            return res
+
+        def _complete_viewport_input(buf_str: str, cursor_pos: int) -> tuple[str, int]:
+            left = buf_str[:cursor_pos]
+            right = buf_str[cursor_pos:]
+            match = re.search(r"(\S+)$", left)
+            prefix = match.group(1) if match else ""
+            start_idx = match.start(1) if match else len(left)
+            if not prefix:
+                top_cmds = [
+                    "piscine",
+                    "exams",
+                    "subject",
+                    "init",
+                    "grade",
+                    "watch",
+                    "more",
+                    "less",
+                    "trace",
+                    "xp",
+                ]
+                state["notice"] = theme.c("commands: " + "  ".join(top_cmds), "info")
+                _render_viewport()
+                return buf_str, cursor_pos
+            matches = [w for w in completion_vocab if w.startswith(prefix)]
+            if not matches:
+                state["notice"] = theme.c(f"no completion for '{prefix}'", "muted")
+                _render_viewport()
+                return buf_str, cursor_pos
+            if len(matches) == 1:
+                suffix = "" if right.startswith(" ") else " "
+                new_left = left[:start_idx] + matches[0] + suffix
+                state["notice"] = ""
+                _render_viewport()
+                return new_left + right, len(new_left)
+            common = os.path.commonprefix(matches)
+            extended = common if len(common) > len(prefix) else prefix
+            new_left = left[:start_idx] + extended
+            extra_s = f" (+{len(matches) - 8} more)" if len(matches) > 8 else ""
+            state["notice"] = theme.c(
+                f"completions: {'  '.join(matches[:8])}{extra_s}", "info"
+            )
+            _render_viewport()
+            return new_left + right, len(new_left)
+
+        def _navigate_to(target_path: list[str]) -> None:
+            if target_path != nav_stack:
+                back_stack.append(list(nav_stack))
+                forward_stack.clear()
+                nav_stack[:] = list(target_path)
+            _render_current_context(clear=False)
+
+        def _go_back() -> None:
+            if vp_active and state["mode"] == "output":
+                _render_current_context(clear=False)
+                return
+            if back_stack:
+                forward_stack.append(list(nav_stack))
+                nav_stack[:] = back_stack.pop()
+            elif nav_stack:
+                forward_stack.append(list(nav_stack))
+                nav_stack.pop()
+            _render_current_context(clear=False)
+
+        def _go_forward() -> None:
+            if forward_stack:
+                back_stack.append(list(nav_stack))
+                nav_stack[:] = forward_stack.pop()
+                _render_current_context(clear=False)
+            else:
+                _set_notice(theme.c("Already at the latest forward view.", "muted"))
+
+        def _guarded(func: Any, *f_args: Any, **f_kwargs: Any) -> Any:
+            """Run one command; a failure ends that command, not the session."""
             try:
-                readline.forced_update_display()
-            except Exception:
-                pass
+                return func(*f_args, **f_kwargs)
+            except ExerciseLookupError as exc:
+                print(theme.c(f"Error: {exc}", "err", "bold"))
+            except Exception as exc:  # noqa: BLE001 - the session must survive a faulty command
+                if os.environ.get("MOULINETTE_DEBUG"):
+                    raise
+                print(
+                    theme.c(
+                        f"Internal error: {type(exc).__name__}: {exc}", "err", "bold"
+                    )
+                )
+                print(
+                    theme.c(
+                        "Session kept alive. Set MOULINETTE_DEBUG=1 for the traceback.",
+                        "muted",
+                    )
+                )
+            return 1
 
-    prev_winch = None
-    if hasattr(signal, "SIGWINCH") and sys.stdout.isatty():
-        prev_winch = signal.getsignal(signal.SIGWINCH)
-        signal.signal(signal.SIGWINCH, _on_sigwinch)
+        def _show_last_trace(use_pager: bool = False) -> None:
+            state["is_catalog"] = False
+            if LAST_TRACE_FILE is None or not LAST_TRACE_FILE.is_file():
+                msg = theme.c("No trace yet: grade an exercise first.", "warn", "bold")
+                if vp_active:
+                    _set_notice(msg)
+                else:
+                    print(msg)
+                return
+            try:
+                trace_raw = LAST_TRACE_FILE.read_text(
+                    encoding="utf-8", errors="replace"
+                ).rstrip("\n")
+            except OSError as exc:
+                msg = theme.c(f"Cannot read trace: {exc}", "err", "bold")
+                if vp_active:
+                    _set_notice(msg)
+                else:
+                    print(msg)
+                return
+            colored = colorize_trace(trace_raw, theme) if trace_raw else "(empty trace)"
+            file_line = theme.c(f"trace file: {tilde_path(LAST_TRACE_FILE)}", "muted")
+            if vp_active:
+                trace_lines = [*colored.splitlines(), file_line]
+                state["mode"] = "output"
+                state["output_title"] = f"trace: {LAST_TRACE_FILE.name}"
+                state["output_lines"] = trace_lines
+                state["last_title"] = state["output_title"]
+                state["last_lines"] = trace_lines
+                state["notice"] = ""
+                if use_pager and vp is not None:
+                    vp.run_pager(
+                        state["output_title"], trace_lines, _viewport_header, theme
+                    )
+                _render_viewport()
+                return
+            _emit_with_pager(colored if trace_raw else "", use_pager=use_pager)
+            print(file_line)
 
-    try:
-        with interactive_terminal_screen(enabled=True):
-            _render_current_context()
+        def _print_help() -> None:
+            """Display interactive moulinette commands in the classic 42 Bocal format."""
+            ws_tilde = _fit_catalog_path_line(
+                "", tilde_path(KIT_ROOT / "workspace"), "", 44
+            )
+            subj_tilde = _fit_catalog_path_line(
+                "", tilde_path(KIT_ROOT / "subjects"), "", 44
+            )
+            print(
+                f"{theme.c('===>', 'accent', 'bold')} {theme.bold('moulinette commands')}"
+            )
+            print(
+                theme.status(
+                    "status",
+                    "New here? : guide [ex] (step-by-step) | doctor (check setup)",
+                )
+            )
+            print(
+                theme.status(
+                    "status",
+                    "Browse    : piscine | exams | <module> (c00) | <track> | level<N>",
+                )
+            )
+            print(
+                theme.status(
+                    "status",
+                    "Move      : back (b, ..) | forward (f) | home | list | clear | q",
+                )
+            )
+            print(
+                theme.status(
+                    "status",
+                    "42 way    : read subject, mkdir <module>/<exNN>, write, <ex>",
+                )
+            )
+            print(
+                theme.status(
+                    "status",
+                    "Grade     : <ex> grades | watch <ex> (on save) | grade <module>",
+                )
+            )
+            print(
+                theme.status(
+                    "status",
+                    "Shortcut  : subject <ex> prints it | init <ex> (optional folder)",
+                )
+            )
+            print(
+                theme.status(
+                    "status",
+                    "Options   : --strict --norm --exam --self-test --dir <path>",
+                )
+            )
+            print(
+                theme.status(
+                    "status", "            --trace-mode real|helpful --scrollback"
+                )
+            )
+            print(
+                theme.status(
+                    "status",
+                    "Read      : trace | more | less | trace-mode | xp (your progress)",
+                )
+            )
+            print(
+                theme.status(
+                    "status",
+                    _fit_catalog_path_line(
+                        "Subjects  : ", f"{subj_tilde}/piscine/<module>/<ex>/", "", 75
+                    ),
+                )
+            )
+            print(
+                theme.status(
+                    "status",
+                    _fit_catalog_path_line(
+                        "Turn-in   : ",
+                        f"{ws_tilde}/piscine/<module>/<exNN>/",
+                        home_note(ws_tilde),
+                        75,
+                    ),
+                )
+            )
+            print(
+                theme.status(
+                    "status",
+                    "Names     : exact. 'c01/ft_strlen' disambiguates colliding names.",
+                )
+            )
+            print(
+                theme.status(
+                    "status",
+                    "Example   : subject ft_putchar, then ft_putchar once file exists",
+                )
+            )
+
+        prev_winch = None
+        if not vp_active and hasattr(signal, "SIGWINCH") and sys.stdout.isatty():
+
+            def _on_readline_sigwinch(_signum: int, _frame: Any) -> None:
+                if readline is not None:
+                    try:
+                        if hasattr(readline, "redisplay"):
+                            readline.redisplay()
+                        elif hasattr(readline, "forced_update_display"):
+                            readline.forced_update_display()
+                    except Exception:
+                        pass
+
+            prev_winch = signal.getsignal(signal.SIGWINCH)
+            signal.signal(signal.SIGWINCH, _on_readline_sigwinch)
+
+        try:
+            if vp_active:
+                _render_current_context(clear=True)
+            else:
+                _print_startup_line()
+
             while True:
                 try:
-                    raw = input(_current_prompt()).strip()
+                    if vp_active and vp is not None:
+                        raw = vp.read_line(
+                            _current_prompt(for_readline=False),
+                            theme,
+                            redraw_fn=lambda _b, _p: _render_viewport(),
+                            clear_fn=lambda _b, _p: _render_viewport(),
+                            completer_fn=_complete_viewport_input,
+                            history=cmd_history,
+                        ).strip()
+                    else:
+                        raw = input(_current_prompt(for_readline=True)).strip()
                 except EOFError:
-                    print("\n" + theme.status("status", "Session closed."))
+                    if not vp_active:
+                        print("\n" + theme.c("Session closed.", "muted"))
                     return 0
                 except KeyboardInterrupt:
-                    print("^C\n" + theme.status("status", "Interrupted. Type 'back', 'forward', or 'q' to exit."))
+                    if vp_active:
+                        _set_notice(
+                            theme.c(
+                                "Interrupted. Type 'back', 'forward', or 'q' to exit.",
+                                "warn",
+                            )
+                        )
+                    else:
+                        print(
+                            "^C\n"
+                            + theme.c(
+                                "Interrupted. Type 'back', 'forward', or 'q' to exit.",
+                                "muted",
+                            )
+                        )
                     continue
 
                 if not raw:
+                    if vp_active and state["notice"]:
+                        state["notice"] = ""
+                        _render_viewport()
                     continue
+
+                if not cmd_history or cmd_history[-1] != raw:
+                    cmd_history.append(raw)
+                if vp_active:
+                    state["notice"] = ""
                 low_raw = raw.lower().strip()
 
                 if low_raw in {"q", "quit", "exit"}:
                     return 0
 
-                if low_raw in {"back", "--back", "-b", "b", "..", "prev", "up", "return", "cd .."}:
+                if low_raw in {
+                    "back",
+                    "--back",
+                    "-b",
+                    "b",
+                    "..",
+                    "prev",
+                    "up",
+                    "return",
+                    "cd ..",
+                }:
                     _go_back()
                     continue
 
@@ -1581,95 +3148,184 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                     _navigate_to([])
                     continue
 
-                if low_raw in {"clear", "cls"} or raw == "\x0c":
-                    _render_current_context()
+                if low_raw in {"clear", "cls"}:
+                    _render_current_context(clear=True)
                     continue
 
-                if low_raw in {"help", "?", "--help", "-h", "more", "--more"}:
-                    clear_viewport()
-                    _render_banner_header()
-                    ws_tilde = tilde_path(KIT_ROOT / "workspace")
-                    print(f"{theme.c('===>', 'accent', 'bold')} {theme.bold('moulinette commands')}")
-                    print(theme.status("status", "New here? : guide [ex] (step-by-step) | doctor (check your setup)"))
-                    print(theme.status("status", "Browse    : piscine | exams | <module> (c00) | <track> (rank02) | level<N>"))
-                    print(theme.status("status", "Move      : back (b, ..) | forward (f) | home | list | clear | q"))
-                    print(theme.status("status", "42 way    : read subject, mkdir <module>/<exNN>, write, <ex> to grade"))
-                    print(theme.status("status", "Grade     : <ex> grades it | watch <ex> re-grades on save | grade <module>"))
-                    print(theme.status("status", "Shortcut  : subject <ex> prints it | init <ex> makes the folder (optional)"))
-                    print(theme.status("status", "Options   : --strict --norm --exam --self-test --dir <path>"))
-                    print(theme.status("status", "Read      : trace (full trace of the last grading) | xp (your progress)"))
-                    print(theme.status("status", f"Subjects  : {tilde_path(KIT_ROOT / 'subjects')}/piscine/<module>/<ex>/"))
-                    print(theme.status("status", f"Turn-in   : {ws_tilde}/piscine/<module>/<exNN>/{home_note(ws_tilde)}"))
-                    print(theme.status("status", "Names     : exact. 'c01/ft_strlen' names the module when two share a name."))
-                    print(theme.status("status", "Example   : subject ft_putchar, then ft_putchar once the file exists"))
-                    print("")
+                if raw == "\x0c":
+                    if vp_active:
+                        _render_viewport()
+                    else:
+                        _render_current_context(clear=True)
                     continue
 
-                if low_raw in {"guide", "start", "howto", "how-to", "--guide"} or low_raw.startswith("guide "):
-                    guide_arg = raw.strip().split(None, 1)[1].strip() if (" " in raw.strip() and low_raw.startswith("guide ")) else None
-                    clear_viewport()
-                    _render_banner_header()
-                    print_guide(theme, guide_arg)
+                if low_raw in {"more", "--more"}:
+                    if vp_active and vp is not None:
+                        if state["last_lines"]:
+                            vp.run_pager(
+                                state["last_title"] or "output",
+                                state["last_lines"],
+                                _viewport_header,
+                                theme,
+                            )
+                            _render_viewport()
+                        else:
+                            _set_notice(
+                                theme.c(
+                                    "Nothing to page — type 'help' for commands.",
+                                    "muted",
+                                )
+                            )
+                    else:
+                        _print_help()
+                    continue
+
+                if low_raw in {"help", "?", "--help", "-h"}:
+                    _run_captured("help", _print_help)
+                    continue
+
+                if low_raw in {
+                    "guide",
+                    "start",
+                    "howto",
+                    "how-to",
+                    "--guide",
+                } or low_raw.startswith("guide "):
+                    guide_arg = (
+                        raw.strip().split(None, 1)[1].strip()
+                        if (" " in raw.strip() and low_raw.startswith("guide "))
+                        else None
+                    )
+                    _run_captured("guide", lambda: print_guide(theme, guide_arg))
                     continue
 
                 if low_raw in {"doctor", "check", "setup", "diagnose", "--doctor"}:
-                    clear_viewport()
-                    _render_banner_header()
-                    print_doctor(theme)
+                    _run_captured("doctor", lambda: print_doctor(theme))
                     continue
 
-                # Inside an exam track a number is a level ('level1', 'lvl1' or '1'). This is tested before the
-                # '1' / '2' section shortcuts, which would otherwise make level 1 and level 2 unreachable.
+                # Inside piscine module list, 0..13 open c00..c13 directly.
+                if nav_stack == ["piscine"] and low_raw.isdigit():
+                    mod_idx = int(low_raw)
+                    mod_name = f"c{mod_idx:02d}"
+                    if 0 <= mod_idx <= 13 and mod_name in piscine_mods:
+                        _navigate_to(["piscine", mod_name])
+                        continue
+                    _set_notice(
+                        theme.c(
+                            f"Enter module 0..13 (c00..c13) or name ({', '.join(piscine_mods[:6])}...).",
+                            "warn",
+                            "bold",
+                        )
+                    )
+                    continue
+
+                # Inside exam track list, 1..N open that track.
+                visible_tracks = [
+                    t
+                    for t in OFFICIAL_EXAM_TRACKS
+                    if (KIT_ROOT / "pools" / "exams" / f"{t}.yml").exists()
+                ]
+                if nav_stack == ["piscine exam"] and low_raw.isdigit():
+                    trk_idx = int(low_raw)
+                    if 1 <= trk_idx <= len(visible_tracks):
+                        _navigate_to(["piscine exam", visible_tracks[trk_idx - 1]])
+                        continue
+                    _set_notice(
+                        theme.c(
+                            f"Enter track 1..{len(visible_tracks)} or track name.",
+                            "warn",
+                            "bold",
+                        )
+                    )
+                    continue
+
+                # Inside an exam track a number is a level ('level1', 'lvl1', or '1' at depth 2).
                 if len(nav_stack) >= 2 and nav_stack[0] == "piscine exam":
-                    m_lvl = re.match(r"^(?:level\s*|lvl\s*)?(\d+)$", low_raw)
+                    lvl_pat = (
+                        r"^(?:level\s*|lvl\s*)?(\d+)$"
+                        if len(nav_stack) == 2
+                        else r"^(?:level\s*|lvl\s*)(\d+)$"
+                    )
+                    m_lvl = re.match(lvl_pat, low_raw)
                     if m_lvl:
                         lvl_idx = int(m_lvl.group(1))
                         trk_file = KIT_ROOT / "pools" / "exams" / f"{nav_stack[1]}.yml"
-                        trk_levels = (fast_load_yaml(trk_file).get("levels") or []) if trk_file.is_file() else []
-                        valid_lvls = {int(l.get("level", i)) for i, l in enumerate(trk_levels)}
+                        trk_levels = (
+                            (fast_load_yaml(trk_file).get("levels") or [])
+                            if trk_file.is_file()
+                            else []
+                        )
+                        valid_lvls = {
+                            int(lvl.get("level", i)) for i, lvl in enumerate(trk_levels)
+                        }
                         if lvl_idx in valid_lvls:
-                            _navigate_to(["piscine exam", nav_stack[1], f"level{lvl_idx}"])
+                            _navigate_to(
+                                ["piscine exam", nav_stack[1], f"level{lvl_idx}"]
+                            )
                             continue
-                        print(theme.c(f"No level {lvl_idx} in {nav_stack[1]}. Levels: {', '.join(str(v) for v in sorted(valid_lvls))}.", "warn", "bold"))
-                        print("")
+                        _set_notice(
+                            theme.c(
+                                f"No level {lvl_idx} in {nav_stack[1]}. Levels: {', '.join(str(v) for v in sorted(valid_lvls))}.",
+                                "warn",
+                                "bold",
+                            )
+                        )
                         continue
 
-                if low_raw in {"1", "piscine", "piscines", "cd piscine", "use piscine"}:
+                if (not nav_stack and low_raw == "1") or low_raw in {
+                    "piscine",
+                    "piscines",
+                    "cd piscine",
+                    "use piscine",
+                }:
                     _navigate_to(["piscine"])
                     continue
 
-                if low_raw in {"2", "piscine exam", "piscine exams", "piscine_exam", "exam", "exams", "cd exam", "cd exams", "use exam", "use exams"}:
+                if (not nav_stack and low_raw == "2") or low_raw in {
+                    "piscine exam",
+                    "piscine exams",
+                    "piscine_exam",
+                    "exam",
+                    "exams",
+                    "cd exam",
+                    "cd exams",
+                    "use exam",
+                    "use exams",
+                }:
                     _navigate_to(["piscine exam"])
                     continue
 
                 try:
                     tokens = shlex.split(raw)
                 except ValueError as exc:
-                    print(theme.c(f"Parse error: {exc}", "err", "bold"))
+                    _set_notice(theme.c(f"Parse error: {exc}", "err", "bold"))
                     continue
 
                 explicit_grade_cmd = tokens[0].lower() in {"grade", "eval"}
                 if explicit_grade_cmd and len(tokens) == 1:
                     if len(nav_stack) == 2 and nav_stack[0] == "piscine":
-                        clear_viewport()
-                        _render_banner_header()
-                        _guarded(
-                            evaluate_exercise_or_module,
-                            None,
-                            nav_stack[1],
-                            explicit_dir=args.dir,
-                            exam_flag=False,
-                            norm_flag=args.norm,
-                            strict_flag=args.strict,
-                            watch_flag=args.watch,
-                            is_practice=is_practice,
-                            trace_out=args.trace_out,
-                            xp_ledger=args.xp_ledger,
-                            theme=theme,
+                        _run_captured(
+                            f"grade {nav_stack[1]}",
+                            lambda: _guarded(
+                                evaluate_exercise_or_module,
+                                None,
+                                nav_stack[1],
+                                explicit_dir=args.dir,
+                                exam_flag=False,
+                                norm_flag=args.norm,
+                                strict_flag=args.strict,
+                                watch_flag=args.watch,
+                                is_practice=is_practice,
+                                trace_out=args.trace_out,
+                                xp_ledger=args.xp_ledger,
+                                theme=theme,
+                                trace_mode=active_trace_mode,
+                            ),
                         )
-                        print("\n" + theme.c("tip: type 'list' to view exercises, or 'back' / 'forward' to navigate.", "muted") + "\n")
                         continue
-                    print(theme.c("Usage: grade <exercise|module>", "warn", "bold"))
+                    _set_notice(
+                        theme.c("Usage: grade <exercise|module>", "warn", "bold")
+                    )
                     continue
 
                 if explicit_grade_cmd and len(tokens) > 1:
@@ -1679,79 +3335,243 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                 arg1 = " ".join(tokens[1:]).strip() if len(tokens) > 1 else None
                 in_exam_section = bool(nav_stack and nav_stack[0] == "piscine exam")
 
-                if cmd0 in {"solution", "--solution", "solve", "--solve", "hint", "--hint"}:
-                    print(theme.status("error", "Reference solutions and hints are strictly locked. Use 'subject <ex>' and debug from the Deepthought trace."))
-                    print("")
+                if cmd0 in {
+                    "solution",
+                    "--solution",
+                    "solve",
+                    "--solve",
+                    "hint",
+                    "--hint",
+                }:
+                    _run_captured(
+                        "locked",
+                        lambda: print(
+                            theme.status(
+                                "error",
+                                "Reference solutions and hints are strictly locked. Use 'subject <ex>' and debug from the Deepthought trace.",
+                            )
+                        ),
+                    )
                     continue
 
                 if cmd0 in {"list", "--list", "ls", "catalog", "--catalog"}:
                     if not arg1:
-                        _render_current_context()
+                        _render_current_context(clear=False)
                         continue
                     arg1_low = arg1.lower()
                     if arg1_low in {"piscine", "piscines", "1"}:
                         _navigate_to(["piscine"])
                         continue
-                    if arg1_low in {"piscine exam", "piscine_exam", "exam", "exams", "2"}:
+                    if arg1_low in {
+                        "piscine exam",
+                        "piscine_exam",
+                        "exam",
+                        "exams",
+                        "2",
+                    }:
                         _navigate_to(["piscine exam"])
                         continue
-                    if arg1_low in piscine_mods or arg1_low in {"rush00", "rush01", "rush02", "bsq", "rush"}:
-                        mod_t = "rush_bsq" if arg1_low in {"rush00", "rush01", "rush02", "bsq", "rush"} else arg1_low
+                    if arg1_low in piscine_mods or arg1_low in {
+                        "rush00",
+                        "rush01",
+                        "rush02",
+                        "bsq",
+                        "rush",
+                    }:
+                        mod_t = (
+                            "rush_bsq"
+                            if arg1_low in {"rush00", "rush01", "rush02", "bsq", "rush"}
+                            else arg1_low
+                        )
                         _navigate_to(["piscine", mod_t])
                         continue
                     trk_t = resolve_exam_track_name(arg1_low)
                     if trk_t:
                         _navigate_to(["piscine exam", trk_t])
                         continue
-                    clear_viewport()
-                    _render_banner_header()
-                    print_catalog_list(arg1, theme)
-                    print("")
+                    _run_captured(
+                        f"list {arg1}", lambda: print_catalog_list(arg1, theme)
+                    )
                     continue
 
                 if cmd0 in {"xp", "stats", "history"}:
-                    clear_viewport()
-                    _render_banner_header()
-                    print_student_progression(theme, args.xp_ledger)
-                    print("\n" + theme.c("tip: type 'list', 'back', or 'forward' to navigate.", "muted") + "\n")
+                    _run_captured(
+                        "xp", lambda: print_student_progression(theme, args.xp_ledger)
+                    )
                     continue
 
-                if cmd0 in {"trace", "less"}:
-                    _show_last_trace()
+                if cmd0 == "trace-mode" or (
+                    cmd0 == "trace" and len(tokens) >= 2 and tokens[1].lower() == "mode"
+                ):
+                    new_tm, err_tm = parse_trace_mode_arg(" ".join(tokens[1:]))
+                    if err_tm:
+                        _set_notice(theme.c(err_tm, "warn", "bold"))
+                    elif new_tm:
+                        active_trace_mode = new_tm
+                        desc = (
+                            "42 real (hidden c_function inputs/diffs)"
+                            if new_tm == "real"
+                            else "helpful (unified diffs shown)"
+                        )
+                        _set_notice(
+                            theme.c(
+                                f"Trace mode set to '{active_trace_mode}' — {desc}.",
+                                "ok",
+                                "bold",
+                            )
+                        )
+                    else:
+                        desc = (
+                            "42 real (hidden c_function inputs/diffs)"
+                            if active_trace_mode == "real"
+                            else "helpful (unified diffs shown)"
+                        )
+                        _set_notice(
+                            theme.c(
+                                f"Current trace mode: {active_trace_mode} ({desc}). Switch: trace-mode [real|helpful]",
+                                "info",
+                            )
+                        )
+                    continue
+
+                if cmd0 == "trace":
+                    _show_last_trace(use_pager=False)
+                    continue
+
+                if cmd0 == "less":
+                    if len(tokens) == 1:
+                        if (
+                            vp_active
+                            and vp is not None
+                            and state["mode"] == "output"
+                            and state["last_lines"]
+                        ):
+                            vp.run_pager(
+                                state["last_title"] or "output",
+                                state["last_lines"],
+                                _viewport_header,
+                                theme,
+                            )
+                            _render_viewport()
+                        else:
+                            _show_last_trace(use_pager=True)
+                    elif tokens[1].lower() == "trace":
+                        _show_last_trace(use_pager=True)
+                    elif (
+                        tokens[1].lower() in {"subject", "--show-subject", "-s"}
+                        and len(tokens) == 3
+                    ):
+                        ctx_target = resolve_exercise_in_nav_context(
+                            tokens[2], nav_stack
+                        )
+                        if vp_active and vp is not None:
+                            _run_captured(
+                                f"subject: {ctx_target}",
+                                lambda: _guarded(
+                                    handle_subject_inspection,
+                                    ctx_target,
+                                    show_subject=True,
+                                    show_hint=False,
+                                    theme=theme,
+                                    prefer_exam=in_exam_section or args.exam,
+                                    raw_target=tokens[2],
+                                    use_pager=False,
+                                ),
+                            )
+                            if state["output_lines"]:
+                                vp.run_pager(
+                                    state["output_title"],
+                                    state["output_lines"],
+                                    _viewport_header,
+                                    theme,
+                                )
+                                _render_viewport()
+                        else:
+                            _guarded(
+                                handle_subject_inspection,
+                                ctx_target,
+                                show_subject=True,
+                                show_hint=False,
+                                theme=theme,
+                                prefer_exam=in_exam_section or args.exam,
+                                raw_target=tokens[2],
+                                use_pager=True,
+                            )
+                    else:
+                        _set_notice(
+                            theme.c("Usage: less [trace | subject <exercise>]", "warn")
+                        )
                     continue
 
                 first_arg = tokens[1] if len(tokens) > 1 else None
-                if cmd0 in {"init", "--init", "subject", "--show-subject", "-s"} and len(tokens) > 2:
-                    print(theme.c(f"Usage: {cmd0} <exercise>   (one name; quote it if it contains spaces)", "warn", "bold"))
-                    print("")
+                if (
+                    cmd0 in {"init", "--init", "subject", "--show-subject", "-s"}
+                    and len(tokens) > 2
+                ):
+                    _set_notice(
+                        theme.c(
+                            f"Usage: {cmd0} <exercise>   (one name; quote it if it contains spaces)",
+                            "warn",
+                            "bold",
+                        )
+                    )
                     continue
-                if cmd0 in {"init", "--init", "subject", "--show-subject", "-s", "watch", "--watch"} and not first_arg:
-                    print(theme.c(f"Usage: {cmd0} <exercise>", "warn", "bold"))
-                    print("")
+                if (
+                    cmd0
+                    in {
+                        "init",
+                        "--init",
+                        "subject",
+                        "--show-subject",
+                        "-s",
+                        "watch",
+                        "--watch",
+                    }
+                    and not first_arg
+                ):
+                    _set_notice(theme.c(f"Usage: {cmd0} <exercise>", "warn", "bold"))
                     continue
 
                 if cmd0 in {"init", "--init"} and first_arg:
                     ctx_target = resolve_exercise_in_nav_context(first_arg, nav_stack)
-                    clear_viewport()
-                    _render_banner_header()
-                    _guarded(scaffold_exercise_workspace, ctx_target, args.dir, theme, prefer_exam=in_exam_section or args.exam)
-                    print("\n" + theme.c("tip: type 'list', 'back', or 'forward' to navigate.", "muted") + "\n")
+                    _run_captured(
+                        f"init {ctx_target}",
+                        lambda: _guarded(
+                            scaffold_exercise_workspace,
+                            ctx_target,
+                            args.dir,
+                            theme,
+                            prefer_exam=in_exam_section or args.exam,
+                        ),
+                    )
                     continue
                 if cmd0 in {"subject", "--show-subject", "-s"} and first_arg:
                     ctx_target = resolve_exercise_in_nav_context(first_arg, nav_stack)
-                    clear_viewport()
-                    _render_banner_header()
-                    _guarded(handle_subject_inspection, ctx_target, show_subject=True, show_hint=False, theme=theme, prefer_exam=in_exam_section or args.exam)
-                    print("\n" + theme.c("tip: type 'list', 'back', or 'forward' to navigate.", "muted") + "\n")
+                    _run_captured(
+                        f"subject {ctx_target}",
+                        lambda: _guarded(
+                            handle_subject_inspection,
+                            ctx_target,
+                            show_subject=True,
+                            show_hint=False,
+                            theme=theme,
+                            prefer_exam=in_exam_section or args.exam,
+                            raw_target=first_arg,
+                        ),
+                    )
                     continue
 
                 repl_watch = args.watch or (cmd0 in {"watch", "--watch"})
                 repl_exam = args.exam or in_exam_section
                 repl_norm = args.norm
                 repl_strict = args.strict
+                repl_trace_mode = active_trace_mode
                 repl_self_test = False
                 repl_dir = args.dir
-                target_tok: str | None = first_arg if cmd0 in {"watch", "--watch"} else None
+                line_has_dir = False
+                target_tok: str | None = (
+                    first_arg if cmd0 in {"watch", "--watch"} else None
+                )
 
                 # Nothing typed is dropped silently: an unknown option or a second name is an error.
                 parse_error = ""
@@ -1768,14 +3588,35 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                         repl_strict = True
                     elif tok == "--self-test":
                         repl_self_test = True
+                    elif tok == "--helpful":
+                        repl_trace_mode = "helpful"
+                    elif tok.startswith("--trace-mode="):
+                        val_tm = tok.split("=", 1)[1].strip().lower()
+                        if val_tm in TRACE_MODES:
+                            repl_trace_mode = val_tm
+                        else:
+                            parse_error = (
+                                f"--trace-mode must be one of: {', '.join(TRACE_MODES)}"
+                            )
+                    elif tok == "--trace-mode":
+                        if idx_t + 1 >= len(tokens):
+                            parse_error = "--trace-mode needs 'real' or 'helpful'."
+                        else:
+                            val_tm = tokens[idx_t + 1].strip().lower()
+                            if val_tm in TRACE_MODES:
+                                repl_trace_mode = val_tm
+                                idx_t += 1
+                            else:
+                                parse_error = f"--trace-mode must be one of: {', '.join(TRACE_MODES)}"
                     elif tok in {"--dir", "--path"}:
                         if idx_t + 1 >= len(tokens):
                             parse_error = f"{tok} needs a directory."
                         else:
                             repl_dir = tokens[idx_t + 1]
+                            line_has_dir = True
                             idx_t += 1
                     elif tok.startswith("-"):
-                        parse_error = f"Unknown option '{tok}'. Options: --strict --norm --exam --watch --self-test --dir <path>"
+                        parse_error = f"Unknown option '{tok}'. Options: --strict --norm --exam --watch --self-test --trace-mode --helpful --dir <path>"
                     elif target_tok is None:
                         target_tok = tok
                     else:
@@ -1786,8 +3627,9 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                 if not parse_error and repl_self_test and repl_dir:
                     parse_error = "--self-test grades the reference solution; it cannot be combined with --dir."
                 if parse_error:
-                    print(theme.c(parse_error, "warn", "bold"))
-                    print("")
+                    _set_notice(theme.c(parse_error, "warn", "bold"))
+                    if not vp_active:
+                        print("")
                     continue
                 assert target_tok is not None
 
@@ -1797,92 +3639,300 @@ def interactive_moulinette_repl(args: argparse.Namespace, theme: ThemeEngine, is
                     continue
 
                 is_mod = target_tok.lower() in piscine_mods
-                has_extra_flags = repl_watch or repl_self_test or (repl_dir is not None)
-                if is_mod and not explicit_grade_cmd and not has_extra_flags and nav_stack != ["piscine", target_tok.lower()]:
+                has_extra_flags = repl_watch or repl_self_test or line_has_dir
+                if (
+                    is_mod
+                    and not explicit_grade_cmd
+                    and not has_extra_flags
+                    and nav_stack != ["piscine", target_tok.lower()]
+                ):
                     _navigate_to(["piscine", target_tok.lower()])
                     continue
 
-                resolved_tok = target_tok if is_mod else resolve_exercise_in_nav_context(target_tok, nav_stack)
+                resolved_tok = (
+                    target_tok
+                    if is_mod
+                    else resolve_exercise_in_nav_context(target_tok, nav_stack)
+                )
 
                 if repl_self_test and not repl_dir:
                     if is_mod:
-                        clear_viewport()
-                        _render_banner_header()
-                        subprocess.call([sys.executable, str(KIT_ROOT / "bin" / "deepthought"), target_tok.lower(), "--self-test", *deepthought_theme_args(theme)])
-                        print("\n" + theme.c("tip: type 'list', 'back', or 'forward' to navigate.", "muted") + "\n")
+                        if vp_active:
+                            state["notice"] = theme.c(
+                                f"running self-test on {target_tok.lower()}...",
+                                "info",
+                                "bold",
+                            )
+                            _render_viewport()
+                        _run_captured(
+                            f"self-test {target_tok.lower()}",
+                            lambda: _run_subprocess(
+                                [
+                                    sys.executable,
+                                    str(KIT_ROOT / "bin" / "deepthought"),
+                                    target_tok.lower(),
+                                    "--self-test",
+                                    "--trace-mode",
+                                    repl_trace_mode,
+                                    *deepthought_theme_args(theme),
+                                ]
+                            ),
+                        )
+                        if not vp_active:
+                            print("")
                         continue
-                    found_s = resolve_exercise_or_report(resolved_tok, theme, prefer_exam=repl_exam)
-                    if found_s is None:
+                    found_s = (
+                        resolve_exercise_or_report(
+                            resolved_tok, theme, prefer_exam=repl_exam
+                        )
+                        if not vp_active
+                        else None
+                    )
+                    if vp_active:
+                        sbuf = io.StringIO()
+                        with (
+                            contextlib.redirect_stdout(sbuf),
+                            contextlib.redirect_stderr(sbuf),
+                        ):
+                            found_s = resolve_exercise_or_report(
+                                resolved_tok, theme, prefer_exam=repl_exam
+                            )
+                        if found_s is None:
+                            s_lines = sbuf.getvalue().rstrip("\n").splitlines()
+                            if s_lines:
+                                state["mode"] = "output"
+                                state["is_catalog"] = False
+                                state["output_title"] = f"self-test {target_tok}"
+                                state["output_lines"] = s_lines
+                                state["last_title"] = state["output_title"]
+                                state["last_lines"] = s_lines
+                                state["notice"] = ""
+                                _render_viewport()
+                            continue
+                    elif found_s is None:
                         print("")
                         continue
+                    assert found_s is not None
                     if not (KIT_ROOT / "corrections" / found_s[0]).is_dir():
-                        print(theme.c(f"Error: no reference solution for {short_exercise_label(found_s[0])}.", "err", "bold"))
-                        print("")
+                        err_s = theme.c(
+                            f"Error: no reference solution for {short_exercise_label(found_s[0])}.",
+                            "err",
+                            "bold",
+                        )
+                        if vp_active:
+                            _set_notice(err_s)
+                        else:
+                            print(err_s)
+                            print("")
                         continue
                     resolved_tok = found_s[0]
                     repl_dir = str((KIT_ROOT / "corrections" / found_s[0]).resolve())
 
-                clear_viewport()
-                _render_banner_header()
-                _guarded(
-                    evaluate_exercise_or_module,
-                    None if is_mod else resolved_tok,
-                    target_tok.lower() if is_mod else None,
-                    explicit_dir=repl_dir,
-                    exam_flag=repl_exam,
-                    norm_flag=repl_norm,
-                    strict_flag=repl_strict,
-                    watch_flag=repl_watch,
-                    is_practice=is_practice,
-                    trace_out=args.trace_out,
-                    xp_ledger=args.xp_ledger,
-                    theme=theme,
+                if vp_active and repl_watch:
+
+                    def _on_watch_output(text: str) -> None:
+                        w_lines = text.rstrip("\n").splitlines() or [
+                            "(waiting for files...)"
+                        ]
+                        state["mode"] = "output"
+                        state["is_catalog"] = False
+                        state["output_title"] = f"watch: {target_tok}"
+                        state["output_lines"] = w_lines
+                        state["last_title"] = state["output_title"]
+                        state["last_lines"] = w_lines
+                        state["notice"] = theme.c(
+                            "watch active — save a file to re-grade | Ctrl+C stops",
+                            "muted",
+                        )
+                        _render_viewport()
+
+                    _guarded(
+                        evaluate_exercise_or_module,
+                        None if is_mod else resolved_tok,
+                        target_tok.lower() if is_mod else None,
+                        explicit_dir=repl_dir,
+                        exam_flag=repl_exam,
+                        norm_flag=repl_norm,
+                        strict_flag=repl_strict,
+                        watch_flag=True,
+                        is_practice=is_practice,
+                        trace_out=args.trace_out,
+                        xp_ledger=args.xp_ledger,
+                        theme=theme,
+                        trace_mode=repl_trace_mode,
+                        on_watch_frame=_on_watch_output,
+                    )
+                    state["notice"] = theme.c("Stopped watch mode.", "info")
+                    _render_viewport()
+                    continue
+
+                if vp_active:
+                    state["notice"] = theme.c(
+                        f"grading {target_tok}...", "info", "bold"
+                    )
+                    _render_viewport()
+
+                _run_captured(
+                    f"grade {target_tok}",
+                    lambda: _guarded(
+                        evaluate_exercise_or_module,
+                        None if is_mod else resolved_tok,
+                        target_tok.lower() if is_mod else None,
+                        explicit_dir=repl_dir,
+                        exam_flag=repl_exam,
+                        norm_flag=repl_norm,
+                        strict_flag=repl_strict,
+                        watch_flag=repl_watch,
+                        is_practice=is_practice,
+                        trace_out=args.trace_out,
+                        xp_ledger=args.xp_ledger,
+                        theme=theme,
+                        trace_mode=repl_trace_mode,
+                    ),
                 )
-                print("\n" + theme.c("tip: 'trace' reads the full trace | 'list' shows the section | 'back' returns", "muted") + "\n")
-    finally:
-        if prev_winch is not None and hasattr(signal, "SIGWINCH"):
-            signal.signal(signal.SIGWINCH, prev_winch)
+                if not vp_active:
+                    print("")
+        finally:
+            if prev_winch is not None and hasattr(signal, "SIGWINCH"):
+                signal.signal(signal.SIGWINCH, prev_winch)
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="1337 / 42 Moulinette & Deepthought Grader — Pro Edition")
-    parser.add_argument("target", nargs="?", help="Exercise slug (e.g., ft_strlen, c01/c01_ft_strlen), module, or command (e.g. subject, init, watch, piscine, 'piscine exam')")
-    parser.add_argument("extra", nargs="*", help="Optional subcommand arguments or tokens (e.g. subject ft_strlen, init ft_strlen)")
+    """CLI entrypoint for Moulinette."""
+    parser = argparse.ArgumentParser(
+        description="42 / 1337 Moulinette & Deepthought Grader"
+    )
+    parser.add_argument(
+        "target",
+        nargs="?",
+        help="Exercise slug (e.g., ft_strlen, c01/ft_strlen), module, or command (subject, init, watch, guide, doctor, piscine, exams)",
+    )
+    parser.add_argument(
+        "extra",
+        nargs="*",
+        help="Optional subcommand arguments or tokens (e.g. subject ft_strlen, init ft_strlen)",
+    )
     parser.add_argument("--subject", help="Subject identifier")
     parser.add_argument("--module", help="Grade an entire Piscine module")
-    parser.add_argument("--dir", "--path", dest="dir", default=None, help="Directory containing user submission")
-    parser.add_argument("--exam", action="store_true", help="Grade in exam mode (Norminette disabled unless --norm)")
-    parser.add_argument("--norm", action="store_true", help="Force 42 Norminette check even in exam mode")
-    parser.add_argument("--strict", action="store_true", help="Strict Piscine mode (Norminette + forbidden symbols)")
-    parser.add_argument("--init", action="store_true", help="Scaffold a starter folder with 42 header and subject.en.txt")
-    parser.add_argument("--show-subject", "-S", action="store_true", help="Display formatted subject.en.txt for the exercise")
-    parser.add_argument("--practice", action="store_true", help="Enable special practice mode")
-    parser.add_argument("--mode", choices=["real", "practice"], default="real", help="Operating mode (default: real)")
-    parser.add_argument("--watch", action="store_true", help="Live watch mode: re-grade automatically on file save")
-    parser.add_argument("--list", nargs="?", const="__all__", default=None, help="List Piscine modules, Exam tracks, or exercises in a module/track")
+    parser.add_argument(
+        "--dir",
+        "--path",
+        dest="dir",
+        default=None,
+        help="Directory containing user submission",
+    )
+    parser.add_argument(
+        "--exam",
+        action="store_true",
+        help="Grade in exam mode (Norminette disabled unless --norm)",
+    )
+    parser.add_argument(
+        "--norm",
+        action="store_true",
+        help="Force 42 Norminette check even in exam mode",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Strict Piscine mode (Norminette + forbidden symbols)",
+    )
+    parser.add_argument(
+        "--init",
+        action="store_true",
+        help="Scaffold a starter folder with 42 header and subject.en.txt",
+    )
+    parser.add_argument(
+        "--show-subject",
+        "-S",
+        action="store_true",
+        help="Display formatted subject.en.txt for the exercise",
+    )
+    parser.add_argument(
+        "--practice", action="store_true", help="Enable special practice mode"
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["real", "practice"],
+        default="real",
+        help="Operating mode (default: real)",
+    )
+    parser.add_argument(
+        "--watch",
+        action="store_true",
+        help="Live watch mode: re-grade automatically on file save",
+    )
+    parser.add_argument(
+        "--list",
+        nargs="?",
+        const="__all__",
+        default=None,
+        help="List Piscine modules, Exam tracks, or exercises in a module/track",
+    )
     parser.add_argument("--trace-out", help="Optional path to save Deepthought trace")
-    parser.add_argument("--xp-ledger", default=None, help="Alternative XP ledger JSON file (kept apart: it never credits the student profile)")
-    parser.add_argument("--theme", default="42-cluster", choices=sorted(PALETTES), help="Color palette")
-    parser.add_argument("--catalog", action="store_true", help="Display complete Piscine & Exam catalog")
-    parser.add_argument("--self-test", action="store_true", help="Grade reference solution in corrections/ to verify environment")
-    parser.add_argument("--json", action="store_true", help="Grade one exercise and print the report as JSON (no XP recorded)")
+    parser.add_argument(
+        "--xp-ledger",
+        default=None,
+        help="Alternative XP ledger JSON file (kept apart: it never credits the student profile)",
+    )
+    parser.add_argument(
+        "--theme", default="42-cluster", choices=sorted(PALETTES), help="Color palette"
+    )
+    parser.add_argument(
+        "--catalog", action="store_true", help="Display complete Piscine & Exam catalog"
+    )
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="Grade reference solution in corrections/ to verify environment",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Grade one exercise and print the report as JSON (no XP recorded)",
+    )
     parser.add_argument("--no-color", action="store_true", help="Disable ANSI colors")
-    if any(arg.split("=", 1)[0].strip().lower() in {"--solution", "--solve", "--hint"} for arg in sys.argv[1:]):
-        print("Error: Reference solutions and hints are strictly locked in Moulinette to preserve the 42 / 1337 peer-learning methodology. Use 'subject <ex>' and debug from the Deepthought trace.")
+    parser.add_argument(
+        "--alt-screen",
+        action="store_true",
+        help="Use bounded alternate-screen viewport (default on interactive TTY)",
+    )
+    parser.add_argument(
+        "--scrollback",
+        action="store_true",
+        help="Use classic scrollback REPL instead of the alternate-screen viewport",
+    )
+    add_trace_mode_arguments(parser)
+    if any(
+        arg.split("=", 1)[0].strip().lower() in {"--solution", "--solve", "--hint"}
+        for arg in sys.argv[1:]
+    ):
+        print(
+            "Error: Reference solutions and hints are strictly locked in Moulinette to preserve the 42 / 1337 peer-learning methodology. Use 'subject <ex>' and debug from the Deepthought trace."
+        )
         return 2
     args = parser.parse_args()
 
     # Options that cannot be honoured together are refused, not silently dropped.
     if args.json and (args.watch or args.module):
-        parser.error("--json grades a single exercise once: it cannot be combined with --watch or --module.")
+        parser.error(
+            "--json grades a single exercise once: it cannot be combined with --watch or --module."
+        )
     if args.self_test and args.dir:
-        parser.error("--self-test grades the reference solution: it cannot be combined with --dir.")
+        parser.error(
+            "--self-test grades the reference solution: it cannot be combined with --dir."
+        )
     if args.trace_out:
         trace_target = Path(args.trace_out).expanduser()
         if trace_target.is_dir() or not trace_target.parent.is_dir():
-            parser.error(f"--trace-out: '{args.trace_out}' is not a writable file path.")
+            parser.error(
+                f"--trace-out: '{args.trace_out}' is not a writable file path."
+            )
 
-    use_plain = args.no_color or bool(os.environ.get("NO_COLOR")) or (not sys.stdout.isatty() and os.environ.get("FORCE_COLOR") != "1")
+    use_plain = (
+        args.no_color
+        or bool(os.environ.get("NO_COLOR"))
+        or (not sys.stdout.isatty() and os.environ.get("FORCE_COLOR") != "1")
+    )
     theme = ThemeEngine("plain" if use_plain else args.theme)
     is_practice = bool(args.practice or args.mode == "practice")
     ensure_workspace_directories()
@@ -1901,9 +3951,15 @@ def main() -> int:
 
     # 0. Anti-spoiler solution & hint blocker:
     if t_low in {"solution", "--solution", "solve", "--solve", "hint", "--hint"} or any(
-        tok.lower() in {"solution", "--solution", "solve", "--solve", "hint", "--hint"} for tok in extra_tokens
+        tok.lower() in {"solution", "--solution", "solve", "--solve", "hint", "--hint"}
+        for tok in extra_tokens
     ):
-        print(theme.status("error", "Reference solutions and hints are strictly locked. Use 'subject <ex>' and debug from the Deepthought trace."))
+        print(
+            theme.status(
+                "error",
+                "Reference solutions and hints are strictly locked. Use 'subject <ex>' and debug from the Deepthought trace.",
+            )
+        )
         return 2
 
     # Subcommand routing for documented CLI patterns:
@@ -1935,12 +3991,16 @@ def main() -> int:
         subject_arg = extra_tokens[0] if extra_tokens else args.subject
         if not subject_arg:
             parser.error("Usage: ./bin/moulinette init <exercise>")
-        return scaffold_exercise_workspace(subject_arg, args.dir, theme, prefer_exam=args.exam)
+        return scaffold_exercise_workspace(
+            subject_arg, args.dir, theme, prefer_exam=args.exam
+        )
 
     # 3. watch <ex>
     if t_low in {"watch", "--watch"}:
         if args.json:
-            parser.error("--json grades a single exercise once: it cannot be combined with watch.")
+            parser.error(
+                "--json grades a single exercise once: it cannot be combined with watch."
+            )
         args.watch = True
         subject_arg = extra_tokens[0] if extra_tokens else args.subject
         if not subject_arg:
@@ -1957,6 +4017,7 @@ def main() -> int:
             trace_out=args.trace_out,
             xp_ledger=args.xp_ledger,
             theme=theme,
+            trace_mode=resolve_trace_mode(args),
         )
 
     # 4. list [target]
@@ -1970,7 +4031,14 @@ def main() -> int:
         return 0
 
     # 6. Section catalogs: 'piscine', 'piscine exam', 'exams'
-    if full_cmd_low in {"piscine", "piscines", "exam", "exams", "piscine exam", "piscine_exam"}:
+    if full_cmd_low in {
+        "piscine",
+        "piscines",
+        "exam",
+        "exams",
+        "piscine exam",
+        "piscine_exam",
+    }:
         return print_catalog_list(full_cmd_low, theme)
 
     # 7. Exam track direct lookup: e.g. 'c_piscine_exam_00', 'rank02'
@@ -1983,12 +4051,18 @@ def main() -> int:
 
     if args.init:
         if not subject_arg:
-            parser.error("Provide an exercise slug to initialize (e.g. `./moulinette --init c00/ft_putchar`).")
-        return scaffold_exercise_workspace(subject_arg, args.dir, theme, prefer_exam=args.exam)
+            parser.error(
+                "Provide an exercise slug to initialize (e.g. `./moulinette --init c00/ft_putchar`)."
+            )
+        return scaffold_exercise_workspace(
+            subject_arg, args.dir, theme, prefer_exam=args.exam
+        )
 
     if args.show_subject:
         if not subject_arg:
-            parser.error("Provide an exercise slug (e.g. `./moulinette --show-subject ft_split`).")
+            parser.error(
+                "Provide an exercise slug (e.g. `./moulinette --show-subject ft_split`)."
+            )
         return handle_subject_inspection(
             str(subject_arg),
             show_subject=args.show_subject,
@@ -2011,50 +4085,116 @@ def main() -> int:
     if not subject_arg and not module_arg:
         if sys.stdin.isatty():
             return interactive_moulinette_repl(args, theme, is_practice)
-        parser.error("Provide an exercise name (e.g. `moulinette ft_strlen`), `--subject`, or `--module`.")
+        parser.error(
+            "Provide an exercise name (e.g. `moulinette ft_strlen`), `--subject`, or `--module`."
+        )
 
     if args.json and module_arg:
-        parser.error("--json grades a single exercise: it cannot be combined with a module.")
+        parser.error(
+            "--json grades a single exercise: it cannot be combined with a module."
+        )
 
     effective_dir = args.dir
     if args.self_test:
         if module_arg:
-            return subprocess.call([sys.executable, str(KIT_ROOT / "bin" / "deepthought"), module_arg, "--self-test", *deepthought_theme_args(theme)])
+            return subprocess.call(
+                [
+                    sys.executable,
+                    str(KIT_ROOT / "bin" / "deepthought"),
+                    module_arg,
+                    "--self-test",
+                    "--trace-mode",
+                    resolve_trace_mode(args),
+                    *deepthought_theme_args(theme),
+                ]
+            )
         if subject_arg and not args.json:
-            found_s = resolve_exercise_or_report(str(subject_arg), theme, prefer_exam=args.exam)
+            found_s = resolve_exercise_or_report(
+                str(subject_arg), theme, prefer_exam=args.exam
+            )
             if found_s is None:
                 return 1
             if not (KIT_ROOT / "corrections" / found_s[0]).is_dir():
-                print(theme.c(f"Error: no reference solution for {short_exercise_label(found_s[0])}.", "err", "bold"))
+                print(
+                    theme.c(
+                        f"Error: no reference solution for {short_exercise_label(found_s[0])}.",
+                        "err",
+                        "bold",
+                    )
+                )
                 return 1
             subject_arg = found_s[0]
             effective_dir = str((KIT_ROOT / "corrections" / found_s[0]).resolve())
     if args.json and subject_arg:
         try:
-            res_s, def_ex = resolve_piscine_or_exam_subject(str(subject_arg), prefer_exam=args.exam)
+            res_s, def_ex = resolve_piscine_or_exam_subject(
+                str(subject_arg), prefer_exam=args.exam
+            )
             if not _is_exercise_dir(KIT_ROOT / "subjects" / res_s):
                 raise ExerciseLookupError(f"Unknown exercise '{subject_arg}'.")
             if args.self_test:
                 if not (KIT_ROOT / "corrections" / res_s).is_dir():
-                    raise ExerciseLookupError(f"No reference solution for {short_exercise_label(res_s)}.")
+                    raise ExerciseLookupError(
+                        f"No reference solution for {short_exercise_label(res_s)}."
+                    )
                 effective_dir = str((KIT_ROOT / "corrections" / res_s).resolve())
             is_ex = True if args.exam else def_ex
             leaf_s = _MODULE_PREFIX_RE.sub("", Path(res_s).name)
-            sub_d = resolve_submission_dir(effective_dir, leaf_s, resolved_subject=res_s)
-            rep = grade_subject(KIT_ROOT, res_s, sub_d, is_exam=is_ex, strict=args.strict or (not is_ex), enforce_norm=args.norm)
+            sub_d = resolve_submission_dir(
+                effective_dir, leaf_s, resolved_subject=res_s
+            )
+            rep = grade_subject(
+                KIT_ROOT,
+                res_s,
+                sub_d,
+                is_exam=is_ex,
+                strict=args.strict or (not is_ex),
+                enforce_norm=args.norm,
+                reveal_tests=(resolve_trace_mode(args) == "helpful"),
+            )
             if args.trace_out:
-                Path(args.trace_out).expanduser().write_text(rep.trace, encoding="utf-8")
+                Path(args.trace_out).expanduser().write_text(
+                    rep.trace, encoding="utf-8"
+                )
         except ExerciseLookupError as exc:
-            print(json.dumps({"subject": str(subject_arg), "error": str(exc)}, indent=2))
+            print(
+                json.dumps({"subject": str(subject_arg), "error": str(exc)}, indent=2)
+            )
             return 2
         except FileNotFoundError as exc:
-            what = f"'{exc.filename}' not found on this machine (environment problem)" if exc.filename else str(exc)
-            print(json.dumps({"subject": str(subject_arg), "error": f"cannot grade: {what}"}, indent=2))
+            what = (
+                f"'{exc.filename}' not found on this machine (environment problem)"
+                if exc.filename
+                else str(exc)
+            )
+            print(
+                json.dumps(
+                    {"subject": str(subject_arg), "error": f"cannot grade: {what}"},
+                    indent=2,
+                )
+            )
             return 2
         except OSError as exc:
-            print(json.dumps({"subject": str(subject_arg), "error": f"cannot grade: {exc}"}, indent=2))
+            print(
+                json.dumps(
+                    {"subject": str(subject_arg), "error": f"cannot grade: {exc}"},
+                    indent=2,
+                )
+            )
             return 2
-        print(json.dumps({"subject": rep.subject_id, "passed": rep.passed, "grade": rep.grade, "status": rep.status, "reason": rep.reason, "error_info": rep.error_info}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "subject": rep.subject_id,
+                    "passed": rep.passed,
+                    "grade": rep.grade,
+                    "status": rep.status,
+                    "reason": rep.reason,
+                    "error_info": rep.error_info,
+                },
+                indent=2,
+            )
+        )
         return 0 if rep.passed else 1
     return evaluate_exercise_or_module(
         str(subject_arg) if subject_arg else None,
@@ -2068,6 +4208,7 @@ def main() -> int:
         trace_out=args.trace_out,
         xp_ledger=args.xp_ledger,
         theme=theme,
+        trace_mode=resolve_trace_mode(args),
     )
 
 
@@ -2080,4 +4221,3 @@ if __name__ == "__main__":
     except ExerciseLookupError as lookup_exc:
         print(f"Error: {lookup_exc}")
         raise SystemExit(2)
-
