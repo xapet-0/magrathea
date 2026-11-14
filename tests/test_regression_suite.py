@@ -22,36 +22,44 @@ Covers every verification entry referenced in the Technical Remediations & Root-
 - test_19: deepthought shell01 self-test verification (LIVE-012)
 - test_20: StudentProfile.xp property setter contract (LIVE-011)
 """
+
 from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import dataclass
 import inspect
 import json
 import os
+from pathlib import Path
+import shutil
 import signal
 import subprocess
 import sys
 import tempfile
+import time
 import typing
 import unittest
-from pathlib import Path
 from unittest import mock
 
 KIT_ROOT = Path(__file__).resolve().parents[1]
 if str(KIT_ROOT) not in sys.path:
     sys.path.insert(0, str(KIT_ROOT))
 
-import deepthought.compiler_and_symbols as cas
-from deepthought.compiler_and_symbols import check_forbidden_c_includes
-from deepthought.grader import _get_strict_sandbox_flags, classify_process_exit_status, grade_subject, get_executable_temp_root
-from deepthought.progression import StudentProfile
-import shutil
-import time
-from dataclasses import dataclass
-from typing import Dict, Sequence
+import deepthought.compiler_and_symbols as cas  # noqa: E402
+from deepthought.compiler_and_symbols import check_forbidden_c_includes  # noqa: E402
+from deepthought.grader import (  # noqa: E402
+    _get_strict_sandbox_flags,
+    classify_process_exit_status,
+    get_executable_temp_root,
+    grade_subject,
+)
+from deepthought.progression import StudentProfile  # noqa: E402
+
 
 @dataclass
 class CapturedProcess:
     """Normalized subprocess result distinguishing normal exit from signal and timeout."""
+
     command_str: str
     returncode: int
     signal_num: int | None
@@ -59,6 +67,7 @@ class CapturedProcess:
     stdout: str
     stderr: str
     duration_ms: float
+
 
 def prepare_isolated_build_dir(kit_root: Path, diag_id: str) -> tuple[Path, Path]:
     repo_build = (kit_root / "build" / "diagnostics" / diag_id).resolve()
@@ -71,7 +80,12 @@ def prepare_isolated_build_dir(kit_root: Path, diag_id: str) -> tuple[Path, Path
         probe = repo_build / ".exec_probe.sh"
         probe.write_bytes(b"#!/bin/sh\nexit 0\n")
         probe.chmod(0o700)
-        r = subprocess.run([str(probe)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1.0)
+        r = subprocess.run(
+            [str(probe)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=1.0,
+        )
         probe.unlink(missing_ok=True)
         if r.returncode == 0:
             return repo_build, repo_build
@@ -84,12 +98,13 @@ def prepare_isolated_build_dir(kit_root: Path, diag_id: str) -> tuple[Path, Path
     (exec_work / "home").mkdir(parents=True, exist_ok=True)
     return repo_build, exec_work
 
+
 def run_captured_process(
     cmd: Sequence[str],
     *,
     cwd: Path,
     isolated_home: Path,
-    extra_env: Dict[str, str] | None = None,
+    extra_env: dict[str, str] | None = None,
     stdin_data: str | None = None,
     timeout_sec: float = 3.0,
     max_output_bytes: int = 65536,
@@ -99,7 +114,9 @@ def run_captured_process(
     env["DT_SKIP_HOME_SYMLINKS"] = "1"
     env["FT_BC_INTERNAL"] = "1"
     env["PYTHONPATH"] = str(KIT_ROOT.resolve())
-    env["FT_STUDENT_PROFILE"] = str((isolated_home / ".42_student_profile.json").resolve())
+    env["FT_STUDENT_PROFILE"] = str(
+        (isolated_home / ".42_student_profile.json").resolve()
+    )
     if extra_env:
         env.update(extra_env)
     cmd_str = " ".join(str(c) for c in cmd)
@@ -125,10 +142,26 @@ def run_captured_process(
         except OSError:
             pass
         out_raw, err_raw = proc.communicate()
-        out_exc = exc.stdout.decode("utf-8", "replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
-        err_exc = exc.stderr.decode("utf-8", "replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
-        out_raw_str = out_raw.decode("utf-8", "replace") if isinstance(out_raw, bytes) else (out_raw or "")
-        err_raw_str = err_raw.decode("utf-8", "replace") if isinstance(err_raw, bytes) else (err_raw or "")
+        out_exc = (
+            exc.stdout.decode("utf-8", "replace")
+            if isinstance(exc.stdout, bytes)
+            else (exc.stdout or "")
+        )
+        err_exc = (
+            exc.stderr.decode("utf-8", "replace")
+            if isinstance(exc.stderr, bytes)
+            else (exc.stderr or "")
+        )
+        out_raw_str = (
+            out_raw.decode("utf-8", "replace")
+            if isinstance(out_raw, bytes)
+            else (out_raw or "")
+        )
+        err_raw_str = (
+            err_raw.decode("utf-8", "replace")
+            if isinstance(err_raw, bytes)
+            else (err_raw or "")
+        )
         out = out_exc + out_raw_str
         err = err_exc + err_raw_str
     finally:
@@ -172,7 +205,24 @@ def _norm_header(filename: str = "ft_strdup.c") -> str:
     line9 = "/*   Updated: 2026/01/01 00:00:00 by student          ###   ########.fr       */"
     line10 = "/*                                                                            */"
     line11 = "/* ************************************************************************** */"
-    return "\n".join([line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11]) + "\n\n"
+    return (
+        "\n".join(
+            [
+                line1,
+                line2,
+                line3,
+                line4,
+                line5,
+                line6,
+                line7,
+                line8,
+                line9,
+                line10,
+                line11,
+            ]
+        )
+        + "\n\n"
+    )
 
 
 class TestMagratheaRegressionSuite(unittest.TestCase):
@@ -192,8 +242,7 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         sub = self.work / "sub_leak"
         sub.mkdir()
         (sub / "ft_strdup.c").write_text(
-            _norm_header("ft_strdup.c")
-            + "#include <stdlib.h>\n\n"
+            _norm_header("ft_strdup.c") + "#include <stdlib.h>\n\n"
             "char\t*ft_strdup(char *src)\n"
             "{\n"
             "\tint\t\ti;\n"
@@ -231,8 +280,7 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         sub = self.work / "sub_segv"
         sub.mkdir()
         (sub / "ft_strdup.c").write_text(
-            _norm_header("ft_strdup.c")
-            + "#include <stdlib.h>\n\n"
+            _norm_header("ft_strdup.c") + "#include <stdlib.h>\n\n"
             "char\t*ft_strdup(char *src)\n"
             "{\n"
             "\tint\t\ti;\n"
@@ -259,7 +307,9 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
 
     def test_03(self) -> None:
         """LIVE-001: classify_process_exit_status distinguishes -11 (SIGSEGV) from +11 (Exit 11)."""
-        lbl_neg, _, fatal_neg = classify_process_exit_status(-int(signal.SIGSEGV), "", False)
+        lbl_neg, _, fatal_neg = classify_process_exit_status(
+            -int(signal.SIGSEGV), "", False
+        )
         lbl_pos, _, fatal_pos = classify_process_exit_status(11, "", False)
         self.assertIn("Segmentation fault", lbl_neg)
         self.assertTrue(fatal_neg)
@@ -312,42 +362,58 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         """LIVE-004: Backslash-newline spliced #include and #include_next are rejected."""
         c1 = self.work / "splice.c"
         c1.write_text('#inc\\\nlude "/etc/passwd"\n', encoding="utf-8")
-        self.assertTrue(len(check_forbidden_c_includes([c1], submit_root=self.work)) > 0)
+        self.assertTrue(
+            len(check_forbidden_c_includes([c1], submit_root=self.work)) > 0
+        )
 
         c2 = self.work / "inc_next.c"
         c2.write_text('#include_next "/etc/passwd"\n', encoding="utf-8")
-        self.assertTrue(len(check_forbidden_c_includes([c2], submit_root=self.work)) > 0)
+        self.assertTrue(
+            len(check_forbidden_c_includes([c2], submit_root=self.work)) > 0
+        )
 
     def test_08(self) -> None:
         """LIVE-005: dt_scan_include_restrictions handles block comments and line splicing."""
         _, exec_dir = prepare_isolated_build_dir(KIT_ROOT, "REG-08")
         drv = exec_dir / "drv.c"
         drv.write_text(
-            '#include <stdio.h>\n'
+            "#include <stdio.h>\n"
             '#include "dt_compiler_guard.h"\n'
-            'int main(void) {\n'
-            '    dt_include_scan_t s1, s2, s3;\n'
+            "int main(void) {\n"
+            "    dt_include_scan_t s1, s2, s3;\n"
             '    dt_scan_include_restrictions("/*\\n#include \\"/etc/passwd\\"\\n*/\\n", &s1);\n'
             '    dt_scan_include_restrictions("/* comment */\\n#include \\"evil.c\\"\\n", &s2);\n'
             '    dt_scan_include_restrictions("#inc\\\\\\nlude \\"evil.c\\"\\n", &s3);\n'
-            '    return (s1.total_violations == 0 && s2.total_violations == 1 && s3.total_violations == 1) ? 0 : 1;\n'
-            '}\n',
+            "    return (s1.total_violations == 0 && s2.total_violations == 1 && s3.total_violations == 1) ? 0 : 1;\n"
+            "}\n",
             encoding="utf-8",
         )
         bin_p = exec_dir / "drv"
         c_res = run_captured_process(
-            ["cc", "-I", str(KIT_ROOT / "trusted_harness"), str(drv), str(KIT_ROOT / "trusted_harness/dt_compiler_guard.c"), "-o", str(bin_p)],
+            [
+                "cc",
+                "-I",
+                str(KIT_ROOT / "trusted_harness"),
+                str(drv),
+                str(KIT_ROOT / "trusted_harness/dt_compiler_guard.c"),
+                "-o",
+                str(bin_p),
+            ],
             cwd=exec_dir,
             isolated_home=self.home,
         )
         self.assertEqual(c_res.returncode, 0, msg=c_res.stderr)
-        r_res = run_captured_process([str(bin_p)], cwd=exec_dir, isolated_home=self.home)
+        r_res = run_captured_process(
+            [str(bin_p)], cwd=exec_dir, isolated_home=self.home
+        )
         self.assertEqual(r_res.returncode, 0)
 
     def test_09(self) -> None:
         """LIVE-003: typing.get_type_hints() succeeds across all members of compiler_and_symbols."""
-        for name, obj in inspect.getmembers(cas):
-            if (inspect.isfunction(obj) or inspect.isclass(obj)) and getattr(obj, "__module__", None) == cas.__name__:
+        for _name, obj in inspect.getmembers(cas):
+            if (inspect.isfunction(obj) or inspect.isclass(obj)) and getattr(
+                obj, "__module__", None
+            ) == cas.__name__:
                 hints = typing.get_type_hints(obj)
                 self.assertIsInstance(hints, dict)
 
@@ -362,9 +428,18 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
             encoding="utf-8",
         )
         bin_p = exec_dir / "rz_exit"
-        c_res = run_captured_process(["cc", str(src), *flags, "-o", str(bin_p)], cwd=exec_dir, isolated_home=self.home)
+        c_res = run_captured_process(
+            ["cc", str(src), *flags, "-o", str(bin_p)],
+            cwd=exec_dir,
+            isolated_home=self.home,
+        )
         self.assertEqual(c_res.returncode, 0, msg=c_res.stderr)
-        r_res = run_captured_process([str(bin_p)], cwd=exec_dir, isolated_home=self.home, extra_env={"DT_CHECK_LEAKS": "1"})
+        r_res = run_captured_process(
+            [str(bin_p)],
+            cwd=exec_dir,
+            isolated_home=self.home,
+            extra_env={"DT_CHECK_LEAKS": "1"},
+        )
         self.assertEqual(r_res.returncode, 43)
         self.assertIn("[REDZONE KO]", r_res.stderr)
 
@@ -386,9 +461,18 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
             encoding="utf-8",
         )
         bin_p = exec_dir / "recycle"
-        c_res = run_captured_process(["cc", str(src), *flags, "-o", str(bin_p)], cwd=exec_dir, isolated_home=self.home)
+        c_res = run_captured_process(
+            ["cc", str(src), *flags, "-o", str(bin_p)],
+            cwd=exec_dir,
+            isolated_home=self.home,
+        )
         self.assertEqual(c_res.returncode, 0, msg=c_res.stderr)
-        r_res = run_captured_process([str(bin_p)], cwd=exec_dir, isolated_home=self.home, extra_env={"DT_MAX_ALLOCS": "100", "DT_CHECK_LEAKS": "1"})
+        r_res = run_captured_process(
+            [str(bin_p)],
+            cwd=exec_dir,
+            isolated_home=self.home,
+            extra_env={"DT_MAX_ALLOCS": "100", "DT_CHECK_LEAKS": "1"},
+        )
         self.assertEqual(r_res.returncode, 0, msg=r_res.stderr)
 
     def test_12(self) -> None:
@@ -397,27 +481,39 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         src = exec_dir / "arena_mono.c"
         src.write_text(
             '#include "dt_arena.h"\n'
-            'int main(void) {\n'
-            '    dt_arena_t a; dt_arena_init(&a);\n'
-            '    dt_arena_alloc(&a, 64);\n'
-            '    dt_arena_mark_t m1 = dt_arena_mark(&a);\n'
-            '    dt_arena_alloc(&a, 128);\n'
-            '    dt_arena_mark_t m2 = dt_arena_mark(&a);\n'
-            '    int r1 = dt_arena_rewind(&a, m1);\n'
-            '    int r2 = dt_arena_rewind(&a, m2);\n'
-            '    dt_arena_destroy(&a);\n'
-            '    return (r1 == 0 && r2 == -1) ? 0 : 1;\n'
-            '}\n',
+            "int main(void) {\n"
+            "    dt_arena_t a; dt_arena_init(&a);\n"
+            "    dt_arena_alloc(&a, 64);\n"
+            "    dt_arena_mark_t m1 = dt_arena_mark(&a);\n"
+            "    dt_arena_alloc(&a, 128);\n"
+            "    dt_arena_mark_t m2 = dt_arena_mark(&a);\n"
+            "    int r1 = dt_arena_rewind(&a, m1);\n"
+            "    int r2 = dt_arena_rewind(&a, m2);\n"
+            "    dt_arena_destroy(&a);\n"
+            "    return (r1 == 0 && r2 == -1) ? 0 : 1;\n"
+            "}\n",
             encoding="utf-8",
         )
         bin_p = exec_dir / "arena_mono"
         c_res = run_captured_process(
-            ["cc", "-I", str(KIT_ROOT / "trusted_harness"), "-I", str(KIT_ROOT / "third_party/tsoding_arena"), str(src), str(KIT_ROOT / "trusted_harness/dt_arena.c"), "-o", str(bin_p)],
+            [
+                "cc",
+                "-I",
+                str(KIT_ROOT / "trusted_harness"),
+                "-I",
+                str(KIT_ROOT / "third_party/tsoding_arena"),
+                str(src),
+                str(KIT_ROOT / "trusted_harness/dt_arena.c"),
+                "-o",
+                str(bin_p),
+            ],
             cwd=exec_dir,
             isolated_home=self.home,
         )
         self.assertEqual(c_res.returncode, 0, msg=c_res.stderr)
-        r_res = run_captured_process([str(bin_p)], cwd=exec_dir, isolated_home=self.home)
+        r_res = run_captured_process(
+            [str(bin_p)], cwd=exec_dir, isolated_home=self.home
+        )
         self.assertEqual(r_res.returncode, 0)
 
     def test_13(self) -> None:
@@ -429,7 +525,10 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
             stdin_data="ibase=16\nFF\nF0\n1A\n",
         )
         self.assertEqual(res.returncode, 0, msg=res.stderr)
-        self.assertEqual([l.strip() for l in res.stdout.strip().splitlines() if l.strip()], ["255", "240", "26"])
+        self.assertEqual(
+            [line.strip() for line in res.stdout.strip().splitlines() if line.strip()],
+            ["255", "240", "26"],
+        )
 
     def test_14(self) -> None:
         """LIVE-009: bin/bc maintains full precision at scale=300."""
@@ -476,7 +575,11 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
             + "\treturn (x);\n}\n",
             encoding="utf-8",
         )
-        r1 = run_captured_process([sys.executable, str(KIT_ROOT / "bin/norminette"), str(f_brace)], cwd=self.work, isolated_home=self.home)
+        r1 = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/norminette"), str(f_brace)],
+            cwd=self.work,
+            isolated_home=self.home,
+        )
         self.assertNotIn("TOO_MANY_FUNCS", r1.stdout)
 
         f_bypass = self.work / "bypass.c"
@@ -489,13 +592,25 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
             + "\treturn (x);\n}\n",
             encoding="utf-8",
         )
-        r2 = run_captured_process([sys.executable, str(KIT_ROOT / "bin/norminette"), str(f_bypass)], cwd=self.work, isolated_home=self.home)
+        r2 = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/norminette"), str(f_bypass)],
+            cwd=self.work,
+            isolated_home=self.home,
+        )
         self.assertIn("TOO_MANY_LINES", r2.stdout)
 
     def test_18(self) -> None:
         """LIVE-012: ./bin/audit_testers --no-infinite hexdump bsq rush01 sudoku passes 20/20."""
         res = run_captured_process(
-            [sys.executable, str(KIT_ROOT / "bin/audit_testers"), "--no-infinite", "hexdump", "bsq", "rush01", "sudoku"],
+            [
+                sys.executable,
+                str(KIT_ROOT / "bin/audit_testers"),
+                "--no-infinite",
+                "hexdump",
+                "bsq",
+                "rush01",
+                "sudoku",
+            ],
             cwd=KIT_ROOT,
             isolated_home=self.home,
             timeout_sec=60.0,
@@ -506,7 +621,12 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
     def test_19(self) -> None:
         """LIVE-012: ./bin/deepthought shell01 --self-test passes 8/8."""
         res = run_captured_process(
-            [sys.executable, str(KIT_ROOT / "bin/deepthought"), "shell01", "--self-test"],
+            [
+                sys.executable,
+                str(KIT_ROOT / "bin/deepthought"),
+                "shell01",
+                "--self-test",
+            ],
             cwd=KIT_ROOT,
             isolated_home=self.home,
             timeout_sec=30.0,
@@ -531,7 +651,10 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         sub_b.mkdir(parents=True)
         file_a = sub_a / "helper.c"
         file_b = sub_b / "helper.c"
-        file_a.write_text("#include <stdio.h>\nvoid\tfn_a(void)\n{\n\tprintf(\"x\");\n}\n", encoding="utf-8")
+        file_a.write_text(
+            '#include <stdio.h>\nvoid\tfn_a(void)\n{\n\tprintf("x");\n}\n',
+            encoding="utf-8",
+        )
         file_b.write_text("void\tfn_b(void)\n{\n}\n", encoding="utf-8")
         compile_res, sym_res = cas.verify_symbol_whitelist(
             [file_a, file_b],
@@ -549,7 +672,9 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
     def test_22(self) -> None:
         """bin/deepthought records validated_exercises in StudentProfile to prevent XP re-farming."""
         turnin = self.work / "strlen_turnin"
-        shutil.copytree(KIT_ROOT / "corrections" / "piscine" / "c04" / "ft_strlen", turnin)
+        shutil.copytree(
+            KIT_ROOT / "corrections" / "piscine" / "c04" / "ft_strlen", turnin
+        )
         ws_ledger = KIT_ROOT / "workspace" / "xp_ledger.json"
         ws_lock = KIT_ROOT / "workspace" / ".xp_ledger.json.lock"
         trace_out = self.work / "dt_strlen.trace"
@@ -566,7 +691,16 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         ws_ledger.unlink(missing_ok=True)
 
         r1 = run_captured_process(
-            [sys.executable, str(KIT_ROOT / "bin/deepthought"), "grade", "c04/ft_strlen", "--dir", str(turnin), "--trace-out", str(trace_out)],
+            [
+                sys.executable,
+                str(KIT_ROOT / "bin/deepthought"),
+                "grade",
+                "c04/ft_strlen",
+                "--dir",
+                str(turnin),
+                "--trace-out",
+                str(trace_out),
+            ],
             cwd=KIT_ROOT,
             isolated_home=self.home,
             timeout_sec=45.0,
@@ -580,7 +714,16 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
 
         ws_ledger.unlink(missing_ok=True)
         r2 = run_captured_process(
-            [sys.executable, str(KIT_ROOT / "bin/deepthought"), "grade", "c04/ft_strlen", "--dir", str(turnin), "--trace-out", str(trace_out)],
+            [
+                sys.executable,
+                str(KIT_ROOT / "bin/deepthought"),
+                "grade",
+                "c04/ft_strlen",
+                "--dir",
+                str(turnin),
+                "--trace-out",
+                str(trace_out),
+            ],
             cwd=KIT_ROOT,
             isolated_home=self.home,
             timeout_sec=45.0,
@@ -595,7 +738,16 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         docs_dir.mkdir(parents=True, exist_ok=True)
         for bad_dir in (Path("/usr/local"), docs_dir):
             bad_res = run_captured_process(
-                [sys.executable, str(KIT_ROOT / "bin/examshell"), "--basedir", str(bad_dir), "--mode", "practice", "-c", "status"],
+                [
+                    sys.executable,
+                    str(KIT_ROOT / "bin/examshell"),
+                    "--basedir",
+                    str(bad_dir),
+                    "--mode",
+                    "practice",
+                    "-c",
+                    "status",
+                ],
                 cwd=KIT_ROOT,
                 isolated_home=self.home,
             )
@@ -606,7 +758,16 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         keep_file = eb / "important.txt"
         keep_file.write_text("keep", encoding="utf-8")
         no_wipe = run_captured_process(
-            [sys.executable, str(KIT_ROOT / "bin/examshell"), "--basedir", str(eb), "--mode", "practice", "-c", "status"],
+            [
+                sys.executable,
+                str(KIT_ROOT / "bin/examshell"),
+                "--basedir",
+                str(eb),
+                "--mode",
+                "practice",
+                "-c",
+                "status",
+            ],
             cwd=KIT_ROOT,
             isolated_home=self.home,
         )
@@ -616,24 +777,48 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         fresh_eb = Path(tempfile.mkdtemp(prefix="mag_exam_fresh_"))
         self.addCleanup(shutil.rmtree, fresh_eb, ignore_errors=True)
         init_res = run_captured_process(
-            [sys.executable, str(KIT_ROOT / "bin/examshell"), "--basedir", str(fresh_eb), "--mode", "practice", "--seed", "1", "-c", "status"],
+            [
+                sys.executable,
+                str(KIT_ROOT / "bin/examshell"),
+                "--basedir",
+                str(fresh_eb),
+                "--mode",
+                "practice",
+                "--seed",
+                "1",
+                "-c",
+                "status",
+            ],
             cwd=KIT_ROOT,
             isolated_home=self.home,
         )
         self.assertEqual(init_res.returncode, 0, init_res.stdout + init_res.stderr)
-        self.assertEqual(init_res.stdout.count("Your current grade is "), 1, init_res.stdout)
+        self.assertEqual(
+            init_res.stdout.count("Your current grade is "), 1, init_res.stdout
+        )
 
         marker = fresh_eb / "rendu" / "keep.txt"
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.write_text("my-work", encoding="utf-8")
         resumed = run_captured_process(
-            [sys.executable, str(KIT_ROOT / "bin/examshell"), "--basedir", str(fresh_eb), "-c", "status"],
+            [
+                sys.executable,
+                str(KIT_ROOT / "bin/examshell"),
+                "--basedir",
+                str(fresh_eb),
+                "-c",
+                "status",
+            ],
             cwd=KIT_ROOT,
             isolated_home=self.home,
         )
         self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
-        self.assertTrue(marker.exists(), "examshell -c status must resume rather than wipe basedir")
-        self.assertEqual(resumed.stdout.count("Your current grade is "), 1, resumed.stdout)
+        self.assertTrue(
+            marker.exists(), "examshell -c status must resume rather than wipe basedir"
+        )
+        self.assertEqual(
+            resumed.stdout.count("Your current grade is "), 1, resumed.stdout
+        )
 
     def test_24(self) -> None:
         """_get_strict_sandbox_flags omits GNU --wrap linker flags on macOS (darwin)."""

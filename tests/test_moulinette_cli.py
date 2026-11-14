@@ -14,6 +14,7 @@ Each test pins one defect that was reproduced on the previous version:
 
 Run with: python3 tests/test_moulinette_cli.py
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -22,15 +23,15 @@ import importlib.util
 import io
 import json
 import os
+from pathlib import Path
 import pty
 import select
 import shutil
 import subprocess
 import sys
 import tempfile
-import unittest
-from pathlib import Path
 from types import SimpleNamespace
+import unittest
 from unittest import mock
 
 KIT_ROOT = Path(__file__).resolve().parents[1]
@@ -40,7 +41,9 @@ if str(KIT_ROOT) not in sys.path:
 
 
 def _load_moulinette_module():
-    loader = importlib.machinery.SourceFileLoader("moulinette_under_test", str(MOULINETTE))
+    loader = importlib.machinery.SourceFileLoader(
+        "moulinette_under_test", str(MOULINETTE)
+    )
     spec = importlib.util.spec_from_loader(loader.name, loader)
     assert spec is not None
     module = importlib.util.module_from_spec(spec)
@@ -58,13 +61,22 @@ class MoulinetteCliTest(unittest.TestCase):
         self.home = self.tmp / "home"
         self.home.mkdir()
 
-    def run_cli(self, *argv: str, cwd: Path | None = None, timeout: int = 120) -> subprocess.CompletedProcess[str]:
-        env = dict(os.environ, HOME=str(self.home), NO_COLOR="1", DT_SKIP_HOME_SYMLINKS="1")
+    def run_cli(
+        self, *argv: str, cwd: Path | None = None, timeout: int = 120
+    ) -> subprocess.CompletedProcess[str]:
+        env = dict(
+            os.environ, HOME=str(self.home), NO_COLOR="1", DT_SKIP_HOME_SYMLINKS="1"
+        )
         env.pop("FORCE_COLOR", None)
         env.pop("FT_STUDENT_PROFILE", None)
         return subprocess.run(
             [sys.executable, str(MOULINETTE), *argv],
-            cwd=str(cwd or KIT_ROOT), env=env, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL,
+            cwd=str(cwd or KIT_ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            stdin=subprocess.DEVNULL,
         )
 
     def reference_copy(self, subject: str, dirname: str = "turnin") -> Path:
@@ -77,15 +89,28 @@ class MoulinetteCliTest(unittest.TestCase):
         resolve = moul.resolve_piscine_or_exam_subject
         for partial in ("strlen", "base", "size"):
             resolved, _ = resolve(partial)
-            self.assertFalse(moul._is_exercise_dir(KIT_ROOT / "subjects" / resolved), partial)
+            self.assertFalse(
+                moul._is_exercise_dir(KIT_ROOT / "subjects" / resolved), partial
+            )
         self.assertEqual(resolve("atoi_base"), ("exams/atoi_base", True))
         self.assertEqual(resolve("c01/ft_strlen"), ("piscine/c01/c01_ft_strlen", False))
-        self.assertEqual(resolve("piscine//c04/ft_strlen/"), ("piscine/c04/ft_strlen", False))
+        self.assertEqual(
+            resolve("piscine//c04/ft_strlen/"), ("piscine/c04/ft_strlen", False)
+        )
         self.assertEqual(resolve("ft_split"), ("piscine/c07/ft_split", False))
         self.assertEqual(resolve("ft_atoi", prefer_exam=True), ("exams/ft_atoi", True))
 
     def test_wildcards_and_dotdot_are_refused(self) -> None:
-        for bad in ("*", "ft_*", "?", "[a-z]*", "..", "piscine/../../corrections/piscine/c04/ft_strlen", " ", ""):
+        for bad in (
+            "*",
+            "ft_*",
+            "?",
+            "[a-z]*",
+            "..",
+            "piscine/../../corrections/piscine/c04/ft_strlen",
+            " ",
+            "",
+        ):
             with self.assertRaises(moul.ExerciseLookupError, msg=repr(bad)):
                 moul.resolve_piscine_or_exam_subject(bad)
 
@@ -94,17 +119,26 @@ class MoulinetteCliTest(unittest.TestCase):
             moul.resolve_piscine_or_exam_subject("ft_putnbr")
         self.assertIn("c00/ft_putnbr", str(ctx.exception))
         self.assertIn("c04/ft_putnbr", str(ctx.exception))
-        self.assertEqual(moul.resolve_piscine_or_exam_subject("c04/ft_putnbr"), ("piscine/c04/ft_putnbr", False))
+        self.assertEqual(
+            moul.resolve_piscine_or_exam_subject("c04/ft_putnbr"),
+            ("piscine/c04/ft_putnbr", False),
+        )
 
     def test_every_exercise_is_reachable_by_its_explicit_name(self) -> None:
         for meta in (KIT_ROOT / "subjects" / "piscine").glob("*/*/meta.yml"):
             ex_dir = meta.parent
             mod = ex_dir.parent.name
             leaf = moul._MODULE_PREFIX_RE.sub("", ex_dir.name)
-            self.assertEqual(moul.resolve_piscine_or_exam_subject(f"{mod}/{leaf}")[0], f"piscine/{mod}/{ex_dir.name}")
+            self.assertEqual(
+                moul.resolve_piscine_or_exam_subject(f"{mod}/{leaf}")[0],
+                f"piscine/{mod}/{ex_dir.name}",
+            )
         for meta in (KIT_ROOT / "subjects" / "exams").glob("*/meta.yml"):
             name = meta.parent.name
-            self.assertEqual(moul.resolve_piscine_or_exam_subject(f"exams/{name}"), (f"exams/{name}", True))
+            self.assertEqual(
+                moul.resolve_piscine_or_exam_subject(f"exams/{name}"),
+                (f"exams/{name}", True),
+            )
 
     def test_current_directory_is_not_graded_wholesale(self) -> None:
         empty = self.tmp / "unrelated"
@@ -113,11 +147,16 @@ class MoulinetteCliTest(unittest.TestCase):
         previous = Path.cwd()
         os.chdir(empty)
         try:
-            chosen = moul.resolve_submission_dir(None, "ft_putchar", resolved_subject="piscine/c00/ft_putchar")
+            chosen = moul.resolve_submission_dir(
+                None, "ft_putchar", resolved_subject="piscine/c00/ft_putchar"
+            )
             self.assertNotEqual(chosen, empty.resolve())
             (empty / "ft_putchar.c").write_text("", encoding="utf-8")
             self.assertEqual(
-                moul.resolve_submission_dir(None, "ft_putchar", resolved_subject="piscine/c00/ft_putchar"), empty.resolve()
+                moul.resolve_submission_dir(
+                    None, "ft_putchar", resolved_subject="piscine/c00/ft_putchar"
+                ),
+                empty.resolve(),
             )
         finally:
             os.chdir(previous)
@@ -125,7 +164,9 @@ class MoulinetteCliTest(unittest.TestCase):
     # ------------------------------------------------------------------ scorecard
     def test_compile_variants_are_reported_on_the_compilation_gate(self) -> None:
         theme = moul.ThemeEngine("plain")
-        report = SimpleNamespace(status="Does not compile (missing include guard)", passed=False)
+        report = SimpleNamespace(
+            status="Does not compile (missing include guard)", passed=False
+        )
         lines = moul.render_five_gate_scorecard(report, theme).splitlines()
         gate3 = next(line for line in lines if "gate 3" in line)
         gate5 = next(line for line in lines if "gate 5" in line)
@@ -146,7 +187,9 @@ class MoulinetteCliTest(unittest.TestCase):
             self.assertIn("--json", proc.stderr)
 
     def test_unwritable_trace_out_is_refused_before_grading(self) -> None:
-        proc = self.run_cli("c04/ft_strlen", "--trace-out", str(self.tmp / "missing_dir" / "x.trace"))
+        proc = self.run_cli(
+            "c04/ft_strlen", "--trace-out", str(self.tmp / "missing_dir" / "x.trace")
+        )
         self.assertEqual(proc.returncode, 2)
         self.assertNotIn("Traceback", proc.stdout + proc.stderr)
 
@@ -168,20 +211,38 @@ class MoulinetteCliTest(unittest.TestCase):
         turnin = self.reference_copy("piscine/c04/ft_strlen")
         for index in range(2):
             ledger = self.tmp / f"ledger_{index}.json"
-            proc = self.run_cli("c04/ft_strlen", "--dir", str(turnin), "--xp-ledger", str(ledger))
+            proc = self.run_cli(
+                "c04/ft_strlen", "--dir", str(turnin), "--xp-ledger", str(ledger)
+            )
             self.assertEqual(proc.returncode, 0, (proc.stdout + proc.stderr)[-600:])
-            self.assertIn("piscine/c04/ft_strlen", json.loads(ledger.read_text(encoding="utf-8"))["validated_exercises"])
+            self.assertIn(
+                "piscine/c04/ft_strlen",
+                json.loads(ledger.read_text(encoding="utf-8"))["validated_exercises"],
+            )
         profile = self.home / ".42_student_profile.json"
-        total = json.loads(profile.read_text(encoding="utf-8")).get("total_xp", 0) if profile.exists() else 0
+        total = (
+            json.loads(profile.read_text(encoding="utf-8")).get("total_xp", 0)
+            if profile.exists()
+            else 0
+        )
         self.assertEqual(total, 0)
 
     def test_one_exercise_has_one_ledger_key_whatever_the_spelling(self) -> None:
         turnin = self.reference_copy("piscine/c04/ft_strlen")
         ledger = self.tmp / "ledger.json"
-        for spelling in ("c04/ft_strlen", "piscine//c04/ft_strlen", "piscine/c04/ft_strlen/"):
-            proc = self.run_cli(spelling, "--dir", str(turnin), "--xp-ledger", str(ledger))
+        for spelling in (
+            "c04/ft_strlen",
+            "piscine//c04/ft_strlen",
+            "piscine/c04/ft_strlen/",
+        ):
+            proc = self.run_cli(
+                spelling, "--dir", str(turnin), "--xp-ledger", str(ledger)
+            )
             self.assertEqual(proc.returncode, 0, spelling)
-        self.assertEqual(list(json.loads(ledger.read_text(encoding="utf-8"))["validated_exercises"]), ["piscine/c04/ft_strlen"])
+        self.assertEqual(
+            list(json.loads(ledger.read_text(encoding="utf-8"))["validated_exercises"]),
+            ["piscine/c04/ft_strlen"],
+        )
 
     # ------------------------------------------------------------------ the 42 layout: <module>/<exNN>/<file>
     def hand_made(self, module: str, ex_code: str, exercise: str) -> Path:
@@ -202,23 +263,38 @@ class MoulinetteCliTest(unittest.TestCase):
             slot = moul.piscine_exercise_slot(resolved)
             self.assertIsNotNone(slot, resolved)
             self.assertRegex(slot[1], r"^ex\d{2}$", resolved)
-            self.assertNotIn(slot, slots, f"{resolved} shares {slot} with {slots.get(slot)}")
+            self.assertNotIn(
+                slot, slots, f"{resolved} shares {slot} with {slots.get(slot)}"
+            )
             slots[slot] = resolved
-        self.assertEqual(moul.piscine_exercise_slot("piscine/c00/ft_putchar"), ("c00", "ex00"))
+        self.assertEqual(
+            moul.piscine_exercise_slot("piscine/c00/ft_putchar"), ("c00", "ex00")
+        )
         self.assertIsNone(moul.piscine_exercise_slot("exams/ft_range"))
 
-    def test_hand_made_ex_folder_is_graded_from_the_repo_the_module_and_the_exercise(self) -> None:
+    def test_hand_made_ex_folder_is_graded_from_the_repo_the_module_and_the_exercise(
+        self,
+    ) -> None:
         ex_dir = self.hand_made("c00", "ex01", "ft_print_alphabet")
         ledger = self.tmp / "ledger.json"
         for cwd in (ex_dir.parent.parent, ex_dir.parent, ex_dir):
-            proc = self.run_cli("ft_print_alphabet", "--xp-ledger", str(ledger), cwd=cwd)
+            proc = self.run_cli(
+                "ft_print_alphabet", "--xp-ledger", str(ledger), cwd=cwd
+            )
             self.assertEqual(proc.returncode, 0, f"{cwd}\n{proc.stdout}{proc.stderr}")
             self.assertIn("OK :)", proc.stdout)
 
     def test_file_in_another_ex_folder_is_not_turned_in(self) -> None:
-        wrong = self.hand_made("c00", "ex05", "ft_print_numbers")     # ft_print_numbers belongs in ex03
+        wrong = self.hand_made(
+            "c00", "ex05", "ft_print_numbers"
+        )  # ft_print_numbers belongs in ex03
         for cwd in (wrong.parent, wrong):
-            proc = self.run_cli("c00/ft_print_numbers", "--xp-ledger", str(self.tmp / "ledger.json"), cwd=cwd)
+            proc = self.run_cli(
+                "c00/ft_print_numbers",
+                "--xp-ledger",
+                str(self.tmp / "ledger.json"),
+                cwd=cwd,
+            )
             self.assertEqual(proc.returncode, 1, f"{cwd}\n{proc.stdout}{proc.stderr}")
             self.assertIn("Nothing turned in", proc.stdout)
             self.assertIn("c00/ex03/", proc.stdout)
@@ -226,7 +302,9 @@ class MoulinetteCliTest(unittest.TestCase):
     def test_grading_creates_no_folder_and_names_the_one_to_create(self) -> None:
         module_dir = self.tmp / "repo" / "c00"
         module_dir.mkdir(parents=True)
-        single = self.run_cli("ft_putchar", "--xp-ledger", str(self.tmp / "ledger.json"), cwd=module_dir)
+        single = self.run_cli(
+            "ft_putchar", "--xp-ledger", str(self.tmp / "ledger.json"), cwd=module_dir
+        )
         self.assertEqual(single.returncode, 1, single.stdout + single.stderr)
         self.assertIn(f"{module_dir}/ex00/", single.stdout.replace("~", str(self.home)))
         self.assertNotIn("init", single.stdout.split("Summary:")[-1])
@@ -238,10 +316,16 @@ class MoulinetteCliTest(unittest.TestCase):
         self.assertFalse(watched_module.exists())
 
     def test_module_grading_reads_the_module_folder_the_student_stands_in(self) -> None:
-        ex_dir = self.hand_made("c00", "ex01", "ft_print_alphabet")   # no ex00: the folder is still the module
+        ex_dir = self.hand_made(
+            "c00", "ex01", "ft_print_alphabet"
+        )  # no ex00: the folder is still the module
         for cwd in (ex_dir.parent, ex_dir.parent.parent):
             proc = self.run_cli("c00", cwd=cwd)
-            rows = {line.split()[0]: line for line in proc.stdout.splitlines() if line.strip().startswith("ex0")}
+            rows = {
+                line.split()[0]: line
+                for line in proc.stdout.splitlines()
+                if line.strip().startswith("ex0")
+            }
             self.assertIn("Nothing turned in", rows["ex00"], proc.stdout)
             self.assertIn("OK (100)", rows["ex01"], proc.stdout)
 
@@ -249,7 +333,12 @@ class MoulinetteCliTest(unittest.TestCase):
         workspace_c00 = (KIT_ROOT / "workspace" / "piscine" / "c00").resolve()
         before = os.getcwd()
         try:
-            for tree in ("subjects/piscine", "subjects/piscine/c00", "corrections/piscine", "corrections/piscine/c00"):
+            for tree in (
+                "subjects/piscine",
+                "subjects/piscine/c00",
+                "corrections/piscine",
+                "corrections/piscine/c00",
+            ):
                 os.chdir(KIT_ROOT / tree)
                 self.assertEqual(moul.find_module_repo("c00"), workspace_c00, tree)
         finally:
@@ -260,7 +349,13 @@ class MoulinetteCliTest(unittest.TestCase):
         doc = self.run_cli("doctor")
         self.assertEqual(doc.returncode, 0, doc.stdout + doc.stderr)
         self.assertIn("Setup check (doctor)", doc.stdout)
+        self.assertIn("PyYAML", doc.stdout)
+        self.assertIn("Core grader tools: git, nm, diff, make, bc, tar", doc.stdout)
+        self.assertIn(
+            "Shell & POSIX utilities: sh, find, grep, sed, awk, file", doc.stdout
+        )
         self.assertIn("42 norminette", doc.stdout)
+        self.assertIn("Executable temp root (execve):", doc.stdout)
         self.assertIn("Exercise subjects are present", doc.stdout)
 
         guide = self.run_cli("guide", "ft_putchar")
@@ -308,7 +403,9 @@ class MoulinetteCliTest(unittest.TestCase):
         prof_after_first = json.loads(prof_path.read_text(encoding="utf-8"))
         xp_first = prof_after_first["total_xp"]
         self.assertGreater(xp_first, 0)
-        self.assertIn("piscine/c04/ft_strlen", prof_after_first.get("validated_exercises", []))
+        self.assertIn(
+            "piscine/c04/ft_strlen", prof_after_first.get("validated_exercises", [])
+        )
 
         ws_ledger.unlink(missing_ok=True)
         second = self.run_cli("c04/ft_strlen", "--dir", str(turnin))
@@ -345,9 +442,20 @@ class MoulinetteCliTest(unittest.TestCase):
         os.chdir(ex_dir.parent.parent)
         try:
             with (
-                mock.patch.dict(os.environ, {"HOME": str(self.home), "NO_COLOR": "1", "DT_SKIP_HOME_SYMLINKS": "1"}),
+                mock.patch.dict(
+                    os.environ,
+                    {
+                        "HOME": str(self.home),
+                        "NO_COLOR": "1",
+                        "DT_SKIP_HOME_SYMLINKS": "1",
+                    },
+                ),
                 mock.patch("builtins.input", side_effect=lambda _prompt="": next(cmds)),
-                mock.patch.object(moul, "interactive_terminal_screen", lambda enabled=True: contextlib.nullcontext()),
+                mock.patch.object(
+                    moul,
+                    "interactive_terminal_screen",
+                    lambda enabled=True: contextlib.nullcontext(),
+                ),
                 contextlib.redirect_stdout(buf),
             ):
                 rc = moul.interactive_moulinette_repl(args, theme, is_practice=False)
@@ -367,7 +475,13 @@ class MoulinetteCliTest(unittest.TestCase):
         master_fd, slave_fd = pty.openpty()
         proc = None
         try:
-            env = dict(os.environ, HOME=str(self.home), NO_COLOR="1", TERM="dumb", DT_SKIP_HOME_SYMLINKS="1")
+            env = dict(
+                os.environ,
+                HOME=str(self.home),
+                NO_COLOR="1",
+                TERM="dumb",
+                DT_SKIP_HOME_SYMLINKS="1",
+            )
             proc = subprocess.Popen(
                 [sys.executable, str(MOULINETTE), "--no-color"],
                 stdin=slave_fd,
@@ -383,6 +497,7 @@ class MoulinetteCliTest(unittest.TestCase):
             chunks: list[bytes] = []
             deadline = 15.0
             import time as _time
+
             end = _time.monotonic() + deadline
             while _time.monotonic() < end:
                 rlist, _, _ = select.select([master_fd], [], [], 0.25)
@@ -408,6 +523,99 @@ class MoulinetteCliTest(unittest.TestCase):
             if proc is not None and proc.poll() is None:
                 proc.kill()
                 proc.wait(timeout=5)
+
+    def test_trace_modes_width_and_repl_trace_command(self) -> None:
+        from deepthought.grader import grade_subject
+
+        ref = KIT_ROOT / "corrections" / "piscine" / "c00" / "ft_putchar"
+        header = "\n".join(
+            (ref / "ft_putchar.c").read_text(encoding="utf-8").splitlines()[:11]
+        )
+        wrong = self.tmp / "wrong"
+        wrong.mkdir()
+        (wrong / "ft_putchar.c").write_text(
+            header + "\n\n#include <unistd.h>\n\nvoid\tft_putchar(char c)\n"
+            '{\n\t(void)c;\n\twrite(1, "X", 1);\n}\n',
+            encoding="utf-8",
+        )
+        real = grade_subject(KIT_ROOT, "piscine/c00/ft_putchar", wrong)
+        helpful = grade_subject(
+            KIT_ROOT, "piscine/c00/ft_putchar", wrong, reveal_tests=True
+        )
+        passed = grade_subject(KIT_ROOT, "piscine/c00/ft_putchar", ref)
+        self.assertEqual((real.status, helpful.status), ("Diff KO :(", "Diff KO :("))
+        self.assertIn("Diff KO :(", real.trace)
+        self.assertNotIn("@@", real.trace)  # 42 real mode hides the diff
+        self.assertIn("-X$", helpful.trace)
+        self.assertIn("+a$", helpful.trace)
+        self.assertTrue(passed.passed)
+        self.assertIn("= Final grade: 100 =", passed.trace)
+        for label, rep in (("real", real), ("helpful", helpful), ("ok", passed)):
+            wide = [
+                line
+                for line in rep.trace.splitlines()
+                if len(line) > 79 and not line.startswith("/")
+            ]
+            self.assertEqual(wide, [], label)
+
+        args = SimpleNamespace(
+            dir=None,
+            exam=False,
+            norm=False,
+            strict=False,
+            watch=False,
+            trace_out=None,
+            xp_ledger=str(self.tmp / "trace_ledger.json"),
+        )
+        cmds = iter(["trace", "c00/ft_putchar --self-test", "trace", "trace-mode", "q"])
+        buf = io.StringIO()
+        with (
+            mock.patch.dict(
+                os.environ,
+                {"HOME": str(self.home), "NO_COLOR": "1", "DT_SKIP_HOME_SYMLINKS": "1"},
+            ),
+            mock.patch("builtins.input", side_effect=lambda _prompt="": next(cmds)),
+            mock.patch.object(
+                moul,
+                "interactive_terminal_screen",
+                lambda enabled=True: contextlib.nullcontext(),
+            ),
+            mock.patch.object(moul, "LAST_TRACE_FILE", None),
+            contextlib.redirect_stdout(buf),
+        ):
+            rc = moul.interactive_moulinette_repl(
+                args, moul.ThemeEngine("plain"), is_practice=False
+            )
+        out = buf.getvalue()
+        self.assertEqual(rc, 0)
+        before, _, after = out.partition("Summary: ft_putchar -> OK :)")
+        self.assertIn("No trace yet: grade an exercise first.", before)
+        self.assertIn("trace file:", after)
+        self.assertIn("piscine__c00__ft_putchar.trace", after)
+        self.assertIn("= Final grade: 100 =", after)
+        self.assertIn("Current trace mode: real", after)
+
+    def test_doctor_reports_missing_required_tools_and_optional_warnings(self) -> None:
+        real_which = shutil.which
+        buf = io.StringIO()
+        theme = moul.ThemeEngine("plain")
+        with (
+            mock.patch.object(
+                moul.shutil,
+                "which",
+                side_effect=lambda name: (
+                    None if name in {"nm", "diff", "man"} else real_which(name)
+                ),
+            ),
+            contextlib.redirect_stdout(buf),
+        ):
+            rc = moul.print_doctor(theme)
+        out = buf.getvalue()
+        self.assertEqual(rc, 1)
+        self.assertIn("Core grader tools missing: nm, diff", out)
+        self.assertIn("binutils", out)
+        self.assertIn("diffutils", out)
+        self.assertIn("[--] man pages: 'man' command not installed", out)
 
 
 if __name__ == "__main__":
