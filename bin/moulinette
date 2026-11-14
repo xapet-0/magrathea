@@ -21,8 +21,6 @@ import sys
 import time
 from typing import Any
 
-import yaml
-
 try:
     import readline
 except ImportError:
@@ -45,13 +43,17 @@ KIT_ROOT = (
 if str(KIT_ROOT) not in sys.path:
     sys.path.insert(0, str(KIT_ROOT))
 
+import yaml  # noqa: E402
+
 from deepthought.grader import (  # noqa: E402
     TRACE_MODES,
     GradeReport,
+    _safe_load_yaml,
     add_trace_mode_arguments,
     get_executable_temp_root,
     grade_subject,
     parse_trace_mode_arg,
+    probe_unshare_isolation,
     resolve_trace_mode,
 )
 from deepthought.progression import (  # noqa: E402
@@ -69,7 +71,6 @@ from deepthought.ui_theme import (  # noqa: E402
 )
 
 DEFAULT_LOGIN = os.environ.get("USER") or os.environ.get("LOGNAME") or "student"
-_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 # Regex matching non-printing ANSI SGR/control sequences
 _ANSI_SEQ_RE = re.compile(r"(\x1b\[[0-9;?]*[a-zA-Z])+")
@@ -80,16 +81,11 @@ _IGNORED_WATCH_SUFFIXES = (".swp", ".swo", ".swn", ".tmp", ".bak", "~")
 
 
 def fast_load_yaml(path: Path) -> dict[str, Any]:
-    """Load a YAML file into a dictionary, returning an empty dict on error."""
-    if not path.is_file():
+    """Load a YAML file into a dictionary with size/depth/alias guards."""
+    data = _safe_load_yaml(path)
+    if "__yaml_error__" in data:
         return {}
-    try:
-        data = yaml.load(
-            path.read_text(encoding="utf-8", errors="replace"), Loader=_YAML_LOADER
-        )
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
+    return data
 
 
 def rl_safe_prompt(prompt_text: str) -> str:
@@ -337,6 +333,8 @@ def _piscine_candidates(name: str) -> tuple[list[str], list[str]]:
         for mod_dir in sorted(p for p in piscine_root.iterdir() if p.is_dir()):
             if _is_exercise_dir(mod_dir / name):
                 exact.append(f"piscine/{mod_dir.name}/{name}")
+            elif _is_exercise_dir(mod_dir / f"{name}.sh"):
+                exact.append(f"piscine/{mod_dir.name}/{name}.sh")
             elif _is_exercise_dir(mod_dir / f"{mod_dir.name}_{name}"):
                 prefixed.append(f"piscine/{mod_dir.name}/{mod_dir.name}_{name}")
     return exact, prefixed
@@ -365,7 +363,7 @@ def resolve_piscine_or_exam_subject(
             return clean, False
     if len(parts) == 2:
         mod, ex = parts
-        for cand in (ex, f"{mod}_{ex}"):
+        for cand in (ex, f"{ex}.sh", f"{mod}_{ex}"):
             if _is_exercise_dir(subj_root / "piscine" / mod / cand):
                 return f"piscine/{mod}/{cand}", False
         return clean, False
@@ -813,6 +811,16 @@ def print_doctor(theme: ThemeEngine) -> int:
             f"Executable temp root (execve): {tilde_path(exec_tmp)}",
             "Ensure TMPDIR or workspace/ allows executing compiled binaries.",
             True,
+        )
+    )
+
+    ns_ok, ns_msg = probe_unshare_isolation()
+    checks.append(
+        (
+            ns_ok,
+            ns_msg,
+            "Userns restricted; rlimit + session fallback active.",
+            False,
         )
     )
 
@@ -2195,6 +2203,18 @@ def trace_archive_path(resolved_subject: str) -> Path:
 LAST_TRACE_FILE: Path | None = None
 
 
+def _is_inside_corrections(dir_arg: str | None) -> bool:
+    """Return True when an explicit submission path targets KIT_ROOT/corrections."""
+    if not dir_arg:
+        return False
+    try:
+        resolved = Path(dir_arg).expanduser().resolve()
+        corr_root = (KIT_ROOT / "corrections").resolve()
+        return resolved == corr_root or corr_root in resolved.parents
+    except OSError:
+        return False
+
+
 def evaluate_exercise_or_module(
     subject_arg: str | None,
     module_arg: str | None,
@@ -2210,9 +2230,20 @@ def evaluate_exercise_or_module(
     theme: ThemeEngine,
     trace_mode: str = "real",
     on_watch_frame: Callable[[str], None] | None = None,
+    allow_corrections: bool = False,
 ) -> int:
     """Grade a single exercise or full Piscine module, optionally in watch mode."""
     resolved_tm = trace_mode if trace_mode in TRACE_MODES else "real"
+    if not allow_corrections and _is_inside_corrections(explicit_dir):
+        print(
+            theme.c(
+                "Error: Refusing '--dir' inside corrections/ without '--self-test' (anti-spoiler policy). "
+                "Grade your own workspace/ submission instead.",
+                "err",
+                "bold",
+            )
+        )
+        return 2
     if module_arg:
         if explicit_dir:
             target_dir = Path(explicit_dir).expanduser().resolve()
@@ -3761,6 +3792,7 @@ def interactive_moulinette_repl(
                         theme=theme,
                         trace_mode=repl_trace_mode,
                         on_watch_frame=_on_watch_output,
+                        allow_corrections=repl_self_test,
                     )
                     state["notice"] = theme.c("Stopped watch mode.", "info")
                     _render_viewport()
@@ -3788,6 +3820,7 @@ def interactive_moulinette_repl(
                         xp_ledger=args.xp_ledger,
                         theme=theme,
                         trace_mode=repl_trace_mode,
+                        allow_corrections=repl_self_test,
                     ),
                 )
                 if not vp_active:
@@ -4138,6 +4171,17 @@ def main() -> int:
                         f"No reference solution for {short_exercise_label(res_s)}."
                     )
                 effective_dir = str((KIT_ROOT / "corrections" / res_s).resolve())
+            elif _is_inside_corrections(effective_dir):
+                print(
+                    json.dumps(
+                        {
+                            "subject": str(subject_arg),
+                            "error": "Refusing '--dir' inside corrections/ without '--self-test' (anti-spoiler policy).",
+                        },
+                        indent=2,
+                    )
+                )
+                return 2
             is_ex = True if args.exam else def_ex
             leaf_s = _MODULE_PREFIX_RE.sub("", Path(res_s).name)
             sub_d = resolve_submission_dir(
@@ -4209,6 +4253,7 @@ def main() -> int:
         xp_ledger=args.xp_ledger,
         theme=theme,
         trace_mode=resolve_trace_mode(args),
+        allow_corrections=args.self_test,
     )
 
 

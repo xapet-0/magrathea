@@ -88,6 +88,7 @@ static t_alloc_node g_static_pool[DT_STATIC_POOL_NODES];
 static size_t g_static_used = 0;
 static t_alloc_node *g_free_nodes = NULL;
 static size_t g_total_tracked = 0;
+static size_t g_inactive_nodes = 0;
 static size_t g_max_allocs = DT_DEFAULT_MAX_ALLOCS;
 
 static dt_arena_t g_harness_arena;
@@ -98,9 +99,26 @@ static int g_free_calls = 0;
 static int g_fail_at = -1;
 static int g_chunk_read = -1;
 static int g_check_leaks = -1;
-static int g_in_hook = 0;
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#define DT_THREAD_LOCAL _Thread_local
+#else
+#define DT_THREAD_LOCAL __thread
+#endif
+static DT_THREAD_LOCAL int g_in_hook = 0;
+static volatile int g_dt_lock = 0;
 static int g_audit_done = 0;
 static int g_exit_status = 0;
+
+static inline void dt_lock(void)
+{
+	while (__atomic_test_and_set(&g_dt_lock, __ATOMIC_ACQUIRE)) {
+	}
+}
+
+static inline void dt_unlock(void)
+{
+	__atomic_clear(&g_dt_lock, __ATOMIC_RELEASE);
+}
 
 #ifdef DT_UNIT_TEST_MODE
 static void *__real_malloc(size_t size)
@@ -165,7 +183,7 @@ static void dt_terminate_with_code(int code)
 	__real__exit(code);
 }
 
-static void dt_ensure_harness_arena(void)
+static void dt_ensure_harness_arena_locked(void)
 {
 	if (!g_harness_arena_ready) {
 		if (dt_arena_init(&g_harness_arena) == 0) {
@@ -189,36 +207,51 @@ static void dt_ensure_harness_arena(void)
  * __dt_oracle_*.c) */
 dt_arena_t *dt_harness_arena(void)
 {
-	dt_ensure_harness_arena();
+	dt_lock();
+	dt_ensure_harness_arena_locked();
+	dt_unlock();
 	return (&g_harness_arena);
 }
 
 void *dt_harness_alloc(size_t size_bytes)
 {
-	dt_ensure_harness_arena();
-	return (dt_arena_alloc_aligned(&g_harness_arena, size_bytes, 16));
+	dt_lock();
+	dt_ensure_harness_arena_locked();
+	void *p = dt_arena_alloc_aligned(&g_harness_arena, size_bytes, 16);
+	dt_unlock();
+	return (p);
 }
 
 char *dt_harness_strdup(const char *s)
 {
-	dt_ensure_harness_arena();
-	return (dt_arena_strdup(&g_harness_arena, s));
+	dt_lock();
+	dt_ensure_harness_arena_locked();
+	char *p = dt_arena_strdup(&g_harness_arena, s);
+	dt_unlock();
+	return (p);
 }
 
 dt_arena_mark_t dt_harness_mark(void)
 {
-	dt_ensure_harness_arena();
-	return (dt_arena_mark(&g_harness_arena));
+	dt_lock();
+	dt_ensure_harness_arena_locked();
+	dt_arena_mark_t m = dt_arena_mark(&g_harness_arena);
+	dt_unlock();
+	return (m);
 }
 
 int dt_harness_rewind(dt_arena_mark_t m)
 {
-	dt_ensure_harness_arena();
-	return (dt_arena_rewind(&g_harness_arena, m));
+	dt_lock();
+	dt_ensure_harness_arena_locked();
+	int r = dt_arena_rewind(&g_harness_arena, m);
+	dt_unlock();
+	return (r);
 }
 
 void dt_harness_reset_state(void)
 {
+	dt_lock();
 	for (size_t b = 0; b < DT_HASH_BUCKETS; b++) {
 		t_alloc_node *cur = g_buckets[b];
 		while (cur) {
@@ -238,6 +271,7 @@ void dt_harness_reset_state(void)
 	g_free_nodes = NULL;
 	g_static_used = 0;
 	g_total_tracked = 0;
+	g_inactive_nodes = 0;
 	g_max_allocs = DT_DEFAULT_MAX_ALLOCS;
 	g_malloc_calls = 0;
 	g_free_calls = 0;
@@ -247,6 +281,7 @@ void dt_harness_reset_state(void)
 	g_in_hook = 0;
 	g_audit_done = 0;
 	g_exit_status = 0;
+	dt_unlock();
 }
 
 void dt_harness_get_counters(int *out_malloc_calls, int *out_free_calls,
@@ -255,6 +290,7 @@ void dt_harness_get_counters(int *out_malloc_calls, int *out_free_calls,
 {
 	size_t active_blocks = 0;
 	size_t active_bytes = 0;
+	dt_lock();
 	for (size_t b = 0; b < DT_HASH_BUCKETS; b++) {
 		for (t_alloc_node *cur = g_buckets[b]; cur != NULL;
 		     cur = cur->next) {
@@ -268,6 +304,7 @@ void dt_harness_get_counters(int *out_malloc_calls, int *out_free_calls,
 		*out_malloc_calls = g_malloc_calls;
 	if (out_free_calls)
 		*out_free_calls = g_free_calls;
+	dt_unlock();
 	if (out_active_blocks)
 		*out_active_blocks = active_blocks;
 	if (out_active_bytes)
@@ -286,9 +323,9 @@ static size_t dt_hash_ptr(const void *p)
 	return (size_t)(v & (DT_HASH_BUCKETS - 1));
 }
 
-static void dt_init_env(void)
+static void dt_init_env_locked(void)
 {
-	dt_ensure_harness_arena();
+	dt_ensure_harness_arena_locked();
 	if (g_fail_at <= 0) {
 		const char *env_fail = getenv("DT_FAIL_MALLOC_AT");
 		int new_fail = 0;
@@ -333,22 +370,36 @@ static void dt_init_env(void)
 
 static void dt_audit_memory_leaks(void);
 
+#if defined(__GLIBC__)
 static void dt_on_exit_hook(int status, void *arg)
 {
 	(void)arg;
 	g_exit_status = status;
 	dt_audit_memory_leaks();
 }
+#else
+static void dt_atexit_hook(void)
+{
+	dt_audit_memory_leaks();
+}
+#endif
 
 __attribute__((constructor)) static void dt_constructor_init(void)
 {
 	int saved_errno = errno;
-	dt_ensure_harness_arena();
+	dt_lock();
+	dt_ensure_harness_arena_locked();
+	dt_unlock();
+#if defined(__GLIBC__)
 	on_exit(dt_on_exit_hook, NULL);
+#else
+	atexit(dt_atexit_hook);
+#endif
 	errno = saved_errno;
 }
 
-static void dt_emit_arena_telemetry(int leaked_blocks, size_t leaked_bytes)
+static void dt_emit_arena_telemetry_locked(int leaked_blocks,
+					   size_t leaked_bytes)
 {
 	const char *stats_file = getenv("DT_ARENA_STATS_FILE");
 	if (!stats_file || !*stats_file || !g_harness_arena_ready)
@@ -383,18 +434,20 @@ static void dt_emit_arena_telemetry(int leaked_blocks, size_t leaked_bytes)
 	}
 }
 
-static void dt_verify_redzone(const t_alloc_node *node)
+static void dt_verify_redzone_locked(const t_alloc_node *node)
 {
 	if (!node || !node->user_ptr || !node->raw_ptr)
 		return;
 	const unsigned char *left_rz = (const unsigned char *)node->raw_ptr;
 	for (size_t k = 0; k < DT_LEFT_REDZONE_SIZE; k++) {
 		if (left_rz[k] != DT_LEFT_CANARY) {
+			size_t sz = node->size;
 			fprintf(stderr,
 				"[REDZONE KO]: Heap buffer underflow (write at "
 				"offset -%zu before malloc(%zu))!\n",
-				DT_LEFT_REDZONE_SIZE - k, node->size);
-			dt_emit_arena_telemetry(0, 0);
+				DT_LEFT_REDZONE_SIZE - k, sz);
+			dt_emit_arena_telemetry_locked(0, 0);
+			dt_unlock();
 			dt_terminate_with_code(43);
 		}
 	}
@@ -402,18 +455,20 @@ static void dt_verify_redzone(const t_alloc_node *node)
 	    (const unsigned char *)node->user_ptr + node->size;
 	for (size_t k = 0; k < DT_RIGHT_REDZONE_SIZE; k++) {
 		if (right_rz[k] != DT_RIGHT_CANARY) {
+			size_t sz = node->size;
 			fprintf(
 			    stderr,
 			    "[REDZONE KO]: Heap buffer overflow (off-by-one "
 			    "write at offset +%zu past malloc(%zu))!\n",
-			    k, node->size);
-			dt_emit_arena_telemetry(0, 0);
+			    k, sz);
+			dt_emit_arena_telemetry_locked(0, 0);
+			dt_unlock();
 			dt_terminate_with_code(43);
 		}
 	}
 }
 
-static t_alloc_node *dt_find_node(const void *user_ptr)
+static t_alloc_node *dt_find_node_locked(const void *user_ptr)
 {
 	size_t idx = dt_hash_ptr(user_ptr);
 	t_alloc_node *cur = g_buckets[idx];
@@ -425,14 +480,42 @@ static t_alloc_node *dt_find_node(const void *user_ptr)
 	return (NULL);
 }
 
-static t_alloc_node *dt_acquire_node(void)
+static size_t dt_reclaim_inactive_nodes_locked(size_t max_reclaim)
+{
+	size_t reclaimed = 0;
+	for (size_t b = 0; b < DT_HASH_BUCKETS && reclaimed < max_reclaim;
+	     b++) {
+		t_alloc_node **link = &g_buckets[b];
+		while (*link && reclaimed < max_reclaim) {
+			t_alloc_node *cur = *link;
+			if (!cur->active) {
+				*link = cur->next;
+				cur->user_ptr = NULL;
+				cur->raw_ptr = NULL;
+				cur->size = 0;
+				cur->next = g_free_nodes;
+				g_free_nodes = cur;
+				if (g_inactive_nodes > 0)
+					g_inactive_nodes--;
+				reclaimed++;
+			} else {
+				link = &cur->next;
+			}
+		}
+	}
+	return (reclaimed);
+}
+
+static t_alloc_node *dt_acquire_node_locked(void *raw_to_free_on_fail)
 {
 	if (g_total_tracked >= g_max_allocs) {
 		fprintf(stderr,
 			"[TRACKING EXHAUSTED KO]: Allocation count exceeded "
 			"limit (%zu)!\n",
 			g_max_allocs);
-		dt_emit_arena_telemetry(0, 0);
+		dt_emit_arena_telemetry_locked(0, 0);
+		dt_unlock();
+		__real_free(raw_to_free_on_fail);
 		dt_terminate_with_code(45);
 	}
 	if (g_free_nodes) {
@@ -441,8 +524,18 @@ static t_alloc_node *dt_acquire_node(void)
 		g_total_tracked++;
 		return (n);
 	}
+	/* Reclaim stale inactive nodes before growing arena slabs when churn accumulates */
+	size_t retain_cap = (g_max_allocs < 4096U) ? g_max_allocs : 4096U;
+	if (g_inactive_nodes >= retain_cap &&
+	    dt_reclaim_inactive_nodes_locked(DT_SLAB_NODES) > 0 &&
+	    g_free_nodes) {
+		t_alloc_node *n = g_free_nodes;
+		g_free_nodes = n->next;
+		g_total_tracked++;
+		return (n);
+	}
 	/* Allocate tracking slabs from the Harness mmap Arena first */
-	dt_ensure_harness_arena();
+	dt_ensure_harness_arena_locked();
 	t_alloc_node *slab = (t_alloc_node *)dt_arena_alloc_aligned(
 	    &g_harness_arena, sizeof(t_alloc_node) * DT_SLAB_NODES,
 	    _Alignof(t_alloc_node));
@@ -454,6 +547,13 @@ static t_alloc_node *dt_acquire_node(void)
 		g_total_tracked++;
 		return (&slab[0]);
 	}
+	if (dt_reclaim_inactive_nodes_locked(DT_SLAB_NODES) > 0 &&
+	    g_free_nodes) {
+		t_alloc_node *n = g_free_nodes;
+		g_free_nodes = n->next;
+		g_total_tracked++;
+		return (n);
+	}
 	/* Emergency static fallback pool if RLIMIT_AS prevents further mmap */
 	if (g_static_used < DT_STATIC_POOL_NODES) {
 		g_total_tracked++;
@@ -461,15 +561,22 @@ static t_alloc_node *dt_acquire_node(void)
 	}
 	fprintf(stderr, "[TRACKING EXHAUSTED KO]: Out of memory allocating "
 			"tracking slab in arena!\n");
-	dt_emit_arena_telemetry(0, 0);
+	dt_emit_arena_telemetry_locked(0, 0);
+	dt_unlock();
+	__real_free(raw_to_free_on_fail);
 	dt_terminate_with_code(45);
 }
 
 static void *dt_tracked_alloc(size_t size, int zero_fill)
 {
-	dt_init_env();
+	dt_lock();
+	dt_init_env_locked();
 	g_malloc_calls++;
-	if (g_fail_at > 0 && g_malloc_calls == g_fail_at)
+	int call_no = g_malloc_calls;
+	int fail_at = g_fail_at;
+	dt_unlock();
+
+	if (fail_at > 0 && call_no == fail_at)
 		return (NULL);
 	if (size > SIZE_MAX - (DT_LEFT_REDZONE_SIZE + DT_RIGHT_REDZONE_SIZE)) {
 		errno = ENOMEM;
@@ -485,25 +592,29 @@ static void *dt_tracked_alloc(size_t size, int zero_fill)
 		memset(user, 0, size);
 	memset(user + size, DT_RIGHT_CANARY, DT_RIGHT_REDZONE_SIZE);
 
-	t_alloc_node *existing = dt_find_node(user);
+	dt_lock();
+	t_alloc_node *existing = dt_find_node_locked(user);
 	if (existing) {
 		if (!existing->active) {
 			if (g_total_tracked >= g_max_allocs) {
-				__real_free(raw);
 				fprintf(stderr,
 					"[TRACKING EXHAUSTED KO]: Allocation "
 					"count exceeded limit (%zu)!\n",
 					g_max_allocs);
-				dt_emit_arena_telemetry(0, 0);
+				dt_emit_arena_telemetry_locked(0, 0);
+				dt_unlock();
+				__real_free(raw);
 				dt_terminate_with_code(45);
 			}
 			g_total_tracked++;
+			if (g_inactive_nodes > 0)
+				g_inactive_nodes--;
 		}
 		existing->raw_ptr = raw;
 		existing->size = size;
 		existing->active = 1;
 	} else {
-		t_alloc_node *node = dt_acquire_node();
+		t_alloc_node *node = dt_acquire_node_locked(raw);
 		size_t idx = dt_hash_ptr(user);
 		node->user_ptr = user;
 		node->raw_ptr = raw;
@@ -512,6 +623,7 @@ static void *dt_tracked_alloc(size_t size, int zero_fill)
 		node->next = g_buckets[idx];
 		g_buckets[idx] = node;
 	}
+	dt_unlock();
 	return (user);
 }
 
@@ -542,7 +654,6 @@ void *__wrap_calloc(size_t nmemb, size_t size)
 
 void __wrap_free(void *ptr)
 {
-	dt_init_env();
 	if (!ptr)
 		return;
 	if (g_in_hook) {
@@ -550,21 +661,25 @@ void __wrap_free(void *ptr)
 		return;
 	}
 	g_in_hook = 1;
+	dt_lock();
+	dt_init_env_locked();
 	if (g_harness_arena_ready && dt_arena_owns_ptr(&g_harness_arena, ptr)) {
 		fprintf(stderr,
 			"[ARENA OWNERSHIP KO]: Student attempted to free "
 			"harness arena pointer %p!\n",
 			ptr);
-		dt_emit_arena_telemetry(0, 0);
+		dt_emit_arena_telemetry_locked(0, 0);
+		dt_unlock();
 		dt_terminate_with_code(44);
 	}
-	t_alloc_node *node = dt_find_node(ptr);
+	t_alloc_node *node = dt_find_node_locked(ptr);
 	if (!node) {
 		fprintf(stderr,
 			"[INVALID FREE KO]: Attempted to free untracked or "
 			"misaligned pointer %p!\n",
 			ptr);
-		dt_emit_arena_telemetry(0, 0);
+		dt_emit_arena_telemetry_locked(0, 0);
+		dt_unlock();
 		dt_terminate_with_code(44);
 	}
 	if (!node->active) {
@@ -572,16 +687,19 @@ void __wrap_free(void *ptr)
 			"[DOUBLE FREE KO]: Attempted to free already-freed "
 			"pointer %p!\n",
 			ptr);
-		dt_emit_arena_telemetry(0, 0);
+		dt_emit_arena_telemetry_locked(0, 0);
+		dt_unlock();
 		dt_terminate_with_code(6);
 	}
-	dt_verify_redzone(node);
+	dt_verify_redzone_locked(node);
 	node->active = 0;
+	g_inactive_nodes++;
 	if (g_total_tracked > 0)
 		g_total_tracked--;
 	g_free_calls++;
 	void *raw_to_free = node->raw_ptr;
 	node->raw_ptr = NULL;
+	dt_unlock();
 	g_in_hook = 0;
 	__real_free(raw_to_free);
 }
@@ -597,25 +715,31 @@ void *__wrap_realloc(void *ptr, size_t size)
 		return (NULL);
 	}
 	g_in_hook = 1;
+	dt_lock();
+	dt_init_env_locked();
 	if (g_harness_arena_ready && dt_arena_owns_ptr(&g_harness_arena, ptr)) {
 		fprintf(stderr,
 			"[ARENA OWNERSHIP KO]: Student attempted to realloc "
 			"harness arena pointer %p!\n",
 			ptr);
-		dt_emit_arena_telemetry(0, 0);
+		dt_emit_arena_telemetry_locked(0, 0);
+		dt_unlock();
 		dt_terminate_with_code(44);
 	}
-	t_alloc_node *old_node = dt_find_node(ptr);
+	t_alloc_node *old_node = dt_find_node_locked(ptr);
 	if (!old_node || !old_node->active) {
 		fprintf(stderr,
 			"[INVALID FREE KO]: Attempted to realloc untracked or "
 			"freed pointer %p!\n",
 			ptr);
-		dt_emit_arena_telemetry(0, 0);
+		dt_emit_arena_telemetry_locked(0, 0);
+		dt_unlock();
 		dt_terminate_with_code(44);
 	}
-	dt_verify_redzone(old_node);
+	dt_verify_redzone_locked(old_node);
 	size_t old_size = old_node->size;
+	dt_unlock();
+
 	void *new_user = dt_tracked_alloc(size, 0);
 	if (!new_user) {
 		g_in_hook = 0;
@@ -624,15 +748,34 @@ void *__wrap_realloc(void *ptr, size_t size)
 	size_t copy_len = (old_size < size) ? old_size : size;
 	if (copy_len > 0)
 		memcpy(new_user, ptr, copy_len);
-	old_node->active = 0;
-	if (g_total_tracked > 0)
-		g_total_tracked--;
-	g_free_calls++;
-	void *old_raw = old_node->raw_ptr;
-	old_node->raw_ptr = NULL;
+
+	dt_lock();
+	old_node = dt_find_node_locked(ptr);
+	void *old_raw = NULL;
+	if (old_node && old_node->active) {
+		old_node->active = 0;
+		g_inactive_nodes++;
+		if (g_total_tracked > 0)
+			g_total_tracked--;
+		g_free_calls++;
+		old_raw = old_node->raw_ptr;
+		old_node->raw_ptr = NULL;
+	}
+	dt_unlock();
 	__real_free(old_raw);
 	g_in_hook = 0;
 	return (new_user);
+}
+
+void *__wrap_reallocarray(void *ptr, size_t nmemb, size_t size)
+{
+	if (size != 0 && nmemb > SIZE_MAX / size) {
+		errno = ENOMEM;
+		return (NULL);
+	}
+	if (g_in_hook)
+		return (__real_realloc(ptr, nmemb * size));
+	return (__wrap_realloc(ptr, nmemb * size));
 }
 
 char *__wrap_strdup(const char *s)
@@ -649,20 +792,45 @@ char *__wrap_strdup(const char *s)
 	return (copy);
 }
 
+char *__wrap_strndup(const char *s, size_t n)
+{
+	if (!s)
+		return (NULL);
+	size_t len = strnlen(s, n);
+	if (g_in_hook) {
+		char *raw = (char *)__real_malloc(len + 1);
+		if (!raw)
+			return (NULL);
+		memcpy(raw, s, len);
+		raw[len] = '\0';
+		return (raw);
+	}
+	char *copy = (char *)__wrap_malloc(len + 1);
+	if (!copy)
+		return (NULL);
+	memcpy(copy, s, len);
+	copy[len] = '\0';
+	return (copy);
+}
+
 ssize_t __wrap_read(int fd, void *buf, size_t count)
 {
-	dt_init_env();
-	if (g_chunk_read && count > 1)
+	dt_lock();
+	dt_init_env_locked();
+	int chunk_read = g_chunk_read;
+	dt_unlock();
+	if (chunk_read && count > 1)
 		count = 1;
 	return (__real_read(fd, buf, count));
 }
 
 size_t dt_get_alloc_size(void *ptr)
 {
-	t_alloc_node *node = dt_find_node(ptr);
-	if (node && node->active)
-		return (node->size);
-	return (0);
+	dt_lock();
+	t_alloc_node *node = dt_find_node_locked(ptr);
+	size_t sz = (node && node->active) ? node->size : 0;
+	dt_unlock();
+	return (sz);
 }
 
 /**
@@ -677,10 +845,13 @@ size_t dt_get_alloc_size(void *ptr)
  */
 static void dt_audit_memory_leaks(void)
 {
-	if (g_audit_done)
+	dt_lock();
+	if (g_audit_done) {
+		dt_unlock();
 		return;
+	}
 	g_audit_done = 1;
-	dt_init_env();
+	dt_init_env_locked();
 	const char *env_leaks_now = getenv("DT_CHECK_LEAKS");
 	if (env_leaks_now && strcmp(env_leaks_now, "1") == 0)
 		g_check_leaks = 1;
@@ -690,19 +861,21 @@ static void dt_audit_memory_leaks(void)
 		t_alloc_node *cur = g_buckets[b];
 		while (cur) {
 			if (cur->active) {
-				dt_verify_redzone(cur);
+				dt_verify_redzone_locked(cur);
 				leaked_blocks++;
 				leaked_bytes += cur->size;
 			}
 			cur = cur->next;
 		}
 	}
-	dt_emit_arena_telemetry(leaked_blocks, leaked_bytes);
+	dt_emit_arena_telemetry_locked(leaked_blocks, leaked_bytes);
 	if (g_harness_arena_ready) {
 		dt_arena_destroy(&g_harness_arena);
 		g_harness_arena_ready = 0;
 	}
-	if (g_exit_status == 0 && g_check_leaks && leaked_blocks > 0) {
+	int fail_leak = (g_exit_status == 0 && g_check_leaks && leaked_blocks > 0);
+	dt_unlock();
+	if (fail_leak) {
 		fprintf(stderr,
 			"[LEAK KO]: Memory leak detected: %d unfreed block(s) "
 			"(%zu bytes total)!\n",

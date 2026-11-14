@@ -346,7 +346,7 @@ Tooling for scaffolding 4-component exercises (`subject.en.txt`, `meta.yml`, `sc
 | `MOULINETTE_DEBUG` | `moulinette` | Print full tracebacks inside REPL commands instead of keeping errors localized. |
 | `FT_STUDENT_PROFILE` | `deepthought` | Override student profile YAML file path. |
 | `MAGRATHEA_EXEC_TMPDIR` | `deepthought` | Override executable scratch build directory used for C/C++ sandbox binaries. |
-| `DT_REQUIRE_NAMESPACE_SANDBOX` | `deepthought` | Require `unshare -Urm` mount namespace isolation (`1`) instead of best-effort fallback. |
+| `DT_REQUIRE_NAMESPACE_SANDBOX` | `deepthought` | Require Linux `CLONE_NEWUSER \| CLONE_NEWNS` namespace masking (`1`) instead of best-effort fallback. |
 | `FT_BC_INTERNAL`, `BC_LINE_LENGTH` | `bc` | Force built-in Python `bc` engine (`1`) and configure output wrap width (default `70`). |
 | `DT_SANDBOX_IFCONFIG`, `DT_LIVE_IFCONFIG`, `DT_MOCK_ETHER` | `ifconfig` | Force deterministic cluster mock interfaces, host sysfs MAC lookup, or custom MAC output. |
 | `DT_SKIP_HOME_SYMLINKS` | `examshell`, `vogsphere` | Skip automatic `~/rendu` symlink creation in isolated runs (`1`). |
@@ -362,14 +362,14 @@ Every student submission is evaluated sequentially through five stages in [`deep
 | **1** | **Turn-In, Norm & Repository Gate** | Validates expected filenames, rejects symlinks and extraneous files, verifies `Makefile` rules (`all`, `clean`, `fclean`, `re`, relink check) via [`makefile_and_repo.py`](deepthought/makefile_and_repo.py), and runs `norminette` / `shnorm`. | `Nothing turned in` / `Norme KO` / `Makefile KO` |
 | **2** | **AST & Symbol Whitelist Gate** | Pre-scans C/C++ sources for forbidden `#include` directives, `switch` restrictions where applicable, or unauthorized `main()` definitions, then inspects compiled object symbols via `nm -u` against `allowed_functions` in `meta.yml`. | `Cheating (-42)` / `Forbidden function` |
 | **3** | **Strict Compilation Gate** | Compiles student sources alongside the generated test harness under `-Wall -Wextra -Werror` inside an isolated temporary build directory. | `Does not compile` |
-| **4** | **Sandbox & Memory Sentinel Gate** | Executes compiled binaries with resource limits (`RLIMIT_AS`/`RLIMIT_CPU`/`RLIMIT_NPROC`), optional `/tmp` masking via `unshare -Urm`, and linker-wrapped heap/redzone instrumentation. | `Timeout` / `Segfault` / `Bus error` / `Abort` / `Leak KO` / `Redzone KO` / `Invalid Free KO` / `Double/Invalid Free KO` |
+| **4** | **Sandbox & Memory Sentinel Gate** | Executes compiled binaries with resource limits (`RLIMIT_AS`/`RLIMIT_CPU`/`RLIMIT_NPROC`), kernel-permitted masking of `corrections/`, `subjects/`, and `pools/` (`unshare`), and Linux linker-wrapped heap/redzone instrumentation (Gates 1–3 & 5 active on macOS). | `Timeout` / `Segfault` / `Bus error` / `Abort` / `Leak KO` / `Redzone KO` / `Invalid Free KO` / `Double/Invalid Free KO` |
 | **5** | **Differential & Edge-Case Oracle** | Runs fixed, boundary, and oracle test vectors from `tests.yml`, comparing `stdout`, `stderr`, exit status, and mutated state against reference expectations. | `KO :(` / `OK :)` (`100/100`) |
 
 ---
 
 ## Memory Sentinel & Arena-01 Telemetry
 
-Magrathea's C11 runtime harness ([`deepthought/sandbox_harness.c`](deepthought/sandbox_harness.c) and [`trusted_harness/`](trusted_harness/)) enforces strict isolation between harness allocations and student heap memory using linker wrapping (`-Wl,--wrap=malloc,free,calloc,realloc,strdup,exit,_exit,_Exit`):
+Magrathea's C11 runtime harness ([`deepthought/sandbox_harness.c`](deepthought/sandbox_harness.c) and [`trusted_harness/`](trusted_harness/)) enforces strict isolation between harness allocations (guarded `mmap` Arena-01 regions with trailing `PROT_NONE` pages) and student heap memory on Linux/WSL2 (`GNU ld`) via linker wrapping (`-Wl,--wrap=malloc,calloc,realloc,reallocarray,strdup,strndup,free,read,exit,_exit,_Exit`):
 
 | Exit / Signal Code | Diagnostic Status | Condition Trapped by `sandbox_harness.c` |
 | :---: | :--- | :--- |
@@ -495,7 +495,9 @@ magrathea/
 
 ## System Requirements
 
-* **Operating System**: Linux (`x86_64` / `aarch64`), macOS, or Windows WSL2.
+* **Operating System**:
+  * **Linux (`x86_64` / `aarch64`) & Windows WSL2**: Full **5-Gate Pipeline** including GNU `ld` static linker wrapping (`-Wl,--wrap=...`) C11 Memory Sentinel (`DT_CHECK_LEAKS`, redzones, double-free detection) and unprivileged `CLONE_NEWUSER | CLONE_NEWNS` namespace masking when permitted by the host kernel.
+  * **macOS (`darwin`, Apple `ld64`)**: Supports **Gates 1–3 & Gate 5** (Norminette, `nm -u` symbol whitelist, `-Wall -Wextra -Werror` compilation, `rlimit`/session-group isolation, and differential oracle). Gate 4 `-Wl,--wrap` linker interception is Linux/WSL2 `GNU ld` specific and omitted automatically on macOS.
 * **Python Runtime**: Python `3.10+` (standard library only; required by both type annotations and bundled official `norminette` `3.3.60`). Run `./install.sh` if your OS ships an older Python.
 * **Compilers**: `gcc` or `clang` (with `g++` / `clang++` for Rank 05 C++ exercises).
 * **UNIX Toolchain**: `git`, `make`, `nm`, `ar`, `sh`, `diff`, `tar`.
@@ -504,18 +506,18 @@ magrathea/
 
 ## Academic Integrity & Anti-Spoiler Policy
 
-Reference implementations in [`corrections/`](corrections/) serve strictly as internal oracles for Gate 5 evaluation. Magrathea enforces anti-spoiler separation across student workflows:
-1. **CLI & REPL Spoiler Lock**: Solution/hint disclosure flags (`solve`, `solution`, `--solve`, `--solution`, `hint`, `--hint`) are permanently locked across both Real and `--practice` modes (exiting with status `2`).
-2. **Sandbox Filesystem Isolation**: During exercise execution, `/tmp` is masked with a `mode 000` `tmpfs` inside an unprivileged mount namespace (`unshare -Urm`) when permitted by the host kernel, and C/C++ sources are pre-scanned to block unauthorized `#include` paths.
+Reference implementations in [`corrections/`](corrections/) exist on disk in this offline kit strictly as local golden oracles for Gate 5 twin-execution evaluation (never encrypted). Magrathea enforces anti-spoiler boundaries across workflows:
+1. **CLI & REPL Spoiler Lock**: Solution/hint disclosure commands (`solve`, `solution`, `--solve`, `--solution`, `hint`, `--hint`) and explicit path references to `corrections/` inside `examshell` or `--dir corrections/...` (without `--self-test`) are blocked with exit status `2`.
+2. **Sandbox Namespace Masking**: During binary execution on Linux kernels that permit unprivileged user namespaces, `corrections/`, `subjects/`, and `pools/` are masked with an unreadable `mode=000` `tmpfs` inside `CLONE_NEWUSER | CLONE_NEWNS` (`unshare`), while C/C++ sources are pre-scanned (including line-splice normalization) to reject unauthorized `#include` paths. Hosts restricting unprivileged userns fall back to `rlimit` and session-group isolation (visible in `./moulinette doctor`).
 3. **Diagnostic-Driven Debugging**: Failed evaluations (`KO`) are diagnosed via compiler errors, Arena-01 memory sentinel status codes, and trace diffs (`--trace-mode helpful`).
 
 ---
 
-## License
+## License & Third-Party Notices
 
-This project is licensed under the **MIT License** — see [`LICENSE`](LICENSE) for full details.
-
-Third-party components bundled inside this repository retain their respective MIT Licenses:
-* **Official 42 Norminette (`3.3.60`)**: [`third_party/norminette/`](third_party/norminette/) — Copyright (c) 2020 42 Association ([`SOURCE.txt`](third_party/norminette/SOURCE.txt)).
-* **Tsoding Arena (`arena.h`)**: [`third_party/tsoding_arena/arena.h`](third_party/tsoding_arena/arena.h) — Copyright (c) 2022 Alexey Kutepov.
-* **PyYAML (`6.0.1`)**: [`yaml/`](yaml/) — MIT-licensed pure-Python YAML parser.
+* **Magrathea Engine & Tooling**: Licensed under the **MIT License** — see [`LICENSE`](LICENSE) for full details.
+* **Bundled Open-Source Dependencies** (MIT License):
+  * **Official 42 Norminette (`3.3.60`)**: [`third_party/norminette/`](third_party/norminette/) — Copyright (c) 2020 42 Association ([`SOURCE.txt`](third_party/norminette/SOURCE.txt)).
+  * **Tsoding Arena (`arena.h`)**: [`third_party/tsoding_arena/arena.h`](third_party/tsoding_arena/arena.h) — Copyright (c) 2022 Alexey Kutepov.
+  * **PyYAML (`6.0.1`)**: [`yaml/`](yaml/) — MIT-licensed pure-Python YAML parser.
+* **Curriculum Content (`subjects/`)**: Official 42 / 1337 assignment PDFs (`*.pdf`), subject texts (`subject.en.txt`), and problem statements remain copyright 42 Network / 1337 School and are included strictly for educational, non-commercial, offline training and self-evaluation purposes.

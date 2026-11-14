@@ -19,3 +19,24 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+## Third-Party & Curriculum Content Notice
+
+The MIT License above applies strictly to Magrathea's original grading engine,
+CLI tools (`bin/moulinette`, `bin/examshell`, `bin/deepthought`, `bin/shnorm`,
+`bin/pforge`), trusted C harnesses, and test suites.
+
+1. **Tsoding Arena (`third_party/tsoding_arena/arena.h`)**
+   Copyright (c) 2022 Alexey Kutepov — MIT License.
+
+2. **Official 42 Norminette (`third_party/norminette/`) & PyYAML (`yaml/`)**
+   Bundled unmodified upstream open-source packages retain their respective
+   upstream licenses (see `third_party/norminette/SOURCE.txt`).
+
+3. **42 / 1337 Curriculum Subjects & Reference Material (`subjects/`)**
+   Assignment PDFs (`subjects/**/*.pdf`), subject statements (`subject.en.txt`),
+   and curriculum problem specifications remain the intellectual property of
+   42 Network / 1337 School and are included solely for educational,
+   non-commercial, offline training and self-evaluation purposes.

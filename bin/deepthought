@@ -9,8 +9,6 @@ from pathlib import Path
 import re
 import sys
 
-import yaml
-
 KIT_ROOT = (
     Path(__file__).resolve().parents[1]
     if (Path(__file__).resolve().parents[1] / "pools").exists()
@@ -19,8 +17,11 @@ KIT_ROOT = (
 if str(KIT_ROOT) not in sys.path:
     sys.path.insert(0, str(KIT_ROOT))
 
+import yaml  # noqa: E402, F401
+
 from deepthought.grader import (  # noqa: E402
     GradeReport,
+    _safe_load_yaml,
     add_trace_mode_arguments,
     grade_subject,
     resolve_trace_mode,
@@ -30,19 +31,13 @@ from deepthought.scorecard import render_five_gate_scorecard, tilde_path  # noqa
 from deepthought.ui_theme import PALETTES, ThemeEngine, pad_visible  # noqa: E402
 
 _MODULE_PREFIX_RE = re.compile(r"^(?:c\d{2}|shell\d{2}|rush\w*)_")
-_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 
 def _load_yaml(path: Path) -> dict:
-    if not path.is_file():
+    data = _safe_load_yaml(path)
+    if "__yaml_error__" in data:
         return {}
-    try:
-        data = yaml.load(
-            path.read_text(encoding="utf-8", errors="replace"), Loader=_YAML_LOADER
-        )
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
+    return data
 
 
 def resolve_module_slug(module_id: str) -> str:
@@ -68,11 +63,16 @@ def resolve_subject(target: str) -> tuple[str, bool, Path | None]:
         c1 = piscine_root / mod_part / ex_part
         if c1.is_dir():
             return f"piscine/{mod_part}/{ex_part}", False, c1
+        c1_sh = piscine_root / mod_part / f"{ex_part}.sh"
+        if c1_sh.is_dir():
+            return f"piscine/{mod_part}/{ex_part}.sh", False, c1_sh
         c2 = piscine_root / mod_part / f"{mod_part}_{ex_part}"
         if c2.is_dir():
             return f"piscine/{mod_part}/{mod_part}_{ex_part}", False, c2
 
     matches = sorted(piscine_root.glob(f"*/{clean}"))
+    if not matches:
+        matches = sorted(piscine_root.glob(f"*/{clean}.sh"))
     if not matches:
         matches = sorted(piscine_root.glob(f"*/*_{clean}"))
     if matches:
@@ -81,6 +81,8 @@ def resolve_subject(target: str) -> tuple[str, bool, Path | None]:
 
     clean_unpref = _MODULE_PREFIX_RE.sub("", clean)
     matches2 = sorted(piscine_root.glob(f"*/{clean_unpref}"))
+    if not matches2:
+        matches2 = sorted(piscine_root.glob(f"*/{clean_unpref}.sh"))
     if not matches2:
         matches2 = sorted(piscine_root.glob(f"*/*_{clean_unpref}"))
     if matches2:
@@ -95,6 +97,18 @@ def resolve_subject(target: str) -> tuple[str, bool, Path | None]:
         return f"exams/{clean_unpref}", True, cand_e2
 
     return clean, False, None
+
+
+def _is_inside_corrections(dir_arg: str | None) -> bool:
+    """Return True if explicit --dir points into KIT_ROOT/corrections."""
+    if not dir_arg:
+        return False
+    try:
+        resolved = Path(dir_arg).expanduser().resolve()
+        corr_root = (KIT_ROOT / "corrections").resolve()
+        return resolved == corr_root or corr_root in resolved.parents
+    except OSError:
+        return False
 
 
 def resolve_exercise_dir(
@@ -276,6 +290,13 @@ def run_grade_exercise(
         print(f"deepthought: unknown exercise '{target}'.", file=sys.stderr)
         return 1
 
+    if not args.self_test and _is_inside_corrections(args.dir):
+        print(
+            "deepthought: refusing '--dir' inside corrections/ without '--self-test' (anti-spoiler policy).",
+            file=sys.stderr,
+        )
+        return 2
+
     sub_dir = resolve_exercise_dir(leaf, subj_rel, args.dir, args.self_test)
     reveal = resolve_trace_mode(args) == "helpful"
     rep: GradeReport = grade_subject(
@@ -341,6 +362,12 @@ def run_grade_module(raw_mod: str, args: argparse.Namespace, theme: ThemeEngine)
     if args.self_test:
         repo_dir = (KIT_ROOT / "corrections" / "piscine" / mod_slug).resolve()
     elif args.dir:
+        if _is_inside_corrections(args.dir):
+            print(
+                "deepthought: refusing '--dir' inside corrections/ without '--self-test' (anti-spoiler policy).",
+                file=sys.stderr,
+            )
+            return 2
         cand_dir = Path(args.dir).expanduser().resolve()
         if cand_dir == KIT_ROOT.resolve():
             repo_dir = (KIT_ROOT / "workspace" / "piscine" / mod_slug).resolve()

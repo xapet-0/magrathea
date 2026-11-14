@@ -826,6 +826,274 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         with mock.patch.object(sys, "platform", "darwin"):
             self.assertEqual(_get_strict_sandbox_flags(KIT_ROOT, exec_dir), [])
 
+    def test_25(self) -> None:
+        """AUDIT-04/09: CLIs resolve bundled yaml/ from /tmp under -S without PYTHONPATH; stray yaml/*.yml removed."""
+        self.assertFalse((KIT_ROOT / "yaml" / "compiler_matrix.yml").exists())
+        self.assertFalse((KIT_ROOT / "yaml" / "timing_policy.yml").exists())
+        clean_env = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in {"PYTHONPATH", "PYTHONHOME"}
+        }
+        clean_env["HOME"] = str(self.home)
+        clean_env["NO_COLOR"] = "1"
+        for tool in ("moulinette", "deepthought", "examshell"):
+            proc = subprocess.run(
+                [sys.executable, "-S", str(KIT_ROOT / "bin" / tool), "--help"],
+                cwd="/tmp",
+                env=clean_env,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(
+                proc.returncode,
+                0,
+                f"bin/{tool} failed under python3 -S from /tmp: {proc.stderr}",
+            )
+
+    def test_26(self) -> None:
+        """AUDIT-01: Gate 2 normalizes C line-splicing (\\\\n) before main()/asm checks."""
+        spliced_main = self.work / "spliced_main.c"
+        spliced_main.write_text(
+            "int mai\\\nn(void)\n{\n\treturn (0);\n}\n", encoding="utf-8"
+        )
+        self.assertTrue(cas.has_main_definition(spliced_main))
+
+        spliced_asm = self.work / "spliced_asm.c"
+        spliced_asm.write_text(
+            "void\tfoo(void)\n{\n\t__a\\\nsm__ volatile(\"nop\");\n}\n",
+            encoding="utf-8",
+        )
+        _, sym_res = cas.verify_symbol_whitelist(
+            [spliced_asm],
+            allowed_functions=["write"],
+            work_dir=self.work,
+        )
+        self.assertFalse(sym_res.ok)
+        self.assertIn("inline assembly", sym_res.reason.lower())
+
+    def test_27(self) -> None:
+        """AUDIT-08: Allowing isdigit no longer implicitly unlocks isspace."""
+        src = self.work / "only_isdigit.c"
+        src.write_text(
+            "#include <ctype.h>\nint\tcheck(int c)\n{\n\treturn ((isspace)(c));\n}\n",
+            encoding="utf-8",
+        )
+        _, sym_res = cas.verify_symbol_whitelist(
+            [src],
+            allowed_functions=["isdigit"],
+            work_dir=self.work,
+        )
+        self.assertFalse(sym_res.ok)
+        self.assertIn("isspace", sym_res.forbidden_called)
+
+    def test_28(self) -> None:
+        """AUDIT-03/08/12: Default strict=False checks leaks; strndup/reallocarray wrapped; *.h allowed cleanly."""
+        _, exec_dir = prepare_isolated_build_dir(KIT_ROOT, "REG-28")
+        # 1) Default strict=False exam c_program grading must catch memory leaks via DT_CHECK_LEAKS=1.
+        sub_leak = exec_dir / "leak_sub"
+        sub_leak.mkdir(parents=True, exist_ok=True)
+        (sub_leak / "camel_to_snake.c").write_text(
+            "#include <stdlib.h>\n#include <unistd.h>\n"
+            "int\tmain(int argc, char **argv)\n{\n"
+            "\tint\t\ti;\n\tchar\tc;\n\tchar\t*leak;\n\n"
+            "\tleak = (char *)malloc(8);\n\tif (!leak)\n\t\treturn (1);\n\tleak[0] = '\\n';\n"
+            "\tif (argc == 2)\n\t{\n\t\ti = 0;\n\t\twhile (argv[1][i])\n\t\t{\n"
+            "\t\t\tc = argv[1][i];\n\t\t\tif (c >= 'A' && c <= 'Z')\n\t\t\t{\n"
+            "\t\t\t\tif (i > 0)\n\t\t\t\t\twrite(1, \"_\", 1);\n\t\t\t\tc += 32;\n\t\t\t}\n"
+            "\t\t\twrite(1, &c, 1);\n\t\t\ti++;\n\t\t}\n\t}\n"
+            "\twrite(1, &leak[0], 1);\n\treturn (0);\n}\n",
+            encoding="utf-8",
+        )
+        rep = grade_subject(
+            KIT_ROOT,
+            "exams/camel_to_snake",
+            sub_leak,
+            is_exam=True,
+            strict=False,
+        )
+        self.assertFalse(rep.passed)
+        self.assertIn("Leak", rep.status)
+        flags = _get_strict_sandbox_flags(KIT_ROOT, exec_dir)
+        s_red = exec_dir / "strndup_rz.c"
+        s_red.write_text(
+            "#define _POSIX_C_SOURCE 200809L\n"
+            "#include <stdlib.h>\n#include <string.h>\n"
+            'int main(void) { char *p = strndup("abc", 3); p[4] = \'X\'; free(p); return 0; }\n',
+            encoding="utf-8",
+        )
+        bin_red = exec_dir / "strndup_rz"
+        c1 = run_captured_process(
+            ["cc", str(s_red), *flags, "-o", str(bin_red)],
+            cwd=exec_dir,
+            isolated_home=self.home,
+        )
+        self.assertEqual(c1.returncode, 0, c1.stderr)
+        r1 = run_captured_process(
+            [str(bin_red)], cwd=exec_dir, isolated_home=self.home
+        )
+        self.assertEqual(r1.returncode, 43, r1.stderr)
+
+        s_ra = exec_dir / "reallocarray_leak.c"
+        s_ra.write_text(
+            "#define _GNU_SOURCE\n#include <stdlib.h>\n"
+            "int main(void) { void *p = reallocarray(NULL, 4, 8); (void)p; return 0; }\n",
+            encoding="utf-8",
+        )
+        bin_ra = exec_dir / "reallocarray_leak"
+        c2 = run_captured_process(
+            ["cc", str(s_ra), *flags, "-o", str(bin_ra)],
+            cwd=exec_dir,
+            isolated_home=self.home,
+        )
+        self.assertEqual(c2.returncode, 0, c2.stderr)
+        r2 = run_captured_process(
+            [str(bin_ra)],
+            cwd=exec_dir,
+            isolated_home=self.home,
+            extra_env={"DT_CHECK_LEAKS": "1"},
+        )
+        self.assertEqual(r2.returncode, 42, r2.stderr)
+
+        # Optional *.h permitted while leftover extraneous files are caught for ['*.c', '*.h'] subjects.
+        from deepthought.grader import _find_extraneous_files
+
+        subj_vbc = KIT_ROOT / "subjects" / "exams" / "vbc"
+        sub_hdr = exec_dir / "vbc_hdr_test"
+        sub_hdr.mkdir(parents=True, exist_ok=True)
+        (sub_hdr / "vbc.c").write_text("int main(void){return 0;}\n", encoding="utf-8")
+        (sub_hdr / "vbc.h").write_text("#ifndef VBC_H\n#define VBC_H\n#endif\n", encoding="utf-8")
+        self.assertEqual(_find_extraneous_files(sub_hdr, subj_vbc, ["*.c", "*.h"]), [])
+        (sub_hdr / "leftover.txt").write_text("junk", encoding="utf-8")
+        self.assertEqual(
+            _find_extraneous_files(sub_hdr, subj_vbc, ["*.c", "*.h"]), ["leftover.txt"]
+        )
+
+    def test_29(self) -> None:
+        """AUDIT-06/11: Portable goinfre_provision.sh, shell short-name resolution, and anti-spoiler --dir guard."""
+        g_home = self.work / "ghome"
+        g_root = self.work / "groot"
+        sh_res = run_captured_process(
+            ["sh", str(KIT_ROOT / "bocal/goinfre_provision.sh"), "pisciner", str(g_home), str(g_root)],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+        )
+        self.assertEqual(sh_res.returncode, 0, sh_res.stderr)
+        self.assertIn("GOINFRE_OK:", sh_res.stdout)
+        self.assertTrue((g_home / "goinfre").is_symlink())
+
+        dt_sh = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/deepthought"), "grade", "print_groups"],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+        )
+        self.assertNotIn("unknown exercise", dt_sh.stderr.lower())
+
+        corr_c00 = str(KIT_ROOT / "corrections" / "piscine" / "c00" / "ft_putchar")
+        dt_blk = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/deepthought"), "grade", "ft_putchar", "--dir", corr_c00],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+        )
+        self.assertEqual(dt_blk.returncode, 2)
+        self.assertIn("anti-spoiler", dt_blk.stderr.lower())
+
+        ml_blk = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/moulinette"), "--scrollback", "--no-color", "ft_putchar", "--dir", corr_c00],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+        )
+        self.assertEqual(ml_blk.returncode, 2)
+        self.assertIn("anti-spoiler", (ml_blk.stdout + ml_blk.stderr).lower())
+
+    def test_30(self) -> None:
+        """AUDIT-02/05/07: Arena PROT_NONE guard page triggers SIGSEGV, pthread churn safe, unshare probe valid."""
+        from deepthought.grader import probe_unshare_isolation
+
+        ok_ns, msg_ns = probe_unshare_isolation()
+        self.assertIsInstance(ok_ns, bool)
+        self.assertTrue(len(msg_ns) > 10)
+
+        _, exec_dir = prepare_isolated_build_dir(KIT_ROOT, "REG-30")
+        g_src = exec_dir / "arena_guard.c"
+        g_src.write_text(
+            "#include <signal.h>\n#include <sys/wait.h>\n#include <unistd.h>\n"
+            '#include "dt_arena.h"\n'
+            "int main(void) {\n"
+            "    dt_arena_t a; dt_arena_init(&a);\n"
+            "    dt_arena_alloc(&a, 64);\n"
+            "    Region *r = a.raw.begin;\n"
+            "    size_t page = (size_t)sysconf(_SC_PAGESIZE);\n"
+            "    size_t raw = sizeof(Region) + sizeof(uintptr_t) * r->capacity;\n"
+            "    size_t aligned = ((raw + page - 1) / page) * page;\n"
+            "    volatile unsigned char *guard = (volatile unsigned char *)r + aligned;\n"
+            "    pid_t pid = fork();\n"
+            "    if (pid == 0) { unsigned char v = guard[0]; (void)v; _exit(0); }\n"
+            "    int st = 0; waitpid(pid, &st, 0);\n"
+            "    dt_arena_destroy(&a);\n"
+            "    return (WIFSIGNALED(st) && WTERMSIG(st) == SIGSEGV) ? 0 : 1;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        bin_g = exec_dir / "arena_guard"
+        cg = run_captured_process(
+            [
+                "cc",
+                "-I",
+                str(KIT_ROOT / "trusted_harness"),
+                "-I",
+                str(KIT_ROOT / "third_party/tsoding_arena"),
+                str(g_src),
+                str(KIT_ROOT / "trusted_harness/dt_arena.c"),
+                "-o",
+                str(bin_g),
+            ],
+            cwd=exec_dir,
+            isolated_home=self.home,
+        )
+        self.assertEqual(cg.returncode, 0, cg.stderr)
+        rg = run_captured_process([str(bin_g)], cwd=exec_dir, isolated_home=self.home)
+        self.assertEqual(rg.returncode, 0, "Guard page did not trigger SIGSEGV")
+
+        flags = _get_strict_sandbox_flags(KIT_ROOT, exec_dir)
+        t_src = exec_dir / "pthread_churn.c"
+        t_src.write_text(
+            "#define _POSIX_C_SOURCE 200809L\n"
+            "#include <pthread.h>\n#include <stdlib.h>\n#include <string.h>\n"
+            "static void *worker(void *arg) {\n"
+            "    (void)arg;\n"
+            "    for (int i = 0; i < 64; ++i) {\n"
+            '        char *s = strndup("magrathea", 4);\n'
+            "        void *m = malloc((size_t)((i % 5) + 1) * 16);\n"
+            "        free(s);\n"
+            "        free(m);\n"
+            "    }\n"
+            "    return NULL;\n"
+            "}\n"
+            "int main(void) {\n"
+            "    pthread_t th[4];\n"
+            "    for (int i = 0; i < 4; ++i) pthread_create(&th[i], NULL, worker, NULL);\n"
+            "    for (int i = 0; i < 4; ++i) pthread_join(th[i], NULL);\n"
+            "    return 0;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        bin_t = exec_dir / "pthread_churn"
+        ct = run_captured_process(
+            ["cc", "-pthread", str(t_src), *flags, "-o", str(bin_t)],
+            cwd=exec_dir,
+            isolated_home=self.home,
+        )
+        self.assertEqual(ct.returncode, 0, ct.stderr)
+        rt = run_captured_process(
+            [str(bin_t)],
+            cwd=exec_dir,
+            isolated_home=self.home,
+            extra_env={"DT_CHECK_LEAKS": "1"},
+        )
+        self.assertEqual(rt.returncode, 0, rt.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -179,11 +179,39 @@ void free_region(Region *r)
 #include <unistd.h>
 #include <sys/mman.h>
 
+#ifndef MAP_ANONYMOUS
+#ifdef MAP_ANON
+#define MAP_ANONYMOUS MAP_ANON
+#endif
+#endif
+
+static size_t arena_page_size(void)
+{
+    long ps = sysconf(_SC_PAGESIZE);
+    return (ps > 0) ? (size_t)ps : 4096U;
+}
+
+static size_t arena_region_aligned_bytes(size_t capacity, size_t page_sz)
+{
+    size_t raw = sizeof(Region) + sizeof(uintptr_t) * capacity;
+    size_t rem = raw % page_sz;
+    if (rem == 0)
+        return raw;
+    if (raw > (size_t)-1 - (page_sz - rem))
+        return 0;
+    return raw + (page_sz - rem);
+}
+
 Region *new_region(size_t capacity)
 {
-    size_t size_bytes = sizeof(Region) + sizeof(uintptr_t)*capacity;
-    Region *r = (Region*)mmap(NULL, size_bytes, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    size_t page_sz = arena_page_size();
+    size_t aligned_bytes = arena_region_aligned_bytes(capacity, page_sz);
+    ARENA_ASSERT(aligned_bytes != 0 && aligned_bytes <= (size_t)-1 - page_sz);
+    size_t total_bytes = aligned_bytes + page_sz;
+    Region *r = (Region*)mmap(NULL, total_bytes, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     ARENA_ASSERT(r != MAP_FAILED);
+    int guard_ret = mprotect((char*)r + aligned_bytes, page_sz, PROT_NONE);
+    ARENA_ASSERT(guard_ret == 0);
     r->next = NULL;
     r->count = 0;
     r->capacity = capacity;
@@ -192,8 +220,9 @@ Region *new_region(size_t capacity)
 
 void free_region(Region *r)
 {
-    size_t size_bytes = sizeof(Region) + sizeof(uintptr_t)*r->capacity;
-    int ret = munmap(r, size_bytes);
+    size_t page_sz = arena_page_size();
+    size_t aligned_bytes = arena_region_aligned_bytes(r->capacity, page_sz);
+    int ret = munmap(r, aligned_bytes + page_sz);
     ARENA_ASSERT(ret == 0);
 }
 

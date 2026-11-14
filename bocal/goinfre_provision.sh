@@ -12,9 +12,13 @@ mkdir -p -- "$user_goinfre"
 chmod 0700 -- "$user_goinfre"
 
 if [ ! -e "$home_dir/goinfre" ] && [ ! -L "$home_dir/goinfre" ]; then
-    ln -ns -- "$user_goinfre" "$home_dir/goinfre"
+    ln -s "$user_goinfre" "$home_dir/goinfre"
 fi
 
-mode_octal="$(stat -c "%a" -- "$user_goinfre" 2>/dev/null || printf "700")"
+mode_octal="$(stat -c "%a" "$user_goinfre" 2>/dev/null || true)"
+if [ -z "$mode_octal" ]; then
+    mode_octal="$(stat -f "%Lp" "$user_goinfre" 2>/dev/null || true)"
+fi
+mode_octal="${mode_octal:-700}"
 printf "GOINFRE_OK: %s -> %s (mode=%s)\n" \
     "$home_dir/goinfre" "$user_goinfre" "$mode_octal"

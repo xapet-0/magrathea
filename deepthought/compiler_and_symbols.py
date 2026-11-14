@@ -216,12 +216,13 @@ def check_forbidden_c_includes(
 
 
 def strip_c_comments_and_strings(text: str) -> str:
-    """Replace C comments and string literals with spaces."""
+    """Replace C line splices, comments, and string literals with spaces."""
+    spliced = re.sub(r"\\\r?\n", "", text)
     pattern = re.compile(
         r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
         re.DOTALL | re.MULTILINE,
     )
-    return pattern.sub(" ", text)
+    return pattern.sub(" ", spliced)
 
 
 def has_main_definition(file_path: Path) -> bool:
@@ -476,12 +477,12 @@ def verify_symbol_whitelist(
         for fn in allowed_functions
         if fn and str(fn).lower() != "none"
     }
+    # Compilers fold constant printf("%c", c) / printf("...\n") calls into
+    # putchar / puts when student Makefiles omit -fno-builtin.
     if "printf" in whitelist:
         whitelist.update({"putchar", "puts"})
     if "socket" in whitelist or "bind" in whitelist:
         whitelist.update({"htonl", "htons", "ntohl", "ntohs"})
-    if "isspace" in whitelist or "isdigit" in whitelist:
-        whitelist.update({"isdigit", "isspace"})
     if "strerror" in whitelist or "perror" in whitelist or "errno" in whitelist:
         whitelist.add("errno")
 

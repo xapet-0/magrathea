@@ -27,12 +27,12 @@ import threading
 import time
 from typing import Any
 
-import yaml
-
 _SELF_DIR = Path(__file__).resolve().parent
 KIT_ROOT = _SELF_DIR if (_SELF_DIR / "pools").exists() else _SELF_DIR.parent
 if str(KIT_ROOT) not in sys.path:
     sys.path.insert(0, str(KIT_ROOT))
+
+import yaml  # noqa: E402
 
 from deepthought.catalog import validate_duration_seconds  # noqa: E402
 from deepthought.grader import (  # noqa: E402
@@ -1801,7 +1801,7 @@ class ExamShell(cmd.Cmd):
             "--solution",
             "hint",
             "--hint",
-        }:
+        } or re.search(r'(?:^|[/\s"\'])corrections(?:$|[/\s"\'])', arg_str.lower()):
             self.last_exit_code = 2
             msg = self.theme.c(
                 f"Error: Command '{cmd_name}' is not available. "

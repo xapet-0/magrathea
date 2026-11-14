@@ -20,6 +20,7 @@ import contextlib
 import copy
 from dataclasses import dataclass, field
 import difflib
+import fnmatch
 import functools
 import hashlib
 import importlib.util
@@ -278,6 +279,56 @@ def _communicate_bounded(
     out = b"".join(stdout_chunks).decode("utf-8", errors="replace")
     err = b"".join(stderr_chunks).decode("utf-8", errors="replace")
     return out, err
+
+
+def probe_unshare_isolation() -> tuple[bool, str]:
+    """Probe whether unprivileged Linux user/mount namespace isolation succeeds."""
+    if not sys.platform.startswith("linux"):
+        return (
+            False,
+            f"Host OS ({sys.platform}) uses rlimit + process-group sandbox (no Linux namespaces)",
+        )
+    probe_src = (
+        "import ctypes, os, sys\n"
+        "libc = ctypes.CDLL('libc.so.6', use_errno=True)\n"
+        "uid, gid = os.getuid(), os.getgid()\n"
+        "if libc.unshare(0x10000000 | 0x00020000 | 0x08000000) != 0:\n"
+        "    sys.exit(10 + ctypes.get_errno())\n"
+        "try:\n"
+        "    with open('/proc/self/setgroups', 'wb') as fh:\n"
+        "        fh.write(b'deny\\n')\n"
+        "except OSError:\n"
+        "    pass\n"
+        "with open('/proc/self/uid_map', 'wb') as fh:\n"
+        "    fh.write(f'{uid} {uid} 1\\n'.encode('ascii'))\n"
+        "with open('/proc/self/gid_map', 'wb') as fh:\n"
+        "    fh.write(f'{gid} {gid} 1\\n'.encode('ascii'))\n"
+        "if libc.mount(None, b'/', None, (1 << 14) | (1 << 18), None) != 0:\n"
+        "    sys.exit(2)\n"
+    )
+    try:
+        res = subprocess.run(
+            [sys.executable, "-S", "-c", probe_src],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return False, f"Linux namespace isolation probe failed: {exc}"
+    if res.returncode == 0:
+        return (
+            True,
+            "Linux namespace sandbox: CLONE_NEWUSER|NEWNS (tmpfs active)",
+        )
+    err_msg = (
+        os.strerror(res.returncode - 10)
+        if res.returncode > 10
+        else "kernel/AppArmor"
+    )
+    return (
+        False,
+        f"Userns restricted ({err_msg[:28]}); rlimit fallback",
+    )
 
 
 def _build_sandbox_preexec(cwd: Path) -> Callable[[], None]:
@@ -2037,7 +2088,9 @@ _WRAP_LINK_FLAGS = (
     "-Wl,--wrap=malloc",
     "-Wl,--wrap=calloc",
     "-Wl,--wrap=realloc",
+    "-Wl,--wrap=reallocarray",
     "-Wl,--wrap=strdup",
+    "-Wl,--wrap=strndup",
     "-Wl,--wrap=free",
     "-Wl,--wrap=read",
     "-Wl,--wrap=exit",
@@ -2137,7 +2190,14 @@ def _find_extraneous_files(
     expected_files: list[str],
 ) -> list[str]:
     """Return sorted relative paths of disallowed leftover files in an explicit turn-in dir."""
-    allowed_rels = {str(Path(exp)) for exp in expected_files}
+    exact_rels = {
+        str(Path(exp))
+        for exp in expected_files
+        if not any(ch in str(exp) for ch in "*?[")
+    }
+    glob_pats = [
+        str(Path(exp)) for exp in expected_files if any(ch in str(exp) for ch in "*?[")
+    ]
     subj_hdrs = {hf.name for hf in subj_dir.glob("*.h")}
     extras: list[str] = []
     for p in sorted(submit_dir.rglob("*")):
@@ -2152,9 +2212,15 @@ def _find_extraneous_files(
             continue
         if p.suffix == ".o":
             continue
-        if str(rel) in allowed_rels or p.name in subj_hdrs:
+        rel_str = str(rel)
+        if rel_str in exact_rels or p.name in subj_hdrs:
             continue
-        extras.append(str(rel))
+        if any(
+            fnmatch.fnmatch(rel_str, pat) or fnmatch.fnmatch(p.name, pat)
+            for pat in glob_pats
+        ):
+            continue
+        extras.append(rel_str)
     return extras
 
 
@@ -2645,7 +2711,7 @@ def _grade_subject_inner(
                 oracle_info,
             )
 
-    if not has_wildcard_c and expected_files and not is_rush_or_bsq:
+    if expected_files and "Makefile" not in expected_files and not is_rush_or_bsq:
         extras = _find_extraneous_files(
             submit_dir, subj_dir, [str(e) for e in expected_files]
         )
@@ -2888,9 +2954,7 @@ def _grade_subject_inner(
                     ):
                         common_files = [gen_dir / "main.c"]
                     user_gen_exe = work / "user_gen_exe"
-                    gen_strict = (
-                        _get_strict_sandbox_flags(kit_root, work) if strict else []
-                    )
+                    gen_strict = _get_strict_sandbox_flags(kit_root, work)
                     link_cmd = [
                         "cc",
                         *FLAGS_COMPILE_SAFE,
@@ -2935,9 +2999,17 @@ def _grade_subject_inner(
                                     if isinstance(cmd_args, str)
                                     else [str(a) for a in cmd_args]
                                 )
+                                gen_env = {**os.environ}
+                                if meta.get("check_leaks") is not False and (
+                                    not is_func_ex
+                                    or whitelist is None
+                                    or "free" in (whitelist or [])
+                                ):
+                                    gen_env["DT_CHECK_LEAKS"] = "1"
                                 rproc = _run_isolated(
                                     [str(user_gen_exe), *split_args],
                                     cwd=work,
+                                    env=gen_env,
                                     timeout=2.0,
                                 )
                             except subprocess.TimeoutExpired:
@@ -3356,7 +3428,7 @@ def _grade_subject_inner(
                     )
 
                 fixed_env = {**os.environ}
-                if strict and (
+                if meta.get("check_leaks") is not False and (
                     "free(" in combined_tests_text
                     or subject_id
                     in {
@@ -3550,7 +3622,9 @@ def _grade_subject_inner(
                     reveal_tests=reveal_tests,
                 )
                 oracle_env = {**os.environ}
-                if strict and (whitelist is None or "free" in (whitelist or [])):
+                if meta.get("check_leaks") is not False and (
+                    whitelist is None or "free" in (whitelist or [])
+                ):
                     oracle_env["DT_CHECK_LEAKS"] = "1"
                 try:
                     rproc = _run_isolated(
@@ -3842,7 +3916,11 @@ def _grade_subject_inner(
                 try:
                     cprog_env = {
                         **os.environ,
-                        **({"DT_CHECK_LEAKS": "1"} if strict else {}),
+                        **(
+                            {"DT_CHECK_LEAKS": "1"}
+                            if meta.get("check_leaks") is not False
+                            else {}
+                        ),
                     }
                     rproc = _run_isolated(
                         [invoke_bin, *args],

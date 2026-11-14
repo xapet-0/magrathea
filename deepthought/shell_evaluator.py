@@ -23,8 +23,6 @@ import tempfile
 import threading
 from typing import Any
 
-import yaml
-
 
 @dataclass
 class ShellEvalResult:
@@ -713,7 +711,11 @@ def _evaluate_shell_inside_workdir(
     t_cfg: dict[str, Any] = {}
     fixed_tests: list[dict[str, Any]] = []
     if subj_candidates:
-        t_cfg = yaml.safe_load(subj_candidates[0].read_text(encoding="utf-8")) or {}
+        from .grader import _safe_load_yaml
+
+        t_cfg = _safe_load_yaml(subj_candidates[0])
+        if "__yaml_error__" in t_cfg:
+            t_cfg = {}
         fixed_tests = t_cfg.get("fixed_tests") or []
 
     # Handle static turned-in files (`shell_file` like kerberos, mobile-phone.ldif, diff)

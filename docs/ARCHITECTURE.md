@@ -25,22 +25,25 @@ magrathea/
 │   ├── shnorm              # 42 Shell script style & security linter
 │   ├── pforge              # Pool & subject scaffolding utility
 │   ├── ft_lock             # Session lock file utility
-│   ├── libmemsentinel.so   # Memory allocation canary library
 │   └── ...
 ├── bocal/                  # Cluster workstation scripts (Bocal administration)
-├── core/                   # C source tree for memory sentinels & low-level test harnesses
-│   ├── Makefile            # Standalone build for libmemsentinel.so & matrix runners
-│   ├── include/            # Core grading C headers (moulinette_core.h)
-│   └── src/                # Sandbox, memory sentinels, and diff implementations
-├── deepthought/            # Core Python grading engine & UI subsystems
+├── deepthought/            # Core Python & C11 grading engine & UI subsystems
 │   ├── compiler_and_symbols.py  # ELF nm -u symbol gate & compiler invocations
-│   ├── grader.py                # 5-gate grading orchestrator
+│   ├── grader.py                # 5-gate grading orchestrator & namespace sandbox
 │   ├── sandbox_harness.c        # Malloc redzone canary & leak detector wrapper
-│   ├── ui_theme.py              # 4-palette terminal theme engine (Cyberpunk, etc.)
+│   ├── ui_theme.py              # 4-palette terminal theme engine
 │   ├── vogsphere.py             # Bare Git repository management
 │   └── ...
+├── trusted_harness/        # C11 Arena-01 adapter & compiler/leak guards
+│   ├── dt_arena.c          # mmap-backed dual-domain arena allocator
+│   ├── dt_compiler_guard.c # Include restriction pre-scanner
+│   └── dt_sandbox_harness.h
+├── third_party/            # Bundled upstream components
+│   ├── norminette/         # Official 42 Norminette (3.3.60)
+│   └── tsoding_arena/      # arena.h mmap region allocator with PROT_NONE guard page
 ├── docs/                   # Technical specifications
-│   └── ARCHITECTURE.md     # This architecture reference
+│   ├── ARCHITECTURE.md     # This architecture reference
+│   └── CORE_ENGINE_5_GATES.md
 ├── pools/                  # Curriculum tracks and examination definitions (YAML)
 │   ├── exams/              # 9 Exam tracks (Rank 02-06, C Piscine Exam 00-02, Final)
 │   └── piscine/            # 17 C Piscine modules (Shell 00 to C 13, Rush/BSQ)
@@ -90,10 +93,10 @@ flowchart LR
    - Flags unused variables, implicit function declarations, and incompatible type assignments.
 
 4. **Gate 4: Runtime Sandbox & Canary Redzone (`sandbox_harness.c`)**:
-   - Interposes memory allocations via `-Wl,--wrap=malloc` and `-Wl,--wrap=free`.
-   - Surrounds heap allocations with 16-byte canary guards (pattern `0xDE, 0xAD, 0xBE, 0xEF`).
-   - Detects buffer underflows, buffer overflows, double-frees, and invalid pointer releases (exit code 43).
-   - Monitors active allocations at program termination to detect memory leaks (exit code 42).
+   - Masks `corrections/`, `subjects/`, and `pools/` inside an unprivileged Linux user/mount namespace (`CLONE_NEWUSER | CLONE_NEWNS` + `mode=000` `tmpfs`) when permitted by the host kernel, while keeping build temp directories writable.
+   - Interposes memory allocations on Linux/WSL2 (`GNU ld`) via `-Wl,--wrap=malloc,calloc,realloc,reallocarray,strdup,strndup,free,read,exit,_exit,_Exit` (gracefully omitted on macOS `ld64`).
+   - Surrounds heap allocations with 16-byte front (`0x5A`) and 16-byte rear (`0xA5`) redzone canaries, while isolating harness metadata in `trusted_harness/dt_arena.c` (`mmap` regions with trailing `PROT_NONE` guard pages).
+   - Detects buffer underflows/overflows (`43`), invalid/arena frees (`44`), allocation cap exhaustion (`45`), double frees (`6`), and unfreed heap blocks at termination (`42`).
 
 5. **Gate 5: Differential Output Oracle (`grader.py`)**:
    - Compares standard output and return codes against verified reference implementations in `corrections/`.
