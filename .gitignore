@@ -35,3 +35,10 @@ workspace/vogsphere.git/
 vogsphere/*
 !vogsphere/.gitkeep
 build/
+
+# AI Session Memory Bank & Local Tooling Caches (local-only)
+.ai/
+AGENTS.md
+.aiignore
+.pytest_cache/
+.ruff_cache/
