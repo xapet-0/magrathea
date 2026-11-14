@@ -12,28 +12,35 @@ Handles:
 - Python exercises (`python` in Rank 03 & Rank 04)
 - Strict Zero-Empty-Test Gate (`DEF-013` / `GRD-003`): refuses to pass any exercise if 0 tests or empty oracles were executed.
 """
+
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
+import contextlib
+import copy
+from dataclasses import dataclass, field
 import difflib
 import functools
+import hashlib
+import importlib.util
 import json
 import os
 import pathlib
+from pathlib import Path
 import platform
 import re
 import selectors
 import shlex
 import shutil
 import signal
+import stat as stat_mod
 import subprocess
 import sys
 import tempfile
 import threading
 import time
-from dataclasses import dataclass, field
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any
+
 import yaml
 
 from .compiler_and_symbols import (
@@ -44,15 +51,12 @@ from .compiler_and_symbols import (
     verify_symbol_whitelist,
 )
 from .makefile_and_repo import audit_makefile
-from .shell_evaluator import evaluate_shell_exercise
-
-
-
+from .shell_evaluator import evaluate_shell_exercise, is_junk_dotfile
 
 _EXEC_TEMP_ROOT_CACHE: dict[str, Path] = {}
 
 
-def get_executable_temp_root(kit_root: Optional[Path] = None) -> Path:
+def get_executable_temp_root(kit_root: Path | None = None) -> Path:
     """Return a verified directory where compiled binaries can be executed via execve(2).
 
     Probes candidate directories by creating a mode-0700 temporary directory and executing
@@ -72,7 +76,7 @@ def get_executable_temp_root(kit_root: Optional[Path] = None) -> Path:
         candidates.append(Path(env_exec))
     candidates.append(Path(tempfile.gettempdir()))
     candidates.append(Path("/var/tmp"))
-    candidates.append( base_kit / "workspace" / ".tmp_exec")
+    candidates.append(base_kit / "workspace" / ".tmp_exec")
     candidates.append(Path.home() / ".cache" / "magrathea_exec_tmp")
 
     for cand in candidates:
@@ -81,7 +85,9 @@ def get_executable_temp_root(kit_root: Optional[Path] = None) -> Path:
                 continue
             cand.mkdir(parents=True, exist_ok=True)
             cand_resolved = cand.resolve()
-            with tempfile.TemporaryDirectory(prefix=".dt_exec_probe_", dir=str(cand_resolved)) as probe_td:
+            with tempfile.TemporaryDirectory(
+                prefix=".dt_exec_probe_", dir=str(cand_resolved)
+            ) as probe_td:
                 probe_dir = Path(probe_td)
                 os.chmod(probe_dir, 0o700)
                 probe_bin = probe_dir / "probe.sh"
@@ -106,11 +112,6 @@ def get_executable_temp_root(kit_root: Optional[Path] = None) -> Path:
     return fallback
 
 
-import copy
-import hashlib
-import importlib.util
-import stat as stat_mod
-
 MAX_YAML_FILE_BYTES = 512 * 1024
 MAX_YAML_NESTING_DEPTH = 32
 _YAML_CONTENT_CACHE: dict[tuple[str, str], dict[str, Any]] = {}
@@ -133,7 +134,9 @@ def _safe_load_yaml(path: Path) -> dict[str, Any]:
     except OSError:
         return {}
     if st.st_size > MAX_YAML_FILE_BYTES:
-        return {"__yaml_error__": f"YAML file exceeds maximum permitted size ({st.st_size} > {MAX_YAML_FILE_BYTES} bytes)"}
+        return {
+            "__yaml_error__": f"YAML file exceeds maximum permitted size ({st.st_size} > {MAX_YAML_FILE_BYTES} bytes)"
+        }
     try:
         raw_bytes = path.read_bytes()
     except OSError:
@@ -145,11 +148,18 @@ def _safe_load_yaml(path: Path) -> dict[str, Any]:
         return copy.deepcopy(cached)
     try:
         raw_txt = raw_bytes.decode("utf-8", errors="replace")
-        if re.search(r'(?:\s|^)&[A-Za-z0-9_\-]+', raw_txt) and len(re.findall(r'(?:\s|^)\*[A-Za-z0-9_\-]+', raw_txt)) > 64:
-            return {"__yaml_error__": "YAML alias expansion limit exceeded (>64 alias references)"}
+        if (
+            re.search(r"(?:\s|^)&[A-Za-z0-9_\-]+", raw_txt)
+            and len(re.findall(r"(?:\s|^)\*[A-Za-z0-9_\-]+", raw_txt)) > 64
+        ):
+            return {
+                "__yaml_error__": "YAML alias expansion limit exceeded (>64 alias references)"
+            }
         data = yaml.safe_load(raw_txt)
         if not _check_yaml_nesting_depth(data):
-            return {"__yaml_error__": f"YAML nesting depth exceeds maximum permitted depth ({MAX_YAML_NESTING_DEPTH})"}
+            return {
+                "__yaml_error__": f"YAML nesting depth exceeds maximum permitted depth ({MAX_YAML_NESTING_DEPTH})"
+            }
         res = data if isinstance(data, dict) else {}
         if len(_YAML_CONTENT_CACHE) > 2048:
             _YAML_CONTENT_CACHE.clear()
@@ -161,7 +171,7 @@ def _safe_load_yaml(path: Path) -> dict[str, Any]:
 
 def _communicate_bounded(
     proc: subprocess.Popen[str],
-    input_data: Optional[str] = None,
+    input_data: str | None = None,
     timeout: float = 2.0,
     max_bytes: int = 270336,
 ) -> tuple[str, str]:
@@ -299,57 +309,76 @@ def _build_sandbox_preexec(cwd: Path) -> Callable[[], None]:
         if sys.platform.startswith("linux"):
             try:
                 import ctypes
+
                 libc = ctypes.CDLL("libc.so.6", use_errno=True)
-                CLONE_NEWNS = 0x00020000
-                CLONE_NEWIPC = 0x08000000
-                CLONE_NEWUSER = 0x10000000
-                CLONE_NEWNET = 0x40000000
-                MS_RDONLY = 1
-                MS_NOSUID = 2
-                MS_NODEV = 4
-                MS_NOEXEC = 8
-                MS_REC = 1 << 14
-                MS_PRIVATE = 1 << 18
-                if libc.unshare(CLONE_NEWUSER | CLONE_NEWNS | CLONE_NEWIPC) == 0:
+                clone_newns = 0x00020000
+                clone_newipc = 0x08000000
+                clone_newuser = 0x10000000
+                ms_rdonly = 1
+                ms_nosuid = 2
+                ms_nodev = 4
+                ms_noexec = 8
+                ms_rec = 1 << 14
+                ms_private = 1 << 18
+                if libc.unshare(clone_newuser | clone_newns | clone_newipc) == 0:
                     try:
                         Path("/proc/self/setgroups").write_bytes(b"deny\n")
                     except OSError:
                         pass
-                    Path("/proc/self/uid_map").write_bytes(f"{uid} {uid} 1\n".encode("ascii"))
-                    Path("/proc/self/gid_map").write_bytes(f"{gid} {gid} 1\n".encode("ascii"))
-                    libc.mount(None, b"/", None, MS_REC | MS_PRIVATE, None)
+                    Path("/proc/self/uid_map").write_bytes(
+                        f"{uid} {uid} 1\n".encode("ascii")
+                    )
+                    Path("/proc/self/gid_map").write_bytes(
+                        f"{gid} {gid} 1\n".encode("ascii")
+                    )
+                    libc.mount(None, b"/", None, ms_rec | ms_private, None)
                     for pdir in protected_dirs:
                         if not cwd_resolved.startswith(pdir) and os.path.isdir(pdir):
                             rc_m = libc.mount(
                                 b"tmpfs",
                                 pdir.encode("utf-8"),
                                 b"tmpfs",
-                                MS_RDONLY | MS_NOSUID | MS_NODEV | MS_NOEXEC,
+                                ms_rdonly | ms_nosuid | ms_nodev | ms_noexec,
                                 b"size=4k,mode=000",
                             )
                             if rc_m != 0 and require_ns:
-                                raise OSError(ctypes.get_errno(), f"Failed to mask protected directory {pdir}")
+                                raise OSError(
+                                    ctypes.get_errno(),
+                                    f"Failed to mask protected directory {pdir}",
+                                )
                     import struct
-                    PR_SET_NO_NEW_PRIVS = 38
-                    PR_CAPBSET_DROP = 24
-                    _LINUX_CAPABILITY_VERSION_3 = 0x20080522
-                    libc.prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)
+
+                    pr_set_no_new_privs = 38
+                    pr_capbset_drop = 24
+                    linux_cap_version_3 = 0x20080522
+                    libc.prctl(pr_set_no_new_privs, 1, 0, 0, 0)
                     for _cap in range(41):
-                        libc.prctl(PR_CAPBSET_DROP, _cap, 0, 0, 0)
-                    _cap_hdr = struct.pack("II", _LINUX_CAPABILITY_VERSION_3, 0)
+                        libc.prctl(pr_capbset_drop, _cap, 0, 0, 0)
+                    _cap_hdr = struct.pack("II", linux_cap_version_3, 0)
                     _cap_data = struct.pack("IIIIII", 0, 0, 0, 0, 0, 0)
                     if libc.capset(_cap_hdr, _cap_data) != 0 and require_ns:
-                        raise OSError(ctypes.get_errno(), "Sandbox capability drop (capset) failed")
+                        raise OSError(
+                            ctypes.get_errno(),
+                            "Sandbox capability drop (capset) failed",
+                        )
                 elif require_ns:
-                    raise OSError(ctypes.get_errno(), "Sandbox namespace isolation (unshare) failed")
+                    raise OSError(
+                        ctypes.get_errno(),
+                        "Sandbox namespace isolation (unshare) failed",
+                    )
             except Exception:
                 if require_ns:
                     raise
         try:
             import resource
+
             resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-            resource.setrlimit(resource.RLIMIT_FSIZE, (16 * 1024 * 1024, 16 * 1024 * 1024))
-            resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
+            resource.setrlimit(
+                resource.RLIMIT_FSIZE, (16 * 1024 * 1024, 16 * 1024 * 1024)
+            )
+            resource.setrlimit(
+                resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024)
+            )
             resource.setrlimit(resource.RLIMIT_NOFILE, (1024, 1024))
             # Bound fork bombs and runaway CPU even when the child calls setsid().
             if hasattr(resource, "RLIMIT_NPROC"):
@@ -372,8 +401,8 @@ def _run_isolated(
     cmd: Sequence[str] | str,
     *,
     cwd: Path,
-    env: Optional[Dict[str, str]] = None,
-    input_data: Optional[str] = None,
+    env: dict[str, str] | None = None,
+    input_data: str | None = None,
     timeout: float = 2.0,
     shell: bool = False,
 ) -> subprocess.CompletedProcess[str]:
@@ -396,7 +425,9 @@ def _run_isolated(
         preexec_fn=_build_sandbox_preexec(cwd),
     )
     try:
-        stdout, stderr = _communicate_bounded(proc, input_data=input_data, timeout=timeout)
+        stdout, stderr = _communicate_bounded(
+            proc, input_data=input_data, timeout=timeout
+        )
     except subprocess.TimeoutExpired:
         try:
             os.killpg(proc.pid, signal.SIGKILL)
@@ -437,12 +468,14 @@ def _to_cat_e(text: str) -> str:
 @dataclass
 class GradeError:
     """Unified structured grading error separating student vs. infrastructure failures."""
+
     kind: str
     category: str  # "student" | "infrastructure"
     context: str
     suggested_fix: str
 
     def to_dict(self) -> dict[str, str]:
+        """Serialize the structured grade error to a JSON-compatible dictionary."""
         return {
             "kind": self.kind,
             "category": self.category,
@@ -451,8 +484,9 @@ class GradeError:
         }
 
 
-
-def classify_process_exit_status(returncode: int, stderr_text: str = "", timed_out: bool = False) -> tuple[str, str, bool]:
+def classify_process_exit_status(
+    returncode: int, stderr_text: str = "", timed_out: bool = False
+) -> tuple[str, str, bool]:
     """Classify subprocess termination status using trusted_harness/dt_diagnostics.c (via libdt_core.so when built)
     with exact parity fallback. Strictly preserves negative signal numbers (e.g. SIGABRT -6, SIGSEGV -11, SIGBUS -7)
     versus positive normal exit codes (e.g. Exit 6, Exit 11, Exit 7) and memory KO exit codes (42, 43, 44, 45, 46).
@@ -468,34 +502,81 @@ def classify_process_exit_status(returncode: int, stderr_text: str = "", timed_o
         sig = -returncode
         if sig == 6:
             if "[DOUBLE FREE KO]" in err_s:
-                return "Double/Invalid Free KO (abort)", "Double free detected by memory harness", True
-            return "Abort (Signal -6)", "Process terminated by SIGABRT (Signal -6)", True
+                return (
+                    "Double/Invalid Free KO (abort)",
+                    "Double free detected by memory harness",
+                    True,
+                )
+            return (
+                "Abort (Signal -6)",
+                "Process terminated by SIGABRT (Signal -6)",
+                True,
+            )
         if sig == 11:
-            return "Segmentation fault (Signal -11)", "Process terminated by SIGSEGV (Signal -11)", True
+            return (
+                "Segmentation fault (Signal -11)",
+                "Process terminated by SIGSEGV (Signal -11)",
+                True,
+            )
         if sig == 7:
-            return "Bus error (Signal -7)", "Process terminated by SIGBUS (Signal -7)", True
+            return (
+                "Bus error (Signal -7)",
+                "Process terminated by SIGBUS (Signal -7)",
+                True,
+            )
         if sig == 8:
-            return "Floating point exception (Signal -8)", "Process terminated by SIGFPE (Signal -8)", True
+            return (
+                "Floating point exception (Signal -8)",
+                "Process terminated by SIGFPE (Signal -8)",
+                True,
+            )
         return f"Signal -{sig}", f"Process terminated by Signal -{sig}", True
 
     # Positive exit codes (1..255): never misclassify positive exit codes 6, 7, 8, 11 as signals!
     if returncode == 42:
-        return "Leak KO (memory leak detected)", "Unfreed heap memory blocks detected at exit", True
+        return (
+            "Leak KO (memory leak detected)",
+            "Unfreed heap memory blocks detected at exit",
+            True,
+        )
     if returncode == 43:
-        return "Redzone KO (heap buffer overflow / off-by-one)", "Heap redzone canary corruption detected", True
+        return (
+            "Redzone KO (heap buffer overflow / off-by-one)",
+            "Heap redzone canary corruption detected",
+            True,
+        )
     if returncode == 44:
         if "[ARENA OWNERSHIP KO]" in err_s:
-            return "Invalid Free KO (arena ownership violation)", "Student attempted to free/realloc harness arena pointer", True
-        return "Invalid Free KO (untracked or misaligned pointer)", "Attempted to free untracked or misaligned pointer", True
+            return (
+                "Invalid Free KO (arena ownership violation)",
+                "Student attempted to free/realloc harness arena pointer",
+                True,
+            )
+        return (
+            "Invalid Free KO (untracked or misaligned pointer)",
+            "Attempted to free untracked or misaligned pointer",
+            True,
+        )
     if returncode == 45:
-        return "Allocation Tracking Exhausted KO", "Allocation tracking capacity exceeded", True
+        return (
+            "Allocation Tracking Exhausted KO",
+            "Allocation tracking capacity exceeded",
+            True,
+        )
     if returncode == 46 or (returncode == 6 and "[DOUBLE FREE KO]" in err_s):
-        return "Double/Invalid Free KO (abort)", "Double free detected by memory harness", True
+        return (
+            "Double/Invalid Free KO (abort)",
+            "Double free detected by memory harness",
+            True,
+        )
 
     return f"Exit {returncode}", f"Non-zero exit code {returncode}", False
 
 
-def classify_grade_error(subject_id: str, ok: bool, status: str, reason: str, last_cmd: str = "") -> GradeError | None:
+def classify_grade_error(
+    subject_id: str, ok: bool, status: str, reason: str, last_cmd: str = ""
+) -> GradeError | None:
+    """Classify a failed grading outcome into student or infrastructure error metadata."""
     if ok:
         return None
     s_low = (status or "").lower()
@@ -503,7 +584,12 @@ def classify_grade_error(subject_id: str, ok: bool, status: str, reason: str, la
     combined = f"{s_low} | {r_low}"
 
     # 1. Infrastructure / configuration failures (never blamed on student code)
-    if "configuration error" in combined or "malformed" in combined or "no test cases executed" in combined or "empty test oracle" in combined:
+    if (
+        "configuration error" in combined
+        or "malformed" in combined
+        or "no test cases executed" in combined
+        or "empty test oracle" in combined
+    ):
         if "meta.yml" in combined:
             kind = "malformed_meta_yaml"
             fix = f"Fix YAML syntax in subjects/{subject_id}/meta.yml."
@@ -544,7 +630,7 @@ def classify_grade_error(subject_id: str, ok: bool, status: str, reason: str, la
             category="student",
             context=f"{subject_id}: {reason}",
             suggested_fix="Remove forbidden functions, headers, or inline assembly and restrict calls to "
-                          " the subject's Allowed functions list.",
+            " the subject's Allowed functions list.",
         )
     if "norme" in combined or "sh-norm" in combined:
         return GradeError(
@@ -553,7 +639,11 @@ def classify_grade_error(subject_id: str, ok: bool, status: str, reason: str, la
             context=f"{subject_id}: {reason}",
             suggested_fix="Run `norminette` (or `shnorm` for shell scripts) and fix formatting/style violations.",
         )
-    if "does not compile" in combined or "compilation" in combined or "must_not_compile" in combined:
+    if (
+        "does not compile" in combined
+        or "compilation" in combined
+        or "must_not_compile" in combined
+    ):
         return GradeError(
             kind="compile_error",
             category="student",
@@ -571,17 +661,39 @@ def classify_grade_error(subject_id: str, ok: bool, status: str, reason: str, la
         return GradeError(
             kind="timeout",
             category="student",
-            context=f"{subject_id}: {reason}" + (f" while running `{last_cmd}`" if last_cmd else ""),
+            context=f"{subject_id}: {reason}"
+            + (f" while running `{last_cmd}`" if last_cmd else ""),
             suggested_fix="Check loop termination conditions, pointer increments, and blocking read() calls.",
         )
-    if any(k in combined for k in ("segfault", "sigsegv", "sigabrt", "bus error", "sigbus", "fpe", "sigfpe", "signal", "crash", "asan", "ubsan", "overflow")):
+    if any(
+        k in combined
+        for k in (
+            "segfault",
+            "sigsegv",
+            "sigabrt",
+            "bus error",
+            "sigbus",
+            "fpe",
+            "sigfpe",
+            "signal",
+            "crash",
+            "asan",
+            "ubsan",
+            "overflow",
+        )
+    ):
         return GradeError(
             kind="runtime_crash_or_sanitizer",
             category="student",
             context=f"{subject_id}: {status} ({reason})",
             suggested_fix="Check null-pointer dereferences, out-of-bounds array indexing, signed integer overflow, and unallocated memory access.",
         )
-    if "leak" in combined or "free" in combined or "heap" in combined or "memory" in combined:
+    if (
+        "leak" in combined
+        or "free" in combined
+        or "heap" in combined
+        or "memory" in combined
+    ):
         return GradeError(
             kind="memory_error",
             category="student",
@@ -608,10 +720,6 @@ def classify_grade_error(subject_id: str, ok: bool, status: str, reason: str, la
         context=f"{subject_id}: {status}" + (f" on `{last_cmd}`" if last_cmd else ""),
         suggested_fix="Compare expected vs. actual `cat -e` output in the trace (check trailing spaces and newlines).",
     )
-
-
-
-import contextlib
 
 
 @contextlib.contextmanager
@@ -648,7 +756,9 @@ def _collect_arena_stats(work: Path) -> dict[str, int] | None:
         "student_leaked_bytes": 0,
     }
     parsed_any = False
-    for raw_line in stats_file.read_text(encoding="utf-8", errors="ignore").splitlines():
+    for raw_line in stats_file.read_text(
+        encoding="utf-8", errors="ignore"
+    ).splitlines():
         raw_line = raw_line.strip()
         if not raw_line:
             continue
@@ -661,11 +771,21 @@ def _collect_arena_stats(work: Path) -> dict[str, int] | None:
         parsed_any = True
         agg["sandbox_runs"] += 1
         agg["regions_allocated"] += int(row.get("regions_allocated", 0))
-        agg["active_regions_max"] = max(agg["active_regions_max"], int(row.get("active_regions", 0)))
-        agg["reserved_bytes_max"] = max(agg["reserved_bytes_max"], int(row.get("reserved_bytes", 0)))
-        agg["used_bytes_max"] = max(agg["used_bytes_max"], int(row.get("used_bytes", 0)))
-        agg["peak_reserved_bytes"] = max(agg["peak_reserved_bytes"], int(row.get("peak_reserved_bytes", 0)))
-        agg["peak_used_bytes"] = max(agg["peak_used_bytes"], int(row.get("peak_used_bytes", 0)))
+        agg["active_regions_max"] = max(
+            agg["active_regions_max"], int(row.get("active_regions", 0))
+        )
+        agg["reserved_bytes_max"] = max(
+            agg["reserved_bytes_max"], int(row.get("reserved_bytes", 0))
+        )
+        agg["used_bytes_max"] = max(
+            agg["used_bytes_max"], int(row.get("used_bytes", 0))
+        )
+        agg["peak_reserved_bytes"] = max(
+            agg["peak_reserved_bytes"], int(row.get("peak_reserved_bytes", 0))
+        )
+        agg["peak_used_bytes"] = max(
+            agg["peak_used_bytes"], int(row.get("peak_used_bytes", 0))
+        )
         agg["total_allocations"] += int(row.get("total_allocations", 0))
         agg["reused_regions"] += int(row.get("reused_regions", 0))
         agg["allocation_failures"] += int(row.get("allocation_failures", 0))
@@ -678,8 +798,11 @@ def _collect_arena_stats(work: Path) -> dict[str, int] | None:
         agg["student_leaked_bytes"] += int(row.get("student_leaked_bytes", 0))
     return agg if parsed_any else None
 
+
 @dataclass
 class GradeReport:
+    """Structured result of grading a 42/1337 exercise submission."""
+
     subject_id: str
     ok: bool
     status: str
@@ -695,24 +818,32 @@ class GradeReport:
 
     def __post_init__(self) -> None:
         if not self.ok and self.error_info is None:
-            err = classify_grade_error(self.subject_id, self.ok, self.status, self.reason, self.last_cmd)
+            err = classify_grade_error(
+                self.subject_id, self.ok, self.status, self.reason, self.last_cmd
+            )
             if err is not None:
                 self.error_info = err.to_dict()
 
     @property
     def is_infrastructure_error(self) -> bool:
-        return bool(self.error_info and self.error_info.get("category") == "infrastructure")
+        """Return True if the failure originated in grader infrastructure."""
+        return bool(
+            self.error_info and self.error_info.get("category") == "infrastructure"
+        )
 
     @property
     def passed(self) -> bool:
+        """Return True when the submission passed grading."""
         return self.ok
 
     @property
     def grade(self) -> int:
+        """Return numeric 42 grade (100, 0, or -42)."""
         return 100 if self.ok else (-42 if "-42" in self.status else 0)
 
     @property
     def trace(self) -> str:
+        """Return the raw Deepthought trace text."""
         return self.trace_text
 
     def format_exam_trace_summary(self, *, include_coaching: bool = False) -> str:
@@ -740,7 +871,7 @@ class GradeReport:
             coaching_suffix = f"\n[Suggested Fix]: {self.error_info['suggested_fix']}"
             if self.trap_diagnostic:
                 coaching_suffix += f"\n[Coaching Hint]: {self.trap_diagnostic}"
-        if self.expected_cat_e or self.actual_cat_e or self.last_cmd:
+        if self.expected_cat_e or self.actual_cat_e:
             exp_s = self.expected_cat_e.rstrip("\n")
             act_s = self.actual_cat_e.rstrip("\n")
             return (
@@ -753,14 +884,55 @@ class GradeReport:
                 "===============================================\n"
                 ">>>>>>>>>> FAILURE <<<<<<<<<<" + coaching_suffix
             )
+        cmd_line = f"Command: {self.last_cmd}\n" if self.last_cmd else ""
         return (
             "==================== TRACE ====================\n"
+            f"{cmd_line}"
             f"Status : {self.status}\n"
             f"Detail : {self.reason}\n"
             "===============================================\n"
             ">>>>>>>>>> FAILURE <<<<<<<<<<" + coaching_suffix
         )
 
+
+TRACE_MODES = ("real", "helpful")
+
+
+def add_trace_mode_arguments(parser: Any, *, default: str | None = "real") -> None:
+    """Register shared --trace-mode and --helpful CLI options (defaulting to Real-42 hidden traces)."""
+    parser.add_argument(
+        "--trace-mode",
+        choices=TRACE_MODES,
+        default=default,
+        help="Trace detail mode: 'real' (42 hidden c_function inputs/diffs, default) or 'helpful' (show unified diffs)",
+    )
+    parser.add_argument(
+        "--helpful",
+        action="store_true",
+        help="Shortcut for --trace-mode helpful (reveal c_function test expressions and unified diffs)",
+    )
+
+
+def resolve_trace_mode(args: Any, override: str | None = None) -> str:
+    """Resolve normalized trace mode ('real' or 'helpful') safely from args or SimpleNamespace."""
+    if override in TRACE_MODES:
+        return str(override)
+    if getattr(args, "helpful", False) or getattr(args, "reveal_tests", False):
+        return "helpful"
+    mode = str(getattr(args, "trace_mode", "real") or "real").strip().lower()
+    return mode if mode in TRACE_MODES else "real"
+
+
+def parse_trace_mode_arg(arg: str) -> tuple[str | None, str | None]:
+    """Parse an interactive trace-mode command argument into (new_mode, error_msg)."""
+    toks = str(arg or "").strip().lower().split()
+    if toks and toks[0] == "mode":
+        toks = toks[1:]
+    if not toks:
+        return None, None
+    if len(toks) == 1 and toks[0] in TRACE_MODES:
+        return toks[0], None
+    return None, "Usage: trace-mode [real|helpful]"
 
 
 MAX_OUTPUT_BYTES = 65536
@@ -771,10 +943,20 @@ def _truncate_stream(text: str, limit: int = MAX_OUTPUT_BYTES) -> tuple[str, boo
     """Truncate oversized stdout/stderr stream to prevent OOM or trace bloat (`MAJ-02`)."""
     if len(text) <= limit:
         return text, False
-    return text[:limit] + f"\n...[Output truncated at {limit // 1024} KB — Output limit exceeded]...\n", True
+    return (
+        text[:limit]
+        + f"\n...[Output truncated at {limit // 1024} KB — Output limit exceeded]...\n",
+        True,
+    )
 
 
-def format_unified_diff(expected: str, actual: str, label_exp: str = "test.output", label_got: str = "user_output") -> str:
+def format_unified_diff(
+    expected: str,
+    actual: str,
+    label_exp: str = "test.output",
+    label_got: str = "user_output",
+) -> str:
+    """Format a bounded unified diff between expected and actual outputs."""
     expected, _ = _truncate_stream(expected, MAX_DIFF_Preview_BYTES)
     actual, _ = _truncate_stream(actual, MAX_DIFF_Preview_BYTES)
     exp_has_nl = expected.endswith("\n")
@@ -812,11 +994,17 @@ def format_unified_diff(expected: str, actual: str, label_exp: str = "test.outpu
     )
     if diff and not got_has_nl and got_raw:
         # Insert '\ No newline at end of file$' after the last '-' line
-        last_minus_idx = max((i for i, l in enumerate(diff) if l.startswith("-") and not l.startswith("---")), default=-1)
+        last_minus_idx = max(
+            (
+                i
+                for i, line in enumerate(diff)
+                if line.startswith("-") and not line.startswith("---")
+            ),
+            default=-1,
+        )
         if last_minus_idx != -1:
             diff.insert(last_minus_idx + 1, "\\ No newline at end of file$\n")
     return "".join(diff).rstrip("\n")
-
 
 
 @functools.lru_cache(maxsize=1)
@@ -825,19 +1013,31 @@ def _cached_host_and_compiler_info() -> tuple[str, str, str, str]:
     u = platform.uname()
     uname_s = f"{u.system} {u.release} {u.machine}"
     gcc_v = (
-        subprocess.run(["gcc", "--version"], capture_output=True, text=True).stdout.splitlines()[0]
+        subprocess.run(
+            ["gcc", "--version"], capture_output=True, text=True
+        ).stdout.splitlines()[0]
         if shutil.which("gcc")
         else "gcc (Debian) 12.2.0"
     )
     clang_v = (
-        subprocess.run(["clang", "--version"], capture_output=True, text=True).stdout.splitlines()[0]
+        subprocess.run(
+            ["clang", "--version"], capture_output=True, text=True
+        ).stdout.splitlines()[0]
         if shutil.which("clang")
         else "clang: not installed (dual-compiler check skipped)"
     )
     return host, uname_s, gcc_v, clang_v
 
 
-def build_deepthought_header(subject_id: str, rendu_dir=None, expected_files=None, git_repo=None, git_log_text: str | None = None, **kwargs) -> str:
+def build_deepthought_header(
+    subject_id: str,
+    rendu_dir=None,
+    expected_files=None,
+    git_repo=None,
+    git_log_text: str | None = None,
+    **kwargs,
+) -> str:
+    """Build the canonical Deepthought trace header block for a grading run."""
     host, uname, gcc_v, clang_v = _cached_host_and_compiler_info()
     dt = time.strftime("%a %b %d %H:%M:%S %Z %Y")
     lines = [
@@ -853,20 +1053,56 @@ def build_deepthought_header(subject_id: str, rendu_dir=None, expected_files=Non
         clang_v,
         "",
         "= User files collection ========================================================",
-        f"Collecting user files from Vogsphere",
+        "Collecting user files from Vogsphere",
         f"Repository URL: vogsphere@vogsphere.1337.ma:exam-session/{subject_id}",
         "",
         "= Git history ==================================================================",
-        "$> git -C /var/tmp/deepthought/user_repo log -n 5 --pretty=format:\"%H - %an, %ad : %s\"",
+        '$> git -C user_repo log -n 5 --pretty=format:"%H - %an, %ad : %s"',
     ]
     if git_log_text:
         lines.append(git_log_text.strip())
     elif git_repo and pathlib.Path(git_repo).exists():
-        r = subprocess.run(["git", "-C", str(git_repo), "log", "-n", "5", "--pretty=format:%H - %an, %ad : %s"], capture_output=True, text=True)
-        lines.append(r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else "No commits found in bare repository")
-    elif rendu_dir and pathlib.Path(rendu_dir).exists() and (pathlib.Path(rendu_dir) / ".git").exists():
-        r = subprocess.run(["git", "-C", str(rendu_dir), "log", "-n", "5", "--pretty=format:%H - %an, %ad : %s"], capture_output=True, text=True)
-        lines.append(r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else "Local working tree evaluation")
+        r = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(git_repo),
+                "log",
+                "-n",
+                "5",
+                "--pretty=format:%H - %an, %ad : %s",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        lines.append(
+            r.stdout.strip()
+            if r.returncode == 0 and r.stdout.strip()
+            else "No commits found in bare repository"
+        )
+    elif (
+        rendu_dir
+        and pathlib.Path(rendu_dir).exists()
+        and (pathlib.Path(rendu_dir) / ".git").exists()
+    ):
+        r = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(rendu_dir),
+                "log",
+                "-n",
+                "5",
+                "--pretty=format:%H - %an, %ad : %s",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        lines.append(
+            r.stdout.strip()
+            if r.returncode == 0 and r.stdout.strip()
+            else "Local working tree evaluation"
+        )
     else:
         lines.append("Local working tree evaluation")
     if rendu_dir and pathlib.Path(rendu_dir).exists():
@@ -881,15 +1117,19 @@ def build_deepthought_header(subject_id: str, rendu_dir=None, expected_files=Non
                 st = ent.lstat()
                 mode_s = stat_mod.filemode(st.st_mode)
                 mtime_s = time.strftime("%b %e %H:%M", time.localtime(st.st_mtime))
-                ls_lines.append(f"{mode_s} 1 user group {st.st_size:6d} {mtime_s} {ent.name}")
+                ls_lines.append(
+                    f"{mode_s} 1 user group {st.st_size:6d} {mtime_s} {ent.name}"
+                )
         except OSError:
             pass
-        lines.extend([
-            "",
-            "= Collected files ==============================================================",
-            "$> ls -lAR /var/tmp/deepthought/user_repo",
-            "\n".join(ls_lines),
-        ])
+        lines.extend(
+            [
+                "",
+                "= Collected files ==============================================================",
+                "$> ls -lAR /var/tmp/deepthought/user_repo",
+                "\n".join(ls_lines),
+            ]
+        )
     lines.append("")
     return "\n".join(lines)
 
@@ -907,6 +1147,7 @@ def _load_linter_module(script_path: Path, mod_name: str) -> Any:
     if mod is not None:
         return mod
     from importlib.machinery import SourceFileLoader
+
     loader = SourceFileLoader(mod_name, str(script_path))
     spec = importlib.util.spec_from_loader(mod_name, loader)
     if spec is None or spec.loader is None:
@@ -928,8 +1169,13 @@ def norminette_rule_for(meta: dict) -> str:
 
 
 def run_norminette_check(
-    kit_root: Path, files: list[Path], *, is_shell: bool = False, rule: str = NORMINETTE_RULES[0]
+    kit_root: Path,
+    files: list[Path],
+    *,
+    is_shell: bool = False,
+    rule: str = NORMINETTE_RULES[0],
 ) -> tuple[bool, str]:
+    """Run norminette or bin/shnorm across expected submission files."""
     if is_shell:
         shnorm = kit_root / "bin/shnorm"
         if not shnorm.exists():
@@ -952,53 +1198,61 @@ def run_norminette_check(
                     for e in errs:
                         out_lines.append(e.format_42(color=False))
             out = "\n".join(out_lines)
-            return (not any_err), f"$> shnorm -1 {' '.join(f.name for f in files)}\n{out}"
-        proc = subprocess.run([sys.executable, str(shnorm), "-1", *[str(f) for f in sh_files]], capture_output=True, text=True, errors="replace")
+            return (
+                not any_err
+            ), f"$> shnorm -1 {' '.join(f.name for f in files)}\n{out}"
+        proc = subprocess.run(
+            [sys.executable, str(shnorm), "-1", *[str(f) for f in sh_files]],
+            capture_output=True,
+            text=True,
+            errors="replace",
+        )
         out = (proc.stdout + proc.stderr).strip()
-        return proc.returncode == 0, f"$> shnorm -1 {' '.join(f.name for f in files)}\n{out}"
+        return (
+            proc.returncode == 0,
+            f"$> shnorm -1 {' '.join(f.name for f in files)}\n{out}",
+        )
 
     local_norm = kit_root / "bin/norminette"
     c_files = [f for f in files if f.suffix in {".c", ".h"}]
     if not c_files:
         return True, "OK"
-    if local_norm.exists():
-        mod = _load_linter_module(local_norm, "_dt_norminette_mod")
-        # The official 42 norminette, shipped in third_party/norminette (see bin/norminette).
-        if mod is not None and hasattr(mod, "run_official"):
-            parents = {f.parent for f in c_files}
-            one_dir = parents.pop() if len(parents) == 1 else None
-            shown = [f.name if one_dir else str(f) for f in c_files]
-            official = mod.run_official([Path(n) for n in shown], cwd=one_dir, rule=rule)
-            if official is not None:
-                ok_official, out_official = official
-                return ok_official, f"$> norminette -R {rule} {' '.join(f.name for f in c_files)}\n{out_official}"
-        if mod is not None and hasattr(mod, "check_file"):
-            flags = ["-R", rule]
-            why_not = mod.official_command()[1] if hasattr(mod, "official_command") else "not available"
-            out_lines = [f"norminette: built-in checker, a part of the Norm only (official norminette not used: {why_not})"]
-            any_err = False
-            for sp in c_files:
-                errs = mod.check_file(sp, flags)
-                if errs:
-                    any_err = True
-                    out_lines.append(f"{sp.name}: Error!")
-                    for e in errs:
-                        out_lines.append(f"    {e}")
-                else:
-                    out_lines.append(f"{sp.name}: OK!")
-            out = "\n".join(out_lines)
-            return (not any_err), f"$> norminette -R {rule} {' '.join(f.name for f in c_files)}\n{out}"
-    norm_bin = str(local_norm) if local_norm.exists() else shutil.which("norminette")
-    if norm_bin:
-        cmd = [sys.executable, norm_bin] if local_norm.exists() else [norm_bin]
-        proc = subprocess.run([*cmd, "-R", rule, *[str(f) for f in c_files]], capture_output=True, text=True, errors="replace")
-        out = (proc.stdout + proc.stderr).strip()
-        ok = proc.returncode == 0 and "Error!" not in out
-        return ok, f"$> norminette -R {rule} {' '.join(f.name for f in c_files)}\n{out}"
-    return True, "$> norminette (not installed in environment — check skipped)"
+    # Only the official 42 norminette gives a verdict. When it cannot run, that is an environment
+    # problem (reported by the caller), never a silent pass or an imitation's verdict.
+    mod = (
+        _load_linter_module(local_norm, "_dt_norminette_mod")
+        if local_norm.exists()
+        else None
+    )
+    if mod is None or not hasattr(mod, "run_official"):
+        raise FileNotFoundError(
+            2, "official 42 norminette not found; run ./install.sh", "bin/norminette"
+        )
+    parents = {f.parent for f in c_files}
+    one_dir = parents.pop() if len(parents) == 1 else None
+    shown = [f.name if one_dir else str(f) for f in c_files]
+    official = mod.run_official([Path(n) for n in shown], cwd=one_dir, rule=rule)
+    if official is None:
+        why_not = (
+            mod.official_command()[1]
+            if hasattr(mod, "official_command")
+            else "not available"
+        )
+        raise FileNotFoundError(
+            2,
+            f"official 42 norminette cannot run ({why_not}); run ./install.sh",
+            "norminette",
+        )
+    ok_official, out_official = official
+    return (
+        ok_official,
+        f"$> norminette -R {rule} {' '.join(f.name for f in c_files)}\n{out_official}",
+    )
 
 
-def evaluate_c_header(subject_id: str, submit_dir: Path, meta: dict, trace: list[str]) -> tuple[bool, str]:
+def evaluate_c_header(
+    subject_id: str, submit_dir: Path, meta: dict, trace: list[str]
+) -> tuple[bool, str]:
     """Compile a real C program including the header twice to verify #ifndef include guards, macros, and prototypes."""
     exp = (meta.get("expected_files") or [f"{subject_id}"])[0]
     hfile = submit_dir / exp
@@ -1010,55 +1264,77 @@ def evaluate_c_header(subject_id: str, submit_dir: Path, meta: dict, trace: list
         trace.extend(inc_viol)
         return False, f"Cheating (-42): {inc_viol[0]}"
     txt = hfile.read_text(encoding="utf-8", errors="ignore")
-    if not (re.search(r"#\s*ifndef\b", txt) and re.search(r"#\s*define\b", txt) and re.search(r"#\s*endif\b", txt)):
+    if not (
+        re.search(r"#\s*ifndef\b", txt)
+        and re.search(r"#\s*define\b", txt)
+        and re.search(r"#\s*endif\b", txt)
+    ):
         trace.append("Header error: Missing #ifndef / #define / #endif include guard!")
         return False, "Does not compile (missing include guard)"
 
-    with tempfile.TemporaryDirectory(prefix="dt_hdr_", dir=str(get_executable_temp_root())) as td:
+    with tempfile.TemporaryDirectory(
+        prefix="dt_hdr_", dir=str(get_executable_temp_root())
+    ) as td:
         work = Path(td)
         shutil.copy2(hfile, work / hfile.name)
         if subject_id == "ft_abs.h" or hfile.name == "ft_abs.h":
             test_c = (
                 f'#include "{hfile.name}"\n#include "{hfile.name}"\n#include <stdio.h>\n'
-                'int main(void) { if (ABS(-5) != 5 || ABS(5) != 5 || ABS(-10 + 3) != 7 || ABS(0) != 0) return 1; return 0; }\n'
+                "int main(void) {\n"
+                "    if (ABS(-5) != 5 || ABS(5) != 5 || ABS(-10 + 3) != 7 || ABS(0) != 0) return 1;\n"
+                "    if (ABS(-1) != 1 || ABS(1) != 1 || ABS(-1337) != 1337) return 1;\n"
+                "    if (ABS(2147483647) != 2147483647 || ABS(-ABS(-99)) != 99 || (ABS(-5) * 2) != 10) return 1;\n"
+                "    return 0;\n"
+                "}\n"
             )
         elif subject_id == "ft_point.h" or hfile.name == "ft_point.h":
             test_c = (
                 f'#include "{hfile.name}"\n#include "{hfile.name}"\n'
-                'void set_point(t_point *point) { point->x = 42; point->y = 21; }\n'
-                'int main(void) { t_point p; set_point(&p); return (p.x == 42 && p.y == 21) ? 0 : 1; }\n'
+                "void set_point(t_point *point) { point->x = 42; point->y = 21; }\n"
+                "int main(void) { t_point p; set_point(&p); return (p.x == 42 && p.y == 21) ? 0 : 1; }\n"
             )
         elif subject_id == "ft_boolean.h" or hfile.name == "ft_boolean.h":
             test_c = (
                 f'#include "{hfile.name}"\n#include "{hfile.name}"\n'
-                't_bool ft_is_even(int nbr) { return ((EVEN(nbr)) ? TRUE : FALSE); }\n'
-                'int main(void) { if (ft_is_even(4) != TRUE || ft_is_even(3) != FALSE) return 1; return (SUCCESS); }\n'
+                "#include <string.h>\n"
+                "void\tft_putstr(char *str) { while (*str) write(1, str++, 1); }\n"
+                "t_bool ft_is_even(int nbr) { return ((EVEN(nbr)) ? TRUE : FALSE); }\n"
+                "int main(void) {\n"
+                "    if (ft_is_even(4) != TRUE || ft_is_even(3) != FALSE) return 1;\n"
+                "    if (ft_is_even(0) != TRUE || ft_is_even(-2) != TRUE || ft_is_even(-1) != FALSE) return 1;\n"
+                '    if (strcmp(EVEN_MSG, "I have an even number of arguments.\\n") != 0) return 1;\n'
+                '    if (strcmp(ODD_MSG, "I have an odd number of arguments.\\n") != 0) return 1;\n'
+                "    if (0) ft_putstr(EVEN_MSG);\n"
+                "    return (SUCCESS);\n"
+                "}\n"
             )
         elif subject_id == "ft.h" or hfile.name == "ft.h":
             # Verify all 5 required prototypes in ft.h BEFORE dummy definitions (GRD-016)
             test_c = (
                 f'#include "{hfile.name}"\n#include "{hfile.name}"\n'
-                'int main(void) {\n'
-                '    void (*p1)(char) = ft_putchar;\n'
-                '    void (*p2)(int *, int *) = ft_swap;\n'
-                '    void (*p3)(char *) = ft_putstr;\n'
-                '    int (*p4)(char *) = ft_strlen;\n'
-                '    int (*p5)(char *, char *) = ft_strcmp;\n'
-                '    if (!p1 || !p2 || !p3 || !p4 || !p5) return 1;\n'
-                '    return 0;\n'
-                '}\n'
-                'void ft_putchar(char c) { (void)c; }\n'
-                'void ft_swap(int *a, int *b) { (void)a; (void)b; }\n'
-                'void ft_putstr(char *str) { (void)str; }\n'
-                'int ft_strlen(char *str) { (void)str; return 0; }\n'
-                'int ft_strcmp(char *s1, char *s2) { (void)s1; (void)s2; return 0; }\n'
+                "int main(void) {\n"
+                "    void (*p1)(char) = ft_putchar;\n"
+                "    void (*p2)(int *, int *) = ft_swap;\n"
+                "    void (*p3)(char *) = ft_putstr;\n"
+                "    int (*p4)(char *) = ft_strlen;\n"
+                "    int (*p5)(char *, char *) = ft_strcmp;\n"
+                "    if (!p1 || !p2 || !p3 || !p4 || !p5) return 1;\n"
+                "    return 0;\n"
+                "}\n"
+                "void ft_putchar(char c) { (void)c; }\n"
+                "void ft_swap(int *a, int *b) { (void)a; (void)b; }\n"
+                "void ft_putstr(char *str) { (void)str; }\n"
+                "int ft_strlen(char *str) { (void)str; return 0; }\n"
+                "int ft_strcmp(char *s1, char *s2) { (void)s1; (void)s2; return 0; }\n"
             )
         else:
             test_c = f'#include "{hfile.name}"\n#include "{hfile.name}"\nint main(void) {{ return 0; }}\n'
 
         (work / "test_hdr.c").write_text(test_c, encoding="utf-8")
         cmd = ["cc", *FLAGS_COMPILE_SAFE, "test_hdr.c", "-o", "test_hdr"]
-        trace.append("$> " + " ".join(["cc", *FLAGS_DEFAULT, "test_hdr.c", "-o", "test_hdr"]))
+        trace.append(
+            "$> " + " ".join(["cc", *FLAGS_DEFAULT, "test_hdr.c", "-o", "test_hdr"])
+        )
         proc = _run_isolated(cmd, cwd=work, timeout=5.0)
         if proc.returncode != 0:
             trace.append(proc.stderr.strip())
@@ -1079,101 +1355,359 @@ def evaluate_cpp_exercise(
     trace: list[str],
     oracle_info: dict,
 ) -> GradeReport:
+    """Evaluate a C++ exercise submission against compiled test fixtures."""
     expected_files = meta.get("expected_files") or []
     for exp in expected_files:
         if not (submit_dir / exp).exists():
-            trace.append(f"Missing expected turn-in file: '{exp}'\nNothing turned in\nGrade: 0")
-            return GradeReport(subject_id, False, "Nothing turned in", f"Missing {exp}", "\n".join(trace), "", oracle_info)
+            trace.append(
+                f"Missing expected turn-in file: '{exp}'\nNothing turned in\nGrade: 0"
+            )
+            return GradeReport(
+                subject_id,
+                False,
+                "Nothing turned in",
+                f"Missing {exp}",
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
+    if expected_files and not any("*" in str(exp) for exp in expected_files):
+        extras = _find_extraneous_files(
+            submit_dir, subj_dir, [str(e) for e in expected_files]
+        )
+        if extras:
+            return _extraneous_files_report(subject_id, extras, trace, oracle_info)
 
-    cpp_and_hdr_files = [submit_dir / exp for exp in expected_files if (submit_dir / exp).is_file()]
+    cpp_and_hdr_files = [
+        submit_dir / exp for exp in expected_files if (submit_dir / exp).is_file()
+    ]
     inc_viol = check_forbidden_c_includes(cpp_and_hdr_files, allowed_root=submit_dir)
     if inc_viol:
         trace.extend(inc_viol)
-        return GradeReport(subject_id, False, "Cheating (-42)", f"Cheating (-42): {inc_viol[0]}", "\n".join(trace), "", oracle_info)
+        return GradeReport(
+            subject_id,
+            False,
+            "Cheating (-42)",
+            f"Cheating (-42): {inc_viol[0]}",
+            "\n".join(trace),
+            "",
+            oracle_info,
+        )
     for exp in expected_files:
         txt = (submit_dir / exp).read_text(encoding="utf-8", errors="replace")
         if re.search(r"\bswitch\s*\(", txt):
-            trace.append(f"{exp}: Cheating (-42): switch statement is forbidden in {subject_id}!")
-            return GradeReport(subject_id, False, "Cheating (-42)", "switch statement forbidden", "\n".join(trace), "", oracle_info)
+            trace.append(
+                f"{exp}: Cheating (-42): switch statement is forbidden in {subject_id}!"
+            )
+            return GradeReport(
+                subject_id,
+                False,
+                "Cheating (-42)",
+                "switch statement forbidden",
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
 
     cxx = shutil.which("c++") or shutil.which("g++") or shutil.which("clang++")
     if not cxx:
-        return GradeReport(subject_id, False, "Configuration Error: No C++ compiler", "No C++ compiler", "\n".join(trace), "", oracle_info)
+        return GradeReport(
+            subject_id,
+            False,
+            "Configuration Error: No C++ compiler",
+            "No C++ compiler",
+            "\n".join(trace),
+            "",
+            oracle_info,
+        )
 
     tests_cfg = _safe_load_yaml(subj_dir / "tests.yml")
     if "__yaml_error__" in tests_cfg:
-        return GradeReport(subject_id, False, "Configuration Error: Malformed tests.yml", tests_cfg["__yaml_error__"], "\n".join(trace), "", oracle_info)
+        return GradeReport(
+            subject_id,
+            False,
+            "Configuration Error: Malformed tests.yml",
+            tests_cfg["__yaml_error__"],
+            "\n".join(trace),
+            "",
+            oracle_info,
+        )
 
-    with tempfile.TemporaryDirectory(prefix="dt_cpp_", dir=str(get_executable_temp_root())) as td:
+    with tempfile.TemporaryDirectory(
+        prefix="dt_cpp_", dir=str(get_executable_temp_root())
+    ) as td:
         work = Path(td)
         for exp in expected_files:
             shutil.copy2(submit_dir / exp, work / exp)
         main_cpp = work / "__dt_main.cpp"
-        main_cpp.write_text(str(tests_cfg.get("main_cpp") or tests_cfg.get("main_code") or ""), encoding="utf-8")
-        cpp_srcs = [exp for exp in expected_files if str(exp).endswith(".cpp")] + ["__dt_main.cpp"]
+        main_cpp.write_text(
+            str(tests_cfg.get("main_cpp") or tests_cfg.get("main_code") or ""),
+            encoding="utf-8",
+        )
+        cpp_srcs = [exp for exp in expected_files if str(exp).endswith(".cpp")] + [
+            "__dt_main.cpp"
+        ]
         cproc = _run_isolated(
-            [cxx, "-Wall", "-Wextra", "-Werror", "-std=c++98", *cpp_srcs, "-o", "user_exe"],
+            [
+                cxx,
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-std=c++98",
+                *cpp_srcs,
+                "-o",
+                "user_exe",
+            ],
             cwd=work,
             timeout=10.0,
         )
         if cproc.returncode != 0:
             trace.append(cproc.stderr.strip())
-            return GradeReport(subject_id, False, "Does not compile", "Does not compile", "\n".join(trace), "", oracle_info)
+            return GradeReport(
+                subject_id,
+                False,
+                "Does not compile",
+                "Does not compile",
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
         if not tests_cfg.get("main_cpp") and tests_cfg.get("fixed_tests"):
             for idx, ft in enumerate(tests_cfg["fixed_tests"], start=1):
-                exp_out = ft.get("stdout") if ft.get("stdout") is not None else (ft.get("expected") if ft.get("expected") is not None else ft.get("expected_stdout"))
-                exp_err = ft.get("stderr") if ft.get("stderr") is not None else ft.get("expected_stderr")
+                exp_out = (
+                    ft.get("stdout")
+                    if ft.get("stdout") is not None
+                    else (
+                        ft.get("expected")
+                        if ft.get("expected") is not None
+                        else ft.get("expected_stdout")
+                    )
+                )
+                exp_err = (
+                    ft.get("stderr")
+                    if ft.get("stderr") is not None
+                    else ft.get("expected_stderr")
+                )
                 exp_rc = ft.get("expected_returncode")
                 if "python_harness" in ft:
                     h_py = work / f"__dt_harness_{idx}.py"
                     h_py.write_text(str(ft["python_harness"]), encoding="utf-8")
-                    hproc = _run_isolated([sys.executable, str(h_py), str(work / "user_exe")], cwd=work, timeout=5.0)
+                    hproc = _run_isolated(
+                        [sys.executable, str(h_py), str(work / "user_exe")],
+                        cwd=work,
+                        timeout=5.0,
+                    )
                     exp_h = str(ft.get("expected", "OK\n"))
-                    if hproc.stdout != exp_h:
+                    if hproc.returncode != 0 or hproc.stdout != exp_h:
                         trace.append(f"Harness failed:\n{hproc.stdout}\n{hproc.stderr}")
-                        return GradeReport(subject_id, False, "Diff KO :(", f"Harness failed on Test {idx}", "\n".join(trace), "", oracle_info)
+                        return GradeReport(
+                            subject_id,
+                            False,
+                            "Diff KO :(",
+                            f"Harness failed on Test {idx}",
+                            "\n".join(trace),
+                            "",
+                            oracle_info,
+                        )
                     continue
                 cmd_args = [str(a) for a in (ft.get("args") or [])]
                 try:
-                    rproc = _run_isolated([str(work / "user_exe"), *cmd_args], cwd=work, input_data=ft.get("stdin"), timeout=2.0)
+                    rproc = _run_isolated(
+                        [str(work / "user_exe"), *cmd_args],
+                        cwd=work,
+                        input_data=ft.get("stdin"),
+                        timeout=2.0,
+                    )
                 except subprocess.TimeoutExpired:
-                    return GradeReport(subject_id, False, "Timeout", f"Timeout on Test {idx}", "\n".join(trace), "", oracle_info)
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Timeout",
+                        f"Timeout on Test {idx}",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
                 if exp_rc is not None and rproc.returncode != exp_rc:
-                    return GradeReport(subject_id, False, f"Non-zero exit code {rproc.returncode}", f"Exit {rproc.returncode}", "\n".join(trace), "", oracle_info)
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        f"Non-zero exit code {rproc.returncode}",
+                        f"Exit {rproc.returncode}",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
                 if exp_err is not None and rproc.stderr != exp_err:
-                    return GradeReport(subject_id, False, "Diff KO :(", f"Stderr mismatch on Test {idx}", "\n".join(trace), "", oracle_info)
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Diff KO :(",
+                        f"Stderr mismatch on Test {idx}",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
                 if exp_out is not None and rproc.stdout != exp_out:
-                    return GradeReport(subject_id, False, "Diff KO :(", f"Stdout mismatch on Test {idx}", "\n".join(trace), "", oracle_info)
-            trace.append("Diff OK :D\n\n= Final grade: 100 =============================================================")
-            return GradeReport(subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info)
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Diff KO :(",
+                        f"Stdout mismatch on Test {idx}",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
+            trace.append(
+                "Diff OK :D\n\n= Final grade: 100 ============================================================="
+            )
+            return GradeReport(
+                subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info
+            )
 
         try:
             rproc = _run_isolated([str(work / "user_exe")], cwd=work, timeout=2.0)
         except subprocess.TimeoutExpired:
-            return GradeReport(subject_id, False, "Timeout", "Timeout", "\n".join(trace), "", oracle_info)
+            return GradeReport(
+                subject_id,
+                False,
+                "Timeout",
+                "Timeout",
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
         if len(rproc.stdout) > MAX_OUTPUT_BYTES or len(rproc.stderr) > MAX_OUTPUT_BYTES:
             trunc_out, _ = _truncate_stream(rproc.stdout)
             trace.append(trunc_out)
             trace.append("Output limit exceeded (>64 KB)\nGrade: 0")
-            return GradeReport(subject_id, False, "Output limit exceeded (>64 KB)", "Output limit exceeded", "\n".join(trace), "", oracle_info)
-        exp_out = str(tests_cfg.get("expected_stdout") if tests_cfg.get("expected_stdout") is not None else tests_cfg.get("expected", ""))
+            return GradeReport(
+                subject_id,
+                False,
+                "Output limit exceeded (>64 KB)",
+                "Output limit exceeded",
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
+        exp_out = str(
+            tests_cfg.get("expected_stdout")
+            if tests_cfg.get("expected_stdout") is not None
+            else tests_cfg.get("expected", "")
+        )
         if rproc.returncode != 0 or rproc.stdout != exp_out:
             trace.append(format_unified_diff(exp_out, rproc.stdout))
-            return GradeReport(subject_id, False, "Diff KO :(", "Diff KO :(", "\n".join(trace), "", oracle_info)
+            return GradeReport(
+                subject_id,
+                False,
+                "Diff KO :(",
+                "Diff KO :(",
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
+        user_cpp_srcs = [exp for exp in expected_files if str(exp).endswith(".cpp")]
+        for ec_idx, ec in enumerate(tests_cfg.get("extra_cpp_tests") or [], start=1):
+            ec_name = str(ec.get("name") or f"extra_{ec_idx}")
+            ec_cpp = f"__dt_extra_{ec_idx}.cpp"
+            ec_exe = f"user_extra_{ec_idx}"
+            (work / ec_cpp).write_text(str(ec.get("main_cpp") or ""), encoding="utf-8")
+            ec_cproc = _run_isolated(
+                [
+                    cxx,
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    "-std=c++98",
+                    *user_cpp_srcs,
+                    ec_cpp,
+                    "-o",
+                    ec_exe,
+                ],
+                cwd=work,
+                timeout=10.0,
+            )
+            if ec_cproc.returncode != 0:
+                trace.append(
+                    f"[{ec_name}] compilation failed:\n{ec_cproc.stderr.strip()}"
+                )
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Does not compile",
+                    f"Failed to compile {ec_name}",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
+            try:
+                ec_rproc = _run_isolated([str(work / ec_exe)], cwd=work, timeout=2.0)
+            except subprocess.TimeoutExpired:
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Timeout",
+                    f"Timeout on {ec_name}",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
+            ec_exp = str(
+                ec.get("expected_stdout")
+                if ec.get("expected_stdout") is not None
+                else ec.get("expected", "")
+            )
+            if ec_rproc.returncode != 0 or ec_rproc.stdout != ec_exp:
+                trace.append(
+                    f"[{ec_name}]\n" + format_unified_diff(ec_exp, ec_rproc.stdout)
+                )
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Diff KO :(",
+                    f"Failed on {ec_name}",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
         for neg_src in tests_cfg.get("must_not_compile") or []:
             (work / "__dt_neg.cpp").write_text(str(neg_src), encoding="utf-8")
             nproc = subprocess.run(
-                [cxx, "-Wall", "-Wextra", "-Werror", "-std=c++98", "-c", "__dt_neg.cpp", "-o", "__dt_neg.o"],
+                [
+                    cxx,
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    "-std=c++98",
+                    "-c",
+                    "__dt_neg.cpp",
+                    "-o",
+                    "__dt_neg.o",
+                ],
                 cwd=work,
                 capture_output=True,
                 text=True,
                 errors="replace",
             )
             if nproc.returncode == 0:
-                trace.append("Coplien / non-copyable check KO: forbidden copy/default construction compiled!")
-                return GradeReport(subject_id, False, "Diff KO :(", "Coplien constraint violated", "\n".join(trace), "", oracle_info)
-    trace.append("Diff OK :D\n\n= Final grade: 100 =============================================================")
-    return GradeReport(subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info)
+                trace.append(
+                    "Coplien / non-copyable check KO: forbidden copy/default construction compiled!"
+                )
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Diff KO :(",
+                    "Coplien constraint violated",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
+    trace.append(
+        "Diff OK :D\n\n= Final grade: 100 ============================================================="
+    )
+    return GradeReport(
+        subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info
+    )
 
 
 def evaluate_python_exercise(
@@ -1184,64 +1718,171 @@ def evaluate_python_exercise(
     trace: list[str],
     oracle_info: dict,
 ) -> GradeReport:
+    """Evaluate a Python exercise submission against script fixtures."""
     expected_files = meta.get("expected_files") or [f"{subject_id}.py"]
     py_file = submit_dir / expected_files[0]
     if not py_file.exists():
-        trace.append(f"Missing expected turn-in file: '{expected_files[0]}'\nNothing turned in\nGrade: 0")
-        return GradeReport(subject_id, False, "Nothing turned in", f"Missing {expected_files[0]}", "\n".join(trace), "", oracle_info)
+        trace.append(
+            f"Missing expected turn-in file: '{expected_files[0]}'\nNothing turned in\nGrade: 0"
+        )
+        return GradeReport(
+            subject_id,
+            False,
+            "Nothing turned in",
+            f"Missing {expected_files[0]}",
+            "\n".join(trace),
+            "",
+            oracle_info,
+        )
 
     content = py_file.read_text(encoding="utf-8", errors="ignore").strip()
     if not content:
         trace.append("Empty Python file turned in\nNothing turned in\nGrade: 0")
-        return GradeReport(subject_id, False, "Nothing turned in", "Empty Python file", "\n".join(trace), "", oracle_info)
+        return GradeReport(
+            subject_id,
+            False,
+            "Nothing turned in",
+            "Empty Python file",
+            "\n".join(trace),
+            "",
+            oracle_info,
+        )
 
     tests_yml_path = subj_dir / "tests.yml"
     tests_cfg = _safe_load_yaml(tests_yml_path) if tests_yml_path.exists() else {}
     if "__yaml_error__" in tests_cfg:
-        return GradeReport(subject_id, False, "Configuration Error: Malformed tests.yml", tests_cfg["__yaml_error__"], "\n".join(trace), "", oracle_info)
+        return GradeReport(
+            subject_id,
+            False,
+            "Configuration Error: Malformed tests.yml",
+            tests_cfg["__yaml_error__"],
+            "\n".join(trace),
+            "",
+            oracle_info,
+        )
     fixed_tests = (tests_cfg or {}).get("fixed_tests") or []
     if not fixed_tests:
-        trace.append("Configuration Error: No test suite defined for Python exercise\nGrade: 0")
-        return GradeReport(subject_id, False, "Configuration Error: No test suite defined", "No tests defined", "\n".join(trace), "", oracle_info)
+        trace.append(
+            "Configuration Error: No test suite defined for Python exercise\nGrade: 0"
+        )
+        return GradeReport(
+            subject_id,
+            False,
+            "Configuration Error: No test suite defined",
+            "No tests defined",
+            "\n".join(trace),
+            "",
+            oracle_info,
+        )
 
-    with tempfile.TemporaryDirectory(prefix="dt_py_", dir=str(get_executable_temp_root())) as td:
+    with tempfile.TemporaryDirectory(
+        prefix="dt_py_", dir=str(get_executable_temp_root())
+    ) as td:
         work = Path(td)
         shutil.copy2(py_file, work / py_file.name)
         for idx, ft in enumerate(fixed_tests, start=1):
-            trace.append(f"\n= Test {idx} ===================================================================")
+            trace.append(
+                f"\n= Test {idx} ==================================================================="
+            )
             if "expr" in ft:
                 if not py_file.stem.isidentifier():
-                    return GradeReport(subject_id, False, "Runtime error", "Invalid Python module identifier", "\n".join(trace), "", oracle_info)
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Runtime error",
+                        "Invalid Python module identifier",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
                 runner = f"import sys\nsys.path.insert(0, '.')\nimport {py_file.stem} as m\nfrom {py_file.stem} import *\nprint({ft['expr']})\n"
                 (work / "__dt_run.py").write_text(runner, encoding="utf-8")
                 cmd = [sys.executable, "-I", "-B", "__dt_run.py"]
-                exp_out = str(ft.get("stdout") if ft.get("stdout") is not None else f"{ft.get('expected', ft.get('return', ''))}\n")
+                exp_out = str(
+                    ft.get("stdout")
+                    if ft.get("stdout") is not None
+                    else f"{ft.get('expected', ft.get('return', ''))}\n"
+                )
             else:
                 args = [str(a) for a in (ft.get("args") or [])]
                 cmd = [sys.executable, "-I", "-B", py_file.name, *args]
-                exp_out = str(ft.get("stdout") if ft.get("stdout") is not None else ft.get("expected", ""))
+                exp_out = str(
+                    ft.get("stdout")
+                    if ft.get("stdout") is not None
+                    else ft.get("expected", "")
+                )
             try:
-                rproc = _run_isolated(cmd, cwd=work, input_data=ft.get("stdin"), timeout=2.0)
+                rproc = _run_isolated(
+                    cmd, cwd=work, input_data=ft.get("stdin"), timeout=2.0
+                )
             except subprocess.TimeoutExpired:
-                trace.append("Command got killed by a Timeout (elapsed > 2.0s)\nGrade: 0")
-                return GradeReport(subject_id, False, "Timeout", "Timeout", "\n".join(trace), "", oracle_info)
-            if len(rproc.stdout) > MAX_OUTPUT_BYTES or len(rproc.stderr) > MAX_OUTPUT_BYTES:
+                trace.append(
+                    "Command got killed by a Timeout (elapsed > 2.0s)\nGrade: 0"
+                )
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Timeout",
+                    "Timeout",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
+            if (
+                len(rproc.stdout) > MAX_OUTPUT_BYTES
+                or len(rproc.stderr) > MAX_OUTPUT_BYTES
+            ):
                 trunc_out, _ = _truncate_stream(rproc.stdout)
                 trace.append(trunc_out)
                 trace.append("Output limit exceeded (>64 KB)\nGrade: 0")
-                return GradeReport(subject_id, False, "Output limit exceeded (>64 KB)", "Output limit exceeded", "\n".join(trace), "", oracle_info)
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Output limit exceeded (>64 KB)",
+                    "Output limit exceeded",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
             if rproc.returncode != 0:
                 trunc_err, _ = _truncate_stream(rproc.stderr.strip())
                 trace.append(f"Runtime error:\n{trunc_err}\nGrade: 0")
-                return GradeReport(subject_id, False, "Runtime error", "Runtime error", "\n".join(trace), "", oracle_info)
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Runtime error",
+                    "Runtime error",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
             if rproc.stdout != exp_out:
-                trace.append(format_unified_diff(exp_out, rproc.stdout, f"test{idx}.output", f"user_output_test{idx}"))
+                trace.append(
+                    format_unified_diff(
+                        exp_out,
+                        rproc.stdout,
+                        f"test{idx}.output",
+                        f"user_output_test{idx}",
+                    )
+                )
                 trace.append("\nDiff KO :(\nGrade: 0")
-                return GradeReport(subject_id, False, "Diff KO :(", "Diff KO :(", "\n".join(trace), "", oracle_info)
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Diff KO :(",
+                    "Diff KO :(",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
             trace.append("Diff OK :D")
 
-    trace.append("\n= Final grade: 100 =============================================================")
-    return GradeReport(subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info)
+    trace.append(
+        "\n= Final grade: 100 ============================================================="
+    )
+    return GradeReport(
+        subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info
+    )
 
 
 _SUBJECT_RESOLVE_CACHE: dict[tuple[str, str, bool], tuple[Path, str]] = {}
@@ -1260,7 +1901,9 @@ def _is_within_subjects_root(cand: Path, subjects_root: Path) -> bool:
         return False
 
 
-def _populate_subject_indices(kit_root: Path) -> tuple[dict[str, tuple[Path, str]], dict[str, tuple[Path, str]]]:
+def _populate_subject_indices(
+    kit_root: Path,
+) -> tuple[dict[str, tuple[Path, str]], dict[str, tuple[Path, str]]]:
     subjects_root = kit_root / "subjects"
     piscine_idx: dict[str, tuple[Path, str]] = {}
     piscine_root = subjects_root / "piscine"
@@ -1269,11 +1912,15 @@ def _populate_subject_indices(kit_root: Path) -> tuple[dict[str, tuple[Path, str
             if not mod_d.is_dir():
                 continue
             for ex_d in sorted(mod_d.iterdir()):
-                if not ex_d.is_dir() or not _is_within_subjects_root(ex_d, subjects_root):
+                if not ex_d.is_dir() or not _is_within_subjects_root(
+                    ex_d, subjects_root
+                ):
                     continue
                 piscine_idx.setdefault(ex_d.name, (ex_d, ex_d.name))
                 if "_" in ex_d.name:
-                    piscine_idx.setdefault(ex_d.name.split("_", 1)[1], (ex_d, ex_d.name))
+                    piscine_idx.setdefault(
+                        ex_d.name.split("_", 1)[1], (ex_d, ex_d.name)
+                    )
                 if ex_d.name.endswith(".sh"):
                     piscine_idx.setdefault(ex_d.name[:-3], (ex_d, ex_d.name))
     id_idx: dict[str, tuple[Path, str]] = {}
@@ -1294,7 +1941,9 @@ def _populate_subject_indices(kit_root: Path) -> tuple[dict[str, tuple[Path, str
     return piscine_idx, id_idx
 
 
-def resolve_subject_dir(kit_root: Path, subject_id: str, *, is_exam: bool = False) -> tuple[Path, str]:
+def resolve_subject_dir(
+    kit_root: Path, subject_id: str, *, is_exam: bool = False
+) -> tuple[Path, str]:
     """Resolve plain or pool-namespaced subject IDs safely inside kit_root/subjects with dynamic cache invalidation (FIX-SP-004, OPT-SP-004)."""
     if "\x00" in subject_id:
         raise FileNotFoundError(f"Invalid subject identifier: {subject_id!r}")
@@ -1303,7 +1952,9 @@ def resolve_subject_dir(kit_root: Path, subject_id: str, *, is_exam: bool = Fals
         norm_id = norm_id.replace(":", "/")
     raw_parts = [p for p in re.split(r"[/\\]+", norm_id) if p]
     if ".." in raw_parts or "." in raw_parts:
-        raise FileNotFoundError(f"Path traversal forbidden in subject identifier: {subject_id!r}")
+        raise FileNotFoundError(
+            f"Path traversal forbidden in subject identifier: {subject_id!r}"
+        )
 
     subjects_root = kit_root / "subjects"
     root_key = str(kit_root.resolve())
@@ -1322,8 +1973,12 @@ def resolve_subject_dir(kit_root: Path, subject_id: str, *, is_exam: bool = Fals
                 candidates.append(subjects_root / "exams" / parts[1])
             else:
                 candidates.append(subjects_root / "piscine" / parts[0] / parts[1])
-                candidates.append(subjects_root / "piscine" / parts[0] / f"{parts[0]}_{parts[1]}")
-                candidates.append(subjects_root / "piscine" / parts[0] / f"{parts[1]}.sh")
+                candidates.append(
+                    subjects_root / "piscine" / parts[0] / f"{parts[0]}_{parts[1]}"
+                )
+                candidates.append(
+                    subjects_root / "piscine" / parts[0] / f"{parts[1]}.sh"
+                )
         elif len(parts) >= 3 and parts[0] in ("piscine", "exams"):
             candidates.append(subjects_root / Path(*parts))
         candidates.append(subjects_root / Path(*parts))
@@ -1358,7 +2013,9 @@ def resolve_subject_dir(kit_root: Path, subject_id: str, *, is_exam: bool = Fals
         _SUBJECT_RESOLVE_CACHE[cache_key] = match_pair
         return match_pair
 
-    if norm_id in id_idx and _is_within_subjects_root(id_idx[norm_id][0], subjects_root):
+    if norm_id in id_idx and _is_within_subjects_root(
+        id_idx[norm_id][0], subjects_root
+    ):
         _SUBJECT_RESOLVE_CACHE[cache_key] = id_idx[norm_id]
         return id_idx[norm_id]
 
@@ -1372,12 +2029,7 @@ def resolve_subject_dir(kit_root: Path, subject_id: str, *, is_exam: bool = Fals
             _SUBJECT_RESOLVE_CACHE[cache_key] = id_idx[norm_id]
             return id_idx[norm_id]
 
-    if norm_id in {"clear", "cls"}:
-        sys.stdout.write("\033[2J\033[H")
-        sys.stdout.flush()
-        raise SystemExit(0)
     raise FileNotFoundError(f"Unknown subject: {subject_id}")
-
 
 
 _SANDBOX_HARNESS_OBJ_CACHE: dict[str, tuple[Path, str]] = {}
@@ -1418,7 +2070,9 @@ def _get_strict_sandbox_flags(kit_root: Path, work: Path) -> list[str]:
         if df.is_file():
             h.update(df.read_bytes())
     _, uname_s, gcc_v, _ = _cached_host_and_compiler_info()
-    h.update(f"{uname_s}|{gcc_v}|{' '.join(FLAGS_COMPILE_SAFE)}|{' '.join(_WRAP_LINK_FLAGS)}|-DDT_WRAP_MALLOC".encode("utf-8"))
+    h.update(
+        f"{uname_s}|{gcc_v}|{' '.join(FLAGS_COMPILE_SAFE)}|{' '.join(_WRAP_LINK_FLAGS)}|-DDT_WRAP_MALLOC".encode()
+    )
     digest = h.hexdigest()[:20]
 
     cache_dir = get_executable_temp_root(kit_root) / ".dt_harness_obj_cache"
@@ -1426,11 +2080,22 @@ def _get_strict_sandbox_flags(kit_root: Path, work: Path) -> list[str]:
     cached_obj = cache_dir / f"sandbox_harness_{digest}.o"
 
     entry = _SANDBOX_HARNESS_OBJ_CACHE.get(digest)
-    if entry is None or not cached_obj.is_file() or hashlib.sha256(cached_obj.read_bytes()).hexdigest() != entry[1]:
+    if (
+        entry is None
+        or not cached_obj.is_file()
+        or hashlib.sha256(cached_obj.read_bytes()).hexdigest() != entry[1]
+    ):
         with _HARNESS_OBJ_CACHE_LOCK:
             entry = _SANDBOX_HARNESS_OBJ_CACHE.get(digest)
-            if entry is None or not cached_obj.is_file() or hashlib.sha256(cached_obj.read_bytes()).hexdigest() != entry[1]:
-                tmp_obj = cache_dir / f"sandbox_harness_{digest}_{os.getpid()}_{threading.get_ident()}_{time.time_ns()}.o"
+            if (
+                entry is None
+                or not cached_obj.is_file()
+                or hashlib.sha256(cached_obj.read_bytes()).hexdigest() != entry[1]
+            ):
+                tmp_obj = (
+                    cache_dir
+                    / f"sandbox_harness_{digest}_{os.getpid()}_{threading.get_ident()}_{time.time_ns()}.o"
+                )
                 c_cmd = [
                     "cc",
                     *FLAGS_COMPILE_SAFE,
@@ -1466,6 +2131,117 @@ def _get_strict_sandbox_flags(kit_root: Path, work: Path) -> list[str]:
     ]
 
 
+def _find_extraneous_files(
+    submit_dir: Path,
+    subj_dir: Path,
+    expected_files: list[str],
+) -> list[str]:
+    """Return sorted relative paths of disallowed leftover files in an explicit turn-in dir."""
+    allowed_rels = {str(Path(exp)) for exp in expected_files}
+    subj_hdrs = {hf.name for hf in subj_dir.glob("*.h")}
+    extras: list[str] = []
+    for p in sorted(submit_dir.rglob("*")):
+        if not p.is_file():
+            continue
+        rel = p.relative_to(submit_dir)
+        if ".git" in rel.parts:
+            continue
+        if any(part.startswith(".") for part in rel.parts) and not is_junk_dotfile(
+            p.name
+        ):
+            continue
+        if p.suffix == ".o":
+            continue
+        if str(rel) in allowed_rels or p.name in subj_hdrs:
+            continue
+        extras.append(str(rel))
+    return extras
+
+
+def _extraneous_files_report(
+    subject_id: str,
+    extras: list[str],
+    trace: list[str],
+    oracle_info: dict,
+) -> GradeReport:
+    """Build a uniform Moulinette GradeReport for leftover/extraneous turn-in files."""
+    trace.append(
+        f"Extraneous file(s) detected in turn-in directory: {', '.join(extras)}"
+    )
+    trace.append("Nothing extra allowed in turn-in directory\nGrade: 0")
+    return GradeReport(
+        subject_id,
+        False,
+        "Extraneous file(s) in turn-in directory",
+        f"Extraneous file(s): {', '.join(extras)}",
+        "\n".join(trace),
+        "Remove leftover main.c, test scripts, or compiled binaries before pushing.",
+        oracle_info,
+    )
+
+
+def _append_c_func_case_header(
+    trace: list[str],
+    idx: int,
+    helpful_label: str,
+    hidden_cmd: str,
+    *,
+    reveal_tests: bool,
+) -> None:
+    """Append a C-function test header matching either Real-42 hidden or helpful trace mode."""
+    if reveal_tests:
+        trace.append(f"\n= {helpful_label} " + "=" * max(5, 76 - len(helpful_label)))
+    else:
+        trace.append(f"\n= Test {idx} " + "=" * max(5, 72 - len(str(idx))))
+        trace.append(f"$> {hidden_cmd}")
+
+
+def _c_func_diff_ko_report(
+    subject_id: str,
+    idx: int,
+    reason: str,
+    exp_out: str,
+    got_out: str,
+    exp_name: str,
+    user_name: str,
+    last_cmd_helpful: str,
+    trace: list[str],
+    oracle_info: dict,
+    *,
+    reveal_tests: bool,
+    why: str = "",
+) -> GradeReport:
+    """Emit a C-function Diff KO report, hiding unified diff and expectations unless reveal_tests."""
+    if reveal_tests:
+        trace.append(format_unified_diff(exp_out, got_out, exp_name, user_name))
+        trace.append("\nDiff KO :(\nGrade: 0")
+        return GradeReport(
+            subject_id,
+            False,
+            "Diff KO :(",
+            reason,
+            "\n".join(trace),
+            why,
+            oracle_info,
+            last_cmd=last_cmd_helpful,
+            expected_cat_e=_to_cat_e(exp_out),
+            actual_cat_e=_to_cat_e(got_out),
+        )
+    trace.append("\nDiff KO :(\nGrade: 0")
+    return GradeReport(
+        subject_id,
+        False,
+        "Diff KO :(",
+        f"Failed on Test {idx}",
+        "\n".join(trace),
+        why,
+        oracle_info,
+        last_cmd="",
+        expected_cat_e="",
+        actual_cat_e="",
+    )
+
+
 def _grade_subject_inner(
     kit_root: Path,
     subject_id: str,
@@ -1476,6 +2252,7 @@ def _grade_subject_inner(
     enforce_norm: bool = False,
     subj_dir_override: Path | None = None,
     git_log_text: str = "",
+    reveal_tests: bool = False,
 ) -> GradeReport:
     kit_root = Path(kit_root).resolve()
     submit_dir = Path(submit_dir).resolve()
@@ -1483,7 +2260,9 @@ def _grade_subject_inner(
         subj_dir = subj_dir_override.resolve()
         subject_id = subj_dir.name
     else:
-        subj_dir, subject_id = resolve_subject_dir(kit_root, subject_id, is_exam=is_exam)
+        subj_dir, subject_id = resolve_subject_dir(
+            kit_root, subject_id, is_exam=is_exam
+        )
 
     meta_path = subj_dir / "meta.yml"
     if meta_path.exists():
@@ -1510,52 +2289,138 @@ def _grade_subject_inner(
     expected_files = meta.get("expected_files", [f"{subject_id}.c"])
 
     if not submit_dir.exists():
-        trace = [build_deepthought_header(subject_id, submit_dir, expected_files, git_repo=None, git_log_text=git_log_text)]
+        trace = [
+            build_deepthought_header(
+                subject_id,
+                submit_dir,
+                expected_files,
+                git_repo=None,
+                git_log_text=git_log_text,
+            )
+        ]
         trace.append(f"$> ls -la {subject_id}")
         trace.append(f"ls: {subject_id}: No such file or directory")
         trace.append("Nothing turned in\nGrade: 0")
-        return GradeReport(subject_id, False, "Nothing turned in", "Nothing turned in", "\n".join(trace), "", oracle_info)
+        return GradeReport(
+            subject_id,
+            False,
+            "Nothing turned in",
+            "Nothing turned in",
+            "\n".join(trace),
+            "",
+            oracle_info,
+        )
 
-    collected = sorted(p.name for p in submit_dir.iterdir() if not p.name.startswith("."))
-    trace = [build_deepthought_header(subject_id, submit_dir, expected_files, git_repo=None, git_log_text=git_log_text)]
+    collected = sorted(
+        p.name for p in submit_dir.iterdir() if not p.name.startswith(".")
+    )
+    trace = [
+        build_deepthought_header(
+            subject_id,
+            submit_dir,
+            expected_files,
+            git_repo=None,
+            git_log_text=git_log_text,
+        )
+    ]
     if not collected:
         trace.append(f"$> ls -la {subject_id}")
         trace.append(f"ls: {subject_id}: No such file or directory")
         trace.append("Nothing turned in\nGrade: 0")
-        return GradeReport(subject_id, False, "Nothing turned in", "Nothing turned in", "\n".join(trace), "", oracle_info)
+        return GradeReport(
+            subject_id,
+            False,
+            "Nothing turned in",
+            "Nothing turned in",
+            "\n".join(trace),
+            "",
+            oracle_info,
+        )
 
     stype = str(meta.get("type", "c_program")).lower()
 
     # --- Route 1: Shell Exercises ---
     if stype in {"shell", "shell_script", "shell_file"}:
-        if ((not is_exam and (strict or meta.get("norminette", True))) or enforce_norm) and stype != "shell_file":
-            ok_norm, norm_log = run_norminette_check(kit_root, [submit_dir / f for f in collected], is_shell=True)
+        if (
+            (not is_exam and (strict or meta.get("norminette", True))) or enforce_norm
+        ) and stype != "shell_file":
+            ok_norm, norm_log = run_norminette_check(
+                kit_root, [submit_dir / f for f in collected], is_shell=True
+            )
             trace.append(norm_log)
             if not ok_norm:
-                trace.append("\n= Final grade: 0 (Sh-Norm error) ===============================================")
-                return GradeReport(subject_id, False, "Norme error", "Sh-Norm v4.2 violation", "\n".join(trace), "", oracle_info)
-        sh_res = evaluate_shell_exercise(kit_root, subject_id, submit_dir, meta, strict=strict, subj_dir=subj_dir)
+                trace.append(
+                    "\n= Final grade: 0 (Sh-Norm error) ==============================================="
+                )
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Norme error",
+                    "Sh-Norm v4.2 violation",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
+        sh_res = evaluate_shell_exercise(
+            kit_root, subject_id, submit_dir, meta, strict=strict, subj_dir=subj_dir
+        )
         trace.extend(sh_res.trace_lines)
         if sh_res.trap_hint:
             trace.append(f"\n[Moulinette Diagnostic]: {sh_res.trap_hint}")
-        trace.append(f"\n= Final grade: {'100 (OK :)' if sh_res.ok else f'0 ({sh_res.reason})'} ===========================================")
-        return GradeReport(subject_id, sh_res.ok, sh_res.reason, sh_res.reason, "\n".join(trace), sh_res.trap_hint, oracle_info)
+        trace.append(
+            f"\n= Final grade: {'100 (OK :)' if sh_res.ok else f'0 ({sh_res.reason})'} ==========================================="
+        )
+        return GradeReport(
+            subject_id,
+            sh_res.ok,
+            sh_res.reason,
+            sh_res.reason,
+            "\n".join(trace),
+            sh_res.trap_hint,
+            oracle_info,
+        )
 
     # --- Route 2: C Header Exercises (C 08) ---
-    if stype == "c_header" or (expected_files and all(str(f).endswith(".h") for f in expected_files)):
-        hdr_files = [submit_dir / f for f in expected_files if (submit_dir / f).exists()]
+    if stype == "c_header" or (
+        expected_files and all(str(f).endswith(".h") for f in expected_files)
+    ):
+        hdr_files = [
+            submit_dir / f for f in expected_files if (submit_dir / f).exists()
+        ]
         bad_inc = check_forbidden_c_includes(hdr_files, allowed_root=submit_dir)
         if bad_inc:
             trace.extend(bad_inc)
-            trace.append(">>>>>>>>>> FAILURE: Cheat detected (forbidden header include) <<<<<<<<<<")
-            return GradeReport(subject_id, False, "Cheating (-42)", bad_inc[0], "\n".join(trace), "", oracle_info)
+            trace.append(
+                ">>>>>>>>>> FAILURE: Cheat detected (forbidden header include) <<<<<<<<<<"
+            )
+            return GradeReport(
+                subject_id,
+                False,
+                "Cheating (-42)",
+                bad_inc[0],
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
         if (not is_exam and meta.get("norminette", True)) or enforce_norm:
-            ok_n, n_log = run_norminette_check(kit_root, hdr_files, rule=norminette_rule_for(meta))
+            ok_n, n_log = run_norminette_check(
+                kit_root, hdr_files, rule=norminette_rule_for(meta)
+            )
             trace.append(n_log)
             if not ok_n:
-                return GradeReport(subject_id, False, "Norme error", "Norme error", "\n".join(trace), "", oracle_info)
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Norme error",
+                    "Norme error",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
         ok_h, status_h = evaluate_c_header(subject_id, submit_dir, meta, trace)
-        return GradeReport(subject_id, ok_h, status_h, status_h, "\n".join(trace), "", oracle_info)
+        return GradeReport(
+            subject_id, ok_h, status_h, status_h, "\n".join(trace), "", oracle_info
+        )
 
     # --- Route 3: Makefile Exercises (C 09 ex01) ---
     if stype == "makefile":
@@ -1567,116 +2432,274 @@ def _grade_subject_inner(
             "srcs/ft_strlen.c": "int ft_strlen(char *s){int i=0;while(s[i])i++;return i;}\n",
             "srcs/ft_strcmp.c": "int ft_strcmp(char *a,char *b){while(*a&&*a==*b){a++;b++;}return (unsigned char)*a-(unsigned char)*b;}\n",
         }
-        with tempfile.TemporaryDirectory(prefix="dt_mk_", dir=str(get_executable_temp_root())) as td:
+        with tempfile.TemporaryDirectory(
+            prefix="dt_mk_", dir=str(get_executable_temp_root())
+        ) as td:
             work = Path(td)
             for item in submit_dir.iterdir():
                 if item.is_file():
                     shutil.copy2(item, work / item.name)
-            mk_res = audit_makefile(work, expected_binary_or_lib="libft.a", sources_to_create=dummy_srcs)
+            mk_res = audit_makefile(
+                work, expected_binary_or_lib="libft.a", sources_to_create=dummy_srcs
+            )
             trace.extend(mk_res.steps_log)
             if not mk_res.ok:
                 trace.append(f"\nMakefile KO: {mk_res.reason}\nGrade: 0")
-                return GradeReport(subject_id, False, mk_res.reason, mk_res.reason, "\n".join(trace), "", oracle_info)
+                return GradeReport(
+                    subject_id,
+                    False,
+                    mk_res.reason,
+                    mk_res.reason,
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
             trace.append("\nMakefile lifecycle & No-Relinking check: OK :D\nGrade: 100")
-            return GradeReport(subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info)
+            return GradeReport(
+                subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info
+            )
 
     # --- Route 3.2: Shell Library Creator (C 09 ex00: libft_creator.sh) ---
-    if stype == "shell_lib" or "libft_creator.sh" in expected_files or subject_id == "c09_libft":
+    if (
+        stype == "shell_lib"
+        or "libft_creator.sh" in expected_files
+        or subject_id == "c09_libft"
+    ):
         for exp in expected_files:
             if not (submit_dir / exp).exists():
-                trace.append(f"Missing expected turn-in file: '{exp}'\nNothing turned in\nGrade: 0")
-                return GradeReport(subject_id, False, "Nothing turned in", f"Missing {exp}", "\n".join(trace), "", oracle_info)
-        with tempfile.TemporaryDirectory(prefix="dt_shlib_", dir=str(get_executable_temp_root())) as td:
+                trace.append(
+                    f"Missing expected turn-in file: '{exp}'\nNothing turned in\nGrade: 0"
+                )
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Nothing turned in",
+                    f"Missing {exp}",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
+        with tempfile.TemporaryDirectory(
+            prefix="dt_shlib_", dir=str(get_executable_temp_root())
+        ) as td:
             work = Path(td)
             for item in submit_dir.iterdir():
                 if item.is_file():
                     shutil.copy2(item, work / item.name)
             trace.append("$> /bin/sh libft_creator.sh")
-            sproc = subprocess.run(["/bin/sh", "libft_creator.sh"], cwd=work, capture_output=True, text=True, errors="replace", timeout=10)
+            sproc = subprocess.run(
+                ["/bin/sh", "libft_creator.sh"],
+                cwd=work,
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=10,
+            )
             if sproc.returncode != 0 or not (work / "libft.a").exists():
-                trace.append(sproc.stderr.strip() or "libft.a was not created by libft_creator.sh")
+                trace.append(
+                    sproc.stderr.strip()
+                    or "libft.a was not created by libft_creator.sh"
+                )
                 trace.append("\nLibrary creation KO :(\nGrade: 0")
-                return GradeReport(subject_id, False, "Does not compile", "libft.a not created", "\n".join(trace), "", oracle_info)
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Does not compile",
+                    "libft.a not created",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
             test_main = work / "__dt_lib_main.c"
             test_main.write_text(
-                '#include <stdio.h>\n'
-                'void ft_putchar(char c);\n'
-                'void ft_swap(int *a, int *b);\n'
-                'void ft_putstr(char *str);\n'
-                'int ft_strlen(char *str);\n'
-                'int ft_strcmp(char *s1, char *s2);\n'
-                'int main(void) {\n'
-                '    int a = 21, b = 42;\n'
-                '    ft_swap(&a, &b);\n'
-                '    ft_putchar(\'X\');\n'
-                '    fflush(stdout);\n'
+                "#include <stdio.h>\n"
+                "void ft_putchar(char c);\n"
+                "void ft_swap(int *a, int *b);\n"
+                "void ft_putstr(char *str);\n"
+                "int ft_strlen(char *str);\n"
+                "int ft_strcmp(char *s1, char *s2);\n"
+                "int main(void) {\n"
+                "    int a = 21, b = 42;\n"
+                "    ft_swap(&a, &b);\n"
+                "    ft_putchar('X');\n"
+                "    fflush(stdout);\n"
                 '    ft_putstr("1337");\n'
-                '    fflush(stdout);\n'
+                "    fflush(stdout);\n"
                 '    printf(":%d:%d:%d\\n", a, ft_strlen("hello"), ft_strcmp("abc", "abd") < 0);\n'
-                '    return 0;\n'
-                '}\n',
+                "    return 0;\n"
+                "}\n",
                 encoding="utf-8",
             )
-            lproc = subprocess.run(["cc", *FLAGS_COMPILE_SAFE, "__dt_lib_main.c", "libft.a", "-o", "user_exe"], cwd=work, capture_output=True, text=True, errors="replace")
+            lproc = subprocess.run(
+                [
+                    "cc",
+                    *FLAGS_COMPILE_SAFE,
+                    "__dt_lib_main.c",
+                    "libft.a",
+                    "-o",
+                    "user_exe",
+                ],
+                cwd=work,
+                capture_output=True,
+                text=True,
+                errors="replace",
+            )
             if lproc.returncode != 0:
                 trace.append(lproc.stderr.strip())
-                return GradeReport(subject_id, False, "Does not compile", "Failed to link against libft.a", "\n".join(trace), "", oracle_info)
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Does not compile",
+                    "Failed to link against libft.a",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
             rproc = _run_isolated([str(work / "user_exe")], cwd=work, timeout=2.0)
             exp_out = "X1337:42:5:1\n"
             if rproc.stdout != exp_out:
-                trace.append(format_unified_diff(exp_out, rproc.stdout, "expected", "got"))
-                return GradeReport(subject_id, False, "Diff KO :(", "Diff KO :(", "\n".join(trace), "", oracle_info)
-            trace.append("Diff OK :D\n\n= Final grade: 100 =============================================================")
-            return GradeReport(subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info)
+                trace.append(
+                    format_unified_diff(exp_out, rproc.stdout, "expected", "got")
+                )
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Diff KO :(",
+                    "Diff KO :(",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
+            trace.append(
+                "Diff OK :D\n\n= Final grade: 100 ============================================================="
+            )
+            return GradeReport(
+                subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info
+            )
 
     # --- Route 3.4: C++ Exercises (cpp_module00..02) ---
-    if stype == "cpp" or meta.get("language") == "cpp" or any(str(f).endswith(".cpp") for f in expected_files):
-        return evaluate_cpp_exercise(subj_dir, subject_id, submit_dir, meta, trace, oracle_info)
+    if (
+        stype == "cpp"
+        or meta.get("language") == "cpp"
+        or any(str(f).endswith(".cpp") for f in expected_files)
+    ):
+        return evaluate_cpp_exercise(
+            subj_dir, subject_id, submit_dir, meta, trace, oracle_info
+        )
 
     # --- Route 3.5: Python Exercises ---
     if stype == "python":
-        return evaluate_python_exercise(subj_dir, subject_id, submit_dir, meta, trace, oracle_info)
+        return evaluate_python_exercise(
+            subj_dir, subject_id, submit_dir, meta, trace, oracle_info
+        )
 
     # --- Route 4: C Function, C Program & Project Exercises ---
-    all_dir_files = [p for p in submit_dir.rglob("*") if p.is_file() and not any(part.startswith(".") for part in p.relative_to(submit_dir).parts)]
+    all_dir_files = [
+        p
+        for p in submit_dir.rglob("*")
+        if p.is_file()
+        and not any(part.startswith(".") for part in p.relative_to(submit_dir).parts)
+    ]
     is_rush_or_bsq = subject_id.startswith(("rush", "bsq")) or "rush" in str(subj_dir)
-    has_wildcard_c = any("*" in exp for exp in expected_files) or ("Makefile" in expected_files) or (stype == "project") or (is_rush_or_bsq and stype == "c_program")
+    has_wildcard_c = (
+        any("*" in exp for exp in expected_files)
+        or ("Makefile" in expected_files)
+        or (stype == "project")
+        or (is_rush_or_bsq and stype == "c_program")
+    )
     if not has_wildcard_c and expected_files:
         expected_set = set(expected_files)
         if is_rush_or_bsq:
-            user_files = [p for p in all_dir_files if p.name in expected_set or p.suffix == ".h" or (p.suffix == ".c" and p.name != "main.c")]
+            user_files = [
+                p
+                for p in all_dir_files
+                if p.name in expected_set
+                or p.suffix == ".h"
+                or (p.suffix == ".c" and p.name != "main.c")
+            ]
         else:
-            user_files = [p for p in all_dir_files if p.name in expected_set or p.suffix == ".h"]
+            user_files = [
+                p for p in all_dir_files if p.name in expected_set or p.suffix == ".h"
+            ]
         norm_files = [p for p in all_dir_files if p.name in expected_set]
     else:
-        user_files = [p for p in all_dir_files if p.suffix in {".c", ".h"} or p.name == "Makefile"]
+        user_files = [
+            p for p in all_dir_files if p.suffix in {".c", ".h"} or p.name == "Makefile"
+        ]
         norm_files = user_files
 
     for exp in expected_files:
         if "*" not in exp and not (submit_dir / exp).exists():
             trace.append(f"$> ls -la {subject_id}/{exp}")
             trace.append(f"ls: {subject_id}/{exp}: No such file or directory")
-            trace.append(f"Missing expected turn-in file: '{exp}'\nNothing turned in\nGrade: 0")
-            return GradeReport(subject_id, False, "Nothing turned in", f"Missing {exp}", "\n".join(trace), "", oracle_info)
+            trace.append(
+                f"Missing expected turn-in file: '{exp}'\nNothing turned in\nGrade: 0"
+            )
+            return GradeReport(
+                subject_id,
+                False,
+                "Nothing turned in",
+                f"Missing {exp}",
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
+
+    if not has_wildcard_c and expected_files and not is_rush_or_bsq:
+        extras = _find_extraneous_files(
+            submit_dir, subj_dir, [str(e) for e in expected_files]
+        )
+        if extras:
+            return _extraneous_files_report(subject_id, extras, trace, oracle_info)
 
     bad_inc = check_forbidden_c_includes(user_files, allowed_root=submit_dir)
     if bad_inc:
         trace.extend(bad_inc)
-        trace.append(">>>>>>>>>> FAILURE: Cheat detected (forbidden function) <<<<<<<<<<")
-        return GradeReport(subject_id, False, "Cheating (-42)", bad_inc[0], "\n".join(trace), "", oracle_info)
+        trace.append(
+            ">>>>>>>>>> FAILURE: Cheat detected (forbidden function) <<<<<<<<<<"
+        )
+        return GradeReport(
+            subject_id,
+            False,
+            "Cheating (-42)",
+            bad_inc[0],
+            "\n".join(trace),
+            "",
+            oracle_info,
+        )
 
     if (not is_exam and meta.get("norminette", True)) or enforce_norm:
-        ok_n, n_log = run_norminette_check(kit_root, norm_files, rule=norminette_rule_for(meta))
+        ok_n, n_log = run_norminette_check(
+            kit_root, norm_files, rule=norminette_rule_for(meta)
+        )
         trace.append(n_log)
         if not ok_n:
             trace.append("\nNorme error\nGrade: 0")
-            return GradeReport(subject_id, False, "Norme error", "Norme error", "\n".join(trace), "", oracle_info)
+            return GradeReport(
+                subject_id,
+                False,
+                "Norme error",
+                "Norme error",
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
 
     rev_corr = kit_root / "corrections/exams" / subject_id
-    profile_yml = _safe_load_yaml(rev_corr / "profile.yml") if (rev_corr / "profile.yml").exists() else {}
-    whitelist = profile_yml.get("white_list") if "white_list" in profile_yml else meta.get("allowed_functions")
+    profile_yml = (
+        _safe_load_yaml(rev_corr / "profile.yml")
+        if (rev_corr / "profile.yml").exists()
+        else {}
+    )
+    whitelist = (
+        profile_yml.get("white_list")
+        if "white_list" in profile_yml
+        else meta.get("allowed_functions")
+    )
 
-    _last_arena_stats = getattr(_GRADER_TLS, "sink", getattr(_grade_subject_inner, "_tls_sink", [None]))
+    _last_arena_stats = getattr(
+        _GRADER_TLS, "sink", getattr(_grade_subject_inner, "_tls_sink", [None])
+    )
     with _tracked_eval_tempdir(get_executable_temp_root(), _last_arena_stats) as td:
         work = Path(td)
         for p in all_dir_files:
@@ -1710,16 +2733,25 @@ def _grade_subject_inner(
         is_func_ex = (stype == "c_function") or bool(profile_yml.get("common_files"))
         student_has_main = any(has_main_definition(uf) for uf in user_files)
 
-        if is_func_ex and student_has_main and meta.get("dual_mode", False) and any("args" in ft for ft in fixed_tests):
+        if (
+            is_func_ex
+            and student_has_main
+            and meta.get("dual_mode", False)
+            and any("args" in ft for ft in fixed_tests)
+        ):
             is_func_ex = False
             fixed_tests = [ft for ft in fixed_tests if "args" in ft]
         elif is_func_ex:
-            fixed_tests = [ft for ft in fixed_tests if "call" in ft or "expr" in ft or "code" in ft]
+            fixed_tests = [
+                ft for ft in fixed_tests if "call" in ft or "expr" in ft or "code" in ft
+            ]
 
         if is_func_ex and not meta.get("allow_main", False):
             for uf in user_files:
                 if has_main_definition(uf):
-                    trace.append(f"{uf.name}: Error: main() function is forbidden in a function exercise!\n>>>>>>>>>> FAILURE: Student left a main() function in turned-in file <<<<<<<<<<\nGrade: 0")
+                    trace.append(
+                        f"{uf.name}: Error: main() function is forbidden in a function exercise!\n>>>>>>>>>> FAILURE: Student left a main() function in turned-in file <<<<<<<<<<\nGrade: 0"
+                    )
                     return GradeReport(
                         subject_id,
                         False,
@@ -1731,12 +2763,17 @@ def _grade_subject_inner(
                     )
 
         # Step 4A: Compile `.o` & Verify `nm -u` symbol whitelist!
-        c_sources = [work / uf.relative_to(submit_dir) for uf in user_files if uf.suffix == ".c"]
+        c_sources = [
+            work / uf.relative_to(submit_dir) for uf in user_files if uf.suffix == ".c"
+        ]
         inc_dirs = [work]
         for sub_inc in ["includes", "include", "srcs", "src"]:
             if (work / sub_inc).is_dir():
                 inc_dirs.append(work / sub_inc)
-        inc_flags = ["-I.", *[f"-I{d.relative_to(work)}" for d in inc_dirs if d != work]]
+        inc_flags = [
+            "-I.",
+            *[f"-I{d.relative_to(work)}" for d in inc_dirs if d != work],
+        ]
         comp_res, sym_res = verify_symbol_whitelist(
             c_sources,
             whitelist,
@@ -1745,24 +2782,80 @@ def _grade_subject_inner(
             strict_dual_compiler=strict,
         )
         trace.append(f"\n= {subject_id} " + "=" * max(5, 76 - len(subject_id)))
-        trace.append("\n= Compilation ==================================================================")
+        trace.append(
+            "\n= Compilation =================================================================="
+        )
         trace.append(f"$> {comp_res.command}")
         if not comp_res.ok:
             trace.append(comp_res.stderr.strip())
             trace.append("Could not compile 'user_exe'\nDoes not compile\nGrade: 0")
-            return GradeReport(subject_id, False, "Does not compile", "Does not compile", "\n".join(trace), "", oracle_info)
+            return GradeReport(
+                subject_id,
+                False,
+                "Does not compile",
+                "Does not compile",
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
 
         if sym_res.raw_nm_output:
             trace.append(sym_res.raw_nm_output)
         if not sym_res.ok:
-            status_sym = sym_res.reason if sym_res.reason.startswith("Configuration Error") else "Cheating (-42)"
-            trace.append(f"\n>>>>>>>>>> FAILURE: Cheat detected (forbidden function) <<<<<<<<<<\n{sym_res.reason}\nGrade: -42")
-            return GradeReport(subject_id, False, status_sym, sym_res.reason, "\n".join(trace), "", oracle_info)
+            status_sym = (
+                sym_res.reason
+                if sym_res.reason.startswith("Configuration Error")
+                else "Cheating (-42)"
+            )
+            trace.append(
+                f"\n>>>>>>>>>> FAILURE: Cheat detected (forbidden function) <<<<<<<<<<\n{sym_res.reason}\nGrade: -42"
+            )
+            return GradeReport(
+                subject_id,
+                False,
+                status_sym,
+                sym_res.reason,
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
+
+        if stype == "c_function" and c_sources:
+            proto_raw = str(meta.get("prototype", "") or "").strip()
+            if (
+                proto_raw
+                and proto_raw.count(";") <= 1
+                and not proto_raw.lstrip().startswith("(")
+            ):
+                pm = re.match(
+                    r"^\s*[A-Za-z_][A-Za-z0-9_\s\*]*?\b([A-Za-z_][A-Za-z0-9_]*)\s*\(",
+                    proto_raw,
+                )
+                if pm:
+                    req_fn = pm.group(1)
+                    if req_fn not in sym_res.defined_symbols:
+                        msg = f"Required symbol '{req_fn}' is not defined in submitted C source(s)"
+                        trace.append(
+                            f"undefined reference to `{req_fn}'\n{msg}\nDoes not compile\nGrade: 0"
+                        )
+                        return GradeReport(
+                            subject_id,
+                            False,
+                            "Does not compile",
+                            msg,
+                            "\n".join(trace),
+                            "",
+                            oracle_info,
+                        )
 
         # Step 4B: Standard tests.yml evaluation (fixed_tests + oracle_tests) + ExamPoolRevanced generator.py
         tests_executed = 0
         gen_py = rev_corr / "generator.py"
-        if gen_py.exists() and not meta.get("alt_variants") and (not is_func_ex or (rev_corr / "main.c").exists()):
+        if (
+            gen_py.exists()
+            and not meta.get("alt_variants")
+            and (not is_func_ex or (rev_corr / "main.c").exists())
+        ):
             gen_dir = work / "__dt_gen"
             shutil.copytree(rev_corr, gen_dir)
             env = {
@@ -1770,75 +2863,183 @@ def _grade_subject_inner(
                 "PYTHONPATH": f"{kit_root}{os.pathsep}{os.environ.get('PYTHONPATH', '')}",
                 "DT_TESTS_OUT": str(gen_dir / "__dt_generated_tests.json"),
             }
-            gproc = subprocess.run([sys.executable, "generator.py"], cwd=gen_dir, env=env, capture_output=True, text=True, errors="replace", timeout=10)
+            gproc = subprocess.run(
+                [sys.executable, "generator.py"],
+                cwd=gen_dir,
+                env=env,
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=10,
+            )
             gen_json = gen_dir / "__dt_generated_tests.json"
             if gproc.returncode == 0 and gen_json.exists():
                 generated_cases = json.loads(gen_json.read_text(encoding="utf-8"))
                 if generated_cases:
-                    common_files = [gen_dir / cf for cf in (profile_yml.get("common_files") or []) if (gen_dir / cf).exists()]
-                    if is_func_ex and not common_files and (gen_dir / "main.c").exists():
+                    common_files = [
+                        gen_dir / cf
+                        for cf in (profile_yml.get("common_files") or [])
+                        if (gen_dir / cf).exists()
+                    ]
+                    if (
+                        is_func_ex
+                        and not common_files
+                        and (gen_dir / "main.c").exists()
+                    ):
                         common_files = [gen_dir / "main.c"]
                     user_gen_exe = work / "user_gen_exe"
-                    gen_strict = _get_strict_sandbox_flags(kit_root, work) if strict else []
-                    link_cmd = ["cc", *FLAGS_COMPILE_SAFE, *(["-ftrapv"] if strict else []), *[str(p) for p in c_sources], *[str(p) for p in common_files], *gen_strict, "-o", str(user_gen_exe), "-lm"]
-                    lproc = subprocess.run(link_cmd, cwd=work, capture_output=True, text=True, errors="replace")
+                    gen_strict = (
+                        _get_strict_sandbox_flags(kit_root, work) if strict else []
+                    )
+                    link_cmd = [
+                        "cc",
+                        *FLAGS_COMPILE_SAFE,
+                        *(["-ftrapv"] if strict else []),
+                        *[str(p) for p in c_sources],
+                        *[str(p) for p in common_files],
+                        *gen_strict,
+                        "-o",
+                        str(user_gen_exe),
+                        "-lm",
+                    ]
+                    lproc = subprocess.run(
+                        link_cmd,
+                        cwd=work,
+                        capture_output=True,
+                        text=True,
+                        errors="replace",
+                    )
                     if lproc.returncode == 0:
-                        for case in generated_cases:
+                        for gen_idx, case in enumerate(generated_cases, start=1):
                             tests_executed += 1
                             tname = case["name"]
                             cmd_args = case["cmd"]
                             exp_out = case["output"]
-                            trace.append(f"\n= {tname} ({case.get('fn_name', '')}) ===========================================")
-                            trace.append(f"$> ./user_exe {cmd_args}")
+                            show_gen = reveal_tests or not is_func_ex
+                            if show_gen:
+                                trace.append(
+                                    f"\n= {tname} ({case.get('fn_name', '')}) ==========================================="
+                                )
+                                trace.append(f"$> ./user_exe {cmd_args}")
+                            else:
+                                _append_c_func_case_header(
+                                    trace,
+                                    gen_idx,
+                                    "",
+                                    f"./user_exe {gen_idx}",
+                                    reveal_tests=False,
+                                )
                             try:
-                                split_args = shlex.split(str(cmd_args)) if isinstance(cmd_args, str) else [str(a) for a in cmd_args]
+                                split_args = (
+                                    shlex.split(str(cmd_args))
+                                    if isinstance(cmd_args, str)
+                                    else [str(a) for a in cmd_args]
+                                )
                                 rproc = _run_isolated(
                                     [str(user_gen_exe), *split_args],
                                     cwd=work,
                                     timeout=2.0,
                                 )
                             except subprocess.TimeoutExpired:
-                                trace.append("Command got killed by a Timeout (elapsed > 2.0s)\nGrade: 0")
-                                return GradeReport(subject_id, False, "Timeout", "Timeout", "\n".join(trace), oracle_info.get("why_moulinette_fails", ""), oracle_info)
+                                trace.append(
+                                    "Command got killed by a Timeout (elapsed > 2.0s)\nGrade: 0"
+                                )
+                                return GradeReport(
+                                    subject_id,
+                                    False,
+                                    "Timeout",
+                                    "Timeout",
+                                    "\n".join(trace),
+                                    oracle_info.get("why_moulinette_fails", ""),
+                                    oracle_info,
+                                )
 
                             if len(rproc.stdout) > 262144 or len(rproc.stderr) > 262144:
-                                trace.append("Output limit exceeded (>256 KB)\nGrade: 0")
-                                return GradeReport(subject_id, False, "Output limit exceeded (>256 KB)", "Output limit exceeded", "\n".join(trace), "", oracle_info)
+                                trace.append(
+                                    "Output limit exceeded (>256 KB)\nGrade: 0"
+                                )
+                                return GradeReport(
+                                    subject_id,
+                                    False,
+                                    "Output limit exceeded (>256 KB)",
+                                    "Output limit exceeded",
+                                    "\n".join(trace),
+                                    "",
+                                    oracle_info,
+                                )
                             if rproc.returncode != 0:
                                 err_detail = (rproc.stderr or "").strip()
-                                sig_name, sig_reason, is_fatal_mem_sig = classify_process_exit_status(rproc.returncode, err_detail, False)
+                                sig_name, sig_reason, is_fatal_mem_sig = (
+                                    classify_process_exit_status(
+                                        rproc.returncode, err_detail, False
+                                    )
+                                )
                                 if is_fatal_mem_sig:
-                                    if err_detail and any(k in err_detail for k in ("[REDZONE KO]", "[LEAK KO]", "[DOUBLE FREE KO]", "[INVALID FREE KO]", "[ARENA OWNERSHIP KO]", "[TRACKING EXHAUSTED KO]")):
+                                    if err_detail and any(
+                                        k in err_detail
+                                        for k in (
+                                            "[REDZONE KO]",
+                                            "[LEAK KO]",
+                                            "[DOUBLE FREE KO]",
+                                            "[INVALID FREE KO]",
+                                            "[ARENA OWNERSHIP KO]",
+                                            "[TRACKING EXHAUSTED KO]",
+                                        )
+                                    ):
                                         trace.append(err_detail)
-                                    trace.append(f"Command got killed by a {sig_name}\nGrade: 0")
-                                    return GradeReport(subject_id, False, sig_name, sig_reason, "\n".join(trace), oracle_info.get("why_moulinette_fails", ""), oracle_info)
+                                    trace.append(
+                                        f"Command got killed by a {sig_name}\nGrade: 0"
+                                    )
+                                    return GradeReport(
+                                        subject_id,
+                                        False,
+                                        sig_name,
+                                        sig_reason,
+                                        "\n".join(trace),
+                                        oracle_info.get("why_moulinette_fails", ""),
+                                        oracle_info,
+                                    )
 
                             if rproc.returncode != 0 and subject_id != "fix_result":
-                                trace.append(f"Non-zero exit code: {rproc.returncode}\nDiff KO :(\nGrade: 0")
-                                return GradeReport(subject_id, False, "Diff KO :(", f"Non-zero exit code {rproc.returncode}", "\n".join(trace), "", oracle_info)
-
-                            trace.append(f"$> diff -U 3 user_output_{tname} {tname}.output | cat -e")
-                            if rproc.stdout != exp_out:
-                                diff_txt = format_unified_diff(exp_out, rproc.stdout, f"{tname}.output", f"user_output_{tname}")
-                                trace.append(diff_txt)
-                                trace.append("\nDiff KO :(\nGrade: 0")
+                                trace.append(
+                                    f"Non-zero exit code: {rproc.returncode}\nDiff KO :(\nGrade: 0"
+                                )
                                 return GradeReport(
                                     subject_id,
                                     False,
                                     "Diff KO :(",
-                                    f"Failed on {tname}",
+                                    f"Non-zero exit code {rproc.returncode}",
                                     "\n".join(trace),
-                                    oracle_info.get("why_moulinette_fails", ""),
+                                    "",
                                     oracle_info,
-                                    last_cmd=f"./{subject_id} {cmd_args} | cat -e",
-                                    expected_cat_e=_to_cat_e(exp_out),
-                                    actual_cat_e=_to_cat_e(rproc.stdout),
+                                )
+
+                            if show_gen:
+                                trace.append(
+                                    f"$> diff -U 3 user_output_{tname} {tname}.output | cat -e"
+                                )
+                            if rproc.stdout != exp_out:
+                                return _c_func_diff_ko_report(
+                                    subject_id,
+                                    gen_idx,
+                                    f"Failed on {tname}",
+                                    exp_out,
+                                    rproc.stdout,
+                                    f"{tname}.output",
+                                    f"user_output_{tname}",
+                                    f"./{subject_id} {cmd_args} | cat -e",
+                                    trace,
+                                    oracle_info,
+                                    reveal_tests=show_gen,
+                                    why=oracle_info.get("why_moulinette_fails", ""),
                                 )
                             trace.append("\nDiff OK :D")
 
         if is_func_ex:
             preamble = str(meta.get("hidden_preamble", "")).strip()
-            proto = str(meta.get("prototype", "") or tests_cfg.get("prototype", "")).rstrip(";")
+            proto = str(
+                meta.get("prototype", "") or tests_cfg.get("prototype", "")
+            ).rstrip(";")
             headers = [
                 "#include <stdio.h>",
                 "#include <stdlib.h>",
@@ -1850,7 +3051,9 @@ def _grade_subject_inner(
                 "#include <stdbool.h>",
                 "#include <stdint.h>",
             ]
-            sc_extra = str(tests_cfg.get("support_code") or tests_cfg.get("preamble") or "").strip()
+            sc_extra = str(
+                tests_cfg.get("support_code") or tests_cfg.get("preamble") or ""
+            ).strip()
             local_h_texts = ""
             for hf in sorted(work.glob("*.h")):
                 if hf.name == "sandbox_harness.c":
@@ -1859,25 +3062,53 @@ def _grade_subject_inner(
                 if hf.name not in sc_extra and hf.name not in preamble:
                     headers.append(f'#include "{hf.name}"')
             combined_tests_text = " ".join(
-                str(ft.get("call") or ft.get("code") or ft.get("expr") or "") + " " + " ".join(str(x) for x in (ft.get("setup") or []))
+                str(ft.get("call") or ft.get("code") or ft.get("expr") or "")
+                + " "
+                + " ".join(str(x) for x in (ft.get("setup") or []))
                 for ft in fixed_tests
             )
             defined_blob = local_h_texts + "\n" + sc_extra + "\n" + preamble
-            if ("t_stock_str" in proto or "t_stock_str" in combined_tests_text) and "s_stock_str" not in defined_blob:
-                headers.append("typedef struct s_stock_str { int size; char *str; char *copy; } t_stock_str;")
-            if ("t_btree" in proto or "t_btree" in combined_tests_text) and "s_btree" not in defined_blob:
-                headers.append("typedef struct s_btree { void *item; struct s_btree *left; struct s_btree *right; } t_btree;")
-            if ("t_list" in proto or "t_list" in combined_tests_text) and "s_list" not in defined_blob:
-                headers.append("typedef struct s_list { void *data; struct s_list *next; } t_list;")
-            if ("s_node" in proto or "s_node" in combined_tests_text or "node" in proto) and "struct s_node" not in defined_blob:
-                headers.append("struct s_node { int value; int data; struct s_node *right; struct s_node *left; struct s_node *next; struct s_node *other; };")
+            if (
+                "t_stock_str" in proto or "t_stock_str" in combined_tests_text
+            ) and "s_stock_str" not in defined_blob:
+                headers.append(
+                    "typedef struct s_stock_str { int size; char *str; char *copy; } t_stock_str;"
+                )
+            if (
+                "t_btree" in proto or "t_btree" in combined_tests_text
+            ) and "s_btree" not in defined_blob:
+                headers.append(
+                    "typedef struct s_btree { void *item; struct s_btree *left; struct s_btree *right; } t_btree;"
+                )
+            if (
+                "t_list" in proto or "t_list" in combined_tests_text
+            ) and "s_list" not in defined_blob:
+                headers.append(
+                    "typedef struct s_list { void *data; struct s_list *next; } t_list;"
+                )
+            if (
+                "s_node" in proto or "s_node" in combined_tests_text or "node" in proto
+            ) and "struct s_node" not in defined_blob:
+                headers.append(
+                    "struct s_node { int value; int data; struct s_node *right; struct s_node *left; struct s_node *next; struct s_node *other; };"
+                )
             if sc_extra:
-                headers.append(re.sub(r"\bstatic\s+(?!__attribute__)", "static __attribute__((unused)) ", sc_extra))
+                headers.append(
+                    re.sub(
+                        r"\bstatic\s+(?!__attribute__)",
+                        "static __attribute__((unused)) ",
+                        sc_extra,
+                    )
+                )
             if preamble:
                 headers.append(preamble)
-            student_c_blob = "\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in c_sources)
+            student_c_blob = "\n".join(
+                p.read_text(encoding="utf-8", errors="ignore") for p in c_sources
+            )
             all_known_defs = defined_blob + "\n" + student_c_blob
-            if "->" in proto or (subject_id and not re.search(rf"\b{re.escape(subject_id)}\b", proto)):
+            if "->" in proto or (
+                subject_id and not re.search(rf"\b{re.escape(subject_id)}\b", proto)
+            ):
                 m_sig = re.search(
                     rf"^([A-Za-z_][\w\s\*]*?\b{re.escape(subject_id)}\s*\([^;{{}}]*\))\s*\{{",
                     student_c_blob,
@@ -1901,27 +3132,65 @@ def _grade_subject_inner(
                 dt_cmp_code = "static __attribute__((unused)) int dt_cmp(int a, int b) { return (a - b); }"
                 dt_print_code = 'static __attribute__((unused)) void dt_print(void *d) { printf("%s,", (char *)d); }'
             helper_snippets = [
-                ("ascending", "static __attribute__((unused)) int ascending(int a, int b) { return (a <= b); }"),
-                ("dt_is_empty", "static __attribute__((unused)) int dt_is_empty(char *s) { return (s[0] == '\\0' ? 1 : 0); }"),
-                ("dt_is_short", "static __attribute__((unused)) int dt_is_short(char *s) { return (strlen(s) <= 1 ? 1 : 0); }"),
-                ("dt_print_int", "static __attribute__((unused)) void dt_print_int(int n) { printf(\"%d,\", n); }"),
-                ("dt_double", "static __attribute__((unused)) int dt_double(int n) { return (n * 2); }"),
-                ("dt_strcmp", "static __attribute__((unused)) int dt_strcmp(char *a, char *b) { return strcmp(a, b); }"),
-                ("dt_apply", 'static __attribute__((unused)) void dt_apply(void *item, int current_level, int is_first_elem) { printf("%d:%d:%s,", current_level, is_first_elem, (char *)item); }'),
+                (
+                    "ascending",
+                    "static __attribute__((unused)) int ascending(int a, int b) { return (a <= b); }",
+                ),
+                (
+                    "dt_is_empty",
+                    "static __attribute__((unused)) int dt_is_empty(char *s) { return (s[0] == '\\0' ? 1 : 0); }",
+                ),
+                (
+                    "dt_is_short",
+                    "static __attribute__((unused)) int dt_is_short(char *s) { return (strlen(s) <= 1 ? 1 : 0); }",
+                ),
+                (
+                    "dt_print_int",
+                    'static __attribute__((unused)) void dt_print_int(int n) { printf("%d,", n); }',
+                ),
+                (
+                    "dt_double",
+                    "static __attribute__((unused)) int dt_double(int n) { return (n * 2); }",
+                ),
+                (
+                    "dt_strcmp",
+                    "static __attribute__((unused)) int dt_strcmp(char *a, char *b) { return strcmp(a, b); }",
+                ),
+                (
+                    "dt_apply",
+                    'static __attribute__((unused)) void dt_apply(void *item, int current_level, int is_first_elem) { printf("%d:%d:%s,", current_level, is_first_elem, (char *)item); }',
+                ),
                 ("dt_cmp", dt_cmp_code),
                 ("__dt_cmp", dt_cmp_code.replace("dt_cmp", "__dt_cmp")),
                 ("dt_print", dt_print_code),
-                ("cmp", "static __attribute__((unused)) int cmp(void *a, void *b) { return strcmp((const char *)a, (const char *)b); }"),
+                (
+                    "cmp",
+                    "static __attribute__((unused)) int cmp(void *a, void *b) { return strcmp((const char *)a, (const char *)b); }",
+                ),
             ]
             for h_name, h_code in helper_snippets:
-                if re.search(rf"\b{h_name}\b", combined_tests_text) and not re.search(rf"\b{h_name}\s*\(", defined_blob):
+                if re.search(rf"\b{h_name}\b", combined_tests_text) and not re.search(
+                    rf"\b{h_name}\s*\(", defined_blob
+                ):
                     headers.append(h_code)
-            if subject_id != "ft_create_elem" and re.search(r"\bft_create_elem\s*\(", combined_tests_text + "\n" + student_c_blob):
-                if not re.search(r"\bft_create_elem\s*\([^;{}]*\)\s*\{", all_known_defs):
-                    headers.append("t_list *ft_create_elem(void *data) { t_list *n = (t_list *)malloc(sizeof(t_list)); if (!n) return NULL; n->data = data; n->next = NULL; return n; }")
-            if subject_id != "btree_create_node" and re.search(r"\bbtree_create_node\s*\(", combined_tests_text + "\n" + student_c_blob):
-                if not re.search(r"\bbtree_create_node\s*\([^;{}]*\)\s*\{", all_known_defs):
-                    headers.append("t_btree *btree_create_node(void *item) { t_btree *n = (t_btree *)malloc(sizeof(t_btree)); if (!n) return NULL; n->item = item; n->left = NULL; n->right = NULL; return n; }")
+            if subject_id != "ft_create_elem" and re.search(
+                r"\bft_create_elem\s*\(", combined_tests_text + "\n" + student_c_blob
+            ):
+                if not re.search(
+                    r"\bft_create_elem\s*\([^;{}]*\)\s*\{", all_known_defs
+                ):
+                    headers.append(
+                        "t_list *ft_create_elem(void *data) { t_list *n = (t_list *)malloc(sizeof(t_list)); if (!n) return NULL; n->data = data; n->next = NULL; return n; }"
+                    )
+            if subject_id != "btree_create_node" and re.search(
+                r"\bbtree_create_node\s*\(", combined_tests_text + "\n" + student_c_blob
+            ):
+                if not re.search(
+                    r"\bbtree_create_node\s*\([^;{}]*\)\s*\{", all_known_defs
+                ):
+                    headers.append(
+                        "t_btree *btree_create_node(void *item) { t_btree *n = (t_btree *)malloc(sizeof(t_btree)); if (!n) return NULL; n->item = item; n->left = NULL; n->right = NULL; return n; }"
+                    )
 
             if re.search(r"\bstrdup\s*\(", combined_tests_text):
                 headers.append(
@@ -1931,7 +3200,9 @@ def _grade_subject_inner(
                 )
 
             proto_prefix = proto.split("(")[0].strip() if "(" in proto else ""
-            is_void_ret = bool(re.match(r"^(?:static\s+|inline\s+)*void\s+[A-Za-z_]\w*$", proto_prefix))
+            is_void_ret = bool(
+                re.match(r"^(?:static\s+|inline\s+)*void\s+[A-Za-z_]\w*$", proto_prefix)
+            )
 
             def _guard_null_injection(stmt: str) -> str:
                 return re.sub(
@@ -1964,162 +3235,426 @@ def _grade_subject_inner(
                     setup_stmts = ft.get("setup") or []
                     if isinstance(setup_stmts, str):
                         setup_stmts = [setup_stmts]
-                    setup_code = _guard_null_injection(" ".join(str(s).replace(r"\|", "|").strip().rstrip(";") + ";" for s in setup_stmts if str(s).strip()))
+                    setup_code = _guard_null_injection(
+                        " ".join(
+                            str(s).replace(r"\|", "|").strip().rstrip(";") + ";"
+                            for s in setup_stmts
+                            if str(s).strip()
+                        )
+                    )
                     if "call" in ft:
-                        call_c = _guard_null_injection(str(ft["call"]).replace(r"\|", "|").rstrip(";"))
-                        main_lines.append(f"  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN(\"tc_{ft_idx}\"); {setup_code} {call_c}; fflush(stdout); DT_TC_END(); }}")
-                        exp_piece = str(ft.get("stdout") if ft.get("stdout") is not None else ft.get("expected", ""))
+                        call_c = _guard_null_injection(
+                            str(ft["call"]).replace(r"\|", "|").rstrip(";")
+                        )
+                        main_lines.append(
+                            f'  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN("tc_{ft_idx}"); {setup_code} {call_c}; fflush(stdout); DT_TC_END(); }}'
+                        )
+                        exp_piece = str(
+                            ft.get("stdout")
+                            if ft.get("stdout") is not None
+                            else ft.get("expected", "")
+                        )
                         desc = ft.get("name") or str(ft["call"])[:48]
                         case_specs.append((ft_idx, desc, exp_piece))
                     elif "code" in ft:
-                        code_c = _guard_null_injection(str(ft["code"]).replace(r"\|", "|").rstrip(";"))
-                        main_lines.append(f"  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN(\"tc_{ft_idx}\"); {setup_code} {code_c}; fflush(stdout); DT_TC_END(); }}")
-                        raw_exp = ft.get("stdout") if ft.get("stdout") is not None else ft.get("expected", "")
-                        exp_piece = str(raw_exp) if str(raw_exp).endswith("\n") else f"{raw_exp}\n"
+                        code_c = _guard_null_injection(
+                            str(ft["code"]).replace(r"\|", "|").rstrip(";")
+                        )
+                        main_lines.append(
+                            f'  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN("tc_{ft_idx}"); {setup_code} {code_c}; fflush(stdout); DT_TC_END(); }}'
+                        )
+                        raw_exp = (
+                            ft.get("stdout")
+                            if ft.get("stdout") is not None
+                            else ft.get("expected", "")
+                        )
+                        exp_piece = (
+                            str(raw_exp)
+                            if str(raw_exp).endswith("\n")
+                            else f"{raw_exp}\n"
+                        )
                         desc = ft.get("name") or str(ft["code"])[:48]
                         case_specs.append((ft_idx, desc, exp_piece))
                     elif "expr" in ft:
                         expr_c = str(ft["expr"]).replace(r"\|", "|").rstrip(";")
-                        if is_void_ret and re.search(rf"\b{re.escape(subject_id)}\s*\(", expr_c):
-                            main_lines.append(f"  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN(\"tc_{ft_idx}\"); {setup_code} {expr_c}; fflush(stdout); DT_TC_END(); }}")
+                        if is_void_ret and re.search(
+                            rf"\b{re.escape(subject_id)}\s*\(", expr_c
+                        ):
+                            main_lines.append(
+                                f'  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN("tc_{ft_idx}"); {setup_code} {expr_c}; fflush(stdout); DT_TC_END(); }}'
+                            )
                         else:
                             fmt = ft.get("fmt", "%ld")
                             if fmt == "%s":
-                                main_lines.append(f"  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN(\"tc_{ft_idx}\"); {setup_code} char *__dt_res = (char *)({expr_c}); printf(\"%s\\n\", __dt_res ? __dt_res : \"(null)\"); if (__dt_res) free(__dt_res); fflush(stdout); DT_TC_END(); }}")
+                                main_lines.append(
+                                    f'  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN("tc_{ft_idx}"); {setup_code} char *__dt_res = (char *)({expr_c}); printf("%s\\n", __dt_res ? __dt_res : "(null)"); if (__dt_res) free(__dt_res); fflush(stdout); DT_TC_END(); }}'
+                                )
                             else:
-                                main_lines.append(f"  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN(\"tc_{ft_idx}\"); {setup_code} printf(\"{fmt}\\n\", (long)({expr_c})); fflush(stdout); DT_TC_END(); }}")
-                        exp_piece = str(ft.get("stdout") if ft.get("stdout") is not None else f"{ft.get('expected', ft.get('return', ''))}\n")
+                                main_lines.append(
+                                    f'  if (tc == 0 || tc == {ft_idx}) {{ DT_TC_BEGIN("tc_{ft_idx}"); {setup_code} printf("{fmt}\\n", (long)({expr_c})); fflush(stdout); DT_TC_END(); }}'
+                                )
+                        exp_piece = str(
+                            ft.get("stdout")
+                            if ft.get("stdout") is not None
+                            else f"{ft.get('expected', ft.get('return', ''))}\n"
+                        )
                         desc = ft.get("name") or expr_c[:48]
                         case_specs.append((ft_idx, desc, exp_piece))
                 main_lines.append("  return 0;\n}")
-                (work / "__dt_main.c").write_text("\n".join(main_lines) + "\n", encoding="utf-8")
+                (work / "__dt_main.c").write_text(
+                    "\n".join(main_lines) + "\n", encoding="utf-8"
+                )
                 strict_flags = _get_strict_sandbox_flags(kit_root, work)
                 # For ft_atoi, compile user C source directly with -ftrapv so signed integer
                 # overflow on -2147483648 traps with SIGABRT (Signal -6), killing MUT-E01!
                 if subject_id in {"ft_atoi", "ft_atoi_base"}:
-                    src_or_obj = ["-ftrapv", *[str(p.relative_to(work)) for p in c_sources]]
+                    src_or_obj = [
+                        "-ftrapv",
+                        *[str(p.relative_to(work)) for p in c_sources],
+                    ]
                 else:
-                    obj_files = [f"{p.stem}.o" for p in c_sources if (work / f"{p.stem}.o").exists()]
-                    src_or_obj = obj_files if len(obj_files) == len(c_sources) else [str(p.relative_to(work)) for p in c_sources]
-                cmd = ["cc", *FLAGS_COMPILE_SAFE, *inc_flags, *src_or_obj, "__dt_main.c", *strict_flags, "-o", "user_exe", "-lm"]
-                trace.append("$> " + " ".join(["cc", *FLAGS_DEFAULT, *[p.name for p in c_sources], "main.c", "-o", "user_exe"]))
-                lproc = subprocess.run(cmd, cwd=work, capture_output=True, text=True, errors="replace")
+                    # Always build from the turned-in sources: a stale .o left in the turn-in folder
+                    # is copied into work/ too and must never stand in for the code.
+                    src_or_obj = [str(p.relative_to(work)) for p in c_sources]
+                cmd = [
+                    "cc",
+                    *FLAGS_COMPILE_SAFE,
+                    *inc_flags,
+                    *src_or_obj,
+                    "__dt_main.c",
+                    *strict_flags,
+                    "-o",
+                    "user_exe",
+                    "-lm",
+                ]
+                trace.append(
+                    "$> "
+                    + " ".join(
+                        [
+                            "cc",
+                            *FLAGS_DEFAULT,
+                            *[p.name for p in c_sources],
+                            "main.c",
+                            "-o",
+                            "user_exe",
+                        ]
+                    )
+                )
+                lproc = subprocess.run(
+                    cmd, cwd=work, capture_output=True, text=True, errors="replace"
+                )
                 if lproc.returncode != 0:
                     trace.append(lproc.stderr.strip())
-                    return GradeReport(subject_id, False, "Does not compile", "Linker error", "\n".join(trace), "", oracle_info)
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Does not compile",
+                        "Linker error",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
 
                 fixed_env = {**os.environ}
-                if strict and ("free(" in combined_tests_text or subject_id in {"ft_list_clear", "ft_list_remove_if", "ft_strdel", "get_next_line", "broken_gnl", "gold_gain", "moment", "orderWeight", "queue", "stack"} or any(ft.get("check_leaks") for ft in fixed_tests)):
+                if strict and (
+                    "free(" in combined_tests_text
+                    or subject_id
+                    in {
+                        "ft_list_clear",
+                        "ft_list_remove_if",
+                        "ft_strdel",
+                        "get_next_line",
+                        "broken_gnl",
+                        "gold_gain",
+                        "moment",
+                        "orderWeight",
+                        "queue",
+                        "stack",
+                    }
+                    or any(ft.get("check_leaks") for ft in fixed_tests)
+                    or bool(tests_cfg.get("check_leaks"))
+                ):
                     fixed_env["DT_CHECK_LEAKS"] = "1"
                 for ft_idx, desc, exp_piece in case_specs:
                     tests_executed += 1
-                    trace.append(f"\n= Test {ft_idx} ({desc}) " + "=" * max(5, 68 - len(str(desc))))
+                    _append_c_func_case_header(
+                        trace,
+                        ft_idx,
+                        f"Test {ft_idx} ({desc})",
+                        f"./user_exe {ft_idx}",
+                        reveal_tests=reveal_tests,
+                    )
                     try:
-                        rproc = _run_isolated([str(work / "user_exe"), str(ft_idx)], cwd=work, env=fixed_env, timeout=2.0)
+                        rproc = _run_isolated(
+                            [str(work / "user_exe"), str(ft_idx)],
+                            cwd=work,
+                            env=fixed_env,
+                            timeout=2.0,
+                        )
                     except subprocess.TimeoutExpired:
-                        trace.append("Command got killed by a Timeout (elapsed > 2.0s)\nGrade: 0")
-                        return GradeReport(subject_id, False, "Timeout", "Timeout", "\n".join(trace), oracle_info.get("why_moulinette_fails", ""), oracle_info)
-                    if rproc.returncode != 0:
-                        err_detail = (rproc.stderr or "").strip()
-                        if err_detail and any(k in err_detail for k in ("[REDZONE KO]", "[LEAK KO]", "[DOUBLE FREE KO]", "[INVALID FREE KO]", "[ARENA OWNERSHIP KO]", "[TRACKING EXHAUSTED KO]")):
-                            trace.append(err_detail)
-                        sig_name, sig_reason, _ = classify_process_exit_status(rproc.returncode, err_detail, False)
-                        trace.append(f"Command got killed by a {sig_name}\nGrade: 0")
-                        return GradeReport(subject_id, False, sig_name, sig_reason, "\n".join(trace), oracle_info.get("why_moulinette_fails", ""), oracle_info)
-                    trace.append(f"$> diff -U 3 user_output_test{ft_idx} test{ft_idx}.output | cat -e")
-                    got_out = rproc.stdout
-                    if is_void_ret and got_out != exp_piece and got_out + "\n" == exp_piece:
-                        got_out = got_out + "\n"
-                    if got_out != exp_piece:
-                        trace.append(format_unified_diff(exp_piece, got_out, f"test{ft_idx}.output", f"user_output_test{ft_idx}"))
-                        trace.append("\nDiff KO :(\nGrade: 0")
+                        trace.append(
+                            "Command got killed by a Timeout (elapsed > 2.0s)\nGrade: 0"
+                        )
                         return GradeReport(
                             subject_id,
                             False,
-                            "Diff KO :(",
-                            f"Failed on Test {ft_idx}",
+                            "Timeout",
+                            "Timeout",
                             "\n".join(trace),
                             oracle_info.get("why_moulinette_fails", ""),
                             oracle_info,
-                            last_cmd=f"eval {desc}",
-                            expected_cat_e=_to_cat_e(exp_piece),
-                            actual_cat_e=_to_cat_e(got_out),
+                        )
+                    if rproc.returncode != 0:
+                        err_detail = (rproc.stderr or "").strip()
+                        if err_detail and any(
+                            k in err_detail
+                            for k in (
+                                "[REDZONE KO]",
+                                "[LEAK KO]",
+                                "[DOUBLE FREE KO]",
+                                "[INVALID FREE KO]",
+                                "[ARENA OWNERSHIP KO]",
+                                "[TRACKING EXHAUSTED KO]",
+                            )
+                        ):
+                            trace.append(err_detail)
+                        sig_name, sig_reason, _ = classify_process_exit_status(
+                            rproc.returncode, err_detail, False
+                        )
+                        trace.append(f"Command got killed by a {sig_name}\nGrade: 0")
+                        return GradeReport(
+                            subject_id,
+                            False,
+                            sig_name,
+                            sig_reason,
+                            "\n".join(trace),
+                            oracle_info.get("why_moulinette_fails", ""),
+                            oracle_info,
+                        )
+                    if reveal_tests:
+                        trace.append(
+                            f"$> diff -U 3 user_output_test{ft_idx} test{ft_idx}.output | cat -e"
+                        )
+                    got_out = rproc.stdout
+                    if (
+                        is_void_ret
+                        and got_out != exp_piece
+                        and got_out + "\n" == exp_piece
+                    ):
+                        got_out = got_out + "\n"
+                    if got_out != exp_piece:
+                        return _c_func_diff_ko_report(
+                            subject_id,
+                            ft_idx,
+                            f"Failed on Test {ft_idx}",
+                            exp_piece,
+                            got_out,
+                            f"test{ft_idx}.output",
+                            f"user_output_test{ft_idx}",
+                            f"eval {desc}",
+                            trace,
+                            oracle_info,
+                            reveal_tests=reveal_tests,
+                            why=oracle_info.get("why_moulinette_fails", ""),
                         )
                     trace.append("\nDiff OK :D")
                 if strict and (whitelist is None or "malloc" in (whitelist or [])):
-                    null_env = {**os.environ, "DT_FAIL_MALLOC_AT": "1", "DT_CHUNK_READ": "1"}
+                    null_env = {
+                        **os.environ,
+                        "DT_FAIL_MALLOC_AT": "1",
+                        "DT_CHUNK_READ": "1",
+                    }
                     try:
-                        nproc = _run_isolated([str(work / "user_exe")], cwd=work, env=null_env, timeout=2.0)
+                        nproc = _run_isolated(
+                            [str(work / "user_exe")],
+                            cwd=work,
+                            env=null_env,
+                            timeout=2.0,
+                        )
                     except subprocess.TimeoutExpired:
-                        return GradeReport(subject_id, False, "Timeout", "Timeout", "\n".join(trace), "", oracle_info)
+                        return GradeReport(
+                            subject_id,
+                            False,
+                            "Timeout",
+                            "Timeout",
+                            "\n".join(trace),
+                            "",
+                            oracle_info,
+                        )
                     if nproc.returncode < 0:
                         sig = -nproc.returncode
-                        trace.append(f"\n[Strict Mode — null_check KO]: Command got killed by a Segmentation fault (Signal -{sig}) when malloc returned NULL!\nGrade: 0\n\n= Final grade: 0 ===============================================================")
-                        return GradeReport(subject_id, False, "Strict KO: null_check (Segfault on malloc NULL)", "Unprotected malloc (segfault when malloc returns NULL)", "\n".join(trace), "Always check `if (!ptr) return (NULL);` immediately after `malloc()`.", oracle_info)
-                    trace.append("[Strict Mode]: malloc null_check & chunked_read check: OK!")
+                        trace.append(
+                            f"\n[Strict Mode — null_check KO]: Command got killed by a Segmentation fault (Signal -{sig}) when malloc returned NULL!\nGrade: 0\n\n= Final grade: 0 ==============================================================="
+                        )
+                        return GradeReport(
+                            subject_id,
+                            False,
+                            "Strict KO: null_check (Segfault on malloc NULL)",
+                            "Unprotected malloc (segfault when malloc returns NULL)",
+                            "\n".join(trace),
+                            "Always check `if (!ptr) return (NULL);` immediately after `malloc()`.",
+                            oracle_info,
+                        )
+                    trace.append(
+                        "[Strict Mode]: malloc null_check & chunked_read check: OK!"
+                    )
 
             # Run oracle_tests (including Moulinette Stress & Edge cases)
             for idx, ot in enumerate(oracle_tests, start=len(fixed_tests) + 1):
                 tests_executed += 1
                 tname = ot.get("name", f"test{idx}")
-                src_code = "\n".join([*headers, str(ot.get("source", "")).strip()]) + "\n"
+                src_code = (
+                    "\n".join([*headers, str(ot.get("source", "")).strip()]) + "\n"
+                )
                 c_name = f"__dt_oracle_{idx}.c"
                 b_name = f"user_oracle_{idx}"
                 (work / c_name).write_text(src_code, encoding="utf-8")
                 oracle_strict_flags = _get_strict_sandbox_flags(kit_root, work)
                 if subject_id in {"ft_atoi", "ft_atoi_base"}:
-                    oracle_inputs = ["-ftrapv", *[str(p.relative_to(work)) for p in c_sources]]
+                    oracle_inputs = [
+                        "-ftrapv",
+                        *[str(p.relative_to(work)) for p in c_sources],
+                    ]
                 else:
-                    oracle_objs = [f"{p.stem}.o" for p in c_sources if (work / f"{p.stem}.o").exists()]
-                    oracle_inputs = oracle_objs if len(oracle_objs) == len(c_sources) else [str(p.relative_to(work)) for p in c_sources]
-                cmd = ["cc", *FLAGS_COMPILE_SAFE, *inc_flags, *oracle_inputs, c_name, *oracle_strict_flags, "-o", b_name, "-lm"]
-                lproc = subprocess.run(cmd, cwd=work, capture_output=True, text=True, errors="replace")
+                    oracle_inputs = [str(p.relative_to(work)) for p in c_sources]
+                cmd = [
+                    "cc",
+                    *FLAGS_COMPILE_SAFE,
+                    *inc_flags,
+                    *oracle_inputs,
+                    c_name,
+                    *oracle_strict_flags,
+                    "-o",
+                    b_name,
+                    "-lm",
+                ]
+                lproc = subprocess.run(
+                    cmd, cwd=work, capture_output=True, text=True, errors="replace"
+                )
                 if lproc.returncode != 0:
                     trace.append(lproc.stderr.strip())
-                    return GradeReport(subject_id, False, "Does not compile", "Compile error in test harness", "\n".join(trace), "", oracle_info)
-                trace.append(f"\n= Test {idx} ({tname}) ==================================================")
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Does not compile",
+                        "Compile error in test harness",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
+                _append_c_func_case_header(
+                    trace,
+                    idx,
+                    f"Test {idx} ({tname})",
+                    f"./{b_name}",
+                    reveal_tests=reveal_tests,
+                )
                 oracle_env = {**os.environ}
                 if strict and (whitelist is None or "free" in (whitelist or [])):
                     oracle_env["DT_CHECK_LEAKS"] = "1"
                 try:
-                    rproc = _run_isolated([str(work / b_name)], cwd=work, env=oracle_env, timeout=2.0)
+                    rproc = _run_isolated(
+                        [str(work / b_name)], cwd=work, env=oracle_env, timeout=2.0
+                    )
                 except subprocess.TimeoutExpired:
-                    trace.append("Command got killed by a Timeout (elapsed > 2.0s)\nGrade: 0")
+                    trace.append(
+                        "Command got killed by a Timeout (elapsed > 2.0s)\nGrade: 0"
+                    )
                     if oracle_info.get("why_moulinette_fails"):
-                        trace.append(f"\n[Moulinette Trap Diagnostic]: {oracle_info['why_moulinette_fails']}")
-                    return GradeReport(subject_id, False, "Timeout", "Timeout", "\n".join(trace), oracle_info.get("why_moulinette_fails", ""), oracle_info)
+                        trace.append(
+                            f"\n[Moulinette Trap Diagnostic]: {oracle_info['why_moulinette_fails']}"
+                        )
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Timeout",
+                        "Timeout",
+                        "\n".join(trace),
+                        oracle_info.get("why_moulinette_fails", ""),
+                        oracle_info,
+                    )
                 if rproc.returncode != 0:
                     err_detail = rproc.stderr.strip()
                     if len(rproc.stdout) > 262144 or len(rproc.stderr) > 262144:
                         trace.append("Output limit exceeded (>256 KB)\nGrade: 0")
-                        return GradeReport(subject_id, False, "Output limit exceeded (>256 KB)", "Output limit exceeded", "\n".join(trace), "", oracle_info)
+                        return GradeReport(
+                            subject_id,
+                            False,
+                            "Output limit exceeded (>256 KB)",
+                            "Output limit exceeded",
+                            "\n".join(trace),
+                            "",
+                            oracle_info,
+                        )
                 if rproc.returncode != 0:
                     err_detail = (rproc.stderr or "").strip()
-                    sig_name, sig_reason, is_fatal_mem_sig = classify_process_exit_status(rproc.returncode, err_detail, False)
+                    sig_name, sig_reason, is_fatal_mem_sig = (
+                        classify_process_exit_status(
+                            rproc.returncode, err_detail, False
+                        )
+                    )
                     if is_fatal_mem_sig:
                         cmd_str = f"./{b_name}"
-                        if err_detail and any(k in err_detail for k in ("[REDZONE KO]", "[LEAK KO]", "[DOUBLE FREE KO]", "[INVALID FREE KO]", "[ARENA OWNERSHIP KO]", "[TRACKING EXHAUSTED KO]")):
+                        if err_detail and any(
+                            k in err_detail
+                            for k in (
+                                "[REDZONE KO]",
+                                "[LEAK KO]",
+                                "[DOUBLE FREE KO]",
+                                "[INVALID FREE KO]",
+                                "[ARENA OWNERSHIP KO]",
+                                "[TRACKING EXHAUSTED KO]",
+                            )
+                        ):
                             trace.append(err_detail)
-                        trace.append(f"Command '{cmd_str}' got killed by a {sig_name}\nGrade: 0")
-                        return GradeReport(subject_id, False, sig_name, sig_reason, "\n".join(trace), "", oracle_info, last_cmd=f"eval {tname}")
-                    if oracle_info.get("why_moulinette_fails"):
-                        trace.append(f"\n[Moulinette Trap Diagnostic]: {oracle_info['why_moulinette_fails']}")
-                    return GradeReport(subject_id, False, "Diff KO :(", err_detail or "Failed edge case", "\n".join(trace), oracle_info.get("why_moulinette_fails", ""), oracle_info)
-                exp_ot = ot.get("stdout") if ot.get("stdout") is not None else ot.get("expected")
-                if exp_ot is not None and rproc.stdout != str(exp_ot):
-                    trace.append(format_unified_diff(str(exp_ot), rproc.stdout, f"{tname}.output", f"user_{tname}"))
+                        trace.append(
+                            f"Command '{cmd_str}' got killed by a {sig_name}\nGrade: 0"
+                        )
+                        return GradeReport(
+                            subject_id,
+                            False,
+                            sig_name,
+                            sig_reason,
+                            "\n".join(trace),
+                            "",
+                            oracle_info,
+                            last_cmd=f"eval {tname}" if reveal_tests else "",
+                        )
+                    if reveal_tests and oracle_info.get("why_moulinette_fails"):
+                        trace.append(
+                            f"\n[Moulinette Trap Diagnostic]: {oracle_info['why_moulinette_fails']}"
+                        )
                     trace.append("\nDiff KO :(\nGrade: 0")
                     return GradeReport(
                         subject_id,
                         False,
                         "Diff KO :(",
-                        "Diff KO :(",
+                        (err_detail or "Failed edge case")
+                        if reveal_tests
+                        else f"Failed on Test {idx}",
                         "\n".join(trace),
                         oracle_info.get("why_moulinette_fails", ""),
                         oracle_info,
-                        last_cmd=f"eval {tname}",
-                        expected_cat_e=_to_cat_e(str(exp_ot)),
-                        actual_cat_e=_to_cat_e(rproc.stdout),
+                    )
+                exp_ot = (
+                    ot.get("stdout")
+                    if ot.get("stdout") is not None
+                    else ot.get("expected")
+                )
+                if exp_ot is not None and rproc.stdout != str(exp_ot):
+                    return _c_func_diff_ko_report(
+                        subject_id,
+                        idx,
+                        "Diff KO :(",
+                        str(exp_ot),
+                        rproc.stdout,
+                        f"{tname}.output",
+                        f"user_{tname}",
+                        f"eval {tname}",
+                        trace,
+                        oracle_info,
+                        reveal_tests=reveal_tests,
+                        why=oracle_info.get("why_moulinette_fails", ""),
                     )
                 trace.append("Diff OK :D")
 
@@ -2129,8 +3664,12 @@ def _grade_subject_inner(
             if compile_cfg.get("command") == "make" or "Makefile" in expected_files:
                 run_bin_cfg = (meta.get("run") or {}).get("command", "").lstrip("./")
                 if not run_bin_cfg and (work / "Makefile").exists():
-                    mk_txt = (work / "Makefile").read_text(encoding="utf-8", errors="ignore")
-                    m_name = re.search(r"^\s*NAME\s*[:?+]?=\s*([^\s#]+)", mk_txt, re.MULTILINE)
+                    mk_txt = (work / "Makefile").read_text(
+                        encoding="utf-8", errors="ignore"
+                    )
+                    m_name = re.search(
+                        r"^\s*NAME\s*[:?+]?=\s*([^\s#]+)", mk_txt, re.MULTILINE
+                    )
                     if m_name:
                         run_bin_cfg = m_name.group(1).strip()
                 if not run_bin_cfg:
@@ -2141,49 +3680,129 @@ def _grade_subject_inner(
                 trace.extend(mk_res.steps_log)
                 if not mk_res.ok:
                     trace.append(f"\nMakefile KO: {mk_res.reason}\nGrade: 0")
-                    return GradeReport(subject_id, False, mk_res.reason, mk_res.reason, "\n".join(trace), "", oracle_info)
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        mk_res.reason,
+                        mk_res.reason,
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
                 exe_path = work / run_bin_cfg
             else:
                 exe_path = work / "user_exe"
                 strict_flags = _get_strict_sandbox_flags(kit_root, work)
-                cprog_objs = [f"{p.stem}.o" for p in c_sources if (work / f"{p.stem}.o").exists()]
-                cprog_inputs = cprog_objs if len(cprog_objs) == len(c_sources) else [str(p.relative_to(work)) for p in c_sources]
-                cmd = ["cc", *FLAGS_COMPILE_SAFE, *inc_flags, *cprog_inputs, *strict_flags, "-o", "user_exe", "-lm"]
-                trace.append("$> " + " ".join(["cc", *FLAGS_DEFAULT, *[p.name for p in c_sources], "-o", "user_exe"]))
-                lproc = subprocess.run(cmd, cwd=work, capture_output=True, text=True, errors="replace")
+                cprog_inputs = [str(p.relative_to(work)) for p in c_sources]
+                cmd = [
+                    "cc",
+                    *FLAGS_COMPILE_SAFE,
+                    *inc_flags,
+                    *cprog_inputs,
+                    *strict_flags,
+                    "-o",
+                    "user_exe",
+                    "-lm",
+                ]
+                trace.append(
+                    "$> "
+                    + " ".join(
+                        [
+                            "cc",
+                            *FLAGS_DEFAULT,
+                            *[p.name for p in c_sources],
+                            "-o",
+                            "user_exe",
+                        ]
+                    )
+                )
+                lproc = subprocess.run(
+                    cmd, cwd=work, capture_output=True, text=True, errors="replace"
+                )
                 if lproc.returncode != 0:
                     trace.append(lproc.stderr.strip())
-                    trace.append("Could not compile 'user_exe'\nDoes not compile\nGrade: 0")
-                    return GradeReport(subject_id, False, "Does not compile", "Does not compile", "\n".join(trace), "", oracle_info)
+                    trace.append(
+                        "Could not compile 'user_exe'\nDoes not compile\nGrade: 0"
+                    )
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Does not compile",
+                        "Does not compile",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
 
             for idx, ft in enumerate(fixed_tests, start=1):
                 exp_out = (
                     ft.get("stdout")
                     if ft.get("stdout") is not None
-                    else (ft.get("expected") if ft.get("expected") is not None else ft.get("expected_stdout"))
+                    else (
+                        ft.get("expected")
+                        if ft.get("expected") is not None
+                        else ft.get("expected_stdout")
+                    )
                 )
-                exp_err = ft.get("stderr") if ft.get("stderr") is not None else ft.get("expected_stderr")
-                exp_contains = ft.get("stdout_contains") or ft.get("expected_stdout_contains")
-                exp_error_flag = bool(ft.get("expect_error", False) or ft.get("expected_error", False))
+                exp_err = (
+                    ft.get("stderr")
+                    if ft.get("stderr") is not None
+                    else ft.get("expected_stderr")
+                )
+                exp_contains = ft.get("stdout_contains") or ft.get(
+                    "expected_stdout_contains"
+                )
+                exp_error_flag = bool(
+                    ft.get("expect_error", False) or ft.get("expected_error", False)
+                )
                 exp_rc = ft.get("expected_returncode")
 
                 if "python_harness" in ft:
                     tests_executed += 1
-                    trace.append(f"\n= Test {idx} ({ft.get('name', 'socket_harness')}) ===========================================")
+                    trace.append(
+                        f"\n= Test {idx} ({ft.get('name', 'socket_harness')}) ==========================================="
+                    )
                     h_py = work / f"__dt_harness_{idx}.py"
                     h_py.write_text(str(ft["python_harness"]), encoding="utf-8")
-                    hproc = _run_isolated([sys.executable, str(h_py), str(exe_path)], cwd=work, timeout=5.0)
+                    hproc = _run_isolated(
+                        [sys.executable, str(h_py), str(exe_path)],
+                        cwd=work,
+                        timeout=5.0,
+                    )
                     exp_h = str(ft.get("expected", "OK\n"))
                     if hproc.returncode != 0 or hproc.stdout != exp_h:
-                        trace.append(format_unified_diff(exp_h, hproc.stdout + hproc.stderr, f"test{idx}.output", f"user_output_test{idx}"))
+                        trace.append(
+                            format_unified_diff(
+                                exp_h,
+                                hproc.stdout + hproc.stderr,
+                                f"test{idx}.output",
+                                f"user_output_test{idx}",
+                            )
+                        )
                         trace.append("\nDiff KO :(\nGrade: 0")
-                        return GradeReport(subject_id, False, "Diff KO :(", f"Failed socket harness {idx}", "\n".join(trace), "", oracle_info)
+                        return GradeReport(
+                            subject_id,
+                            False,
+                            "Diff KO :(",
+                            f"Failed socket harness {idx}",
+                            "\n".join(trace),
+                            "",
+                            oracle_info,
+                        )
                     trace.append("\nDiff OK :D")
                     continue
 
                 # Reject vacuous test oracle (GRD-003)
-                if exp_out is None and exp_err is None and not exp_contains and not exp_error_flag and exp_rc is None:
-                    trace.append(f"\nConfiguration Error: Empty test oracle on Test {idx}\nGrade: 0")
+                if (
+                    exp_out is None
+                    and exp_err is None
+                    and not exp_contains
+                    and not exp_error_flag
+                    and exp_rc is None
+                ):
+                    trace.append(
+                        f"\nConfiguration Error: Empty test oracle on Test {idx}\nGrade: 0"
+                    )
                     return GradeReport(
                         subject_id,
                         False,
@@ -2196,7 +3815,9 @@ def _grade_subject_inner(
 
                 tests_executed += 1
                 if ft.get("map_content") is not None:
-                    (work / "MAP_FILE").write_text(str(ft["map_content"]), encoding="utf-8")
+                    (work / "MAP_FILE").write_text(
+                        str(ft["map_content"]), encoding="utf-8"
+                    )
                 for rel_f, f_content in (ft.get("files") or {}).items():
                     fp = work / rel_f
                     fp.parent.mkdir(parents=True, exist_ok=True)
@@ -2214,10 +3835,15 @@ def _grade_subject_inner(
                 else:
                     invoke_bin = f"./{exe_path.name}"
                 cmd_display = f"{invoke_bin} {quoted_args}".rstrip() + " | cat -e"
-                trace.append(f"\n= Test {idx} ===================================================================")
+                trace.append(
+                    f"\n= Test {idx} ==================================================================="
+                )
                 trace.append(f"$> {invoke_bin} {quoted_args}".rstrip())
                 try:
-                    cprog_env = {**os.environ, **({"DT_CHECK_LEAKS": "1"} if strict else {})}
+                    cprog_env = {
+                        **os.environ,
+                        **({"DT_CHECK_LEAKS": "1"} if strict else {}),
+                    }
                     rproc = _run_isolated(
                         [invoke_bin, *args],
                         cwd=work,
@@ -2226,37 +3852,115 @@ def _grade_subject_inner(
                         timeout=2.0,
                     )
                 except subprocess.TimeoutExpired:
-                    trace.append("Command got killed by a Timeout (elapsed > 2.0s)\nGrade: 0")
-                    return GradeReport(subject_id, False, "Timeout", "Timeout", "\n".join(trace), "", oracle_info, last_cmd=cmd_display)
+                    trace.append(
+                        "Command got killed by a Timeout (elapsed > 2.0s)\nGrade: 0"
+                    )
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Timeout",
+                        "Timeout",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                        last_cmd=cmd_display,
+                    )
 
                 if len(rproc.stdout) > 262144 or len(rproc.stderr) > 262144:
                     trace.append("Output limit exceeded (>256 KB)\nGrade: 0")
-                    return GradeReport(subject_id, False, "Output limit exceeded (>256 KB)", "Output limit exceeded", "\n".join(trace), "", oracle_info, last_cmd=cmd_display)
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Output limit exceeded (>256 KB)",
+                        "Output limit exceeded",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                        last_cmd=cmd_display,
+                    )
                 if rproc.returncode != 0:
                     err_detail = (rproc.stderr or "").strip()
-                    sig_name, sig_reason, is_fatal_mem_sig = classify_process_exit_status(rproc.returncode, err_detail, False)
+                    sig_name, sig_reason, is_fatal_mem_sig = (
+                        classify_process_exit_status(
+                            rproc.returncode, err_detail, False
+                        )
+                    )
                     if is_fatal_mem_sig:
                         cmd_str = f"./{exe_path.name} {quoted_args}".rstrip()
-                        if err_detail and any(k in err_detail for k in ("[REDZONE KO]", "[LEAK KO]", "[DOUBLE FREE KO]", "[INVALID FREE KO]", "[ARENA OWNERSHIP KO]", "[TRACKING EXHAUSTED KO]")):
+                        if err_detail and any(
+                            k in err_detail
+                            for k in (
+                                "[REDZONE KO]",
+                                "[LEAK KO]",
+                                "[DOUBLE FREE KO]",
+                                "[INVALID FREE KO]",
+                                "[ARENA OWNERSHIP KO]",
+                                "[TRACKING EXHAUSTED KO]",
+                            )
+                        ):
                             trace.append(err_detail)
-                        trace.append(f"Command '{cmd_str}' got killed by a {sig_name}\nGrade: 0")
-                        return GradeReport(subject_id, False, sig_name, sig_reason, "\n".join(trace), "", oracle_info, last_cmd=cmd_display)
+                        trace.append(
+                            f"Command '{cmd_str}' got killed by a {sig_name}\nGrade: 0"
+                        )
+                        return GradeReport(
+                            subject_id,
+                            False,
+                            sig_name,
+                            sig_reason,
+                            "\n".join(trace),
+                            "",
+                            oracle_info,
+                            last_cmd=cmd_display,
+                        )
 
                 # Enforce expected returncode or exit-0 on positive test cases (GRD-004, MUT-B01, MUT-B02)
                 if exp_rc is not None:
                     if rproc.returncode != int(exp_rc):
-                        trace.append(f"Expected exit code {exp_rc}, got {rproc.returncode}\nDiff KO :(\nGrade: 0")
-                        return GradeReport(subject_id, False, "Diff KO :(", f"Exit code {rproc.returncode} != {exp_rc}", "\n".join(trace), "", oracle_info, last_cmd=cmd_display)
+                        trace.append(
+                            f"Expected exit code {exp_rc}, got {rproc.returncode}\nDiff KO :(\nGrade: 0"
+                        )
+                        return GradeReport(
+                            subject_id,
+                            False,
+                            "Diff KO :(",
+                            f"Exit code {rproc.returncode} != {exp_rc}",
+                            "\n".join(trace),
+                            "",
+                            oracle_info,
+                            last_cmd=cmd_display,
+                        )
                 elif not exp_error_flag and exp_err is None and rproc.returncode != 0:
-                    trace.append(f"Non-zero exit code {rproc.returncode} on positive test case\nDiff KO :(\nGrade: 0")
-                    return GradeReport(subject_id, False, "Diff KO :(", f"Non-zero exit code {rproc.returncode}", "\n".join(trace), "", oracle_info, last_cmd=cmd_display)
+                    trace.append(
+                        f"Non-zero exit code {rproc.returncode} on positive test case\nDiff KO :(\nGrade: 0"
+                    )
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Diff KO :(",
+                        f"Non-zero exit code {rproc.returncode}",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                        last_cmd=cmd_display,
+                    )
 
-                trace.append(f"$> diff -U 3 user_output_test{idx} test{idx}.output | cat -e")
+                trace.append(
+                    f"$> diff -U 3 user_output_test{idx} test{idx}.output | cat -e"
+                )
                 if exp_out is not None and rproc.stdout != str(exp_out):
-                    trace.append(format_unified_diff(str(exp_out), rproc.stdout, f"test{idx}.output", f"user_output_test{idx}"))
+                    trace.append(
+                        format_unified_diff(
+                            str(exp_out),
+                            rproc.stdout,
+                            f"test{idx}.output",
+                            f"user_output_test{idx}",
+                        )
+                    )
                     trace.append("\nDiff KO :(\nGrade: 0")
                     if oracle_info.get("why_moulinette_fails"):
-                        trace.append(f"\n[Moulinette Trap Diagnostic]: {oracle_info['why_moulinette_fails']}")
+                        trace.append(
+                            f"\n[Moulinette Trap Diagnostic]: {oracle_info['why_moulinette_fails']}"
+                        )
                     return GradeReport(
                         subject_id,
                         False,
@@ -2270,7 +3974,14 @@ def _grade_subject_inner(
                         actual_cat_e=_to_cat_e(rproc.stdout),
                     )
                 if exp_err is not None and rproc.stderr != str(exp_err):
-                    trace.append(format_unified_diff(str(exp_err), rproc.stderr, f"test{idx}.stderr", f"user_stderr_test{idx}"))
+                    trace.append(
+                        format_unified_diff(
+                            str(exp_err),
+                            rproc.stderr,
+                            f"test{idx}.stderr",
+                            f"user_stderr_test{idx}",
+                        )
+                    )
                     trace.append("\nStderr Diff KO :(\nGrade: 0")
                     return GradeReport(
                         subject_id,
@@ -2285,19 +3996,50 @@ def _grade_subject_inner(
                         actual_cat_e=_to_cat_e(rproc.stderr),
                     )
                 if exp_contains:
-                    pieces = [exp_contains] if isinstance(exp_contains, str) else exp_contains
+                    pieces = (
+                        [exp_contains]
+                        if isinstance(exp_contains, str)
+                        else exp_contains
+                    )
                     for piece in pieces:
                         if str(piece) not in rproc.stdout:
-                            trace.append(f"Missing expected output fragment: {piece!r} in {rproc.stdout!r}\nDiff KO :(\nGrade: 0")
-                            return GradeReport(subject_id, False, "Diff KO :(", f"Missing {piece}", "\n".join(trace), "", oracle_info)
-                if exp_error_flag and rproc.returncode == 0 and not rproc.stderr and "error" not in rproc.stdout.lower():
-                    trace.append("Expected non-zero exit code or error message\nDiff KO :(\nGrade: 0")
-                    return GradeReport(subject_id, False, "Diff KO :(", "Expected error exit", "\n".join(trace), "", oracle_info)
+                            trace.append(
+                                f"Missing expected output fragment: {piece!r} in {rproc.stdout!r}\nDiff KO :(\nGrade: 0"
+                            )
+                            return GradeReport(
+                                subject_id,
+                                False,
+                                "Diff KO :(",
+                                f"Missing {piece}",
+                                "\n".join(trace),
+                                "",
+                                oracle_info,
+                            )
+                if (
+                    exp_error_flag
+                    and rproc.returncode == 0
+                    and not rproc.stderr
+                    and "error" not in rproc.stdout.lower()
+                ):
+                    trace.append(
+                        "Expected non-zero exit code or error message\nDiff KO :(\nGrade: 0"
+                    )
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Diff KO :(",
+                        "Expected error exit",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
                 trace.append("\nDiff OK :D")
 
         # DEF-013 Guardrail: NEVER award 100/100 if 0 tests were executed!
         if tests_executed == 0:
-            trace.append("\nConfiguration Error: No test suite defined (0 tests executed)\nGrade: 0")
+            trace.append(
+                "\nConfiguration Error: No test suite defined (0 tests executed)\nGrade: 0"
+            )
             return GradeReport(
                 subject_id,
                 False,
@@ -2308,9 +4050,12 @@ def _grade_subject_inner(
                 oracle_info,
             )
 
-        trace.append("\n= Final grade: 100 =============================================================")
-        return GradeReport(subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info)
-
+        trace.append(
+            "\n= Final grade: 100 ============================================================="
+        )
+        return GradeReport(
+            subject_id, True, "OK :)", "OK :)", "\n".join(trace), "", oracle_info
+        )
 
 
 def grade_subject(
@@ -2323,7 +4068,9 @@ def grade_subject(
     enforce_norm: bool = False,
     subj_dir_override: Path | None = None,
     git_log_text: str = "",
+    reveal_tests: bool = False,
 ) -> GradeReport:
+    """Grade a 42/1337 exercise submission and return a structured GradeReport."""
     sink: list[dict[str, int] | None] = [None]
     _GRADER_TLS.sink = sink
     _grade_subject_inner._tls_sink = sink  # type: ignore[attr-defined]
@@ -2336,7 +4083,29 @@ def grade_subject(
         enforce_norm=enforce_norm,
         subj_dir_override=subj_dir_override,
         git_log_text=git_log_text,
+        reveal_tests=reveal_tests,
     )
     if rep.arena_stats is None and sink[0] is not None:
         rep.arena_stats = sink[0]
+    rep.trace_text = fit_trace_section_bars(rep.trace_text)
     return rep
+
+
+TRACE_MAX_COLS = 79
+_TRACE_BAR_RE = re.compile(r"^(= .*? )(=+)$")
+
+
+def fit_trace_section_bars(trace_text: str, max_cols: int = TRACE_MAX_COLS) -> str:
+    """Trim the '=' fill of '= Title ====' section bars to ``max_cols`` columns.
+
+    Bars are emitted from hardcoded literals across every grading route; trimming
+    once here keeps traces inside an 80-column terminal without touching titles.
+    """
+    out: list[str] = []
+    for line in trace_text.split("\n"):
+        match = _TRACE_BAR_RE.match(line)
+        if match and len(line) > max_cols:
+            fill = max(3, max_cols - len(match.group(1)))
+            line = match.group(1) + "=" * fill
+        out.append(line)
+    return "\n".join(out)

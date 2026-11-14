@@ -25,19 +25,20 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-if ! ( : > "$tmp_file" ) 2>/dev/null; then
+if ! (: >"$tmp_file") 2>/dev/null; then
     printf "LOCK_CONFLICT: %s is already locked\n" "$tmp_file" >&2
     exit 1
 fi
 created_lock=1
-awk "{print}" "$db_file" >> "$tmp_file"
+awk "{print}" "$db_file" >>"$tmp_file"
 
 if ! grep -q -F -x -- "$new_shell" "$tmp_file"; then
-    printf "%s\n" "$new_shell" >> "$tmp_file"
+    printf "%s\n" "$new_shell" >>"$tmp_file"
 fi
 
-chmod --reference="$db_file" -- "$tmp_file" 2>/dev/null || \
+if ! chmod --reference="$db_file" -- "$tmp_file" 2>/dev/null; then
     chmod 0644 -- "$tmp_file"
+fi
 mv -f -- "$tmp_file" "$db_file"
 created_lock=0
 trap - EXIT INT TERM

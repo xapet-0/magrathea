@@ -11,15 +11,15 @@ Strictly distinguishes metric provenance states:
 Also detects stale artifacts (`is_stale = True` when any production or unit-test C source
 has `st_mtime` newer than the artifact timestamp) so old results are never presented as current.
 """
+
 from __future__ import annotations
 
 import datetime as dt
 import hashlib
 import json
-import subprocess
 from pathlib import Path
+import subprocess
 from typing import Any
-
 
 PRODUCTION_C_FILES = [
     "trusted_harness/dt_arena.c",
@@ -88,16 +88,24 @@ def collect_internal_test_telemetry(kit_root: Path) -> dict[str, Any]:
     if unit_bin.is_file():
         bin_st = unit_bin.stat()
         bin_stale = bin_st.st_mtime < latest_src_mtime
-        bin_ts = dt.datetime.fromtimestamp(bin_st.st_mtime, tz=dt.timezone.utc).isoformat()
+        bin_ts = dt.datetime.fromtimestamp(
+            bin_st.st_mtime, tz=dt.timezone.utc
+        ).isoformat()
         build_metric = _metric_envelope(
             "MEASURED",
-            {"built": True, "size_bytes": bin_st.st_size, "executable": "build/tests/unit_tests"},
+            {
+                "built": True,
+                "size_bytes": bin_st.st_size,
+                "executable": "build/tests/unit_tests",
+            },
             artifact_path="build/tests/unit_tests",
             timestamp_iso=bin_ts,
             stale=bin_stale,
         )
     else:
-        build_metric = _metric_envelope("NOT_RUN", None, artifact_path="build/tests/unit_tests")
+        build_metric = _metric_envelope(
+            "NOT_RUN", None, artifact_path="build/tests/unit_tests"
+        )
 
     # 2. Criterion unit test execution
     test_run_id = None
@@ -105,7 +113,9 @@ def collect_internal_test_telemetry(kit_root: Path) -> dict[str, Any]:
         try:
             ust = unit_json.stat()
             u_stale = ust.st_mtime < latest_src_mtime
-            u_ts = dt.datetime.fromtimestamp(ust.st_mtime, tz=dt.timezone.utc).isoformat()
+            u_ts = dt.datetime.fromtimestamp(
+                ust.st_mtime, tz=dt.timezone.utc
+            ).isoformat()
             udata = json.loads(unit_json.read_text(encoding="utf-8"))
             test_run_id = f"cr-{rev_hash}-{int(ust.st_mtime)}"
             unit_metric = _metric_envelope(
@@ -134,14 +144,18 @@ def collect_internal_test_telemetry(kit_root: Path) -> dict[str, Any]:
                 artifact_path="reports/criterion_unit_results.json",
             )
     else:
-        unit_metric = _metric_envelope("NOT_RUN", None, artifact_path="reports/criterion_unit_results.json")
+        unit_metric = _metric_envelope(
+            "NOT_RUN", None, artifact_path="reports/criterion_unit_results.json"
+        )
 
     # 3. Line & Branch Coverage
     if cov_json.is_file():
         try:
             cst = cov_json.stat()
             c_stale = cst.st_mtime < latest_src_mtime
-            c_ts = dt.datetime.fromtimestamp(cst.st_mtime, tz=dt.timezone.utc).isoformat()
+            c_ts = dt.datetime.fromtimestamp(
+                cst.st_mtime, tz=dt.timezone.utc
+            ).isoformat()
             cdata = json.loads(cov_json.read_text(encoding="utf-8"))
             line_cov_metric = _metric_envelope(
                 "MEASURED",
@@ -169,11 +183,23 @@ def collect_internal_test_telemetry(kit_root: Path) -> dict[str, Any]:
                 stale=c_stale,
             )
         except Exception as exc:
-            line_cov_metric = _metric_envelope("UNAVAILABLE", {"error": str(exc)}, artifact_path="reports/coverage_summary.json")
-            branch_cov_metric = _metric_envelope("UNAVAILABLE", {"error": str(exc)}, artifact_path="reports/coverage_summary.json")
+            line_cov_metric = _metric_envelope(
+                "UNAVAILABLE",
+                {"error": str(exc)},
+                artifact_path="reports/coverage_summary.json",
+            )
+            branch_cov_metric = _metric_envelope(
+                "UNAVAILABLE",
+                {"error": str(exc)},
+                artifact_path="reports/coverage_summary.json",
+            )
     else:
-        line_cov_metric = _metric_envelope("NOT_RUN", None, artifact_path="reports/coverage_summary.json")
-        branch_cov_metric = _metric_envelope("NOT_RUN", None, artifact_path="reports/coverage_summary.json")
+        line_cov_metric = _metric_envelope(
+            "NOT_RUN", None, artifact_path="reports/coverage_summary.json"
+        )
+        branch_cov_metric = _metric_envelope(
+            "NOT_RUN", None, artifact_path="reports/coverage_summary.json"
+        )
 
     # 4. Mutation campaign
     mutation_campaign_id = None
@@ -181,7 +207,9 @@ def collect_internal_test_telemetry(kit_root: Path) -> dict[str, Any]:
         try:
             mst = mut_json.stat()
             m_stale = mst.st_mtime < latest_src_mtime
-            m_ts = dt.datetime.fromtimestamp(mst.st_mtime, tz=dt.timezone.utc).isoformat()
+            m_ts = dt.datetime.fromtimestamp(
+                mst.st_mtime, tz=dt.timezone.utc
+            ).isoformat()
             mdata = json.loads(mut_json.read_text(encoding="utf-8"))
             mutation_campaign_id = mdata.get("campaign_id")
             mutation_metric = _metric_envelope(
@@ -201,9 +229,15 @@ def collect_internal_test_telemetry(kit_root: Path) -> dict[str, Any]:
                 stale=m_stale,
             )
         except Exception as exc:
-            mutation_metric = _metric_envelope("UNAVAILABLE", {"error": str(exc)}, artifact_path="reports/mutation_summary.json")
+            mutation_metric = _metric_envelope(
+                "UNAVAILABLE",
+                {"error": str(exc)},
+                artifact_path="reports/mutation_summary.json",
+            )
     else:
-        mutation_metric = _metric_envelope("NOT_RUN", None, artifact_path="reports/mutation_summary.json")
+        mutation_metric = _metric_envelope(
+            "NOT_RUN", None, artifact_path="reports/mutation_summary.json"
+        )
 
     return {
         "schema_version": "1.0",

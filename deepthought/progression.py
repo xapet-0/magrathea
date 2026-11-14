@@ -9,18 +9,19 @@ Guarantees:
    (prevents duplicate XP farming across repeated Moulinette / ExamShell runs).
 4. Authentic 42 / 1337 Intra level progression curve.
 """
+
 from __future__ import annotations
 
+from dataclasses import asdict, dataclass
 import json
 import math
 import os
+from pathlib import Path
 import shutil
 import time
-from dataclasses import dataclass, asdict
-from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
-MODULE_BASE_XP: Dict[str, int] = {
+MODULE_BASE_XP: dict[str, int] = {
     "Shell 00": 100,
     "Shell 01": 120,
     "C 00": 100,
@@ -79,6 +80,8 @@ def compute_42_level(total_xp: int) -> float:
 
 @dataclass
 class XPAwardResult:
+    """Result record returned after evaluating and crediting exercise XP."""
+
     subject_id: str
     passed: bool
     grade: int
@@ -96,7 +99,7 @@ class XPTracker:
     def __init__(self, ledger_path: Path) -> None:
         self.ledger_path = Path(ledger_path)
 
-    def _load(self) -> Dict[str, Any]:
+    def _load(self) -> dict[str, Any]:
         if self.ledger_path.exists():
             try:
                 data = json.loads(self.ledger_path.read_text(encoding="utf-8"))
@@ -108,7 +111,9 @@ class XPTracker:
                     return data
             except (OSError, json.JSONDecodeError):
                 try:
-                    shutil.copy2(self.ledger_path, self.ledger_path.with_suffix(".corrupt.bak"))
+                    shutil.copy2(
+                        self.ledger_path, self.ledger_path.with_suffix(".corrupt.bak")
+                    )
                 except OSError:
                     pass
         return {
@@ -118,16 +123,19 @@ class XPTracker:
             "history": [],
         }
 
-    def _save(self, state: Dict[str, Any]) -> None:
+    def _save(self, state: dict[str, Any]) -> None:
         self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp_path = self.ledger_path.with_name(f".{self.ledger_path.name}.{os.getpid()}.tmp")
+        tmp_path = self.ledger_path.with_name(
+            f".{self.ledger_path.name}.{os.getpid()}.tmp"
+        )
         with open(tmp_path, "w", encoding="utf-8") as fh:
             fh.write(json.dumps(state, indent=2, ensure_ascii=False))
             fh.flush()
             os.fsync(fh.fileno())
         os.replace(tmp_path, self.ledger_path)
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
+        """Return the current persisted XP ledger state dictionary."""
         return self._load()
 
     def record_evaluation(
@@ -209,7 +217,8 @@ class XPTracker:
 # Student Profile — persistent cross-session state in ~/.42_student_profile.json
 # ---------------------------------------------------------------------------
 
-def _resolve_profile_path(path: Optional[Path] = None) -> Path:
+
+def _resolve_profile_path(path: Path | None = None) -> Path:
     """Resolve the student profile path dynamically at call time so redirected HOME or FT_STUDENT_PROFILE is honored."""
     if path is not None:
         return Path(path)
@@ -222,18 +231,18 @@ def _resolve_profile_path(path: Optional[Path] = None) -> Path:
 _PROFILE_PATH = Path.home() / ".42_student_profile.json"
 
 # XP thresholds at which each Common Core Rank is unlocked (cumulative)
-_RANK_XP_THRESHOLDS: Dict[int, int] = {
+_RANK_XP_THRESHOLDS: dict[int, int] = {
     0: 0,
-    1: 0,      # Rank 00 & 01 are Piscine — always unlocked
-    2: 400,    # Rank 02 exam cleared
-    3: 850,    # Rank 03 exam cleared
-    4: 1350,   # Rank 04 exam cleared
-    5: 1900,   # Rank 05 exam cleared
-    6: 2500,   # Rank 06 exam cleared (graduation)
+    1: 0,  # Rank 00 & 01 are Piscine — always unlocked
+    2: 400,  # Rank 02 exam cleared
+    3: 850,  # Rank 03 exam cleared
+    4: 1350,  # Rank 04 exam cleared
+    5: 1900,  # Rank 05 exam cleared
+    6: 2500,  # Rank 06 exam cleared (graduation)
 }
 
 # Pool slugs that unlock each rank
-_RANK_POOLS: Dict[int, list[str]] = {
+_RANK_POOLS: dict[int, list[str]] = {
     2: ["rank02", "exam_rank_02", "c_piscine_exam_00", "c_piscine_final_exam"],
     3: ["rank03", "exam_rank_03"],
     4: ["rank04", "exam_rank_04"],
@@ -255,8 +264,8 @@ class StudentProfile:
     login: str = "student"
     total_xp: int = 0
     level: float = 0.0
-    piscine_rank: int = 0       # 0 = Piscine (pre-Common Core)
-    common_core_rank: int = 0   # 2..6 once exams are passed
+    piscine_rank: int = 0  # 0 = Piscine (pre-Common Core)
+    common_core_rank: int = 0  # 2..6 once exams are passed
     completed_pools: list[str] = None  # type: ignore[assignment]
     validated_exercises: list[str] = None  # type: ignore[assignment]
     last_updated: int = 0
@@ -286,12 +295,13 @@ class StudentProfile:
 
     @xp.setter
     def xp(self, value: int) -> None:
+        """Set total_xp and recompute 42 level."""
         self.total_xp = max(0, int(value))
         self.level = compute_42_level(self.total_xp)
 
     # ------------------------------------------------------------------ I/O
     @staticmethod
-    def load(path: Optional[Path] = None) -> "StudentProfile":
+    def load(path: Path | None = None) -> StudentProfile:
         """Load profile from disk; create a fresh one if missing/corrupt."""
         resolved = _resolve_profile_path(path)
         if resolved.exists():
@@ -312,7 +322,7 @@ class StudentProfile:
                 pass
         return StudentProfile()
 
-    def save(self, path: Optional[Path] = None) -> None:
+    def save(self, path: Path | None = None) -> None:
         """Atomically write the profile to disk."""
         resolved = _resolve_profile_path(path)
         resolved.parent.mkdir(parents=True, exist_ok=True)
@@ -344,7 +354,11 @@ class StudentProfile:
         filled = int(frac * width)
         bar = "█" * filled + "░" * (width - filled)
         pct = int(frac * 100)
-        rank_label = f"Rank {self.common_core_rank:02d}" if self.common_core_rank >= 2 else "Piscine"
+        rank_label = (
+            f"Rank {self.common_core_rank:02d}"
+            if self.common_core_rank >= 2
+            else "Piscine"
+        )
         return (
             f"Level {self.level:05.2f} | {rank_label} | XP: {self.total_xp:,} "
             f"| [{bar}] {pct:3d}%"

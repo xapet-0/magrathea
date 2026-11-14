@@ -1,4 +1,4 @@
-"""
+r"""
 deepthought.compiler_and_symbols
 Implements:
 1. Official `cc -Wall -Wextra -Werror` compilation + Dual-Compiler Gate (`gcc` + `clang` in `--strict` mode).
@@ -9,22 +9,31 @@ Implements:
    `__isoc99_scanf`, `__libc_*`) back to canonical function names (`GRD-007`, `GRD-008`, `MUT-D07`).
 3. Detection of forbidden `#include "*.c"` and forbidden `main()` in function exercises.
 """
+
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+from pathlib import Path
 import re
 import shutil
 import subprocess
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Optional
 
 # NOTE: memcpy, memmove, memset, and *scanf are intentionally EXCLUDED from
 # INTRINSIC_SYMBOLS so that calling them without permission is caught (GRD-007).
 INTRINSIC_SYMBOLS = {
-    "stdin", "stdout", "stderr", "__stdin", "__stdout", "__stderr",
-    "___stack_chk_fail", "__stack_chk_fail", "_stack_chk_fail",
+    "stdin",
+    "stdout",
+    "stderr",
+    "__stdin",
+    "__stdout",
+    "__stderr",
+    "___stack_chk_fail",
+    "__stack_chk_fail",
+    "_stack_chk_fail",
     "stack_chk_fail",
-    "___stack_chk_guard", "__stack_chk_guard", "_stack_chk_guard",
+    "___stack_chk_guard",
+    "__stack_chk_guard",
+    "_stack_chk_guard",
     "stack_chk_guard",
     "__gmon_start__",
     "gmon_start__",
@@ -110,20 +119,31 @@ GLIBC_ALIAS_MAP = {
 }
 
 FLAGS_DEFAULT = ["-Wall", "-Wextra", "-Werror"]
-FLAGS_COMPILE_SAFE = ["-Wall", "-Wextra", "-Werror", "-Wno-builtin-declaration-mismatch", "-fno-builtin"]
+FLAGS_COMPILE_SAFE = [
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wno-builtin-declaration-mismatch",
+    "-fno-builtin",
+]
 
 
 @dataclass
 class SymbolCheckResult:
+    """Outcome of external symbol extraction and whitelist verification."""
+
     ok: bool
     undefined_symbols: list[str] = field(default_factory=list)
     forbidden_called: list[str] = field(default_factory=list)
+    defined_symbols: list[str] = field(default_factory=list)
     raw_nm_output: str = ""
     reason: str = ""
 
 
 @dataclass
 class CompileResult:
+    """Outcome of C compilation across compiler and flag configurations."""
+
     ok: bool
     command: str
     returncode: int
@@ -142,11 +162,17 @@ def _strip_c_comments_only(text: str) -> str:
     return pattern.sub(lambda m: m.group(1) if m.group(1) else " ", joined)
 
 
-def check_forbidden_c_includes(files: list[Path], submit_root: Optional[Path] = None, allowed_root: Optional[Path] = None) -> list[str]:
+def check_forbidden_c_includes(
+    files: list[Path], submit_root: Path | None = None, allowed_root: Path | None = None
+) -> list[str]:
     """Reject any #include of a source file (.c/.cpp/.cc/.cxx/.inc), any absolute or parent-traversal #include escaping submit_root, or computed macro #include."""
     violations: list[str] = []
-    inc_any_re = re.compile(r'^\s*#\s*include(?:_next)?\s*[<"]([^>"]+)[>"]', re.MULTILINE)
-    inc_macro_re = re.compile(r'^\s*#\s*include(?:_next)?\s+([A-Za-z_]\w*)', re.MULTILINE)
+    inc_any_re = re.compile(
+        r'^\s*#\s*include(?:_next)?\s*[<"]([^>"]+)[>"]', re.MULTILINE
+    )
+    inc_macro_re = re.compile(
+        r"^\s*#\s*include(?:_next)?\s+([A-Za-z_]\w*)", re.MULTILINE
+    )
     valid_suffixes = {".c", ".h", ".cpp", ".hpp", ".cc", ".cxx", ".inc"}
     forbidden_src_exts = (".c", ".cpp", ".cc", ".cxx", ".inc")
     root_val = submit_root if submit_root is not None else allowed_root
@@ -157,27 +183,40 @@ def check_forbidden_c_includes(files: list[Path], submit_root: Optional[Path] = 
             txt = _strip_c_comments_only(raw_txt)
             for m in inc_any_re.finditer(txt):
                 target = m.group(1).strip()
-                parts = [p for p in re.split(r'[/\\]+', target) if p]
+                parts = [p for p in re.split(r"[/\\]+", target) if p]
                 if target.lower().endswith(forbidden_src_exts):
-                    violations.append(f"{f.name}: forbidden #include of source file '{target}'")
+                    violations.append(
+                        f"{f.name}: forbidden #include of source file '{target}'"
+                    )
                 if target.startswith(("/", "\\")):
-                    violations.append(f"{f.name}: forbidden absolute #include '{target}'")
+                    violations.append(
+                        f"{f.name}: forbidden absolute #include '{target}'"
+                    )
                 elif ".." in parts:
                     if root_resolved is not None:
                         try:
                             resolved_cand = (f.resolve().parent / target).resolve()
                             if not resolved_cand.is_relative_to(root_resolved):
-                                violations.append(f"{f.name}: forbidden parent-traversal #include '{target}'")
+                                violations.append(
+                                    f"{f.name}: forbidden parent-traversal #include '{target}'"
+                                )
                         except (ValueError, RuntimeError):
-                            violations.append(f"{f.name}: forbidden parent-traversal #include '{target}'")
+                            violations.append(
+                                f"{f.name}: forbidden parent-traversal #include '{target}'"
+                            )
                     else:
-                        violations.append(f"{f.name}: forbidden parent-traversal #include '{target}'")
+                        violations.append(
+                            f"{f.name}: forbidden parent-traversal #include '{target}'"
+                        )
             for m in inc_macro_re.finditer(txt):
-                violations.append(f"{f.name}: forbidden macro-computed #include '{m.group(1)}'")
+                violations.append(
+                    f"{f.name}: forbidden macro-computed #include '{m.group(1)}'"
+                )
     return violations
 
 
 def strip_c_comments_and_strings(text: str) -> str:
+    """Replace C comments and string literals with spaces."""
     pattern = re.compile(
         r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
         re.DOTALL | re.MULTILINE,
@@ -186,6 +225,7 @@ def strip_c_comments_and_strings(text: str) -> str:
 
 
 def has_main_definition(file_path: Path) -> bool:
+    """Return True if C source file defines a main() entrypoint."""
     if not file_path.exists() or file_path.suffix != ".c":
         return False
     raw_txt = file_path.read_text(encoding="utf-8", errors="ignore")
@@ -227,7 +267,11 @@ def _normalize_symbol(raw_token: str) -> tuple[str, bool]:
         return GLIBC_ALIAS_MAP[raw_sym], False
     # Strip at most one leading underscore for macOS Mach-O (`_write` -> `write`),
     # but do NOT strip double underscores unless in GLIBC_ALIAS_MAP or INTRINSIC_SYMBOLS.
-    sym_name = raw_sym[1:] if (raw_sym.startswith("_") and not raw_sym.startswith("__")) else raw_sym
+    sym_name = (
+        raw_sym[1:]
+        if (raw_sym.startswith("_") and not raw_sym.startswith("__"))
+        else raw_sym
+    )
     if sym_name in INTRINSIC_SYMBOLS:
         return sym_name, True
     if sym_name in GLIBC_ALIAS_MAP:
@@ -235,17 +279,22 @@ def _normalize_symbol(raw_token: str) -> tuple[str, bool]:
     return sym_name, False
 
 
-def extract_defined_and_undefined_symbols(obj_files: list[Path]) -> tuple[set[str], set[str], str]:
-    """Run `nm` on compiled `.o` files to extract defined symbols (T/t/D/B) and undefined external symbols (U)."""
+def _parse_nm_symbols(
+    obj_files: list[Path],
+) -> tuple[set[str], set[str], set[str], str]:
+    """Run `nm` on compiled `.o` files returning `(defined, undefined, exported_text, raw_nm)`."""
     defined: set[str] = set()
     undefined: set[str] = set()
+    exported_text: set[str] = set()
     raw_lines: list[str] = []
 
     if shutil.which("nm") is None:
-        return defined, undefined, "nm not available"
+        return defined, undefined, exported_text, "nm not available"
 
     for obj in obj_files:
-        proc = subprocess.run(["nm", str(obj)], capture_output=True, text=True, errors="replace")
+        proc = subprocess.run(
+            ["nm", str(obj)], capture_output=True, text=True, errors="replace"
+        )
         raw_lines.append(f"$> nm -u {obj.name}")
         for line in proc.stdout.splitlines():
             parts = line.strip().split()
@@ -260,7 +309,17 @@ def extract_defined_and_undefined_symbols(obj_files: list[Path]) -> tuple[set[st
                 undefined.add(sym_name)
             elif sym_type in {"T", "t", "D", "d", "B", "b", "R", "r"}:
                 defined.add(sym_name)
-    return defined, undefined, "\n".join(raw_lines)
+                if sym_type == "T":
+                    exported_text.add(sym_name)
+    return defined, undefined, exported_text, "\n".join(raw_lines)
+
+
+def extract_defined_and_undefined_symbols(
+    obj_files: list[Path],
+) -> tuple[set[str], set[str], str]:
+    """Run `nm` on compiled `.o` files to extract defined symbols (T/t/D/B) and undefined external symbols (U)."""
+    defined, undefined, _, raw_nm = _parse_nm_symbols(obj_files)
+    return defined, undefined, raw_nm
 
 
 def verify_symbol_whitelist(
@@ -271,6 +330,7 @@ def verify_symbol_whitelist(
     include_dirs: list[Path] | None = None,
     strict_dual_compiler: bool = False,
 ) -> tuple[CompileResult, SymbolCheckResult]:
+    """Compile C sources and verify undefined symbols against allowed list."""
     for cfile in user_c_files:
         if cfile.suffix in {".c", ".h"} and cfile.exists():
             raw_code = cfile.read_text(encoding="utf-8", errors="replace")
@@ -308,11 +368,20 @@ def verify_symbol_whitelist(
             str(obj),
         ]
         from .grader import _run_isolated
-        cmds_run.append(" ".join(["cc", *FLAGS_DEFAULT, "-c", cfile.name, "-o", obj.name]))
+
+        cmds_run.append(
+            " ".join(["cc", *FLAGS_DEFAULT, "-c", cfile.name, "-o", obj.name])
+        )
         proc = _run_isolated(cmd, cwd=work_dir, timeout=5.0)
         if proc.returncode != 0:
             return (
-                CompileResult(False, "\n".join(cmds_run), proc.returncode, proc.stdout, proc.stderr),
+                CompileResult(
+                    False,
+                    "\n".join(cmds_run),
+                    proc.returncode,
+                    proc.stdout,
+                    proc.stderr,
+                ),
                 SymbolCheckResult(False, reason="Does not compile"),
             )
         obj_files.append(obj)
@@ -320,11 +389,17 @@ def verify_symbol_whitelist(
         if strict_dual_compiler:
             for alt_cc in ["gcc", "clang"]:
                 if not shutil.which(alt_cc):
-                    dual_warnings.append(f"[Dual-Compiler Gate]: {alt_cc} not found in PATH — skipped")
+                    dual_warnings.append(
+                        f"[Dual-Compiler Gate]: {alt_cc} not found in PATH — skipped"
+                    )
                 else:
                     cc_flags = [
-                        f for f in FLAGS_COMPILE_SAFE
-                        if not (alt_cc == "clang" and f == "-Wno-builtin-declaration-mismatch")
+                        f
+                        for f in FLAGS_COMPILE_SAFE
+                        if not (
+                            alt_cc == "clang"
+                            and f == "-Wno-builtin-declaration-mismatch"
+                        )
                         and not (alt_cc == "gcc" and f == "-Wno-unknown-warning-option")
                     ]
                     alt_proc = subprocess.run(
@@ -343,7 +418,9 @@ def verify_symbol_whitelist(
                                 alt_proc.stdout,
                                 f"[Dual-Compiler Gate: {alt_cc} rejected code under -Werror]\n{alt_proc.stderr}",
                             ),
-                            SymbolCheckResult(False, reason=f"Does not compile under {alt_cc} -Werror"),
+                            SymbolCheckResult(
+                                False, reason=f"Does not compile under {alt_cc} -Werror"
+                            ),
                         )
 
     compile_res = CompileResult(True, "\n".join(cmds_run), 0, "", "", dual_warnings)
@@ -358,12 +435,16 @@ def verify_symbol_whitelist(
             ),
         )
 
-    defined, undefined, raw_nm = extract_defined_and_undefined_symbols(obj_files)
+    defined, undefined, exported_text, raw_nm = _parse_nm_symbols(obj_files)
     external_calls = sorted(undefined - defined - INTRINSIC_SYMBOLS)
 
     # Universal Anti-Cheat Gate: dlopen/dlsym dynamic resolution & __real_* linker bypass are strictly forbidden even if unrestricted
     cheat_symbols = {"dlopen", "dlsym", "dlvsym", "dlmopen"}
-    cheating_hits = [sym for sym in external_calls if sym in cheat_symbols or sym.startswith("__real_")]
+    cheating_hits = [
+        sym
+        for sym in external_calls
+        if sym in cheat_symbols or sym.startswith("__real_")
+    ]
     if cheating_hits:
         return (
             compile_res,
@@ -371,15 +452,30 @@ def verify_symbol_whitelist(
                 ok=False,
                 undefined_symbols=external_calls,
                 forbidden_called=cheating_hits,
+                defined_symbols=sorted(exported_text),
                 raw_nm_output=raw_nm,
                 reason=f"Cheating (-42): Forbidden function(s) called: {', '.join(cheating_hits)} (Dynamic linking bypass detected)",
             ),
         )
 
-    if allowed_functions is None or any(str(fn).lower() in {"anything", "all", "*"} for fn in allowed_functions):
-        return compile_res, SymbolCheckResult(True, reason="Unrestricted")
+    if allowed_functions is None or any(
+        str(fn).lower() in {"anything", "all", "*"} for fn in allowed_functions
+    ):
+        return (
+            compile_res,
+            SymbolCheckResult(
+                True,
+                defined_symbols=sorted(exported_text),
+                raw_nm_output=raw_nm,
+                reason="Unrestricted",
+            ),
+        )
 
-    whitelist = {str(fn).strip().lstrip("_") for fn in allowed_functions if fn and str(fn).lower() != "none"}
+    whitelist = {
+        str(fn).strip().lstrip("_")
+        for fn in allowed_functions
+        if fn and str(fn).lower() != "none"
+    }
     if "printf" in whitelist:
         whitelist.update({"putchar", "puts"})
     if "socket" in whitelist or "bind" in whitelist:
@@ -398,6 +494,7 @@ def verify_symbol_whitelist(
                 ok=False,
                 undefined_symbols=external_calls,
                 forbidden_called=forbidden_hits,
+                defined_symbols=sorted(exported_text),
                 raw_nm_output=raw_nm,
                 reason=f"Cheating (-42): Forbidden function(s) called: {', '.join(forbidden_hits)} (Allowed: {', '.join(sorted(whitelist)) or 'None'})",
             ),
@@ -409,6 +506,7 @@ def verify_symbol_whitelist(
             ok=True,
             undefined_symbols=external_calls,
             forbidden_called=[],
+            defined_symbols=sorted(exported_text),
             raw_nm_output=raw_nm,
             reason="OK",
         ),

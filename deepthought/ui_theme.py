@@ -1,24 +1,31 @@
 """
 deepthought.ui_theme
-Authentic 24-bit / 256-color ANSI & Unicode Terminal UI Engine for 1337 / 42 Deepthought Kit.
+24-bit / 256-color ANSI & Unicode Terminal UI Engine for 1337 / 42 Deepthought Kit.
+
 Combines visual design patterns from:
-- JCluzet/42_EXAM (VIP status header, live grading progression, cheat/practice toggles)
-- wkratos/42-examshell (Interactive track selector, timer & cooldown progress bars)
+- JCluzet/42_EXAM (VIP status header, live grading progression, practice toggles)
+- wkratos/42-examshell (Interactive track selector, timer & cooldown bars)
 - k11q/mini-moulinette (Module scorecard tables, syntax-colored unified diffs)
-- piscine_forge/rich_ui.py & theme.py (4 selectable cluster themes: 42-cluster, jcluzet-exam, tokyo-night, gruvbox)
+- piscine_forge/rich_ui.py & theme.py (4 cluster themes: 42-cluster, jcluzet-exam,
+  tokyo-night, gruvbox)
 """
+
 from __future__ import annotations
 
-import fcntl
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 import os
 import re
-import shlex
+import select
 import shutil
-import struct
+import signal
 import sys
-import termios
-from dataclasses import dataclass
-from typing import Callable, Sequence
+from typing import Any
+
+try:
+    import termios
+except ImportError:
+    termios = None  # type: ignore[assignment]
 
 
 ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07|\x1b[78]")
@@ -54,65 +61,67 @@ TOOL_WORDMARKS = {
 
 @dataclass(frozen=True)
 class ColorPalette:
+    """ANSI SGR color palette definition for terminal themes."""
+
     name: str
-    primary: str      # Main frame / brand accent
-    secondary: str    # Headers / keys
-    ok: str           # Moulinette OK / diff +
-    ko: str           # Moulinette KO / diff -
-    warn: str         # Cooldown / timer / warnings
-    purple: str       # Oracle / VIP badge
-    muted: str        # Borders / subtle text
-    bold: str         # Bright white bold
-    cmd: str          # Shell commands `$> ...`
+    primary: str  # Main frame / brand accent
+    secondary: str  # Headers / keys
+    ok: str  # Moulinette OK / diff +
+    ko: str  # Moulinette KO / diff -
+    warn: str  # Cooldown / timer / warnings
+    purple: str  # Oracle / VIP badge
+    muted: str  # Borders / subtle text
+    bold: str  # Bright white bold
+    cmd: str  # Shell commands `$> ...`
     reset: str = "\033[0m"
 
 
 PALETTES: dict[str, ColorPalette] = {
     "42-cluster": ColorPalette(
         name="42-cluster",
-        primary="\033[1m",           # Bold white
-        secondary="\033[2m",         # Dim / muted
-        ok="\033[32m",               # Standard green
-        ko="\033[31m",               # Standard red
-        warn="\033[33m",             # Standard yellow
-        purple="\033[35m",           # Standard magenta
-        muted="\033[2m",             # Dim
-        bold="\033[1m",              # Bold
-        cmd="\033[36m",              # Cyan
+        primary="\033[1m",  # Bold white
+        secondary="\033[36m",  # Classic ANSI cyan
+        ok="\033[32m",  # Standard green
+        ko="\033[31m",  # Standard red
+        warn="\033[33m",  # Standard yellow
+        purple="\033[35m",  # Standard magenta
+        muted="\033[2m",  # Dim
+        bold="\033[1m",  # Bold
+        cmd="\033[36m",  # Cyan
     ),
     "jcluzet-exam": ColorPalette(
         name="jcluzet-exam",
-        primary="\033[38;2;0;255;135m",      # #00FF87 Neon Exam Green
-        secondary="\033[38;2;0;215;255m",    # #00D7FF Electric Cyan
+        primary="\033[38;2;0;255;135m",  # #00FF87 Neon Exam Green
+        secondary="\033[38;2;0;215;255m",  # #00D7FF Electric Cyan
         ok="\033[1;38;2;0;255;135m",
-        ko="\033[1;38;2;255;59;92m",         # #FF3B5C High-Contrast Red
-        warn="\033[1;38;2;255;214;10m",      # #FFD60A Gold
-        purple="\033[1;38;2;215;95;255m",    # #D75FFF VIP Magenta
+        ko="\033[1;38;2;255;59;92m",  # #FF3B5C High-Contrast Red
+        warn="\033[1;38;2;255;214;10m",  # #FFD60A Gold
+        purple="\033[1;38;2;215;95;255m",  # #D75FFF VIP Magenta
         muted="\033[38;2;120;130;145m",
         bold="\033[1;97m",
         cmd="\033[38;2;255;214;10m",
     ),
     "tokyo-night": ColorPalette(
         name="tokyo-night",
-        primary="\033[38;2;122;162;247m",    # #7AA2F7
+        primary="\033[38;2;122;162;247m",  # #7AA2F7
         secondary="\033[38;2;125;207;255m",  # #7DCFFF
-        ok="\033[38;2;158;206;106m",         # #9ECE6A
-        ko="\033[38;2;247;118;142m",         # #F7768E
-        warn="\033[38;2;224;175;104m",       # #E0AF68
-        purple="\033[38;2;187;154;247m",     # #BB9AF7
-        muted="\033[38;2;86;95;137m",        # #565F89
+        ok="\033[38;2;158;206;106m",  # #9ECE6A
+        ko="\033[38;2;247;118;142m",  # #F7768E
+        warn="\033[38;2;224;175;104m",  # #E0AF68
+        purple="\033[38;2;187;154;247m",  # #BB9AF7
+        muted="\033[38;2;86;95;137m",  # #565F89
         bold="\033[1;38;2;192;202;245m",
         cmd="\033[38;2;125;207;255m",
     ),
     "gruvbox": ColorPalette(
         name="gruvbox",
-        primary="\033[38;2;250;189;47m",     # #FABD2F
+        primary="\033[38;2;250;189;47m",  # #FABD2F
         secondary="\033[38;2;131;165;152m",  # #83A598
-        ok="\033[38;2;184;187;38m",          # #B8BB26
-        ko="\033[38;2;251;73;52m",           # #FB4934
-        warn="\033[38;2;254;128;25m",        # #FE8019
-        purple="\033[38;2;211;134;155m",     # #D3869B
-        muted="\033[38;2;146;131;116m",      # #928374
+        ok="\033[38;2;184;187;38m",  # #B8BB26
+        ko="\033[38;2;251;73;52m",  # #FB4934
+        warn="\033[38;2;254;128;25m",  # #FE8019
+        purple="\033[38;2;211;134;155m",  # #D3869B
+        muted="\033[38;2;146;131;116m",  # #928374
         bold="\033[1;38;2;235;219;178m",
         cmd="\033[38;2;142;192;124m",
     ),
@@ -122,6 +131,7 @@ PALETTES: dict[str, ColorPalette] = {
 def _char_display_width(ch: str) -> int:
     """Compute terminal column width of a single Unicode codepoint per UAX #11."""
     import unicodedata
+
     if unicodedata.combining(ch):
         return 0
     cat = unicodedata.category(ch)
@@ -133,6 +143,7 @@ def _char_display_width(ch: str) -> int:
 
 
 def visible_len(s: str) -> int:
+    """Return terminal display column width of string excluding ANSI escapes."""
     clean = ANSI_ESCAPE_RE.sub("", s)
     return sum(_char_display_width(ch) for ch in clean)
 
@@ -191,7 +202,392 @@ def render_viewport_frame(
     return "".join(out)
 
 
+def is_viewport_tty(stdout: Any = None) -> bool:
+    """Return True when stdin and stdout are connected to an interactive terminal (not TERM=dumb)."""
+    out = (
+        stdout
+        if stdout is not None
+        else (sys.__stdout__ if sys.__stdout__ is not None else sys.stdout)
+    )
+    try:
+        return bool(
+            sys.stdin is not None
+            and out is not None
+            and sys.stdin.isatty()
+            and out.isatty()
+            and os.environ.get("TERM", "dumb") != "dumb"
+        )
+    except Exception:
+        return False
+
+
+def draw_bottom_prompt_line(
+    prompt: str,
+    buf_str: str,
+    cursor_pos: int,
+    cols: int,
+    rows: int,
+    prompt_row: int,
+    stdout: Any = None,
+) -> None:
+    """Draw the prompt + line buffer clamped within `cols` at `prompt_row` without wrapping."""
+    out = (
+        stdout
+        if stdout is not None
+        else (sys.__stdout__ if sys.__stdout__ is not None else sys.stdout)
+    )
+    safe_cols = max(40, cols)
+    safe_row = min(max(10, rows), max(1, prompt_row))
+    p_clip = clip_visible(prompt, max(1, safe_cols - 2))
+    p_vlen = visible_len(p_clip)
+    avail = max(1, safe_cols - p_vlen - 1)
+    if len(buf_str) <= avail:
+        vis_buf = buf_str
+        cur_offset = cursor_pos
+    else:
+        start = max(0, cursor_pos - avail + 1)
+        vis_buf = buf_str[start : start + avail]
+        cur_offset = cursor_pos - start
+    target_col = min(safe_cols, p_vlen + cur_offset + 1)
+    out.write(f"\033[{safe_row};1H\033[K{p_clip}{vis_buf}\033[{safe_row};{target_col}H")
+    out.flush()
+
+
+class ViewportSession:
+    r"""Alternate-screen (\033[?1049h) context manager with termios preservation, SIGWINCH tracking, and RX queue."""
+
+    def __init__(self, enabled: bool = True, stdout: Any = None) -> None:
+        self.out = (
+            stdout
+            if stdout is not None
+            else (sys.__stdout__ if sys.__stdout__ is not None else sys.stdout)
+        )
+        self.active = bool(enabled and is_viewport_tty(self.out))
+        self.rx_buf = bytearray()
+        self.winch_pending = False
+        self.prompt_row = 1
+        self._fd: int | None = None
+        self._orig_termios: list[Any] | None = None
+        self._prev_winch: Any = None
+
+    def _on_sigwinch(self, _signum: int, _frame: Any) -> None:
+        self.winch_pending = True
+
+    def __enter__(self) -> ViewportSession:
+        if not self.active:
+            return self
+        if termios is not None:
+            try:
+                self._fd = sys.stdin.fileno()
+                self._orig_termios = termios.tcgetattr(self._fd)
+                quiet_attrs = list(self._orig_termios)
+                quiet_attrs[3] = quiet_attrs[3] & ~termios.ECHO
+                termios.tcsetattr(self._fd, termios.TCSADRAIN, quiet_attrs)
+            except Exception:
+                self._fd = None
+                self._orig_termios = None
+        if hasattr(signal, "SIGWINCH"):
+            try:
+                self._prev_winch = signal.getsignal(signal.SIGWINCH)
+                signal.signal(signal.SIGWINCH, self._on_sigwinch)
+            except Exception:
+                self._prev_winch = None
+        self.out.write("\033[?1049h\033[?25h\033[H\033[2J")
+        self.out.flush()
+        return self
+
+    def __exit__(self, _exc_type: Any, _exc_val: Any, _exc_tb: Any) -> bool:
+        if not self.active:
+            return False
+        if (
+            termios is not None
+            and self._fd is not None
+            and self._orig_termios is not None
+        ):
+            try:
+                termios.tcsetattr(self._fd, termios.TCSADRAIN, self._orig_termios)
+            except Exception:
+                pass
+        if self._prev_winch is not None and hasattr(signal, "SIGWINCH"):
+            try:
+                signal.signal(signal.SIGWINCH, self._prev_winch)
+            except Exception:
+                pass
+        try:
+            self.out.write("\033[r\033[0m\033[?25h\033[?1049l\033]0;\007")
+            self.out.flush()
+        except Exception:
+            pass
+        return False
+
+    def write_frame(
+        self, lines: Sequence[str], prompt: str, cols: int, rows: int
+    ) -> int:
+        """Render a viewport frame strictly bounded to `cols x rows` and record the active prompt row."""
+        safe_rows = max(10, rows)
+        fitted_count = min(len(lines), safe_rows - 1)
+        self.prompt_row = min(safe_rows, fitted_count + 1)
+        self.out.write(render_viewport_frame(lines, prompt, cols, rows))
+        self.out.flush()
+        return self.prompt_row
+
+    def draw_prompt(
+        self, prompt: str, buf_str: str, cursor_pos: int, cols: int, rows: int
+    ) -> None:
+        """Render the active prompt and input buffer on the bottom viewport row."""
+        draw_bottom_prompt_line(
+            prompt, buf_str, cursor_pos, cols, rows, self.prompt_row, stdout=self.out
+        )
+
+    def _next_byte(self, fd: int, timeout_s: float = 0.12) -> int | None:
+        if self.rx_buf:
+            return self.rx_buf.pop(0)
+        try:
+            rlist, _, _ = select.select([fd], [], [], timeout_s)
+        except InterruptedError:
+            return None
+        if not rlist:
+            return None
+        try:
+            chunk = os.read(fd, 1024)
+        except (OSError, InterruptedError):
+            return None
+        if not chunk:
+            return -1
+        self.rx_buf.extend(chunk)
+        return self.rx_buf.pop(0)
+
+    def read_line(
+        self,
+        prompt: str,
+        theme: ThemeEngine,
+        *,
+        redraw_fn: Callable[[str, int], None] | None = None,
+        clear_fn: Callable[[str, int], None] | None = None,
+        completer_fn: Callable[[str, int], tuple[str, int]] | None = None,
+        history: Sequence[str] | None = None,
+    ) -> str:
+        """Read a line in the active viewport with cursor motion, history, Tab completion, Ctrl+L, and SIGWINCH redraw."""
+        if not self.active or termios is None:
+            self.out.write(prompt)
+            self.out.flush()
+            line = sys.stdin.readline()
+            if not line:
+                raise EOFError
+            return line.rstrip("\r\n")
+
+        fd = sys.stdin.fileno()
+        old_attrs = termios.tcgetattr(fd)
+        new_attrs = list(old_attrs)
+        new_attrs[3] = new_attrs[3] & ~(termios.ICANON | termios.ECHO | termios.ISIG)
+        new_attrs[6] = list(old_attrs[6])
+        new_attrs[6][termios.VMIN] = 1
+        new_attrs[6][termios.VTIME] = 0
+
+        buf: list[str] = []
+        cursor_pos = 0
+        hist_list = list(history) if history else []
+        hist_idx = len(hist_list)
+        saved_draft = ""
+        cols, rows = theme.term_size()
+        self.draw_prompt(prompt, "", 0, cols, rows)
+
+        try:
+            termios.tcsetattr(fd, termios.TCSADRAIN, new_attrs)
+            while True:
+                if self.winch_pending:
+                    self.winch_pending = False
+                    cols, rows = theme.term_size()
+                    if redraw_fn is not None:
+                        redraw_fn("".join(buf), cursor_pos)
+                    self.draw_prompt(prompt, "".join(buf), cursor_pos, cols, rows)
+
+                b = self._next_byte(fd, timeout_s=0.12)
+                if b is None:
+                    continue
+                if b == -1:
+                    if not buf:
+                        raise EOFError
+                    return "".join(buf)
+                if b in (10, 13):
+                    if b == 13 and self.rx_buf and self.rx_buf[0] == 10:
+                        self.rx_buf.pop(0)
+                    return "".join(buf)
+                if b == 3:
+                    raise KeyboardInterrupt
+                if b == 4:
+                    if not buf:
+                        raise EOFError
+                    if cursor_pos < len(buf):
+                        buf.pop(cursor_pos)
+                        cols, rows = theme.term_size()
+                        self.draw_prompt(prompt, "".join(buf), cursor_pos, cols, rows)
+                    continue
+                if b in (1, 5, 11, 21, 23):
+                    if b == 1:
+                        cursor_pos = 0
+                    elif b == 5:
+                        cursor_pos = len(buf)
+                    elif b == 11:
+                        del buf[cursor_pos:]
+                    elif b == 21:
+                        buf = buf[cursor_pos:]
+                        cursor_pos = 0
+                    elif b == 23:
+                        i = cursor_pos
+                        while i > 0 and buf[i - 1].isspace():
+                            i -= 1
+                        while i > 0 and not buf[i - 1].isspace():
+                            i -= 1
+                        del buf[i:cursor_pos]
+                        cursor_pos = i
+                    cols, rows = theme.term_size()
+                    self.draw_prompt(prompt, "".join(buf), cursor_pos, cols, rows)
+                    continue
+                if b == 12:
+                    cols, rows = theme.term_size()
+                    if clear_fn is not None:
+                        clear_fn("".join(buf), cursor_pos)
+                    elif redraw_fn is not None:
+                        redraw_fn("".join(buf), cursor_pos)
+                    self.draw_prompt(prompt, "".join(buf), cursor_pos, cols, rows)
+                    continue
+                if b in (127, 8):
+                    if cursor_pos > 0:
+                        buf.pop(cursor_pos - 1)
+                        cursor_pos -= 1
+                        cols, rows = theme.term_size()
+                        self.draw_prompt(prompt, "".join(buf), cursor_pos, cols, rows)
+                    continue
+                if b == 9:
+                    if completer_fn is not None:
+                        new_s, new_pos = completer_fn("".join(buf), cursor_pos)
+                        buf = list(new_s)
+                        cursor_pos = new_pos
+                        cols, rows = theme.term_size()
+                        self.draw_prompt(prompt, "".join(buf), cursor_pos, cols, rows)
+                    continue
+                if b == 27:
+                    b1 = self._next_byte(fd, timeout_s=0.03)
+                    if b1 in (ord("["), ord("O")):
+                        b2 = self._next_byte(fd, timeout_s=0.03)
+                        if b2 == ord("A") and hist_list and hist_idx > 0:
+                            if hist_idx == len(hist_list):
+                                saved_draft = "".join(buf)
+                            hist_idx -= 1
+                            buf = list(hist_list[hist_idx])
+                            cursor_pos = len(buf)
+                        elif b2 == ord("B") and hist_idx < len(hist_list):
+                            hist_idx += 1
+                            buf = list(
+                                saved_draft
+                                if hist_idx == len(hist_list)
+                                else hist_list[hist_idx]
+                            )
+                            cursor_pos = len(buf)
+                        elif b2 == ord("C") and cursor_pos < len(buf):
+                            cursor_pos += 1
+                        elif b2 == ord("D") and cursor_pos > 0:
+                            cursor_pos -= 1
+                        elif b2 == ord("H"):
+                            cursor_pos = 0
+                        elif b2 == ord("F"):
+                            cursor_pos = len(buf)
+                        elif b2 in (ord("1"), ord("3"), ord("4")):
+                            _ = self._next_byte(fd, timeout_s=0.02)
+                            if b2 == ord("1"):
+                                cursor_pos = 0
+                            elif b2 == ord("4"):
+                                cursor_pos = len(buf)
+                            elif cursor_pos < len(buf):
+                                buf.pop(cursor_pos)
+                        cols, rows = theme.term_size()
+                        self.draw_prompt(prompt, "".join(buf), cursor_pos, cols, rows)
+                    continue
+                if b >= 32:
+                    raw_bytes = bytearray([b])
+                    if b >= 0xC0:
+                        needed = 1 if b < 0xE0 else (2 if b < 0xF0 else 3)
+                        for _ in range(needed):
+                            nb = self._next_byte(fd, timeout_s=0.02)
+                            if nb is not None and nb >= 0:
+                                raw_bytes.append(nb)
+                    ch = raw_bytes.decode("utf-8", errors="replace")
+                    buf.insert(cursor_pos, ch)
+                    cursor_pos += len(ch)
+                    cols, rows = theme.term_size()
+                    self.draw_prompt(prompt, "".join(buf), cursor_pos, cols, rows)
+        finally:
+            try:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_attrs)
+            except Exception:
+                pass
+
+    def run_pager(
+        self,
+        title: str,
+        lines: Sequence[str],
+        header_fn: Callable[[int], list[str]],
+        theme: ThemeEngine,
+    ) -> None:
+        """Scroll `lines` inside the viewport without pushing terminal scrollback."""
+        expanded: list[str] = []
+        for ln in lines:
+            expanded.extend(str(ln).splitlines() or [""])
+        if not expanded:
+            expanded = ["(empty)"]
+        if not self.active:
+            for ln in expanded:
+                print(ln)
+            return
+
+        offset = 0
+        pager_prompt = theme.c("pager (Enter/k/g/G/q)> ", "primary", "bold")
+
+        def _render(cur_buf: str = "", cur_pos: int = 0) -> tuple[int, int]:
+            nonlocal offset
+            cols, rows = theme.term_size()
+            hdr = header_fn(cols)
+            page_size = max(3, rows - len(hdr) - 2)
+            max_offset = max(0, len(expanded) - page_size)
+            offset = max(0, min(offset, max_offset))
+            chunk = [
+                clip_visible(ln, cols) for ln in expanded[offset : offset + page_size]
+            ]
+            footer = theme.c(
+                clip_visible(
+                    f"[{title}] {offset + 1}-{min(len(expanded), offset + page_size)}/{len(expanded)} | j/Enter=down, k=up, g/G, q=back",
+                    cols,
+                ),
+                "secondary",
+                "bold",
+            )
+            self.write_frame([*hdr, *chunk, footer], pager_prompt, cols, rows)
+            if cur_buf:
+                self.draw_prompt(pager_prompt, cur_buf, cur_pos, cols, rows)
+            return page_size, max_offset
+
+        while True:
+            page_size, max_offset = _render()
+            try:
+                cmd_in = self.read_line(pager_prompt, theme, redraw_fn=_render).strip()
+            except (EOFError, KeyboardInterrupt):
+                break
+            low = cmd_in.lower()
+            if low in {"q", "quit", "exit", "back"}:
+                break
+            if low in {"k", "up", "p", "prev", "b"}:
+                offset = max(0, offset - max(1, page_size // 2))
+            elif low in {"g", "top", "home"}:
+                offset = 0
+            elif cmd_in == "G" or low in {"bottom", "end"}:
+                offset = max_offset
+            else:
+                offset = min(max_offset, offset + max(1, page_size // 2))
+
+
 def pad_visible(s: str, width: int, align: str = "left") -> str:
+    """Pad string to target visible terminal column width."""
     vlen = visible_len(s)
     if vlen >= width:
         return s
@@ -206,6 +602,8 @@ def pad_visible(s: str, width: int, align: str = "left") -> str:
 
 
 class ThemeEngine:
+    """Terminal styling, layout, and ANSI color rendering engine."""
+
     def __init__(self, theme_name: str | None = None):
         env_theme = os.environ.get("DT_THEME", "42-cluster")
         chosen = (theme_name or env_theme).lower()
@@ -214,6 +612,7 @@ class ThemeEngine:
         self.enabled = (chosen != "plain") and (os.environ.get("NO_COLOR", "") == "")
 
     def c(self, text: str, role: str = "primary", *styles: str) -> str:
+        """Apply semantic role and optional style escapes to text."""
         if not self.enabled:
             return str(text)
         role_map = {
@@ -240,9 +639,12 @@ class ThemeEngine:
         return f"{code}{text}{self.palette.reset}"
 
     def set_theme(self, theme_name: str) -> bool:
+        """Switch active color palette by name; return True if found."""
         key = theme_name.lower().strip()
         if key in PALETTES:
             self.palette = PALETTES[key]
+            self.name = key
+            self.enabled = os.environ.get("NO_COLOR", "") == ""
             return True
         return False
 
@@ -252,69 +654,69 @@ class ThemeEngine:
         return f"{code}{text}{self.palette.reset}"
 
     def primary(self, text: str) -> str:
+        """Format text with primary palette style."""
         return self._wrap(self.palette.primary, text)
 
     def secondary(self, text: str) -> str:
+        """Format text with secondary palette style."""
         return self._wrap(self.palette.secondary, text)
 
     def ok(self, text: str) -> str:
+        """Format text with success/OK palette style."""
         return self._wrap(self.palette.ok, text)
 
     def ko(self, text: str) -> str:
+        """Format text with failure/KO palette style."""
         return self._wrap(self.palette.ko, text)
 
     def warn(self, text: str) -> str:
+        """Format text with warning palette style."""
         return self._wrap(self.palette.warn, text)
 
     def purple(self, text: str) -> str:
+        """Format text with purple accent style."""
         return self._wrap(self.palette.purple, text)
 
     def muted(self, text: str) -> str:
+        """Format text with muted/dim palette style."""
         return self._wrap(self.palette.muted, text)
 
     def bold(self, text: str) -> str:
+        """Format text with bold palette style."""
         return self._wrap(self.palette.bold, text)
 
     def cmd(self, text: str) -> str:
+        """Format text with command palette style."""
         return self._wrap(self.palette.cmd, text)
 
     def accent(self, text: str) -> str:
+        """Format text with accent palette style."""
         return self._wrap(self.palette.cmd, text)
 
     def term_size(self) -> tuple[int, int]:
-        cols, lines = 0, 0
-        for stream in (sys.stdout, sys.stdin, sys.stderr):
-            try:
-                if stream is not None and stream.isatty():
-                    packed = fcntl.ioctl(stream.fileno(), termios.TIOCGWINSZ, b"\x00" * 8)
-                    r_ioctl, c_ioctl, _, _ = struct.unpack("HHHH", packed)
-                    if c_ioctl > 0 and r_ioctl > 0:
-                        cols, lines = int(c_ioctl), int(r_ioctl)
+        """Return (cols, lines), honoring explicit COLUMNS/LINES before TTY size or (80, 24)."""
+        env_c = os.environ.get("COLUMNS", "").strip()
+        env_l = os.environ.get("LINES", "").strip()
+        cols = int(env_c) if env_c.isdigit() and int(env_c) > 0 else 0
+        lines = int(env_l) if env_l.isdigit() and int(env_l) > 0 else 0
+        if cols <= 0 or lines <= 0:
+            for stream in (sys.stdout, sys.stdin, sys.stderr):
+                try:
+                    if stream is not None and stream.isatty():
+                        sz = os.get_terminal_size(stream.fileno())
+                        cols = cols or sz.columns
+                        lines = lines or sz.lines
                         break
-            except Exception:
-                continue
+                except OSError:
+                    continue
         if cols <= 0 or lines <= 0:
-            env_cols = os.environ.get("COLUMNS", "").strip()
-            env_lines = os.environ.get("LINES", "").strip()
-            if env_cols.isdigit() and int(env_cols) > 0:
-                cols = int(env_cols)
-            if env_lines.isdigit() and int(env_lines) > 0:
-                lines = int(env_lines)
-        if cols <= 0 or lines <= 0:
-            try:
-                sz = shutil.get_terminal_size((80, 24))
-                if cols <= 0:
-                    cols = sz.columns
-                if lines <= 0:
-                    lines = sz.lines
-            except OSError:
-                if cols <= 0:
-                    cols = 80
-                if lines <= 0:
-                    lines = 24
+            sz = shutil.get_terminal_size((80, 24))
+            cols = cols or sz.columns
+            lines = lines or sz.lines
         return max(40, cols), max(10, lines)
 
     def term_width(self, max_w: int = 92, min_w: int = 44) -> int:
+        """Return clamped terminal width within [min_w, max_w]."""
         cols, _ = self.term_size()
         return max(min_w, min(cols, max_w))
 
@@ -325,35 +727,48 @@ class ThemeEngine:
         width: int | None = None,
         height: int | None = None,
     ) -> str:
+        """Render compact startup header line within terminal width bounds."""
         cols, _ = self.term_size()
-        w = max(40, min(80, width if width is not None else cols))
+        w = max(40, min(79, width if width is not None else cols))
         mode_tag = "practice" if mode == "practice" else "real"
         rule = self.c("=" * w, "border")
         title = self.c(f"examshell {version}", "primary", "bold")
         subtitle = self.c(
-            f"42/1337 ({mode_tag}) | MAGRATHEA - Don't Panic.",
+            f"42 / 1337 ({mode_tag}) | exam & grading harness",
             "secondary",
         )
         if w < 64:
-            return "\n".join([rule, clip_visible(f"{title} | 42/1337 ({mode_tag})", w), clip_visible(self.c("MAGRATHEA — Don't Panic.", "secondary"), w), rule])
+            return "\n".join(
+                [
+                    rule,
+                    clip_visible(f"{title} | 42 / 1337 ({mode_tag})", w),
+                    clip_visible(self.c("exam & grading harness", "secondary"), w),
+                    rule,
+                ]
+            )
         return "\n".join([rule, clip_visible(f"{title} | {subtitle}", w), rule])
 
     # ------------------------------------------------------------------
-    # Console primitives modelled on msfconsole's UX conventions
-    # (status glyphs, "=[ ]=" stats block, Rex-style tables). Patterns
-    # only; no Metasploit source is reproduced here.
+    # Classic 42 Bocal / ExamShell console status and table primitives
+    # ('===' / '---' dividers, plain OK:/Error:/Warning: labels, and
+    # clean aligned columns).
     # ------------------------------------------------------------------
-    _GLYPHS = {
-        "status": ("[*]", "secondary"),
-        "good": ("[+]", "ok"),
-        "error": ("[-]", "err"),
-        "warning": ("[!]", "warn"),
+    _STATUS_LABELS = {
+        "status": ("", "secondary"),
+        "good": ("OK:", "ok"),
+        "error": ("Error:", "err"),
+        "warning": ("Warning:", "warn"),
     }
 
     def status(self, kind: str, message: str) -> str:
-        """Return a one-line message prefixed with an msfconsole-style glyph ([*] [+] [-] [!])."""
-        glyph, role = self._GLYPHS.get(kind, self._GLYPHS["status"])
-        return f"{self.c(glyph, role, 'bold')} {message}"
+        """Return a one-line message formatted in Classic 42 Bocal / ExamShell style."""
+        label, role = self._STATUS_LABELS.get(kind, self._STATUS_LABELS["status"])
+        if not label:
+            return f"  {message}"
+        body = message
+        if body.lower().startswith(label.lower()):
+            body = body[len(label) :].lstrip()
+        return f"{self.c(label, role, 'bold')} {body}"
 
     def tool_banner(self, tool: str, width: int, tagline: str = "") -> list[str]:
         """42 emblem + tool wordmark (+ tagline), 7 rows x <=72 columns; empty when it cannot fit."""
@@ -373,27 +788,17 @@ class ThemeEngine:
             out.append((self.c(f"{left:<26}", "primary", "bold") + right).rstrip())
         return out
 
-    def stats_block(self, lines: Sequence[str], width: int = 66) -> list[str]:
-        """msfconsole-style summary block:  '       =[ text ]' then '+ -- --=[ text ]'."""
-        inner = max(20, min(width, 80) - 14)
-        out: list[str] = []
-        for idx, raw in enumerate(lines):
-            lead = "       =[ " if idx == 0 else "+ -- --=[ "
-            body = clip_visible(raw, inner)
-            body = body + " " * max(0, inner - visible_len(body))
-            out.append(self.c(lead, "border") + body + self.c(" ]", "border"))
-        return out
-
     def table(
         self,
         title: str,
         headers: Sequence[str],
         rows: Sequence[Sequence[str]],
-        indent: int = 3,
-        max_width: int = 80,
+        indent: int = 2,
+        max_width: int = 79,
         highlight: Callable[[int, Sequence[str]], str | None] | None = None,
     ) -> list[str]:
-        """Rex-style table: title, '=' underline, blank, header, '-' underline per column, rows."""
+        """Classic 42 Bocal / ExamShell table with '=' / '-' dividers and aligned columns."""
+        w = max(40, min(79, max_width))
         widths = [visible_len(h) for h in headers]
         for row in rows:
             for i, cell in enumerate(row):
@@ -402,11 +807,15 @@ class ThemeEngine:
 
         def _fmt(cells: Sequence[str]) -> str:
             parts = [pad_visible(str(c), widths[i]) for i, c in enumerate(cells)]
-            return clip_visible((pad + "  ".join(parts)).rstrip(), max_width)
+            return clip_visible((pad + "  ".join(parts)).rstrip(), w)
 
-        out = [self.c(title, "primary", "bold"), self.c("=" * visible_len(title), "border"), ""]
-        out.append(self.c(_fmt(headers), "bold"))
-        out.append(self.c(_fmt(["-" * visible_len(h) for h in headers]), "border"))
+        out = [
+            self.c("=" * w, "border"),
+            clip_visible(f"{pad}{self.c(title, 'primary', 'bold')}", w),
+            self.c("-" * w, "border"),
+            self.c(_fmt(headers), "bold"),
+            self.c(_fmt(["-" * widths[i] for i in range(len(headers))]), "border"),
+        ]
         for r_idx, row in enumerate(rows):
             line = _fmt(row)
             role = highlight(r_idx, row) if highlight else None
@@ -414,6 +823,7 @@ class ThemeEngine:
         return out
 
     def rule(self, label: str = "", width: int | None = None) -> str:
+        """Render a horizontal divider line with an optional label."""
         w = width or self.term_width()
         if not label:
             return self.muted("─" * w)
@@ -421,7 +831,10 @@ class ThemeEngine:
         rem = max(4, w - visible_len(clean) - 4)
         return self.muted("───") + self.secondary(clean) + self.muted("─" * rem)
 
-    def progress_bar(self, current: float, total: float = 100.0, width: int = 16) -> str:
+    def progress_bar(
+        self, current: float, total: float = 100.0, width: int = 16
+    ) -> str:
+        """Render an ASCII progress bar with percentage."""
         ratio = 0.0 if total <= 0 else max(0.0, min(1.0, current / total))
         filled = int(round(ratio * width))
         empty = max(0, width - filled)
@@ -431,27 +844,41 @@ class ThemeEngine:
         return f"[{self.c(bar, role)}] {pct}%"
 
     def banner(self, title: str, subtitle: str = "", badge: str = "1337 / 42") -> str:
+        """Render a section header with optional subtitle."""
         out = [f"{self.c('===>', 'accent', 'bold')} {self.bold(title)}"]
         if subtitle:
             out.append(self.c(f"     {subtitle}", "muted"))
         return "\n".join(out)
 
-    def box_panel(self, title: str, body_lines: Sequence[str], border_color: str = "muted") -> str:
+    def box_panel(
+        self, title: str, body_lines: Sequence[str], border_color: str = "muted"
+    ) -> str:
+        """Render titled indented content lines."""
         out: list[str] = []
         if title:
             out.append(f"{self.c('===>', 'accent', 'bold')} {self.bold(title)}")
         for raw_line in body_lines:
-            for sub in (raw_line.splitlines() or [""]):
+            for sub in raw_line.splitlines() or [""]:
                 out.append(f"     {sub}" if title else sub)
         return "\n".join(out)
 
-    def render_subject(self, subject_text: str, subject_id: str = "", full: bool = False) -> str:
+    def render_subject(
+        self, subject_text: str, subject_id: str = "", full: bool = False
+    ) -> str:
+        """Format exercise subject text with highlighted headers and examples."""
         raw_lines = subject_text.splitlines()
         lines: list[str] = []
-        truncated_extra = False
         for line in raw_lines:
-            if not full and line.startswith(">>> ") and ("TEST" in line or "EDGE CASE" in line or "ORACLE" in line or "DEDICATED" in line):
-                truncated_extra = True
+            if (
+                not full
+                and line.startswith(">>> ")
+                and (
+                    "TEST" in line
+                    or "EDGE CASE" in line
+                    or "ORACLE" in line
+                    or "DEDICATED" in line
+                )
+            ):
                 break
             lines.append(line)
         while lines and not lines[-1].strip():
@@ -469,7 +896,11 @@ class ThemeEngine:
                 k_clean = k.strip()
                 v_clean = v.strip()
                 if "Allowed" in k_clean:
-                    v_colored = self.ok(v_clean) if v_clean.lower() not in {"none", "-", ""} else self.warn(v_clean or "None")
+                    v_colored = (
+                        self.ok(v_clean)
+                        if v_clean.lower() not in {"none", "-", ""}
+                        else self.warn(v_clean or "None")
+                    )
                 elif "Expected" in k_clean or "Files" in k_clean:
                     v_colored = self.cmd(v_clean)
                 else:
@@ -477,19 +908,22 @@ class ThemeEngine:
                 styled.append(f"{self.secondary(f'{k_clean:<18}')} : {v_colored}")
             elif line.lstrip().startswith("$>"):
                 styled.append(self.cmd(line))
-            elif line.startswith("Examples:") or line.startswith("Example:") or line.startswith("Exemples:"):
+            elif (
+                line.startswith("Examples:")
+                or line.startswith("Example:")
+                or line.startswith("Exemples:")
+            ):
                 styled.append(self.warn(line))
             elif line.endswith("$") or line.endswith("$>"):
                 styled.append(self.ok(line))
             else:
                 styled.append(line)
-        if truncated_extra:
-            styled.append("")
-            styled.append(self.muted("─" * (self.term_width() - 6)))
-            styled.append(self.secondary("Tip: Run `subject --full` to inspect the full specification."))
-        return self.box_panel(f"SUBJECT — {subject_id or '42 Assignment'}", styled, border_color="primary")
+        return self.box_panel(
+            f"SUBJECT — {subject_id or '42 Assignment'}", styled, border_color="primary"
+        )
 
     def colorize_trace(self, trace_text: str) -> str:
+        """Apply diff and status colors to a grading trace."""
         out: list[str] = []
         for line in trace_text.splitlines():
             if line.startswith("= ") and line.endswith("="):
@@ -508,7 +942,20 @@ class ThemeEngine:
                 out.append(self.ok(line))
             elif "Diff OK :D" in line or "Final grade: 100" in line or "OK :)" in line:
                 out.append(self.ok(line))
-            elif any(tok in line for tok in ("Diff KO :(", "Does not compile", "Cheating (-42)", "Grade: 0", "Grade: -42", "Timeout", "Segmentation fault", "Norme error", "Nothing turned in")):
+            elif any(
+                tok in line
+                for tok in (
+                    "Diff KO :(",
+                    "Does not compile",
+                    "Cheating (-42)",
+                    "Grade: 0",
+                    "Grade: -42",
+                    "Timeout",
+                    "Segmentation fault",
+                    "Norme error",
+                    "Nothing turned in",
+                )
+            ):
                 out.append(self.ko(line))
             elif line.startswith("[Moulinette") or line.startswith("[Strict Mode"):
                 out.append(self.warn(line))
@@ -517,12 +964,13 @@ class ThemeEngine:
         return "\n".join(out)
 
     def colorize_code(self, code_text: str, show_lineno: bool = True) -> str:
+        """Apply lightweight C syntax highlighting and optional line numbers."""
         out: list[str] = []
         in_block_comment = False
         token_re = re.compile(
-            r'(?P<comment>//.*|/\*[\s\S]*?\*/)'
+            r"(?P<comment>//.*|/\*[\s\S]*?\*/)"
             r'|(?P<string>"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')'
-            r'|\b(?P<kw>if|else|while|for|return|break|continue|typedef|struct|enum|union|static|const|unsigned|signed|void|int|char|long|short|size_t|ssize_t)\b'
+            r"|\b(?P<kw>if|else|while|for|return|break|continue|typedef|struct|enum|union|static|const|unsigned|signed|void|int|char|long|short|size_t|ssize_t)\b"
         )
         for idx, line in enumerate(code_text.splitlines(), 1):
             num_prefix = f"{self.muted(f'{idx:3d} │')} " if show_lineno else "  "
@@ -532,14 +980,22 @@ class ThemeEngine:
                 if "*/" in stripped:
                     in_block_comment = False
                 continue
-            if stripped.startswith("/*") and not ("*/" in stripped and stripped.index("*/") > 1):
+            if stripped.startswith("/*") and not (
+                "*/" in stripped and stripped.index("*/") > 1
+            ):
                 in_block_comment = True
                 out.append(num_prefix + self.muted(line))
                 continue
             if stripped.startswith("/*") and stripped.endswith("*/"):
                 out.append(num_prefix + self.muted(line))
                 continue
-            if stripped.startswith("//") or (stripped.startswith("#") and not stripped.startswith("#include") and not stripped.startswith("#define") and not stripped.startswith("#ifndef") and not stripped.startswith("#endif")):
+            if stripped.startswith("//") or (
+                stripped.startswith("#")
+                and not stripped.startswith("#include")
+                and not stripped.startswith("#define")
+                and not stripped.startswith("#ifndef")
+                and not stripped.startswith("#endif")
+            ):
                 out.append(num_prefix + self.muted(line))
                 continue
             if stripped.startswith("#"):
@@ -551,11 +1007,15 @@ class ThemeEngine:
 
             def _repl(m: re.Match[str]) -> str:
                 if m.group("comment"):
-                    return f"{self.palette.muted}{m.group('comment')}{self.palette.reset}"
+                    return (
+                        f"{self.palette.muted}{m.group('comment')}{self.palette.reset}"
+                    )
                 if m.group("string"):
                     return f"{self.palette.warn}{m.group('string')}{self.palette.reset}"
                 if m.group("kw"):
-                    return f"{self.palette.secondary}{m.group('kw')}{self.palette.reset}"
+                    return (
+                        f"{self.palette.secondary}{m.group('kw')}{self.palette.reset}"
+                    )
                 return m.group(0)
 
             colored_line = token_re.sub(_repl, line)
@@ -569,210 +1029,16 @@ class ThemeEngine:
         mode: str = "1",
         turnin_dir: os.PathLike | str | None = None,
     ) -> str:
-        from pathlib import Path
-        import yaml
-
-        root = Path(kit_root)
-        subj_dir = root / "subjects" / subject_rel
-        slug = subj_dir.name
-        mode_key = (mode or "1").strip().lower()
-
-        if mode_key in {"4", "solution", "solve", "--solution", "--solve"}:
-            return self.status(
-                "error",
-                "Reference solutions and hints are strictly locked. Use 'subject <ex>' and debug from the Deepthought trace.",
-            )
+        """Hints and reference solutions are locked; every mode returns the same refusal."""
         return self.status(
             "error",
             "Reference solutions and hints are strictly locked. Use 'subject <ex>' and debug from the Deepthought trace.",
         )
 
-        meta_path = subj_dir / "meta.yml"
-        tests_path = subj_dir / "tests.yml"
-        subj_txt_path = subj_dir / "subject.en.txt"
-
-        meta = yaml.safe_load(meta_path.read_text(encoding="utf-8")) if meta_path.is_file() else {}
-        tests_data = yaml.safe_load(tests_path.read_text(encoding="utf-8")) if tests_path.is_file() else {}
-        subj_txt = subj_txt_path.read_text(encoding="utf-8", errors="ignore") if subj_txt_path.is_file() else ""
-
-        stype = str(meta.get("type") or tests_data.get("mode") or "c_program")
-        exp_files = meta.get("expected_files") or [f"{slug}.c"]
-        allowed = meta.get("allowed_functions") or []
-        proto = str(meta.get("prototype") or "None (Program / Script)")
-        xp = meta.get("xp", 100)
-        module_name = meta.get("module", subject_rel)
-
-        # Build Contract Section
-        if stype == "c_function":
-            mode_badge = self.warn("C FUNCTION ONLY — Do NOT include main() in your submitted file!")
-        elif stype == "c_program":
-            mode_badge = self.ok("C PROGRAM — Must define int main(int argc, char **argv) and return 0")
-        elif stype in {"shell", "shell_script"}:
-            mode_badge = self.cmd("POSIX SHELL SCRIPT — Must pass shnorm and execute cleanly under /bin/sh")
-        elif stype == "header":
-            mode_badge = self.purple("C HEADER FILE — Include #ifndef / #define / #endif double-inclusion guards")
-        else:
-            mode_badge = self.secondary(stype.upper())
-
-        allow_str = ", ".join(str(a) for a in allowed) if allowed else "None (only language built-ins)"
-        contract_lines = [
-            f"{self.secondary('Exercise         ')}: {self.bold(slug)}  {self.muted(f'({module_name} • {xp} XP)')}",
-            f"{self.secondary('Submission Mode  ')}: {mode_badge}",
-            f"{self.secondary('Expected Files   ')}: {self.cmd(', '.join(str(f) for f in exp_files))}",
-            f"{self.secondary('Allowed Functions')}: {self.ok(allow_str) if allowed else self.warn(allow_str)}",
-            f"{self.secondary('Prototype        ')}: {self.bold(proto)}",
-        ]
-        if turnin_dir:
-            contract_lines.append(f"{self.secondary('Turn-in Folder   ')}: {self.cmd(str(turnin_dir))}")
-
-        # Build Step-by-Step Algorithm & Moulinette Traps
-        algo_steps: list[str] = []
-        traps: list[str] = []
-
-        fixed_tests = tests_data.get("fixed_tests") or []
-        subj_examples = tests_data.get("subject_examples") or []
-
-        if stype == "c_program":
-            # Analyze argc handling from fixed_tests & subject examples
-            no_arg_tests = [ft for ft in fixed_tests if ft.get("args") == []]
-            one_arg_tests = [ft for ft in fixed_tests if len(ft.get("args") or []) == 1]
-            multi_arg_tests = [ft for ft in fixed_tests if len(ft.get("args") or []) > 1]
-
-            if one_arg_tests and not multi_arg_tests:
-                algo_steps.append("1. Argument Check: Verify `if (argc == 2)` before processing `argv[1]`. If `argc != 2`, write `\"\\n\"` and return `0`.")
-            elif multi_arg_tests and all(len(ft.get("args") or []) == 2 for ft in multi_arg_tests):
-                algo_steps.append("1. Argument Check: Verify `if (argc == 3)` to process `argv[1]` and `argv[2]`. Otherwise output `\"\\n\"` and return `0`.")
-            elif multi_arg_tests:
-                algo_steps.append("1. Argument Loop: Check `if (argc > 1)` (or iterate `i = 1` to `argc - 1`). When no arguments are passed (`argc == 1`), output `\"\\n\"`.")
-            elif no_arg_tests and not one_arg_tests and not multi_arg_tests:
-                algo_steps.append("1. Entry Point: This program ignores command-line arguments (`(void)argc; (void)argv;`) and outputs a fixed result.")
-            else:
-                algo_steps.append("1. Entry Point: Check `argc` against the subject requirements before accessing `argv[1]`.")
-
-            if "write" in allowed and "printf" not in allowed:
-                algo_steps.append("2. Output System Call: Include `<unistd.h>` and use `write(1, ..., ...)` for all output (`printf`/`puts` are FORBIDDEN).")
-                traps.append(f"{self.ko('[TRAP — Forbidden Functions]')} Only `{allow_str}` allowed. Using `printf`, `strlen`, or `putchar` triggers `Cheating (-42)`.")
-            if "malloc" in allowed:
-                algo_steps.append("3. Dynamic Memory: Include `<stdlib.h>`, check `if (!ptr)` after every `malloc`, and `free()` before exiting.")
-
-            # Check newline behavior on first test
-            if fixed_tests:
-                first_exp = str(fixed_tests[0].get("expected") if fixed_tests[0].get("expected") is not None else fixed_tests[0].get("stdout", ""))
-                if first_exp and not first_exp.endswith("\n"):
-                    traps.append(f"{self.warn('[TRAP — NO Trailing Newline]')} Expected output `{first_exp!r}` does NOT end with `'\\n'`! Do not print an extra newline.")
-                elif first_exp.endswith("\n"):
-                    traps.append(f"{self.ok('[TRAP — Trailing Newline]')} Every output must end with `'\\n'` (`$` in `cat -e`).")
-            if no_arg_tests:
-                no_arg_exp = str(no_arg_tests[0].get("expected", ""))
-                traps.append(f"{self.warn('[TRAP — Zero Arguments (`argc == 1`)]')} Running with no arguments expects `{no_arg_exp.encode('unicode_escape').decode()}`.")
-            if multi_arg_tests:
-                m_args = multi_arg_tests[0].get("args")
-                m_exp = str(multi_arg_tests[0].get("expected", ""))
-                traps.append(f"{self.warn(f'[TRAP — Multiple Arguments (`argc == {len(m_args) + 1}`)]')} Passing `{m_args}` expects `{m_exp.encode('unicode_escape').decode()}`.")
-
-        elif stype == "c_function":
-            algo_steps.append(f"1. Exact Function Signature: Implement `{proto}` inside `{exp_files[0]}`.")
-            algo_steps.append("2. No `main()` Function: Moulinette links its own `__dt_main.c` test driver. Remove or comment out your test `main()` before grading!")
-            if "malloc" in allowed:
-                algo_steps.append("3. Heap Allocation & Null Guard: Include `<stdlib.h>`, allocate the exact size (+1 for `'\\0'` or `NULL` terminator), and return `NULL` if `malloc` fails.")
-                traps.append(f"{self.ko('[TRAP — Unchecked malloc]')} Strict mode injects `malloc() -> NULL`. Always check `if (!res) return (NULL);` immediately.")
-            if "int " in proto and ("atoi" in slug or "putnbr" in slug or "itoa" in slug):
-                traps.append(f"{self.warn('[TRAP — INT_MIN Overflow]')} Handle `-2147483648` (`INT_MIN`) by promoting `int n` to `long nb = n;` before negating `nb = -nb`.")
-            if "char *" in proto and ("cmp" in slug or "str" in slug):
-                traps.append(f"{self.warn('[TRAP — Unsigned Char & Null Terminator]')} Always stop at `'\\0'` and cast characters to `(unsigned char)` when comparing.")
-            traps.append(f"{self.ko('[TRAP — Leftover main()]')} Leaving `int main(...)` in `{exp_files[0]}` causes an immediate Gate 1 failure.")
-            if not allowed:
-                traps.append(f"{self.ko('[TRAP — External Functions]')} Allowed functions: `None`. Do not call `strlen`, `malloc`, or `printf` inside `{slug}`.")
-
-        elif stype in {"shell", "shell_script"}:
-            algo_steps.append("1. Shebang: Start the file with `#!/bin/sh` on line 1 (no leading spaces).")
-            algo_steps.append("2. Formatting: Keep lines under 80 chars, quote shell variables (`\"$VAR\"`), and use 4 spaces for indentation (`shnorm`).")
-            traps.append(f"{self.warn('[TRAP — shnorm Compliance]')} Run `./bin/shnorm` on your script to verify 42 shell norm rules.")
-
-        # Build Test Cases Preview (Tier 2)
-        test_lines: list[str] = []
-        sample_pool = fixed_tests[:6]
-        for idx, ft in enumerate(sample_pool, 1):
-            t_desc = ft.get("description") or ft.get("name") or f"Test {idx}"
-            if "args" in ft:
-                args_str = " ".join(shlex.quote(str(a)) for a in (ft.get("args") or []))
-                inv = f"$> ./{slug} {args_str}".rstrip() + " | cat -e"
-            elif "call" in ft:
-                inv = str(ft["call"]).replace(r"\|", "|")
-            elif "expr" in ft:
-                inv = str(ft["expr"]).replace(r"\|", "|")
-            elif "code" in ft:
-                inv = str(ft["code"]).replace(r"\|", "|")
-            else:
-                inv = f"eval {slug}"
-            raw_exp = str(ft.get("expected") if ft.get("expected") is not None else ft.get("stdout", ""))
-            cat_e_single = raw_exp.replace("\n", "$\\n")
-            if cat_e_single.endswith("$\\n"):
-                cat_e_single = cat_e_single[:-2]
-            if len(cat_e_single) > 68:
-                cat_e_single = cat_e_single[:65] + "..."
-            test_lines.append(f"  {self.bold(f'[{idx}]')} {self.secondary(t_desc)}")
-            test_lines.append(f"      {self.muted('Run     :')} {self.cmd(inv)}")
-            test_lines.append(f"      {self.muted('Expect  :')} {self.ok(cat_e_single)}")
-
-        # Build Skeleton (Tier 3) purely from subject metadata (never reading corrections/)
-        skeleton_lines: list[str] = []
-        if stype in {"c_program", "c_function"}:
-            if any(f in allowed for f in ("write", "read", "close")):
-                skeleton_lines.append("#include <unistd.h>")
-            if any(f in allowed for f in ("malloc", "free", "exit")):
-                skeleton_lines.append("#include <stdlib.h>")
-            if skeleton_lines:
-                skeleton_lines.append("")
-            if stype == "c_function" and proto and "None" not in proto and "main(" not in proto:
-                skeleton_lines.append(proto.rstrip(";"))
-                skeleton_lines.append("{")
-                skeleton_lines.append(f"    /* TODO: implement {slug} step-by-step */")
-                skeleton_lines.append("}")
-            else:
-                skeleton_lines.append("int main(int argc, char **argv)")
-                skeleton_lines.append("{")
-                skeleton_lines.append("    /* 1. Validate argc / argv */")
-                skeleton_lines.append("    /* 2. Call helper logic & output with write() */")
-                skeleton_lines.append("    (void)argc;")
-                skeleton_lines.append("    (void)argv;")
-                skeleton_lines.append("    return (0);")
-                skeleton_lines.append("}")
-        else:
-            skeleton_lines.append(f"/* Starter template for {slug} ({', '.join(str(f) for f in exp_files)}) */")
-
-        panels: list[str] = []
-        panels.append(self.box_panel(f"MOULINETTE PRO HINT & COACH — {slug.upper()}", contract_lines, border_color="primary"))
-
-        if mode_key in {"1", "algo", "traps", "overview", "all", "full", ""}:
-            body_1: list[str] = [self.bold("Step-by-Step Strategy:")]
-            for s in algo_steps:
-                body_1.append(f"  • {s}")
-            if traps:
-                body_1.append("")
-                body_1.append(self.bold("Moulinette Trap Checklist:"))
-                for tr in traps:
-                    body_1.append(f"  • {tr}")
-            panels.append(self.box_panel("TIER 1 — STRATEGY & MOULINETTE TRAPS", body_1, border_color="warn"))
-
-        if mode_key in {"1", "2", "tests", "examples", "all", "full", ""}:
-            if test_lines:
-                panels.append(self.box_panel("TIER 2 — MOULINETTE TEST CASES & CAT -E ORACLE", test_lines, border_color="secondary"))
-
-        if mode_key in {"3", "skeleton", "template", "all", "full"}:
-            skel_colored = self.colorize_code("\n".join(skeleton_lines).rstrip(), show_lineno=True).splitlines()
-            panels.append(self.box_panel("TIER 3 — CODE SKELETON & STRUCTURE", skel_colored, border_color="purple"))
-
-        footer = [
-            f"{self.bold('Hint Options')}: "
-            f"{self.cmd('hint 1')} (Strategy & Traps) │ "
-            f"{self.cmd('hint 2')} (Test Cases) │ "
-            f"{self.cmd('hint 3')} (Code Skeleton)"
-        ]
-        panels.append("  " + footer[0])
-        return "\n".join(panels)
-
-    def scorecard_table(self, title: str, headers: Sequence[str], rows: Sequence[Sequence[str]]) -> str:
+    def scorecard_table(
+        self, title: str, headers: Sequence[str], rows: Sequence[Sequence[str]]
+    ) -> str:
+        """Render an aligned plain/ANSI table for scorecards."""
         if not headers:
             return ""
         col_count = len(headers)
@@ -785,7 +1051,10 @@ class ThemeEngine:
         out = []
         if title:
             out.append(f"{self.c('===>', 'accent', 'bold')} {self.bold(title)}")
-        hdr_cells = [pad_visible(self.c(str(h).upper(), "muted"), col_widths[i]) for i, h in enumerate(headers)]
+        hdr_cells = [
+            pad_visible(self.c(str(h).upper(), "muted"), col_widths[i])
+            for i, h in enumerate(headers)
+        ]
         sep_cells = [self.c("-" * col_widths[i], "muted") for i in range(col_count)]
         out.append("  " + "  ".join(hdr_cells).rstrip())
         out.append("  " + "  ".join(sep_cells).rstrip())
@@ -793,7 +1062,8 @@ class ThemeEngine:
             cells = []
             for i in range(col_count):
                 val = str(r[i]) if i < len(r) else ""
-                cells.append(pad_visible(val, col_widths[i]) if i < col_count - 1 else val)
+                cells.append(
+                    pad_visible(val, col_widths[i]) if i < col_count - 1 else val
+                )
             out.append("  " + "  ".join(cells).rstrip())
         return "\n".join(out)
-

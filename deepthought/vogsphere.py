@@ -6,16 +6,18 @@ Ensures grading evaluates commits pushed to the bare Vogsphere repository (`vogs
 """
 
 import os
+from pathlib import Path
 import shutil
 import subprocess
 import tempfile
-from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 
-def _resolve_paths(path_arg: Path) -> Tuple[Path, Path]:
+def _resolve_paths(path_arg: Path) -> tuple[Path, Path]:
     path_arg = Path(path_arg).resolve()
-    if path_arg.name in ("vogsphere.git", ".vogsphere.git") or path_arg.suffix == ".git":
+    if (
+        path_arg.name in ("vogsphere.git", ".vogsphere.git")
+        or path_arg.suffix == ".git"
+    ):
         return path_arg.parent, path_arg
     if (path_arg / ".vogsphere.git").exists():
         return path_arg, path_arg / ".vogsphere.git"
@@ -47,19 +49,30 @@ def _is_temp_or_protected_host_home(target_path: Path, home_dir: Path) -> bool:
     """Return True if symlink creation in home_dir should be skipped to protect host $HOME or temporary workspaces."""
     if os.environ.get("DT_SKIP_HOME_SYMLINKS") == "1":
         return True
-    resolved_str = str(target_path.resolve())
-    if resolved_str.startswith(("/tmp/", "/var/tmp/", "/private/tmp/")):
-        return True
-    if "/test-homes/" in resolved_str or "/dt_int_" in resolved_str or "/dt_vog_" in resolved_str:
-        if "test-homes" not in str(home_dir):
-            return True
-    # Protect real host /home/xapet from development workspace (/Downloads/) symlink overrides
     try:
-        if str(home_dir.resolve()) == "/home/xapet" and "/Downloads/" in resolved_str:
-            return True
+        target_res = target_path.resolve()
+        home_res = home_dir.resolve()
+    except OSError:
+        return True
+    if target_res == home_res or home_res in target_res.parents:
+        try:
+            rel_parts = target_res.relative_to(home_res).parts
+        except ValueError:
+            rel_parts = target_res.parts
+        return "build" in rel_parts
+    temp_roots = [Path(p) for p in ("/tmp", "/var/tmp", "/private/tmp")]
+    try:
+        temp_roots.append(Path(tempfile.gettempdir()).resolve())
     except OSError:
         pass
-    return False
+    for root in temp_roots:
+        try:
+            root_res = root.resolve()
+        except OSError:
+            continue
+        if target_res == root_res or root_res in target_res.parents:
+            return True
+    return "build" in target_res.parts
 
 
 def _ensure_rendu_symlink(rendu_dir: Path) -> None:
@@ -79,7 +92,7 @@ def _ensure_rendu_symlink(rendu_dir: Path) -> None:
         pass
 
 
-def init_vogsphere(path_arg: Path, clean: bool = False) -> Dict[str, str]:
+def init_vogsphere(path_arg: Path, clean: bool = False) -> dict[str, str]:
     """Initialize a bare Vogsphere repository and clone it into rendu/."""
     workspace_root, bare_repo = _resolve_paths(path_arg)
     rendu_dir = workspace_root / "rendu"
@@ -89,11 +102,29 @@ def init_vogsphere(path_arg: Path, clean: bool = False) -> Dict[str, str]:
             shutil.rmtree(bare_repo)
         if rendu_dir.exists():
             shutil.rmtree(rendu_dir)
-    elif bare_repo.exists() and (bare_repo / "HEAD").exists() and (rendu_dir / ".git").exists():
-        subprocess.run(["git", "config", "user.name", "Exam 42"], cwd=str(rendu_dir), check=False)
-        subprocess.run(["git", "config", "user.email", "exam-no-reply@42.fr"], cwd=str(rendu_dir), check=False)
-        subprocess.run(["git", "config", "push.default", "current"], cwd=str(rendu_dir), check=False)
-        subprocess.run(["git", "config", "push.autoSetupRemote", "true"], cwd=str(rendu_dir), check=False)
+    elif (
+        bare_repo.exists()
+        and (bare_repo / "HEAD").exists()
+        and (rendu_dir / ".git").exists()
+    ):
+        subprocess.run(
+            ["git", "config", "user.name", "Exam 42"], cwd=str(rendu_dir), check=False
+        )
+        subprocess.run(
+            ["git", "config", "user.email", "exam-no-reply@42.fr"],
+            cwd=str(rendu_dir),
+            check=False,
+        )
+        subprocess.run(
+            ["git", "config", "push.default", "current"],
+            cwd=str(rendu_dir),
+            check=False,
+        )
+        subprocess.run(
+            ["git", "config", "push.autoSetupRemote", "true"],
+            cwd=str(rendu_dir),
+            check=False,
+        )
         _install_vogsphere_hook(bare_repo)
         _ensure_rendu_symlink(rendu_dir)
         return {"bare_repo": str(bare_repo), "rendu_dir": str(rendu_dir)}
@@ -103,8 +134,7 @@ def init_vogsphere(path_arg: Path, clean: bool = False) -> Dict[str, str]:
         subprocess.run(
             ["git", "init", "--bare", str(bare_repo)],
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
     if not (rendu_dir.exists() and (rendu_dir / ".git").exists()):
         if rendu_dir.exists():
@@ -112,13 +142,24 @@ def init_vogsphere(path_arg: Path, clean: bool = False) -> Dict[str, str]:
         subprocess.run(
             ["git", "clone", str(bare_repo), str(rendu_dir)],
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
-    subprocess.run(["git", "config", "user.name", "Exam 42"], cwd=str(rendu_dir), check=True)
-    subprocess.run(["git", "config", "user.email", "exam-no-reply@42.fr"], cwd=str(rendu_dir), check=True)
-    subprocess.run(["git", "config", "push.default", "current"], cwd=str(rendu_dir), check=False)
-    subprocess.run(["git", "config", "push.autoSetupRemote", "true"], cwd=str(rendu_dir), check=False)
+    subprocess.run(
+        ["git", "config", "user.name", "Exam 42"], cwd=str(rendu_dir), check=True
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "exam-no-reply@42.fr"],
+        cwd=str(rendu_dir),
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "push.default", "current"], cwd=str(rendu_dir), check=False
+    )
+    subprocess.run(
+        ["git", "config", "push.autoSetupRemote", "true"],
+        cwd=str(rendu_dir),
+        check=False,
+    )
 
     _install_vogsphere_hook(bare_repo)
     _ensure_rendu_symlink(rendu_dir)
@@ -156,7 +197,7 @@ def init_exercise_vogsphere_repo(
     rel_subj: str,
     work_dir: Path,
     login: str = "student",
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Initialize a per-exercise bare Vogsphere Git repository at `vogsphere/<rel_subj>.git`
     and connect `work_dir` (`workspace/<rel_subj>`) as a Git working tree with `origin` pointing
     to the bare Vogsphere repository. Ensures `work_dir` always exists on disk so `cd` never fails.
@@ -171,8 +212,7 @@ def init_exercise_vogsphere_repo(
         subprocess.run(
             ["git", "init", "--bare", str(bare_repo)],
             check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
     _install_vogsphere_hook(bare_repo)
 
@@ -181,15 +221,13 @@ def init_exercise_vogsphere_repo(
             ["git", "init"],
             cwd=str(work_dir),
             check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
     # Configure remote origin -> bare_repo
     rem_res = subprocess.run(
         ["git", "remote", "get-url", "origin"],
         cwd=str(work_dir),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
     if rem_res.returncode != 0:
@@ -197,21 +235,31 @@ def init_exercise_vogsphere_repo(
             ["git", "remote", "add", "origin", str(bare_repo)],
             cwd=str(work_dir),
             check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
     elif rem_res.stdout.strip() != str(bare_repo):
         subprocess.run(
             ["git", "remote", "set-url", "origin", str(bare_repo)],
             cwd=str(work_dir),
             check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
-    subprocess.run(["git", "config", "user.name", login], cwd=str(work_dir), check=False)
-    subprocess.run(["git", "config", "user.email", f"{login}@student.1337.ma"], cwd=str(work_dir), check=False)
-    subprocess.run(["git", "config", "push.default", "current"], cwd=str(work_dir), check=False)
-    subprocess.run(["git", "config", "push.autoSetupRemote", "true"], cwd=str(work_dir), check=False)
+    subprocess.run(
+        ["git", "config", "user.name", login], cwd=str(work_dir), check=False
+    )
+    subprocess.run(
+        ["git", "config", "user.email", f"{login}@student.1337.ma"],
+        cwd=str(work_dir),
+        check=False,
+    )
+    subprocess.run(
+        ["git", "config", "push.default", "current"], cwd=str(work_dir), check=False
+    )
+    subprocess.run(
+        ["git", "config", "push.autoSetupRemote", "true"],
+        cwd=str(work_dir),
+        check=False,
+    )
     return {"bare_repo": str(bare_repo), "work_dir": str(work_dir)}
 
 
@@ -230,35 +278,33 @@ def cleanup_vogsphere_temp() -> int:
 
 
 def has_commits(bare_repo: Path) -> bool:
+    """Return True if the Vogsphere bare repository contains at least one commit."""
     _, bare_repo = _resolve_paths(bare_repo)
     if not bare_repo.exists():
         return False
     res = subprocess.run(
         ["git", "--git-dir", str(bare_repo), "rev-parse", "--verify", "HEAD"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
     if res.returncode == 0:
         return True
     res_all = subprocess.run(
         ["git", "--git-dir", str(bare_repo), "rev-list", "-n", "1", "--all"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
     if res_all.returncode == 0 and bool(res_all.stdout.strip()):
         return True
     res_refs = subprocess.run(
         ["git", "--git-dir", str(bare_repo), "for-each-ref", "refs/heads/"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
     return bool(res_refs.stdout.strip())
 
 
-def collect_pushed_files(path_arg: Path, slug: Optional[str] = None) -> Tuple[bool, Path]:
+def collect_pushed_files(path_arg: Path, slug: str | None = None) -> tuple[bool, Path]:
     """
     Clone ONLY from the bare Vogsphere repository into a clean staging directory.
     Never reads uncommitted or unpushed files from local working trees.
@@ -273,9 +319,16 @@ def collect_pushed_files(path_arg: Path, slug: Optional[str] = None) -> Tuple[bo
     _ACTIVE_VOGSPHERE_PULL_DIRS.append(tmp_checkout)
 
     res = subprocess.run(
-        ["git", "-c", "core.symlinks=false", "clone", "--no-local", str(bare_repo), str(tmp_checkout / "repo")],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        [
+            "git",
+            "-c",
+            "core.symlinks=false",
+            "clone",
+            "--no-local",
+            str(bare_repo),
+            str(tmp_checkout / "repo"),
+        ],
+        capture_output=True,
         text=True,
     )
     if res.returncode != 0:
@@ -285,14 +338,28 @@ def collect_pushed_files(path_arg: Path, slug: Optional[str] = None) -> Tuple[bo
     repo_root = (tmp_checkout / "repo").resolve()
     if not any(f for f in repo_root.iterdir() if f.name != ".git"):
         refs_res = subprocess.run(
-            ["git", "--git-dir", str(bare_repo), "for-each-ref", "--sort=-committerdate", "--format=%(refname:short)", "refs/heads/"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            [
+                "git",
+                "--git-dir",
+                str(bare_repo),
+                "for-each-ref",
+                "--sort=-committerdate",
+                "--format=%(refname:short)",
+                "refs/heads/",
+            ],
+            capture_output=True,
             text=True,
         )
-        candidate_branches = [b.strip() for b in refs_res.stdout.splitlines() if b.strip()]
+        candidate_branches = [
+            b.strip() for b in refs_res.stdout.splitlines() if b.strip()
+        ]
         for br in (*candidate_branches, "main", "master"):
-            subprocess.run(["git", "checkout", "-q", br], cwd=str(repo_root), stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+            subprocess.run(
+                ["git", "checkout", "-q", br],
+                cwd=str(repo_root),
+                capture_output=True,
+                check=False,
+            )
             if any(f for f in repo_root.iterdir() if f.name != ".git"):
                 break
 
@@ -300,8 +367,7 @@ def collect_pushed_files(path_arg: Path, slug: Optional[str] = None) -> Tuple[bo
     ls_res = subprocess.run(
         ["git", "ls-files", "-s"],
         cwd=str(repo_root),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
         check=False,
     )
@@ -317,7 +383,11 @@ def collect_pushed_files(path_arg: Path, slug: Optional[str] = None) -> Tuple[bo
             p.unlink(missing_ok=True)
 
     if slug is None:
-        files = [p for p in repo_root.rglob("*") if p.is_file() and not p.is_symlink() and ".git" not in p.parts]
+        files = [
+            p
+            for p in repo_root.rglob("*")
+            if p.is_file() and not p.is_symlink() and ".git" not in p.parts
+        ]
         if not files:
             shutil.rmtree(tmp_checkout, ignore_errors=True)
             return False, bare_repo.parent / "__empty_vogsphere__"
@@ -337,7 +407,11 @@ def collect_pushed_files(path_arg: Path, slug: Optional[str] = None) -> Tuple[bo
         shutil.rmtree(tmp_checkout, ignore_errors=True)
         return False, bare_repo.parent / "__empty_vogsphere__"
 
-    files = [p for p in target.rglob("*") if p.is_file() and not p.is_symlink() and ".git" not in p.parts]
+    files = [
+        p
+        for p in target.rglob("*")
+        if p.is_file() and not p.is_symlink() and ".git" not in p.parts
+    ]
     if not files:
         shutil.rmtree(tmp_checkout, ignore_errors=True)
         return False, bare_repo.parent / "__empty_vogsphere__"
@@ -361,14 +435,16 @@ def get_git_history_log(path_arg: Path) -> str:
             "--stat",
             "--format=commit %H%nAuthor: %an <%ae>%nDate:   %ad%n%n    %s",
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
     return res.stdout.strip()
 
 
-def register_ssh_key(path_arg: Path, pubkey_text: str, login: str = "kaouzal") -> Dict[str, str]:
+def register_ssh_key(
+    path_arg: Path, pubkey_text: str, login: str = "kaouzal"
+) -> dict[str, str]:
+    """Validate and register an SSH public key in the Vogsphere repository."""
     import base64
     import hashlib
     import uuid
@@ -377,7 +453,9 @@ def register_ssh_key(path_arg: Path, pubkey_text: str, login: str = "kaouzal") -
     bare_repo.mkdir(parents=True, exist_ok=True)
     clean_key = pubkey_text.strip()
     if not clean_key.startswith(("ssh-rsa ", "ssh-ed25519 ", "ecdsa-sha2-")):
-        raise ValueError("Invalid SSH public key format (expected ssh-rsa or ssh-ed25519)")
+        raise ValueError(
+            "Invalid SSH public key format (expected ssh-rsa or ssh-ed25519)"
+        )
 
     parts = clean_key.split()
     key_type = parts[0]
@@ -387,7 +465,9 @@ def register_ssh_key(path_arg: Path, pubkey_text: str, login: str = "kaouzal") -
     fp_sha256 = "SHA256:" + base64.b64encode(digest).decode("ascii").rstrip("=")
 
     auth_file = bare_repo / "authorized_keys"
-    existing = auth_file.read_text(encoding="utf-8").splitlines() if auth_file.exists() else []
+    existing = (
+        auth_file.read_text(encoding="utf-8").splitlines() if auth_file.exists() else []
+    )
     if clean_key not in existing:
         existing.append(clean_key)
         auth_file.write_text("\n".join(existing) + "\n", encoding="utf-8")
@@ -405,11 +485,16 @@ def register_ssh_key(path_arg: Path, pubkey_text: str, login: str = "kaouzal") -
 
 
 def get_registered_ssh_keys(path_arg: Path) -> list[str]:
+    """Return registered SSH public keys from Vogsphere authorized_keys."""
     _, bare_repo = _resolve_paths(path_arg)
     auth_file = bare_repo / "authorized_keys"
     if not auth_file.exists():
         return []
-    return [line.strip() for line in auth_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [
+        line.strip()
+        for line in auth_file.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
 
 
 init_vogsphere_repo = init_vogsphere

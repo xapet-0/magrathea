@@ -9,8 +9,8 @@ if [ -z "$target_user" ]; then
     exit 1
 fi
 
-if printf "%s\n" "$ignored_list" | tr " \t" "\n\n" | \
-    grep -q -F -x -- "$target_user"; then
+words="$(printf "%s\n" "$ignored_list" | tr " \t" "\n\n")"
+if printf "%s\n" "$words" | grep -q -F -x -- "$target_user"; then
     printf "IGNORED\n"
     exit 0
 fi

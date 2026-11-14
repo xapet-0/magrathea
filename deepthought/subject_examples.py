@@ -13,18 +13,20 @@ Extracts and merges directly into `tests.yml` (`fixed_tests`):
      from the subject rules, empty/whitespace envelopes, and lexical/numeric perturbations) so
      every test is actively executed by `grader.py`.
 """
+
 from __future__ import annotations
 
+import ast
 import re
 import shlex
-from typing import Any, Dict, List
+from typing import Any
 
 
 def _clean_cat_e_output(raw_exp: str, has_cat_e: bool) -> str:
     s = raw_exp.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r")
     s = re.split(r"\n+\s*(?:Allowed functions|Requirements|Note)\s*:", s)[0]
     lines = s.splitlines()
-    out: List[str] = []
+    out: list[str] = []
     for ln in lines:
         if has_cat_e and ln.endswith("$"):
             out.append(ln[:-1] + "\n")
@@ -37,13 +39,15 @@ def build_clean_examples_block_and_append_to_subject(
     slug: str,
     subj_txt: str,
     official_examples: str | None,
-    extracted_tests: List[Dict[str, Any]],
+    extracted_tests: list[dict[str, Any]],
+    *,
+    append_to_subject: bool = True,
 ) -> tuple[str, str]:
     """Build clean `examples.txt` content and ensure `subject.en.txt` includes the official
     examples at the bottom of the subject text.
     Returns `(enriched_subject_txt, clean_examples_txt)`.
     """
-    ex_lines: List[str] = []
+    ex_lines: list[str] = []
     for row in extracted_tests or []:
         if row.get("source") == "examples.txt":
             inp = str(row.get("input") or "").replace("\\|", "|").strip()
@@ -65,14 +69,17 @@ def build_clean_examples_block_and_append_to_subject(
     else:
         clean_ex_txt = ""
 
-    # Append official examples at the bottom of subject.en.txt ONLY if official examples exist
+    # Append official examples at the bottom of subject.en.txt ONLY if allowed and official examples exist
     base_subj = subj_txt.rstrip()
-    has_ex_in_subj = ("Example" in base_subj or "$>" in base_subj or "?>" in base_subj)
-    if not clean_ex_txt.strip():
+    has_ex_in_subj = "Example" in base_subj or "$>" in base_subj or "?>" in base_subj
+    if not append_to_subject or not clean_ex_txt.strip():
         enriched_subj = f"{base_subj}\n"
     elif not has_ex_in_subj:
         enriched_subj = f"{base_subj}\n\n{clean_ex_txt.strip()}\n"
-    elif ex_lines and not any(line.splitlines()[0].replace("$> ", "").strip() in base_subj for line in ex_lines[:1]):
+    elif ex_lines and not any(
+        line.splitlines()[0].replace("$> ", "").strip() in base_subj
+        for line in ex_lines[:1]
+    ):
         enriched_subj = f"{base_subj}\n\n{clean_ex_txt.strip()}\n"
     else:
         enriched_subj = f"{base_subj}\n"
@@ -80,13 +87,13 @@ def build_clean_examples_block_and_append_to_subject(
     return enriched_subj, clean_ex_txt
 
 
-def parse_subject_cli_examples(subject_text: str, slug: str) -> List[Dict[str, Any]]:
+def parse_subject_cli_examples(subject_text: str, slug: str) -> list[dict[str, Any]]:
     """Parse `$> ...` and `?> ...` interactive CLI example blocks from `subject.en.txt`."""
     if not subject_text:
         return []
 
     lines = subject_text.splitlines()
-    examples: List[Dict[str, Any]] = []
+    examples: list[dict[str, Any]] = []
     idx = 0
     n = len(lines)
 
@@ -111,14 +118,16 @@ def parse_subject_cli_examples(subject_text: str, slug: str) -> List[Dict[str, A
         else:
             cmd_clean = cmd_part
 
-        out_lines: List[str] = []
+        out_lines: list[str] = []
         idx += 1
         while idx < n:
             nxt = lines[idx]
             nxt_strip = nxt.strip()
             if re.match(r"^(?:\$>|\?>)", nxt_strip):
                 break
-            if nxt_strip.startswith(("Requirements:", "Note:", "Hint:", "/* === Official Archive")):
+            if nxt_strip.startswith(
+                ("Requirements:", "Note:", "Hint:", "/* === Official Archive")
+            ):
                 break
             if has_cat_e and nxt.endswith("$"):
                 out_lines.append(nxt[:-1] + "\n")
@@ -151,12 +160,12 @@ def parse_subject_cli_examples(subject_text: str, slug: str) -> List[Dict[str, A
 def parse_executable_folder_examples(
     slug: str,
     ex_type: str,
-    extracted_tests: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    extracted_tests: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Convert `examples.txt` (from the uploaded subject folder) and `mini-moulinette` rows
     into executable `fixed_tests` entries for `tests.yml`.
     """
-    exec_cases: List[Dict[str, Any]] = []
+    exec_cases: list[dict[str, Any]] = []
 
     for row in extracted_tests or []:
         src = str(row.get("source") or "")
@@ -216,14 +225,14 @@ def parse_executable_folder_examples(
         elif ex_type == "shell":
             has_cat_e = "cat -e" in raw_in
             exp_out = _clean_cat_e_output(raw_exp, has_cat_e)
-            env_vars: Dict[str, str] = {}
+            env_vars: dict[str, str] = {}
             for m_env in re.finditer(r'([A-Z0-9_]+)="([^"]*)"', raw_in):
                 env_vars[m_env.group(1)] = m_env.group(2)
             stdin_val = None
             m_printf = re.match(r'^printf\s+"([^"]*)"\s*\|', raw_in)
             if m_printf:
                 stdin_val = m_printf.group(1).replace("\\n", "\n").replace("\\t", "\t")
-            case_dict: Dict[str, Any] = {
+            case_dict: dict[str, Any] = {
                 "name": f"folder_ex_{len(exec_cases) + 1:02d}",
                 "tier": "folder_example",
                 "args": [],
@@ -240,16 +249,22 @@ def parse_executable_folder_examples(
 
 def extract_folder_examples(
     official_examples: str,
-    attached_samples: List[Dict[str, Any]],
-    extracted_tests: List[Dict[str, Any]],
+    attached_samples: list[dict[str, Any]],
+    extracted_tests: list[dict[str, Any]],
     slug: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Extract structured summary of examples coming from the subject's uploaded folder."""
-    folder_cases: List[Dict[str, Any]] = []
+    folder_cases: list[dict[str, Any]] = []
 
     for t in extracted_tests or []:
         src = str(t.get("source") or "")
-        if "examples.txt" in src or "tester.sh" in src or "generator.py" in src or "_MAIN.c" in src or "mini-moulinette" in src:
+        if (
+            "examples.txt" in src
+            or "tester.sh" in src
+            or "generator.py" in src
+            or "_MAIN.c" in src
+            or "mini-moulinette" in src
+        ):
             folder_cases.append(
                 {
                     "id": str(t.get("id") or f"folder_ex_{len(folder_cases) + 1:02d}"),
@@ -314,19 +329,138 @@ def _perturb_string_arg(s: str) -> str:
     return s + "!"
 
 
+def _perturb_c_func_call(call_part: str) -> str | None:
+    """Perturb literal arguments inside a simple `fn(arg1, ...)` call without mutating `fn`."""
+    m_fn = re.match(r"^([A-Za-z_]\w*)\(([^()]*)\)$", call_part)
+    if not m_fn:
+        return None
+    fn_name, inner = m_fn.group(1), m_fn.group(2).strip()
+    if not inner:
+        return None
+    raw_args: list[str] = []
+    cur: list[str] = []
+    in_quote: str | None = None
+    escaped = False
+    for ch in inner:
+        if escaped:
+            cur.append(ch)
+            escaped = False
+        elif ch == "\\" and in_quote:
+            cur.append(ch)
+            escaped = True
+        elif ch in ('"', "'") and in_quote is None:
+            in_quote = ch
+            cur.append(ch)
+        elif ch == in_quote:
+            in_quote = None
+            cur.append(ch)
+        elif ch == "," and in_quote is None:
+            raw_args.append("".join(cur).strip())
+            cur = []
+        else:
+            cur.append(ch)
+    if in_quote is not None:
+        return None
+    raw_args.append("".join(cur).strip())
+    pert_args: list[str] = []
+    for ra in raw_args:
+        if re.fullmatch(r"[+-]?\d+", ra):
+            pert_args.append(_perturb_string_arg(ra))
+        elif len(ra) >= 2 and ra[0] == '"' and ra[-1] == '"':
+            pert_args.append(f'"{_perturb_string_arg(ra[1:-1])}"')
+        else:
+            return None
+    return f"{fn_name}({', '.join(pert_args)})"
+
+
+def _perturb_folder_input(raw_in: str, ex_type: str) -> str | None:
+    """Derive a clean near-input perturbation from a folder example input without
+    corrupting filenames, binary names, function names, env var keys, or prose descriptions.
+    Returns None when `raw_in` is non-argument metadata rather than an executable input.
+    """
+    s = raw_in.strip()
+    if not s:
+        return None
+    is_bare_file = (
+        s.endswith((".yml", ".txt", ".c", ".h", ".sh", ".cpp", ".hpp"))
+        and not s.startswith(("./", "sh ", "bash "))
+        and " " not in s
+    )
+    if (
+        "baseline folder fixture" in s
+        or "Dynamic generation" in s
+        or s.startswith("If ")
+        or s.startswith("eval ")
+        or is_bare_file
+        or re.fullmatch(r"[A-Za-z0-9_.*?-]+", s)
+        or ("/" in s and not s.startswith("./") and not re.match(r"^[A-Z0-9_]+=", s))
+    ):
+        return None
+
+    if s.startswith("[") and s.endswith("]"):
+        try:
+            parsed = ast.literal_eval(s)
+        except (ValueError, SyntaxError):
+            parsed = None
+        if isinstance(parsed, list):
+            if parsed:
+                return repr([_perturb_string_arg(str(item)) for item in parsed])
+            return repr(["arg1"]) if ex_type == "c_program" else None
+
+    m_pipe = re.match(r"^(.*?)\s*\\?\|\s*cat\s+-e\s*$", s)
+    cmd_core = m_pipe.group(1).strip() if m_pipe else s
+    pipe_suffix = " | cat -e" if m_pipe else ""
+
+    if re.match(r"^[A-Z0-9_]+=", cmd_core):
+        try:
+            tokens = shlex.split(cmd_core)
+        except ValueError:
+            return None
+        changed = False
+        rebuilt: list[str] = []
+        for tok in tokens:
+            m_kv = re.match(r"^([A-Z0-9_]+)=(.*)$", tok)
+            if m_kv:
+                rebuilt.append(
+                    f'{m_kv.group(1)}="{_perturb_string_arg(m_kv.group(2))}"'
+                )
+                changed = True
+            else:
+                rebuilt.append(tok)
+        return (" ".join(rebuilt) + pipe_suffix) if changed else None
+
+    if cmd_core.startswith("./"):
+        try:
+            tokens = shlex.split(cmd_core)
+        except ValueError:
+            tokens = cmd_core.split()
+        if not tokens:
+            return None
+        if len(tokens) > 1:
+            pert_toks = [shlex.quote(_perturb_string_arg(t)) for t in tokens[1:]]
+            return f"{tokens[0]} {' '.join(pert_toks)}{pipe_suffix}"
+        return f"{tokens[0]} arg1{pipe_suffix}" if ex_type == "c_program" else None
+
+    if ex_type == "c_function":
+        return _perturb_c_func_call(cmd_core.split("->")[0].strip())
+
+    return None
+
+
 def build_near_examples(
     slug: str,
     ex_type: str,
-    subject_examples: List[Dict[str, Any]],
-    folder_examples: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    subject_examples: list[dict[str, Any]],
+    folder_examples: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Synthesize Near-Example Perturbation test descriptors ('Near Examples')
     derived directly from the subject's examples and folder examples.
     """
-    near: List[Dict[str, Any]] = []
+    near: list[dict[str, Any]] = []
 
     for idx, sex in enumerate(subject_examples[:4], 1):
-        orig_args = sex.get("args") or []
+        orig_args = list(sex.get("args") or [])
+        orig_cmd = str(sex.get("command") or "").strip()
         if orig_args:
             pert_args = [_perturb_string_arg(str(a)) for a in orig_args]
             near.append(
@@ -334,7 +468,7 @@ def build_near_examples(
                     "id": f"near_subj_{idx:02d}_lexical_shift",
                     "derived_from": sex.get("id", f"subj_ex_{idx:02d}"),
                     "strategy": "Perturb characters/numbers of subject.en.txt example to defeat hardcoded strcmp(argv[1])",
-                    "original_input": orig_args,
+                    "original_input": list(orig_args),
                     "perturbed_input": pert_args,
                 }
             )
@@ -344,30 +478,33 @@ def build_near_examples(
                     "id": f"near_subj_{idx:02d}_whitespace_envelope",
                     "derived_from": sex.get("id", f"subj_ex_{idx:02d}"),
                     "strategy": "Wrap subject.en.txt example in leading/trailing spaces & tabs",
-                    "original_input": orig_args,
+                    "original_input": list(orig_args),
                     "perturbed_input": ws_args,
                 }
             )
-        else:
+        elif ex_type == "c_program" and orig_cmd.startswith("./"):
             near.append(
                 {
                     "id": f"near_subj_{idx:02d}_arity_perturbation",
                     "derived_from": sex.get("id", f"subj_ex_{idx:02d}"),
-                    "strategy": "Perturb argument count / adjacent input around subject.en.txt example",
-                    "original_input": sex.get("command", slug),
-                    "perturbed_input": [f"{slug}_near_arg_1", f"{slug}_near_arg_2"],
+                    "strategy": "Invoke binary with unexpected arguments to verify argc guard",
+                    "original_input": orig_cmd,
+                    "perturbed_input": ["arg1", "arg2"],
                 }
             )
 
     for idx_f, fex in enumerate(folder_examples[:2], 1):
         raw_in = str(fex.get("input") or "")
+        pert_in = _perturb_folder_input(raw_in, ex_type)
+        if pert_in is None:
+            continue
         near.append(
             {
                 "id": f"near_folder_{idx_f:02d}_boundary_neighbor",
                 "derived_from": fex.get("id", f"folder_ex_{idx_f:02d}"),
                 "strategy": f"Neighbouring perturbation of folder example ({fex.get('origin', 'examples.txt')})",
                 "original_input": raw_in,
-                "perturbed_input": _perturb_string_arg(raw_in[:40]),
+                "perturbed_input": pert_in,
             }
         )
 
@@ -378,10 +515,10 @@ def merge_executable_tiers_into_fixed_tests(
     slug: str,
     ex_type: str,
     subject_text: str,
-    base_fixed_tests: List[Dict[str, Any]],
-    subj_examples_parsed: List[Dict[str, Any]],
-    extracted_tests: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    base_fixed_tests: list[dict[str, Any]],
+    subj_examples_parsed: list[dict[str, Any]],
+    extracted_tests: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Merge executable tests from:
       1. `base_fixed_tests` (baseline `tests.yml`)
       2. `subject.en.txt` examples (`tier: subject_example`)
@@ -389,10 +526,10 @@ def merge_executable_tiers_into_fixed_tests(
       4. Executable Near-Example Perturbations (`tier: near_example`) derived from subject rules & examples
     into a single deduplicated `fixed_tests` list so `grader.py` executes all of them.
     """
-    merged: List[Dict[str, Any]] = []
+    merged: list[dict[str, Any]] = []
     seen_keys: set[str] = set()
 
-    def _case_key(tc: Dict[str, Any]) -> str:
+    def _case_key(tc: dict[str, Any]) -> str:
         if "args" in tc and "call" not in tc and "expr" not in tc:
             env_k = sorted((tc.get("env") or {}).items())
             return f"prog:{tc.get('args')!r}:{tc.get('stdin')!r}:{env_k!r}"
@@ -438,10 +575,13 @@ def merge_executable_tiers_into_fixed_tests(
         low_subj = subject_text.lower()
         # If subject states "if the number of arguments is not X, display a newline / \n"
         if "newline" in low_subj or "new line" in low_subj or "\\n" in low_subj:
-            if "number of arguments is not 1" in low_subj or "number of parameters is not 1" in low_subj:
+            if (
+                "number of arguments is not 1" in low_subj
+                or "number of parameters is not 1" in low_subj
+            ):
                 for near_name, near_args in [
                     ("near_ex_no_args", []),
-                    ("near_ex_too_many_args", ["near_arg_1", "near_arg_2"]),
+                    ("near_ex_too_many_args", ["arg1", "arg2"]),
                 ]:
                     tc_near = {
                         "name": near_name,
@@ -453,10 +593,13 @@ def merge_executable_tiers_into_fixed_tests(
                     if k not in seen_keys:
                         seen_keys.add(k)
                         merged.append(tc_near)
-            elif "number of arguments is not 2" in low_subj or "number of parameters is not 2" in low_subj:
+            elif (
+                "number of arguments is not 2" in low_subj
+                or "number of parameters is not 2" in low_subj
+            ):
                 for near_name, near_args in [
                     ("near_ex_no_args", []),
-                    ("near_ex_one_arg_only", ["only_one_near_arg"]),
+                    ("near_ex_one_arg_only", ["arg1"]),
                     ("near_ex_three_args", ["a", "b", "c"]),
                 ]:
                     tc_near = {
@@ -469,7 +612,10 @@ def merge_executable_tiers_into_fixed_tests(
                     if k not in seen_keys:
                         seen_keys.add(k)
                         merged.append(tc_near)
-            elif "number of arguments is not 3" in low_subj or "number of parameters is not 3" in low_subj:
+            elif (
+                "number of arguments is not 3" in low_subj
+                or "number of parameters is not 3" in low_subj
+            ):
                 for near_name, near_args in [
                     ("near_ex_no_args", []),
                     ("near_ex_two_args_only", ["arg1", "arg2"]),

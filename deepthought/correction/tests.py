@@ -4,16 +4,18 @@ Provides `gen_tests`, `quote`, `random_word`, `random_string`, and `random_int` 
 authentic 1337/42 ExamPoolRevanced generator.py scripts.
 Automatically invokes `compile_expected_program()` in the caller module if defined.
 """
+
 from __future__ import annotations
 
+from collections.abc import Callable
 import json
 import os
+from pathlib import Path
 import random
 import shlex
 import string
 import sys
-from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 
 def quote(s: Any) -> str:
@@ -22,31 +24,38 @@ def quote(s: Any) -> str:
 
 
 def random_word(min_len: int = 3, max_len: int = 12) -> str:
+    """Return a random lowercase ASCII word of length between min_len and max_len."""
     length = random.randint(min_len, max(min_len, max_len))
     return "".join(random.choices(string.ascii_lowercase, k=length))
 
 
 def random_string(length: int = 10) -> str:
+    """Return a random alphanumeric ASCII string of the given length."""
     return "".join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 def random_int(min_val: int = 0, max_val: int = 1000) -> int:
+    """Return a random integer within [min_val, max_val]."""
     return random.randint(min_val, max_val)
 
 
 def quotelist(items: list[Any]) -> str:
+    """Quote and join items with single spaces."""
     return " ".join(quote(x) for x in items)
 
 
 def nl(s: str = "") -> str:
+    """Append a trailing newline to s."""
     return f"{s}\n"
 
 
 def random_words(count: int = 5, min_len: int = 3, max_len: int = 10) -> list[str]:
+    """Return a list of random lowercase ASCII words."""
     return [random_word(min_len, max_len) for _ in range(count)]
 
 
 def gen_tests(tests_spec: dict[Any, Callable[[], Any]]) -> list[dict[str, Any]]:
+    """Generate deterministic named test inputs and outputs from tests_spec."""
     random.seed(42)
     caller_globals = sys._getframe(1).f_globals
     comp_fn = caller_globals.get("compile_expected_program")
@@ -90,5 +99,7 @@ def gen_tests(tests_spec: dict[Any, Callable[[], Any]]) -> list[dict[str, Any]]:
             pass
 
     out_path = Path(os.environ.get("DT_TESTS_OUT", "__dt_generated_tests.json"))
-    out_path.write_text(json.dumps(generated, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_path.write_text(
+        json.dumps(generated, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return generated

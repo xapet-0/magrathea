@@ -9,16 +9,18 @@ Enforces:
 2. Repository layout sanity check (detects beginner mistakes from real 1337 logs like `mkdir c00` inside repo root,
    or extra `.c`/`a.out`/`.o`/`.swp` files left at root or inside `exXX/`).
 """
+
 from __future__ import annotations
 
-import re
-import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+import re
 
 
 @dataclass
 class MakefileAuditResult:
+    """Result of auditing a Makefile against 42 Norm and relink rules."""
+
     ok: bool
     reason: str = ""
     steps_log: list[str] = field(default_factory=list)
@@ -40,7 +42,9 @@ def check_repo_root_mistakes(repo_dir: Path, module_id: str) -> list[str]:
     for item in repo_dir.iterdir():
         if item.name.startswith("."):
             continue
-        if item.is_file() and (item.suffix in {".c", ".o", ".out", ".swp"} or item.name == "a.out"):
+        if item.is_file() and (
+            item.suffix in {".c", ".o", ".out", ".swp"} or item.name == "a.out"
+        ):
             warnings.append(
                 f"EXTRA FILE AT REPO ROOT: '{item.name}' found outside exXX/ directory. "
                 "Always remove stray files at the root of your repository before pushing!"
@@ -61,15 +65,25 @@ def audit_makefile(
     if not makefile.exists():
         makefile = work_dir / "makefile"
     if not makefile.exists():
-        return MakefileAuditResult(False, "Makefile is missing", ["Makefile not found in submission directory."])
+        return MakefileAuditResult(
+            False,
+            "Makefile is missing",
+            ["Makefile not found in submission directory."],
+        )
 
     from .compiler_and_symbols import check_forbidden_c_includes
     from .grader import _run_isolated
 
-    c_and_h = [p for p in work_dir.rglob("*") if p.is_file() and p.suffix.lower() in {".c", ".h", ".cpp", ".hpp"}]
+    c_and_h = [
+        p
+        for p in work_dir.rglob("*")
+        if p.is_file() and p.suffix.lower() in {".c", ".h", ".cpp", ".hpp"}
+    ]
     inc_violations = check_forbidden_c_includes(c_and_h, allowed_root=work_dir)
     if inc_violations:
-        return MakefileAuditResult(False, f"Cheating (-42): {inc_violations[0]}", inc_violations)
+        return MakefileAuditResult(
+            False, f"Cheating (-42): {inc_violations[0]}", inc_violations
+        )
 
     content = makefile.read_text(encoding="utf-8", errors="ignore")
 
@@ -80,7 +94,9 @@ def audit_makefile(
         if not line.strip().startswith("#")
     ]
     uncommented = "\n".join(cleaned_lines)
-    if re.search(r"\$\(\s*wildcard\b|\$\(\s*shell\s+find\b|\*\.(?:c|h|o)\b", uncommented):
+    if re.search(
+        r"\$\(\s*wildcard\b|\$\(\s*shell\s+find\b|\*\.(?:c|h|o)\b", uncommented
+    ):
         return MakefileAuditResult(
             False,
             "Norm III.11 violation: Wildcards (*.c, *.h, *.o, $(wildcard)) are strictly forbidden in Makefile; all source files must be explicitly named.",
@@ -90,12 +106,16 @@ def audit_makefile(
     # 2. Check mandatory targets exist (all, clean, fclean, re)
     for target in ["all", "clean", "fclean", "re"]:
         if not re.search(rf"^\s*{target}\s*:", uncommented, re.MULTILINE):
-            return MakefileAuditResult(False, f"Missing mandatory Makefile rule: '{target}'", steps)
+            return MakefileAuditResult(
+                False, f"Missing mandatory Makefile rule: '{target}'", steps
+            )
 
     # 3. Check compiler flags (-Wall -Wextra -Werror)
     for flag in ["-Wall", "-Wextra", "-Werror"]:
         if flag not in uncommented:
-            return MakefileAuditResult(False, f"Missing mandatory compilation flag '{flag}' in Makefile", steps)
+            return MakefileAuditResult(
+                False, f"Missing mandatory compilation flag '{flag}' in Makefile", steps
+            )
 
     # Populate dummy sources if testing standalone C09 ex01 Makefile
     if sources_to_create:
@@ -120,8 +140,14 @@ def audit_makefile(
         )
 
     # 5. Check No Relinking: running `make` a second time must NOT recompile/relink
-    target_path = (work_dir / expected_binary_or_lib) if expected_binary_or_lib else None
-    mtime_before = target_path.stat().st_mtime_ns if (target_path and target_path.exists()) else None
+    target_path = (
+        (work_dir / expected_binary_or_lib) if expected_binary_or_lib else None
+    )
+    mtime_before = (
+        target_path.stat().st_mtime_ns
+        if (target_path and target_path.exists())
+        else None
+    )
 
     steps.append("$> make  # Checking for forbidden relinking")
     p_make2 = _run_isolated(["make"], cwd=work_dir, timeout=float(timeout))
@@ -135,7 +161,11 @@ def audit_makefile(
         )
     if mtime_before is not None and target_path and target_path.exists():
         if target_path.stat().st_mtime_ns != mtime_before:
-            return MakefileAuditResult(False, "Norm III.11 violation: Target binary/library timestamp changed on second `make` (Relinking)!", steps)
+            return MakefileAuditResult(
+                False,
+                "Norm III.11 violation: Target binary/library timestamp changed on second `make` (Relinking)!",
+                steps,
+            )
 
     # 6. Run `make clean` (must remove .o files and keep target binary/library)
     steps.append("$> make clean")
@@ -145,9 +175,15 @@ def audit_makefile(
         return MakefileAuditResult(False, "`make clean` failed", steps)
     leftover_objs = list(work_dir.rglob("*.o"))
     if leftover_objs:
-        return MakefileAuditResult(False, "`make clean` did not remove all .o object files", steps)
+        return MakefileAuditResult(
+            False, "`make clean` did not remove all .o object files", steps
+        )
     if target_path and not target_path.exists():
-        return MakefileAuditResult(False, "`make clean` wrongly deleted the target binary/library (only `fclean` should delete it)!", steps)
+        return MakefileAuditResult(
+            False,
+            "`make clean` wrongly deleted the target binary/library (only `fclean` should delete it)!",
+            steps,
+        )
 
     # 7. Run `make fclean` (must remove target binary/library)
     steps.append("$> make fclean")
@@ -156,7 +192,9 @@ def audit_makefile(
     if p_fclean.returncode != 0:
         return MakefileAuditResult(False, "`make fclean` failed", steps)
     if target_path and target_path.exists():
-        return MakefileAuditResult(False, f"`make fclean` did not remove '{expected_binary_or_lib}'", steps)
+        return MakefileAuditResult(
+            False, f"`make fclean` did not remove '{expected_binary_or_lib}'", steps
+        )
 
     # 8. Run `make re` (must rebuild target cleanly)
     steps.append("$> make re")

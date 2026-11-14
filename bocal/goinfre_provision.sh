@@ -8,7 +8,7 @@ goinfre_root="${3:-/tmp/goinfre}"
 mkdir -p -- "$home_dir" "$goinfre_root"
 user_goinfre="$goinfre_root/$user_name"
 
-mkdir -p -m 0700 -- "$user_goinfre"
+mkdir -p -- "$user_goinfre"
 chmod 0700 -- "$user_goinfre"
 
 if [ ! -e "$home_dir/goinfre" ] && [ ! -L "$home_dir/goinfre" ]; then

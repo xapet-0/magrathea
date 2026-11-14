@@ -13,8 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-import yaml
 
+import yaml
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 POOLS_DIR = BASE_DIR / "pools" / "exams"
@@ -35,6 +35,8 @@ class CatalogValidationError(ValueError):
 
 @dataclass(frozen=True)
 class LevelSpec:
+    """Curriculum level definition containing candidate exercise slugs."""
+
     level: int
     points: int
     candidates: tuple[str, ...]
@@ -42,6 +44,8 @@ class LevelSpec:
 
 @dataclass(frozen=True)
 class ExamPoolSpec:
+    """Validated exam pool specification and curriculum progression graph."""
+
     name: str
     display_name: str
     pool_group: str
@@ -53,6 +57,7 @@ class ExamPoolSpec:
 
 
 def load_timing_policy(policy_path: Path | None = None) -> dict[str, Any]:
+    """Load exam timing and cooldown policy from YAML or defaults."""
     path = policy_path or TIMING_POLICY_FILE
     if not path.is_file():
         return {
@@ -79,17 +84,26 @@ def load_timing_policy(policy_path: Path | None = None) -> dict[str, Any]:
 
 
 def validate_duration_seconds(duration: Any, context: str = "exam") -> int:
+    """Validate and return a positive integer duration within policy limits."""
     if isinstance(duration, bool) or not isinstance(duration, (int, float)):
-        raise CatalogValidationError(f"Invalid non-numeric duration for {context}: {duration!r}")
+        raise CatalogValidationError(
+            f"Invalid non-numeric duration for {context}: {duration!r}"
+        )
     if int(duration) != duration:
-        raise CatalogValidationError(f"Duration must be an integer number of seconds for {context}: {duration!r}")
+        raise CatalogValidationError(
+            f"Duration must be an integer number of seconds for {context}: {duration!r}"
+        )
     val = int(duration)
     if val <= 0:
-        raise CatalogValidationError(f"Duration must be > 0 seconds for {context} (got {val})")
+        raise CatalogValidationError(
+            f"Duration must be > 0 seconds for {context} (got {val})"
+        )
     policy = load_timing_policy().get("exam_durations", {})
     max_sec = int(policy.get("max_allowed_seconds", 86400))
     if val > max_sec:
-        raise CatalogValidationError(f"Duration {val}s exceeds max_allowed_seconds ({max_sec}s) for {context}")
+        raise CatalogValidationError(
+            f"Duration {val}s exceeds max_allowed_seconds ({max_sec}s) for {context}"
+        )
     return val
 
 
@@ -99,45 +113,75 @@ def validate_pool_dict(
     source_path: Path | None = None,
     known_exercise_slugs: set[str] | None = None,
 ) -> ExamPoolSpec:
+    """Validate raw pool metadata dictionary and construct ExamPoolSpec."""
     ctx = str(source_path or data.get("name", "<unknown_pool>"))
     if not isinstance(data, dict):
         raise CatalogValidationError(f"Pool definition in {ctx} must be a YAML mapping")
 
     name = data.get("name")
     if not isinstance(name, str) or not name.strip():
-        raise CatalogValidationError(f"Pool in {ctx} is missing a non-empty string 'name'")
+        raise CatalogValidationError(
+            f"Pool in {ctx} is missing a non-empty string 'name'"
+        )
 
     display_name = str(data.get("display_name") or name)
-    pool_group = str(data.get("pool_group") or ("piscine" if "piscine" in name or "1337" in name or "day09" in name else "cursus"))
+    pool_group = str(
+        data.get("pool_group")
+        or (
+            "piscine"
+            if "piscine" in name or "1337" in name or "day09" in name
+            else "cursus"
+        )
+    )
     if pool_group not in POOL_GROUP_ORDER:
-        raise CatalogValidationError(f"Pool '{name}' has invalid pool_group '{pool_group}'")
+        raise CatalogValidationError(
+            f"Pool '{name}' has invalid pool_group '{pool_group}'"
+        )
 
     rank_order_raw = data.get("rank_order", 999)
     if isinstance(rank_order_raw, bool) or not isinstance(rank_order_raw, int):
-        raise CatalogValidationError(f"Pool '{name}' has invalid rank_order {rank_order_raw!r}")
+        raise CatalogValidationError(
+            f"Pool '{name}' has invalid rank_order {rank_order_raw!r}"
+        )
 
     if "duration_seconds" not in data:
-        raise CatalogValidationError(f"Pool '{name}' is missing explicit unit-bearing 'duration_seconds'")
-    duration_seconds = validate_duration_seconds(data["duration_seconds"], context=f"pool '{name}'")
+        raise CatalogValidationError(
+            f"Pool '{name}' is missing explicit unit-bearing 'duration_seconds'"
+        )
+    duration_seconds = validate_duration_seconds(
+        data["duration_seconds"], context=f"pool '{name}'"
+    )
 
     prereqs_raw = data.get("prerequisites", [])
-    if not isinstance(prereqs_raw, list) or not all(isinstance(p, str) and p.strip() for p in prereqs_raw):
-        raise CatalogValidationError(f"Pool '{name}' prerequisites must be a list of pool IDs")
+    if not isinstance(prereqs_raw, list) or not all(
+        isinstance(p, str) and p.strip() for p in prereqs_raw
+    ):
+        raise CatalogValidationError(
+            f"Pool '{name}' prerequisites must be a list of pool IDs"
+        )
 
     levels_raw = data.get("levels")
     if not isinstance(levels_raw, list) or not levels_raw:
-        raise CatalogValidationError(f"Pool '{name}' must define a non-empty 'levels' list")
+        raise CatalogValidationError(
+            f"Pool '{name}' must define a non-empty 'levels' list"
+        )
 
     levels: list[LevelSpec] = []
     seen_level_indices: set[int] = set()
     for idx, lvl in enumerate(levels_raw):
         if not isinstance(lvl, dict):
-            raise CatalogValidationError(f"Pool '{name}' level #{idx} must be a mapping")
+            raise CatalogValidationError(
+                f"Pool '{name}' level #{idx} must be a mapping"
+            )
         lvl_num = lvl.get("level")
         if isinstance(lvl_num, bool) or not isinstance(lvl_num, int) or lvl_num < 0:
-            raise CatalogValidationError(f"Pool '{name}' has invalid level number {lvl_num!r}")
+            raise CatalogValidationError(
+                f"Pool '{name}' has invalid level number {lvl_num!r}"
+            )
         if lvl_num in seen_level_indices:
-            raise CatalogValidationError(f"Pool '{name}' has duplicate level index {lvl_num}")
+            raise CatalogValidationError(
+                f"Pool '{name}' has duplicate level index {lvl_num}"
+            )
         if lvl_num != idx:
             raise CatalogValidationError(
                 f"Pool '{name}' levels must be contiguous and ordered 0..N-1 (expected {idx}, got {lvl_num})"
@@ -146,19 +190,27 @@ def validate_pool_dict(
 
         pts = lvl.get("points", 0)
         if isinstance(pts, bool) or not isinstance(pts, int) or pts <= 0:
-            raise CatalogValidationError(f"Pool '{name}' level {lvl_num} must have positive integer points")
+            raise CatalogValidationError(
+                f"Pool '{name}' level {lvl_num} must have positive integer points"
+            )
 
         cands = lvl.get("candidates")
         if not isinstance(cands, list) or not cands:
-            raise CatalogValidationError(f"Pool '{name}' level {lvl_num} must have a non-empty candidates list")
+            raise CatalogValidationError(
+                f"Pool '{name}' level {lvl_num} must have a non-empty candidates list"
+            )
 
         clean_cands: list[str] = []
         seen_cands: set[str] = set()
         for c in cands:
             if not isinstance(c, str) or not c.strip():
-                raise CatalogValidationError(f"Pool '{name}' level {lvl_num} contains an empty candidate slug")
+                raise CatalogValidationError(
+                    f"Pool '{name}' level {lvl_num} contains an empty candidate slug"
+                )
             if c in seen_cands:
-                raise CatalogValidationError(f"Pool '{name}' level {lvl_num} contains duplicate candidate '{c}'")
+                raise CatalogValidationError(
+                    f"Pool '{name}' level {lvl_num} contains duplicate candidate '{c}'"
+                )
             if known_exercise_slugs is not None and c not in known_exercise_slugs:
                 raise CatalogValidationError(
                     f"Pool '{name}' level {lvl_num} references non-existent exercise '{c}'"
@@ -166,7 +218,9 @@ def validate_pool_dict(
             seen_cands.add(c)
             clean_cands.append(c)
 
-        levels.append(LevelSpec(level=lvl_num, points=pts, candidates=tuple(clean_cands)))
+        levels.append(
+            LevelSpec(level=lvl_num, points=pts, candidates=tuple(clean_cands))
+        )
 
     return ExamPoolSpec(
         name=name,
@@ -194,13 +248,16 @@ def validate_prerequisite_graph(pools: dict[str, ExamPoolSpec]) -> None:
     path_stack: list[str] = []
 
     def dfs(node: str) -> None:
+        """Traverse prerequisite graph depth-first and raise on cycles."""
         state[node] = 1
         path_stack.append(node)
         for prereq in pools[node].prerequisites:
             if state[prereq] == 1:
                 cycle_start = path_stack.index(prereq)
                 cycle_str = " -> ".join(path_stack[cycle_start:] + [prereq])
-                raise CatalogValidationError(f"Prerequisite cycle detected: {cycle_str}")
+                raise CatalogValidationError(
+                    f"Prerequisite cycle detected: {cycle_str}"
+                )
             if state[prereq] == 0:
                 dfs(prereq)
         path_stack.pop()
@@ -228,7 +285,9 @@ def load_authoritative_catalog(
     pools_by_id: dict[str, ExamPoolSpec] = {}
     for yml_path in sorted(p_dir.glob("*.yml")):
         raw = yaml.safe_load(yml_path.read_text(encoding="utf-8"))
-        spec = validate_pool_dict(raw, source_path=yml_path, known_exercise_slugs=known_slugs)
+        spec = validate_pool_dict(
+            raw, source_path=yml_path, known_exercise_slugs=known_slugs
+        )
         if spec.name in pools_by_id:
             raise CatalogValidationError(
                 f"Duplicate pool ID '{spec.name}' in {yml_path} and {pools_by_id[spec.name].source_path}"

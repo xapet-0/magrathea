@@ -7,21 +7,24 @@ Creates empty or template-based 4-component exercise skeletons:
   3. tests.yml      (deterministic & mutation-killing test vectors)
   4. scale.yml      (1337HUB Peer-Evaluation Scale with Live Mutation Defense)
 """
+
 from __future__ import annotations
 
 import argparse
-import sys
+import json
 from pathlib import Path
+import re
+import sys
+from typing import Any
+
+import yaml
+
 KIT_ROOT = Path(__file__).resolve().parents[1]
 if str(KIT_ROOT) not in sys.path:
     sys.path.insert(0, str(KIT_ROOT))
 
-import json
-import re
-from typing import Any, Dict, List
-import yaml
-from deepthought.progression import calculate_exercise_xp
-from deepthought.subject_examples import (
+from deepthought.progression import calculate_exercise_xp  # noqa: E402
+from deepthought.subject_examples import (  # noqa: E402
     build_clean_examples_block_and_append_to_subject,
     build_near_examples,
     extract_folder_examples,
@@ -30,11 +33,19 @@ from deepthought.subject_examples import (
 )
 
 _YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
-_YAML_DUMPER = getattr(yaml, "CSafeDumper", yaml.SafeDumper)
+_BASE_YAML_DUMPER = getattr(yaml, "CSafeDumper", yaml.SafeDumper)
+
+
+class _YamlDumper(_BASE_YAML_DUMPER):
+    """YAML dumper subclass that disables aliases for clean exercise specs."""
+
+    def ignore_aliases(self, data: Any) -> bool:
+        """Disable YAML anchor/alias emission for all objects."""
+        return True
 
 
 def _fast_yaml_dump(data: Any) -> str:
-    return str(yaml.dump(data, Dumper=_YAML_DUMPER, sort_keys=False, allow_unicode=True))
+    return str(yaml.dump(data, Dumper=_YamlDumper, sort_keys=False, allow_unicode=True))
 
 
 def _fast_yaml_load(stream: str) -> Any:
@@ -49,7 +60,6 @@ def _write_if_changed(path: Path, content: str) -> None:
         pass
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
-
 
 
 HEADER_42_TEMPLATE = (
@@ -118,60 +128,260 @@ def _unescape_catalog_str(val: str) -> str:
     )
 
 
-CANONICAL_FIXED_TESTS: Dict[str, List[Dict[str, Any]]] = {
+CANONICAL_FIXED_TESTS: dict[str, list[dict[str, Any]]] = {
     "rot_13": [
-        {"name": "subj_ex_01_abc", "tier": "subject_example", "args": ["abc"], "expected": "nop\n"},
-        {"name": "subj_ex_02_horse", "tier": "subject_example", "args": ["My horse is Amazing."], "expected": "Zl ubefr vf Nznmvat.\n"},
-        {"name": "subj_ex_03_mixed", "tier": "subject_example", "args": ["AkjhZ zLKIJz , 23y "], "expected": "NxwuM mYXVWm , 23l \n"},
-        {"name": "subj_ex_04_no_args", "tier": "subject_example", "args": [], "expected": "\n"},
-        {"name": "subj_ex_05_empty", "tier": "subject_example", "args": [""], "expected": "\n"},
-        {"name": "folder_ex_alphabet", "tier": "folder_example", "args": ["abcdefghijklmnopqrstuvwxyz"], "expected": "nopqrstuvwxyzabcdefghijklm\n"},
-        {"name": "near_ex_horse_perturbed", "tier": "near_example", "args": ["My horse is Amazing!"], "expected": "Zl ubefr vf Nznmvat!\n"},
-        {"name": "near_ex_abc_upper_shift", "tier": "near_example", "args": ["abc XYZ"], "expected": "nop KLM\n"},
+        {
+            "name": "subj_ex_01_abc",
+            "tier": "subject_example",
+            "args": ["abc"],
+            "expected": "nop\n",
+        },
+        {
+            "name": "subj_ex_02_horse",
+            "tier": "subject_example",
+            "args": ["My horse is Amazing."],
+            "expected": "Zl ubefr vf Nznmvat.\n",
+        },
+        {
+            "name": "subj_ex_03_mixed",
+            "tier": "subject_example",
+            "args": ["AkjhZ zLKIJz , 23y "],
+            "expected": "NxwuM mYXVWm , 23l \n",
+        },
+        {
+            "name": "subj_ex_04_no_args",
+            "tier": "subject_example",
+            "args": [],
+            "expected": "\n",
+        },
+        {
+            "name": "subj_ex_05_empty",
+            "tier": "subject_example",
+            "args": [""],
+            "expected": "\n",
+        },
+        {
+            "name": "folder_ex_alphabet",
+            "tier": "folder_example",
+            "args": ["abcdefghijklmnopqrstuvwxyz"],
+            "expected": "nopqrstuvwxyzabcdefghijklm\n",
+        },
+        {
+            "name": "near_ex_horse_perturbed",
+            "tier": "near_example",
+            "args": ["My horse is Amazing!"],
+            "expected": "Zl ubefr vf Nznmvat!\n",
+        },
+        {
+            "name": "near_ex_abc_upper_shift",
+            "tier": "near_example",
+            "args": ["abc XYZ"],
+            "expected": "nop KLM\n",
+        },
     ],
     "first_word": [
-        {"name": "subj_ex_01_for_pony", "tier": "subject_example", "args": ["FOR PONY"], "expected": "FOR\n"},
-        {"name": "subj_ex_02_sparta", "tier": "subject_example", "args": ["this        ...       is sparta, then again, maybe    not"], "expected": "this\n"},
-        {"name": "subj_ex_03_spaces_only", "tier": "subject_example", "args": ["   "], "expected": "\n"},
-        {"name": "subj_ex_04_multi_args", "tier": "subject_example", "args": ["a", "b"], "expected": "\n"},
-        {"name": "subj_ex_05_lorem", "tier": "subject_example", "args": ["  lorem,ipsum  "], "expected": "lorem,ipsum\n"},
-        {"name": "near_ex_tabs_and_spaces", "tier": "near_example", "args": ["\t\t  FOR_PONY_NEAR \t world"], "expected": "FOR_PONY_NEAR\n"},
+        {
+            "name": "subj_ex_01_for_pony",
+            "tier": "subject_example",
+            "args": ["FOR PONY"],
+            "expected": "FOR\n",
+        },
+        {
+            "name": "subj_ex_02_sparta",
+            "tier": "subject_example",
+            "args": ["this        ...       is sparta, then again, maybe    not"],
+            "expected": "this\n",
+        },
+        {
+            "name": "subj_ex_03_spaces_only",
+            "tier": "subject_example",
+            "args": ["   "],
+            "expected": "\n",
+        },
+        {
+            "name": "subj_ex_04_multi_args",
+            "tier": "subject_example",
+            "args": ["a", "b"],
+            "expected": "\n",
+        },
+        {
+            "name": "subj_ex_05_lorem",
+            "tier": "subject_example",
+            "args": ["  lorem,ipsum  "],
+            "expected": "lorem,ipsum\n",
+        },
+        {
+            "name": "near_ex_tabs_and_spaces",
+            "tier": "near_example",
+            "args": ["\t\t  FOR_PONY_NEAR \t world"],
+            "expected": "FOR_PONY_NEAR\n",
+        },
     ],
     "inter": [
-        {"name": "subj_ex_01_padinton", "tier": "subject_example", "args": ["padinton", "paqefwtdjetyiytjneytjoeyjnejeyj"], "expected": "padinto\n"},
-        {"name": "subj_ex_02_duplicates", "tier": "subject_example", "args": ["ddf6vewg64f", "gtwthgdwthdwfteewhrtag6h4ffdhsd"], "expected": "df6ewg4\n"},
-        {"name": "subj_ex_03_rien", "tier": "subject_example", "args": ["rien", "cette phrase ne cache rien"], "expected": "rien\n"},
-        {"name": "subj_ex_04_no_args", "tier": "subject_example", "args": [], "expected": "\n"},
-        {"name": "folder_ex_no_common", "tier": "folder_example", "args": ["abc", "XYZ"], "expected": "\n"},
-        {"name": "near_ex_padinton_perturbed", "tier": "near_example", "args": ["padinton!", "paqefwtdjetyiytjneytjoeyjnejeyj!"], "expected": "padinto!\n"},
-        {"name": "near_ex_wrong_argc", "tier": "near_example", "args": ["abc"], "expected": "\n"},
+        {
+            "name": "subj_ex_01_padinton",
+            "tier": "subject_example",
+            "args": ["padinton", "paqefwtdjetyiytjneytjoeyjnejeyj"],
+            "expected": "padinto\n",
+        },
+        {
+            "name": "subj_ex_02_duplicates",
+            "tier": "subject_example",
+            "args": ["ddf6vewg64f", "gtwthgdwthdwfteewhrtag6h4ffdhsd"],
+            "expected": "df6ewg4\n",
+        },
+        {
+            "name": "subj_ex_03_rien",
+            "tier": "subject_example",
+            "args": ["rien", "cette phrase ne cache rien"],
+            "expected": "rien\n",
+        },
+        {
+            "name": "subj_ex_04_no_args",
+            "tier": "subject_example",
+            "args": [],
+            "expected": "\n",
+        },
+        {
+            "name": "folder_ex_no_common",
+            "tier": "folder_example",
+            "args": ["abc", "XYZ"],
+            "expected": "\n",
+        },
+        {
+            "name": "near_ex_padinton_perturbed",
+            "tier": "near_example",
+            "args": ["padinton!", "paqefwtdjetyiytjneytjoeyjnejeyj!"],
+            "expected": "padinto!\n",
+        },
+        {
+            "name": "near_ex_wrong_argc",
+            "tier": "near_example",
+            "args": ["abc"],
+            "expected": "\n",
+        },
     ],
     "wdmatch": [
-        {"name": "subj_ex_01_faya", "tier": "subject_example", "args": ["faya", "fgvvfdxcacpolhyghbreda"], "expected": "faya\n"},
-        {"name": "subj_ex_02_no_match", "tier": "subject_example", "args": ["faya", "fgvvfdxcacpolhyghbred"], "expected": "\n"},
-        {"name": "subj_ex_03_quarante_deux", "tier": "subject_example", "args": ["quarante deux", "qfqfsudf arzgsayns tsregfdgs sjytdekuoixq "], "expected": "quarante deux\n"},
-        {"name": "subj_ex_04_error", "tier": "subject_example", "args": ["error", "rrerrrfiiljdfxjyuifrrvcoojh"], "expected": "\n"},
-        {"name": "near_ex_faya_perturbed", "tier": "near_example", "args": ["fayb", "fgvvfdxcacpolhyghbredb"], "expected": "fayb\n"},
-        {"name": "near_ex_wrong_argc", "tier": "near_example", "args": ["abc"], "expected": "\n"},
+        {
+            "name": "subj_ex_01_faya",
+            "tier": "subject_example",
+            "args": ["faya", "fgvvfdxcacpolhyghbreda"],
+            "expected": "faya\n",
+        },
+        {
+            "name": "subj_ex_02_no_match",
+            "tier": "subject_example",
+            "args": ["faya", "fgvvfdxcacpolhyghbred"],
+            "expected": "\n",
+        },
+        {
+            "name": "subj_ex_03_quarante_deux",
+            "tier": "subject_example",
+            "args": ["quarante deux", "qfqfsudf arzgsayns tsregfdgs sjytdekuoixq "],
+            "expected": "quarante deux\n",
+        },
+        {
+            "name": "subj_ex_04_error",
+            "tier": "subject_example",
+            "args": ["error", "rrerrrfiiljdfxjyuifrrvcoojh"],
+            "expected": "\n",
+        },
+        {
+            "name": "near_ex_faya_perturbed",
+            "tier": "near_example",
+            "args": ["fayb", "fgvvfdxcacpolhyghbredb"],
+            "expected": "fayb\n",
+        },
+        {
+            "name": "near_ex_wrong_argc",
+            "tier": "near_example",
+            "args": ["abc"],
+            "expected": "\n",
+        },
     ],
     "ft_swap": [
-        {"name": "subj_ex_swap_1_2", "tier": "subject_example", "call": 'int a = 1, b = 2; ft_swap(&a, &b); printf("%d %d\\n", a, b)', "stdout": "2 1\n"},
-        {"name": "folder_ex_swap_neg", "tier": "folder_example", "call": 'int a = -10, b = -20; ft_swap(&a, &b); printf("%d,%d\\n", a, b)', "stdout": "-20,-10\n"},
-        {"name": "near_ex_swap_adjacent", "tier": "near_example", "call": 'int a = 42, b = 43; ft_swap(&a, &b); printf("%d,%d\\n", a, b)', "stdout": "43,42\n"},
-        {"name": "near_ex_swap_zero", "tier": "near_example", "call": 'int a = 0, b = 1337; ft_swap(&a, &b); printf("%d,%d\\n", a, b)', "stdout": "1337,0\n"},
+        {
+            "name": "subj_ex_swap_1_2",
+            "tier": "subject_example",
+            "call": 'int a = 1, b = 2; ft_swap(&a, &b); printf("%d %d\\n", a, b)',
+            "stdout": "2 1\n",
+        },
+        {
+            "name": "folder_ex_swap_neg",
+            "tier": "folder_example",
+            "call": 'int a = -10, b = -20; ft_swap(&a, &b); printf("%d,%d\\n", a, b)',
+            "stdout": "-20,-10\n",
+        },
+        {
+            "name": "near_ex_swap_adjacent",
+            "tier": "near_example",
+            "call": 'int a = 42, b = 43; ft_swap(&a, &b); printf("%d,%d\\n", a, b)',
+            "stdout": "43,42\n",
+        },
+        {
+            "name": "near_ex_swap_zero",
+            "tier": "near_example",
+            "call": 'int a = 0, b = 1337; ft_swap(&a, &b); printf("%d,%d\\n", a, b)',
+            "stdout": "1337,0\n",
+        },
     ],
     "ft_itoa": [
-        {"name": "subj_ex_neg_42", "tier": "subject_example", "call": 'char *s = ft_itoa(-42); printf("%s\\n", s ? s : "NULL"); free(s)', "stdout": "-42\n"},
-        {"name": "subj_ex_zero", "tier": "subject_example", "call": 'char *s = ft_itoa(0); printf("%s\\n", s ? s : "NULL"); free(s)', "stdout": "0\n"},
-        {"name": "folder_ex_int_min", "tier": "folder_example", "call": 'char *s = ft_itoa(-2147483648); printf("%s\\n", s ? s : "NULL"); free(s)', "stdout": "-2147483648\n"},
-        {"name": "near_ex_neg_43", "tier": "near_example", "call": 'char *s = ft_itoa(-43); printf("%s\\n", s ? s : "NULL"); free(s)', "stdout": "-43\n"},
+        {
+            "name": "subj_ex_neg_42",
+            "tier": "subject_example",
+            "call": 'char *s = ft_itoa(-42); printf("%s\\n", s ? s : "NULL"); free(s)',
+            "stdout": "-42\n",
+        },
+        {
+            "name": "subj_ex_zero",
+            "tier": "subject_example",
+            "call": 'char *s = ft_itoa(0); printf("%s\\n", s ? s : "NULL"); free(s)',
+            "stdout": "0\n",
+        },
+        {
+            "name": "folder_ex_int_min",
+            "tier": "folder_example",
+            "call": 'char *s = ft_itoa(-2147483648); printf("%s\\n", s ? s : "NULL"); free(s)',
+            "stdout": "-2147483648\n",
+        },
+        {
+            "name": "near_ex_neg_43",
+            "tier": "near_example",
+            "call": 'char *s = ft_itoa(-43); printf("%s\\n", s ? s : "NULL"); free(s)',
+            "stdout": "-43\n",
+        },
     ],
     "ft_atoi": [
-        {"name": "subj_ex_zero", "tier": "subject_example", "expr": 'ft_atoi("0")', "stdout": "0\n"},
-        {"name": "subj_ex_positive_42", "tier": "subject_example", "expr": 'ft_atoi("42")', "stdout": "42\n"},
-        {"name": "folder_ex_spaces_negative", "tier": "folder_example", "expr": 'ft_atoi("   \\t\\n\\v\\f\\r  -42")', "stdout": "-42\n"},
-        {"name": "near_ex_positive_43_padded", "tier": "near_example", "expr": 'ft_atoi("  +43abc")', "stdout": "43\n"},
-        {"name": "near_ex_plus_1337", "tier": "near_example", "expr": 'ft_atoi("+1337abc")', "stdout": "1337\n"},
+        {
+            "name": "subj_ex_zero",
+            "tier": "subject_example",
+            "expr": 'ft_atoi("0")',
+            "stdout": "0\n",
+        },
+        {
+            "name": "subj_ex_positive_42",
+            "tier": "subject_example",
+            "expr": 'ft_atoi("42")',
+            "stdout": "42\n",
+        },
+        {
+            "name": "folder_ex_spaces_negative",
+            "tier": "folder_example",
+            "expr": 'ft_atoi("   \\t\\n\\v\\f\\r  -42")',
+            "stdout": "-42\n",
+        },
+        {
+            "name": "near_ex_positive_43_padded",
+            "tier": "near_example",
+            "expr": 'ft_atoi("  +43abc")',
+            "stdout": "43\n",
+        },
+        {
+            "name": "near_ex_plus_1337",
+            "tier": "near_example",
+            "expr": 'ft_atoi("+1337abc")',
+            "stdout": "1337\n",
+        },
     ],
     "ft_split": [
         {
@@ -197,11 +407,355 @@ CANONICAL_FIXED_TESTS: Dict[str, List[Dict[str, Any]]] = {
         },
     ],
     "strlen_sh": [
-        {"name": "subj_ex_len_16", "tier": "subject_example", "env": {"FT_LINE": "0123456789abcdef"}, "args": [], "stdout": "16\n"},
-        {"name": "folder_ex_len_0", "tier": "folder_example", "env": {"FT_LINE": ""}, "args": [], "stdout": "0\n"},
-        {"name": "near_ex_len_17_perturbed", "tier": "near_example", "env": {"FT_LINE": "0123456789abcdefX"}, "args": [], "stdout": "17\n"},
+        {
+            "name": "subj_ex_len_16",
+            "tier": "subject_example",
+            "env": {"FT_LINE": "0123456789abcdef"},
+            "args": [],
+            "stdout": "16\n",
+        },
+        {
+            "name": "folder_ex_len_0",
+            "tier": "folder_example",
+            "env": {"FT_LINE": ""},
+            "args": [],
+            "stdout": "0\n",
+        },
+        {
+            "name": "near_ex_len_17_perturbed",
+            "tier": "near_example",
+            "env": {"FT_LINE": "0123456789abcdefX"},
+            "args": [],
+            "stdout": "17\n",
+        },
     ],
 }
+
+
+def _scale_sections(
+    prelim_title: str,
+    prelim_checks: list[str],
+    defense_title: str,
+    defense_check: str,
+    live_title: str,
+    live_check: str,
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": "preliminaries",
+            "title": prelim_title,
+            "points": 20,
+            "checks": prelim_checks,
+        },
+        {
+            "id": "explain_before_checking",
+            "title": defense_title,
+            "points": 30,
+            "checks": [defense_check],
+        },
+        {
+            "id": "live_mutation",
+            "title": live_title,
+            "points": 50,
+            "checks": [live_check],
+        },
+    ]
+
+
+def build_scale_yml(slug: str, ex_type: str, meta_data: dict[str, Any]) -> str:
+    """Build a subject-accurate `scale.yml` tailored to `ex_type` and `meta_data`
+    (piscine vs exam, norminette vs disabled, C/C++ flags vs shell/header/makefile).
+    """
+    is_normed = bool(meta_data.get("norminette"))
+    norm_rule = str(meta_data.get("norminette_rule") or "").strip()
+    expected_files = meta_data.get("expected_files") or [slug]
+    if isinstance(expected_files, str):
+        expected_files = [expected_files]
+    exp_files_str = " ".join(str(x) for x in expected_files)
+    allowed_list = [
+        str(x) for x in (meta_data.get("allowed_functions") or []) if str(x).strip()
+    ]
+    c_allowed_str = (
+        ", ".join(allowed_list) if allowed_list else "None (no external functions)"
+    )
+    sh_allowed_str = (
+        ", ".join(allowed_list)
+        if allowed_list
+        else "Standard shell / Unix commands permitted by subject.en.txt"
+    )
+    flags_list = [
+        str(x)
+        for x in (meta_data.get("compiler_flags") or ["-Wall", "-Wextra", "-Werror"])
+    ]
+    flags_str = " ".join(flags_list)
+    proto = str(meta_data.get("prototype") or "").strip()
+
+    if ex_type == "shell_file":
+        gates = ["missing_deliverable", "format_or_content_mismatch"]
+        sections = [
+            {
+                "id": "preliminaries",
+                "title": "Step 1: Preliminaries & Deliverable Integrity Check",
+                "points": 20,
+                "checks": [
+                    f"Verify expected deliverable ({exp_files_str}) exists in repository with no unauthorized files.",
+                    "Verify exact filename, permissions/format, and content match subject specifications (no C compilation applies).",
+                ],
+            },
+            {
+                "id": "explain_before_checking",
+                "title": "Step 2: Conceptual Defense (Explain Before Checking)",
+                "points": 30,
+                "checks": [
+                    f"Student explains the shell, git, SSH, or diff/patch steps used to construct `{exp_files_str}`.",
+                ],
+            },
+            {
+                "id": "live_mutation",
+                "title": "Step 3: Live Reproduction & Edge-Case Verification",
+                "points": 50,
+                "checks": [
+                    "Verify the artifact cleanly reproduces or passes validation checks on edge inputs (quoting, whitespace, key/patch check).",
+                ],
+            },
+        ]
+    elif ex_type == "makefile":
+        gates = ["missing_required_rule", "relink_on_second_make"]
+        if is_normed:
+            gates.append("norme_error")
+        sections = [
+            {
+                "id": "preliminaries",
+                "title": "Step 1: Preliminaries & Makefile Rules Check",
+                "points": 20,
+                "checks": [
+                    f"Verify expected build file ({exp_files_str}) exists with no extraneous files.",
+                    f"Verify required rules (`$(NAME)`, `all`, `clean`, `fclean`, `re`), explicit object rules, and `cc {flags_str}` compilation of library sources.",
+                    "Run `make` twice consecutively and verify zero unnecessary relinking occurs.",
+                ],
+            },
+            {
+                "id": "explain_before_checking",
+                "title": "Step 2: Build Graph & Dependency Defense",
+                "points": 30,
+                "checks": [
+                    "Student explains target dependencies, archive indexing (`ar rcs`), header paths, and cleanup targets.",
+                ],
+            },
+            {
+                "id": "live_mutation",
+                "title": "Step 3: Live Clean/Rebuild & Edge-Case Verification",
+                "points": 50,
+                "checks": [
+                    "Execute `make fclean && make && make clean && make re` and verify clean archive linking against a C test driver.",
+                ],
+            },
+        ]
+    elif ex_type == "c_header":
+        gates = ["compile_error", "missing_include_guard"]
+        if is_normed:
+            gates.insert(1, "norme_error")
+        norm_cmd = f"norminette -R {norm_rule}" if norm_rule else "norminette"
+        sections = [
+            {
+                "id": "preliminaries",
+                "title": "Step 1: Preliminaries & Header Norm Check",
+                "points": 20,
+                "checks": [
+                    f"Verify expected header ({exp_files_str}) exists with proper include guards and no unauthorized files.",
+                    (
+                        f"Run `{norm_cmd}` and verify clean inclusion in a test driver compiled with `cc {flags_str}`."
+                        if is_normed
+                        else f"Verify clean inclusion in a test driver compiled with `cc {flags_str}`."
+                    ),
+                ],
+            },
+            {
+                "id": "explain_before_checking",
+                "title": "Step 2: Conceptual Defense (Explain Before Checking)",
+                "points": 30,
+                "checks": [
+                    "Student explains include guards, macro parameter parenthesization, and declarations/typedefs before testing.",
+                ],
+            },
+            {
+                "id": "live_mutation",
+                "title": "Step 3: Macro Expansion & Driver Verification",
+                "points": 50,
+                "checks": [
+                    "Include the header twice and test tricky expressions (operator precedence, signed boundaries) for deterministic behavior.",
+                ],
+            },
+        ]
+    elif ex_type == "shell":
+        gates = ["syntax_error", "forbidden_command"]
+        if is_normed:
+            gates.insert(1, "shnorm_error")
+        ws_label = "Vogsphere repository" if is_normed else "rendu/ exam workspace"
+        norm_step = (
+            "Run `shnorm` / POSIX shell hygiene checks and verify script execution without C compilation."
+            if is_normed
+            else "Verify clean POSIX shell execution without C compilation (`norminette: false` in exam mode)."
+        )
+        sections = [
+            {
+                "id": "preliminaries",
+                "title": (
+                    "Step 1: Preliminaries & Repository Integrity Check"
+                    if is_normed
+                    else "Step 1: Preliminaries & Rendu Shell Check"
+                ),
+                "points": 20,
+                "checks": [
+                    f"Verify expected script ({exp_files_str}) exists in the {ws_label} with no unauthorized files.",
+                    norm_step,
+                    f"Verify only allowed shell commands/utilities are used: {sh_allowed_str}.",
+                ],
+            },
+            {
+                "id": "explain_before_checking",
+                "title": "Step 2: Conceptual Defense (Explain Before Checking)",
+                "points": 30,
+                "checks": [
+                    "Student explains pipelines, quoting/escaping, environment variables, and exit-status handling before executing tests.",
+                ],
+            },
+            {
+                "id": "live_mutation",
+                "title": "Step 3: Live Environment & Edge-Case Verification",
+                "points": 50,
+                "checks": [
+                    "Run the script against varied environment variables, whitespace, and edge inputs checking exact `| cat -e` output.",
+                ],
+            },
+        ]
+    elif ex_type == "cpp":
+        gates = ["segfault", "memory_leak", "compile_error", "forbidden_function"]
+        ws_label = "repository" if is_normed else "rendu/ exam workspace"
+        sections = [
+            {
+                "id": "preliminaries",
+                "title": "Step 1: Preliminaries & C++ Compilation Check",
+                "points": 20,
+                "checks": [
+                    f"Verify expected C++ files ({exp_files_str}) exist in {ws_label} with no extraneous build artifacts.",
+                    f"Compile cleanly with `c++ {flags_str}` against the evaluation test harness (Norminette disabled).",
+                    f"Verify only permitted functions/constructs are used: {c_allowed_str}.",
+                ],
+            },
+            {
+                "id": "explain_before_checking",
+                "title": "Step 2: Class Design & Ownership Defense",
+                "points": 30,
+                "checks": [
+                    "Student explains class invariants, Orthodox Canonical Form, `new`/`delete` ownership, and polymorphism before executing tests.",
+                ],
+            },
+            {
+                "id": "live_mutation",
+                "title": "Step 3: Live Mutation & Edge-Case Verification",
+                "points": 50,
+                "checks": [
+                    "Test copy/assignment boundaries, extreme numeric/string inputs, and polymorphism with zero leaks.",
+                ],
+            },
+        ]
+    elif ex_type == "python":
+        gates = ["runtime_error", "forbidden_module"]
+        sections = [
+            {
+                "id": "preliminaries",
+                "title": "Step 1: Preliminaries & Python Syntax Check",
+                "points": 20,
+                "checks": [
+                    f"Verify expected Python script ({exp_files_str}) exists with no extraneous files.",
+                    f"Verify clean execution with `python3` and only permitted imports/builtins ({c_allowed_str}).",
+                ],
+            },
+            {
+                "id": "explain_before_checking",
+                "title": "Step 2: Conceptual Defense (Explain Before Checking)",
+                "points": 30,
+                "checks": [
+                    "Student explains data structures, error handling, and complexity before running tests.",
+                ],
+            },
+            {
+                "id": "live_mutation",
+                "title": "Step 3: Live Mutation & Edge-Case Verification",
+                "points": 50,
+                "checks": [
+                    "Inject boundary inputs (empty, malformed, extreme values) and verify deterministic output.",
+                ],
+            },
+        ]
+    else:
+        # c_function or c_program
+        gates = (
+            ["segfault", "memory_leak", "norme_error", "forbidden_function"]
+            if is_normed
+            else [
+                "segfault",
+                "memory_leak",
+                "forbidden_function",
+            ]
+        )
+        if is_normed:
+            step1_title = "Step 1: Preliminaries & Vogsphere Integrity Check"
+            ws_check = f"Clone official Vogsphere repository into an empty folder and verify expected files ({exp_files_str})."
+            build_check = (
+                f"Run `norminette` and verify clean compilation with `cc {flags_str}`."
+            )
+        else:
+            step1_title = "Step 1: Preliminaries & Rendu Build Check"
+            ws_check = f"Verify expected files ({exp_files_str}) exist in `rendu/` with no unauthorized artifacts."
+            build_check = f"Compile cleanly with `cc {flags_str}` (Norminette disabled in exam mode)."
+
+        if ex_type == "c_function":
+            target_desc = (
+                f"exact function prototype `{proto}`"
+                if proto
+                else f"exact `{slug}` prototype"
+            )
+            contract_check = (
+                f"Verify {target_desc} and allowed functions: {c_allowed_str}."
+            )
+            defense_check = "Student explains pointer handling, memory safety, and control flow before running tests."
+            mutation_check = "Call the function from a live test driver with NULL, empty, zero, and boundary values and verify deterministic return/output."
+        else:
+            contract_check = f"Verify CLI `argc`/`argv` behavior and allowed functions: {c_allowed_str}."
+            defense_check = "Student explains `argc`/`argv` parsing, memory cleanup, and output formatting before executing tests."
+            mutation_check = "Invoke the compiled binary with edge CLI arguments (no args, extra args, empty strings) checking exact `| cat -e` output."
+
+        sections = [
+            {
+                "id": "preliminaries",
+                "title": step1_title,
+                "points": 20,
+                "checks": [ws_check, build_check, contract_check],
+            },
+            {
+                "id": "explain_before_checking",
+                "title": "Step 2: Conceptual Defense (Explain Before Checking)",
+                "points": 30,
+                "checks": [defense_check],
+            },
+            {
+                "id": "live_mutation",
+                "title": "Step 3: Live Mutation & Edge-Case Verification",
+                "points": 50,
+                "checks": [mutation_check],
+            },
+        ]
+
+    scale_data: dict[str, Any] = {
+        "project": slug,
+        "scale_version": "1337HUB-v4.2",
+        "stop_on_first_failure": True,
+        "zero_tolerance_gates": gates,
+        "sections": sections,
+    }
+    return _fast_yaml_dump(scale_data)
 
 
 def scaffold_exercise(
@@ -222,6 +776,7 @@ def scaffold_exercise(
     edge_tests: list[dict[str, Any]] | None = None,
     raw_tests_yml: dict[str, Any] | None = None,
 ) -> Path:
+    """Scaffold a 42 exercise subject directory, reference files, and tests.yml."""
     target_dir = KIT_ROOT / "subjects" / category / slug
     target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -233,8 +788,7 @@ def scaffold_exercise(
                 f"Assignment name  : {slug}\n"
                 f"Expected files   : {files_str}\n"
                 f"Allowed functions: {allowed}\n"
-                f"{'-' * 80}\n\n"
-                + subj_txt
+                f"{'-' * 80}\n\n" + subj_txt
             )
     else:
         subj_txt = (
@@ -242,19 +796,28 @@ def scaffold_exercise(
             f"Expected files   : {files_str}\n"
             f"Allowed functions: {allowed}\n"
             f"{'-' * 80}\n\n"
-            f"Write the implementation of `{slug}` adhering strictly to the 1337 / 42 contract.\n\n"
-            f"Examples:\n"
-            f"$> ./{slug} | cat -e\n"
-            f"OK$\n"
+            f"Write the implementation of `{slug}` adhering strictly to the 1337 / 42 contract.\n"
+            + (
+                ""
+                if category == "piscine"
+                else f"\nExamples:\n$> ./{slug} | cat -e\nOK$\n"
+            )
         )
+    is_piscine = category == "piscine"
     subj_txt, clean_ex_txt = build_clean_examples_block_and_append_to_subject(
         slug,
         subj_txt,
         official_examples or "",
         extracted_tests,
+        append_to_subject=not is_piscine,
     )
     _write_if_changed(target_dir / "subject.en.txt", subj_txt)
-    if clean_ex_txt.strip():
+    if is_piscine and not (official_examples or "").strip():
+        _write_if_changed(
+            target_dir / "examples.txt",
+            f"# No examples in official PDF for {slug}. Consult `man` and subject.en.txt.\n",
+        )
+    elif clean_ex_txt.strip():
         _write_if_changed(target_dir / "examples.txt", clean_ex_txt)
 
     subj_examples_parsed = parse_subject_cli_examples(subj_txt, slug)
@@ -279,9 +842,13 @@ def scaffold_exercise(
         and not x.strip().startswith("---")
         and re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", x.strip())
     ]
-    xp_val = xp if (xp is not None and xp > 0) else calculate_exercise_xp(module_code, ex_type, 1.0)
+    xp_val = (
+        xp
+        if (xp is not None and xp > 0)
+        else calculate_exercise_xp(module_code, ex_type, 1.0)
+    )
     clean_proto = _clean_c_prototype(prototype, slug, ex_type)
-    meta_data: Dict[str, Any] = {
+    meta_data: dict[str, Any] = {
         "id": slug,
         "type": ex_type,
         "module": module_code or category,
@@ -295,7 +862,11 @@ def scaffold_exercise(
         meta_data["prototype"] = clean_proto
     _write_if_changed(target_dir / "meta.yml", _fast_yaml_dump(meta_data))
 
-    if raw_tests_yml and isinstance(raw_tests_yml, dict) and raw_tests_yml.get("fixed_tests"):
+    if (
+        raw_tests_yml
+        and isinstance(raw_tests_yml, dict)
+        and raw_tests_yml.get("fixed_tests")
+    ):
         tests_data = dict(raw_tests_yml)
         tests_data.setdefault("mode", ex_type)
     else:
@@ -311,7 +882,9 @@ def scaffold_exercise(
                 }
             ],
         }
-    if slug not in CANONICAL_FIXED_TESTS and isinstance(tests_data.get("fixed_tests"), list):
+    if slug not in CANONICAL_FIXED_TESTS and isinstance(
+        tests_data.get("fixed_tests"), list
+    ):
         tests_data["fixed_tests"] = merge_executable_tiers_into_fixed_tests(
             slug,
             ex_type,
@@ -325,34 +898,7 @@ def scaffold_exercise(
     tests_data["near_examples"] = near_examples_parsed
     _write_if_changed(target_dir / "tests.yml", _fast_yaml_dump(tests_data))
 
-    scale_txt = (
-        f"project: {slug}\n"
-        "scale_version: 1337HUB-v4.2\n"
-        "stop_on_first_failure: true\n"
-        "zero_tolerance_gates:\n"
-        "- segfault\n"
-        "- memory_leak\n"
-        "- norme_error\n"
-        "- forbidden_function\n"
-        "sections:\n"
-        "- id: preliminaries\n"
-        "  title: 'Step 1: Preliminaries & Vogsphere Integrity Check'\n"
-        "  points: 20\n"
-        "  checks:\n"
-        "  - Clone official Vogsphere repository into an empty folder.\n"
-        "  - Verify no malicious shell aliases or unauthorized files exist.\n"
-        "  - Run norminette / shnorm and verify clean compilation with -Wall -Wextra -Werror.\n"
-        "- id: explain_before_checking\n"
-        "  title: 'Step 2: Conceptual Defense (Explain Before Checking)'\n"
-        "  points: 30\n"
-        "  checks:\n"
-        "  - Student explains data structures and control flow before executing tests.\n"
-        "- id: live_mutation\n"
-        "  title: 'Step 3: Live Mutation & Edge-Case Verification'\n"
-        "  points: 50\n"
-        "  checks:\n"
-        "  - Inject a live boundary modification on the spot and verify deterministic behavior.\n"
-    )
+    scale_txt = build_scale_yml(slug, ex_type, meta_data)
     _write_if_changed(target_dir / "scale.yml", scale_txt)
     return target_dir
 
@@ -360,7 +906,10 @@ def scaffold_exercise(
 def _sanitize_c_candidate(code: str) -> str:
     txt = code
     if '#include "header.h"' in txt:
-        txt = txt.replace('#include "header.h"', "#include <stdio.h>\n#include <stdlib.h>\n#include <unistd.h>")
+        txt = txt.replace(
+            '#include "header.h"',
+            "#include <stdio.h>\n#include <stdlib.h>\n#include <unistd.h>",
+        )
     # If two complete files with main() were concatenated (e.g. aff_a.c), keep the second clean block
     mains = list(re.finditer(r"\bint\s+main\s*\(", txt))
     if len(mains) > 1:
@@ -370,7 +919,13 @@ def _sanitize_c_candidate(code: str) -> str:
     return txt if txt.endswith("\n") else (txt + "\n")
 
 
-def _synthesize_reference_solution(slug: str, ex_type: str, expected_file: str, prototype: str | None, attached: list[dict[str, Any]]) -> str:
+def _synthesize_reference_solution(
+    slug: str,
+    ex_type: str,
+    expected_file: str,
+    prototype: str | None,
+    attached: list[dict[str, Any]],
+) -> str:
     hdr = HEADER_42_TEMPLATE.format(fname=expected_file[:50])
     if slug == "strlen_sh":
         return '#!/bin/sh\nprintf "%s" "$FT_LINE" | wc -m | tr -d " "\n'
@@ -382,7 +937,7 @@ def _synthesize_reference_solution(slug: str, ex_type: str, expected_file: str, 
             "\t\twhile (argv[1][i] == ' ' || argv[1][i] == '\\t')\n\t\t\ti++;\n"
             "\t\twhile (argv[1][i] && argv[1][i] != ' ' && argv[1][i] != '\\t')\n"
             "\t\t{\n\t\t\twrite(1, &argv[1][i], 1);\n\t\t\ti++;\n\t\t}\n\t}\n"
-            "\twrite(1, \"\\n\", 1);\n\treturn (0);\n}\n"
+            '\twrite(1, "\\n", 1);\n\treturn (0);\n}\n'
         )
     if slug == "ft_atoi":
         return (
@@ -412,13 +967,23 @@ def _synthesize_reference_solution(slug: str, ex_type: str, expected_file: str, 
         content = str(item.get("content") or "")
         if not content.strip():
             continue
-        if fname == "tests.yml" or fname.endswith((".yml", ".yaml", ".txt", "_MAIN.c", "tester.sh", ".h")):
+        if fname == "tests.yml" or fname.endswith(
+            (".yml", ".yaml", ".txt", "_MAIN.c", "tester.sh", ".h")
+        ):
             continue
-        candidates.append(_sanitize_c_candidate(content) if ex_type in ("c_program", "c_function") else (content if content.endswith("\n") else content + "\n"))
+        candidates.append(
+            _sanitize_c_candidate(content)
+            if ex_type in ("c_program", "c_function")
+            else (content if content.endswith("\n") else content + "\n")
+        )
 
     if candidates:
         for cand in candidates:
-            if "fprime_recursive" in cand and "void\tfprime(" not in cand and "void fprime(" not in cand:
+            if (
+                "fprime_recursive" in cand
+                and "void\tfprime(" not in cand
+                and "void fprime(" not in cand
+            ):
                 continue
             return cand
         return candidates[0]
@@ -429,23 +994,32 @@ def _synthesize_reference_solution(slug: str, ex_type: str, expected_file: str, 
         guard = re.sub(r"[^A-Z0-9_]", "_", expected_file.upper())
         return f"{hdr}#ifndef {guard}\n# define {guard}\n\n#endif\n"
     if ex_type == "cpp":
-        return "#include <iostream>\n\nint main(void)\n{\n\tstd::cout << \"OK\" << std::endl;\n\treturn (0);\n}\n"
+        return '#include <iostream>\n\nint main(void)\n{\n\tstd::cout << "OK" << std::endl;\n\treturn (0);\n}\n'
     if ex_type == "c_function":
-        proto = (_clean_c_prototype(prototype, slug, ex_type) or f"int\t{slug}(void)").strip().rstrip(";")
+        proto = (
+            (_clean_c_prototype(prototype, slug, ex_type) or f"int\t{slug}(void)")
+            .strip()
+            .rstrip(";")
+        )
         if proto.startswith("void") and "*" not in proto.split("(")[0]:
             return f"{hdr}{proto}\n{{\n\treturn ;\n}}\n"
         if "*" in proto.split("(")[0]:
             return f"{hdr}#include <stddef.h>\n\n{proto}\n{{\n\treturn (NULL);\n}}\n"
         return f"{hdr}{proto}\n{{\n\treturn (0);\n}}\n"
-    return f"{hdr}#include <unistd.h>\n\nint\tmain(int argc, char **argv)\n{{\n\t(void)argc;\n\t(void)argv;\n\twrite(1, \"OK\\n\", 3);\n\treturn (0);\n}}\n"
+    return f'{hdr}#include <unistd.h>\n\nint\tmain(int argc, char **argv)\n{{\n\t(void)argc;\n\t(void)argv;\n\twrite(1, "OK\\n", 3);\n\treturn (0);\n}}\n'
 
 
-def _build_executable_fixed_tests(slug: str, ex_type: str, extracted: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _build_executable_fixed_tests(
+    slug: str, ex_type: str, extracted: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     if slug in CANONICAL_FIXED_TESTS:
         return CANONICAL_FIXED_TESTS[slug]
 
     import ast
-    fixed_rows = [r for r in (extracted or []) if r.get("source") == "tests.yml (fixed_tests)"]
+
+    fixed_rows = [
+        r for r in (extracted or []) if r.get("source") == "tests.yml (fixed_tests)"
+    ]
     if not fixed_rows:
         fixed_rows = (extracted or [])[:6]
 
@@ -479,7 +1053,13 @@ def _build_executable_fixed_tests(slug: str, ex_type: str, extracted: list[dict[
                 }
             )
         elif ex_type == "c_function":
-            clean_in = raw_in[1:-1] if (raw_in.startswith("`") and raw_in.endswith("`") and len(raw_in) >= 2) else raw_in
+            clean_in = (
+                raw_in[1:-1]
+                if (
+                    raw_in.startswith("`") and raw_in.endswith("`") and len(raw_in) >= 2
+                )
+                else raw_in
+            )
             stdout_val = exp_val if exp_val.endswith("\n") else (exp_val + "\n")
             if ";" in clean_in or "printf" in clean_in:
                 out.append(
@@ -515,14 +1095,15 @@ def _build_executable_fixed_tests(slug: str, ex_type: str, extracted: list[dict[
     return out
 
 
-def materialize_all_402_exercises(catalog_path: Path | None = None) -> Dict[str, int]:
+def materialize_all_402_exercises(catalog_path: Path | None = None) -> dict[str, int]:
+    """Scaffold all catalog exercises on disk and return category counts."""
     if catalog_path is None:
         catalog_path = KIT_ROOT.parent / "src" / "data" / "exerciseCatalog402.json"
     data = json.loads(catalog_path.read_text(encoding="utf-8"))
     exercises = data["exercises"]
 
-    piscine_by_mod: Dict[str, List[Dict[str, Any]]] = {}
-    exam_by_mod: Dict[str, List[Dict[str, Any]]] = {}
+    piscine_by_mod: dict[str, list[dict[str, Any]]] = {}
+    exam_by_mod: dict[str, list[dict[str, Any]]] = {}
     piscine_count = 0
     exam_count = 0
 
@@ -536,18 +1117,28 @@ def materialize_all_402_exercises(catalog_path: Path | None = None) -> Dict[str,
 
         is_piscine = track.startswith("1.")
         if is_piscine:
-            mod_slug = MODULE_SLUG_MAP.get(mod_code, re.sub(r"[^a-z0-9]+", "", mod_code.lower()))
+            mod_slug = MODULE_SLUG_MAP.get(
+                mod_code, re.sub(r"[^a-z0-9]+", "", mod_code.lower())
+            )
             category = f"piscine/{mod_slug}"
-            piscine_by_mod.setdefault(mod_slug, []).append({"slug": slug, "mod_code": mod_code, "xp": xp_val})
+            piscine_by_mod.setdefault(mod_slug, []).append(
+                {"slug": slug, "mod_code": mod_code, "xp": xp_val}
+            )
             piscine_count += 1
         else:
             category = "exams"
-            exam_by_mod.setdefault(mod_code, []).append({"slug": slug, "mod_code": mod_code, "xp": xp_val})
+            exam_by_mod.setdefault(mod_code, []).append(
+                {"slug": slug, "mod_code": mod_code, "xp": xp_val}
+            )
             exam_count += 1
 
         raw_exp = str(ex.get("expectedFiles") or "").strip()
         if not raw_exp or "/" in raw_exp:
-            ext = ".sh" if ex_type == "shell" and not slug.endswith(".sh") else ("" if "." in slug else (".cpp" if ex_type == "cpp" else ".c"))
+            ext = (
+                ".sh"
+                if ex_type == "shell" and not slug.endswith(".sh")
+                else ("" if "." in slug else (".cpp" if ex_type == "cpp" else ".c"))
+            )
             exp_files = [f"{slug}{ext}"]
         else:
             exp_files = [tok.strip(",") for tok in raw_exp.split() if tok.strip(",")]
@@ -564,8 +1155,10 @@ def materialize_all_402_exercises(catalog_path: Path | None = None) -> Dict[str,
                     raw_tests_yml = None
                 break
 
-        fixed_tests = _build_executable_fixed_tests(slug, ex_type, ex.get("extractedTests") or [])
-        edge_tests: List[Dict[str, Any]] = []
+        fixed_tests = _build_executable_fixed_tests(
+            slug, ex_type, ex.get("extractedTests") or []
+        )
+        edge_tests: list[dict[str, Any]] = []
         for idx_g, gap in enumerate(ex.get("missingGaps") or [], 1):
             edge_tests.append(
                 {
@@ -619,7 +1212,9 @@ def materialize_all_402_exercises(catalog_path: Path | None = None) -> Dict[str,
     import shutil
     import zipfile
 
-    fin_zip_path = KIT_ROOT.parent / "public" / "assets" / "aistudio" / "fin_99fb5bef.zip"
+    fin_zip_path = (
+        KIT_ROOT.parent / "public" / "assets" / "aistudio" / "fin_99fb5bef.zip"
+    )
     mod_code_by_slug = {v: k for k, v in MODULE_SLUG_MAP.items()}
     if fin_zip_path.is_file():
         target_piscine_mods = ["shell00", "shell01"] + [f"c{i:02d}" for i in range(14)]
@@ -642,23 +1237,53 @@ def materialize_all_402_exercises(catalog_path: Path | None = None) -> Dict[str,
                 )
                 for z_slug in slugs_in_zip:
                     norm_low = z_slug.lower()
-                    if norm_low in existing_lower or (norm_low == "c00_ft_putnbr" and "ft_putnbr" in existing_lower):
+                    if norm_low in existing_lower or (
+                        norm_low == "c00_ft_putnbr" and "ft_putnbr" in existing_lower
+                    ):
                         continue
-                    z_meta_raw = _fast_yaml_load(
-                        zf.read(f"{prefix}{z_slug}/meta.yml").decode("utf-8", "replace")
-                    ) or {}
-                    z_subj_txt = zf.read(f"{prefix}{z_slug}/subject.en.txt").decode("utf-8", "replace")
+                    z_meta_raw = (
+                        _fast_yaml_load(
+                            zf.read(f"{prefix}{z_slug}/meta.yml").decode(
+                                "utf-8", "replace"
+                            )
+                        )
+                        or {}
+                    )
+                    z_subj_txt = zf.read(f"{prefix}{z_slug}/subject.en.txt").decode(
+                        "utf-8", "replace"
+                    )
                     z_tests_raw = None
                     if f"{prefix}{z_slug}/tests.yml" in znames:
                         z_tests_raw = _fast_yaml_load(
-                            zf.read(f"{prefix}{z_slug}/tests.yml").decode("utf-8", "replace")
+                            zf.read(f"{prefix}{z_slug}/tests.yml").decode(
+                                "utf-8", "replace"
+                            )
                         )
-                    z_type = str(z_meta_raw.get("type") or ("shell" if mod_slug.startswith("shell") else "c_function"))
-                    if z_type not in ("c_function", "c_program", "c_header", "makefile", "shell", "python", "cpp"):
-                        z_type = "shell" if mod_slug.startswith("shell") else "c_function"
-                    z_exp_files = [str(x) for x in (z_meta_raw.get("expected_files") or [z_slug])]
+                    z_type = str(
+                        z_meta_raw.get("type")
+                        or ("shell" if mod_slug.startswith("shell") else "c_function")
+                    )
+                    if z_type not in (
+                        "c_function",
+                        "c_program",
+                        "c_header",
+                        "makefile",
+                        "shell",
+                        "python",
+                        "cpp",
+                    ):
+                        z_type = (
+                            "shell" if mod_slug.startswith("shell") else "c_function"
+                        )
+                    z_exp_files = [
+                        str(x) for x in (z_meta_raw.get("expected_files") or [z_slug])
+                    ]
                     z_allowed_list = z_meta_raw.get("allowed_functions") or []
-                    z_allowed = ", ".join(str(x) for x in z_allowed_list) if z_allowed_list else "None"
+                    z_allowed = (
+                        ", ".join(str(x) for x in z_allowed_list)
+                        if z_allowed_list
+                        else "None"
+                    )
                     xp_val = calculate_exercise_xp(mod_code, z_type, 1.0)
 
                     sdir = scaffold_exercise(
@@ -737,7 +1362,10 @@ def materialize_all_402_exercises(catalog_path: Path | None = None) -> Dict[str,
         for src_pdf_name, dst_pdf_name in pdf_pairs:
             src_pdf = pdf_assets_dir / src_pdf_name
             dst_pdf = mod_dir / dst_pdf_name
-            if src_pdf.is_file() and (not dst_pdf.is_file() or dst_pdf.stat().st_size != src_pdf.stat().st_size):
+            if src_pdf.is_file() and (
+                not dst_pdf.is_file()
+                or dst_pdf.stat().st_size != src_pdf.stat().st_size
+            ):
                 shutil.copy2(src_pdf, dst_pdf)
 
     write_canonical_pools(KIT_ROOT)
@@ -751,24 +1379,168 @@ def materialize_all_402_exercises(catalog_path: Path | None = None) -> Dict[str,
     }
 
 
-CANONICAL_PISCINE_ORDER: Dict[str, List[str]] = {
-    "shell00": ["z", "testShell00", "exo2", "id_rsa_pub", "midls", "git_commit.sh", "git_ignore.sh", "diff", "clean", "ft_magic"],
-    "shell01": ["print_groups.sh", "find_sh.sh", "count_files.sh", "mac.sh", "special_filename_MaRViN", "skip.sh", "r_dwssap.sh", "add_chelou.sh"],
-    "c00": ["ft_putchar", "ft_print_alphabet", "ft_print_reverse_alphabet", "ft_print_numbers", "ft_is_negative", "ft_print_comb", "ft_print_comb2", "ft_putnbr", "ft_print_combn"],
-    "c01": ["ft_ft", "ft_ultimate_ft", "ft_swap", "ft_div_mod", "ft_ultimate_div_mod", "c01_ft_putstr", "c01_ft_strlen", "ft_rev_int_tab", "ft_sort_int_tab"],
-    "c02": ["ft_strcpy", "ft_strncpy", "ft_str_is_alpha", "ft_str_is_numeric", "ft_str_is_lowercase", "ft_str_is_uppercase", "ft_str_is_printable", "ft_strupcase", "ft_strlowcase", "ft_strcapitalize", "ft_strlcpy", "ft_putstr_non_printable", "ft_print_memory"],
-    "c03": ["ft_strcmp", "ft_strncmp", "ft_strcat", "ft_strncat", "ft_strstr", "ft_strlcat"],
-    "c04": ["ft_strlen", "ft_putstr", "ft_putnbr", "ft_atoi", "ft_putnbr_base", "ft_atoi_base"],
-    "c05": ["ft_iterative_factorial", "ft_recursive_factorial", "ft_iterative_power", "ft_recursive_power", "ft_fibonacci", "ft_sqrt", "ft_is_prime", "ft_find_next_prime", "ft_ten_queens_puzzle"],
-    "c06": ["ft_print_program_name", "ft_print_params", "ft_rev_params", "ft_sort_params"],
-    "c07": ["ft_strdup", "ft_range", "ft_ultimate_range", "ft_strjoin", "ft_convert_base", "ft_split", "ft_split_whitespaces"],
-    "c08": ["ft.h", "ft_boolean.h", "ft_abs.h", "ft_point.h", "ft_strs_to_tab", "ft_show_tab"],
+CANONICAL_PISCINE_ORDER: dict[str, list[str]] = {
+    "shell00": [
+        "z",
+        "testShell00",
+        "exo2",
+        "id_rsa_pub",
+        "midls",
+        "git_commit.sh",
+        "git_ignore.sh",
+        "diff",
+        "clean",
+        "ft_magic",
+    ],
+    "shell01": [
+        "print_groups.sh",
+        "find_sh.sh",
+        "count_files.sh",
+        "mac.sh",
+        "special_filename_MaRViN",
+        "skip.sh",
+        "r_dwssap.sh",
+        "add_chelou.sh",
+    ],
+    "c00": [
+        "ft_putchar",
+        "ft_print_alphabet",
+        "ft_print_reverse_alphabet",
+        "ft_print_numbers",
+        "ft_is_negative",
+        "ft_print_comb",
+        "ft_print_comb2",
+        "ft_putnbr",
+        "ft_print_combn",
+    ],
+    "c01": [
+        "ft_ft",
+        "ft_ultimate_ft",
+        "ft_swap",
+        "ft_div_mod",
+        "ft_ultimate_div_mod",
+        "c01_ft_putstr",
+        "c01_ft_strlen",
+        "ft_rev_int_tab",
+        "ft_sort_int_tab",
+    ],
+    "c02": [
+        "ft_strcpy",
+        "ft_strncpy",
+        "ft_str_is_alpha",
+        "ft_str_is_numeric",
+        "ft_str_is_lowercase",
+        "ft_str_is_uppercase",
+        "ft_str_is_printable",
+        "ft_strupcase",
+        "ft_strlowcase",
+        "ft_strcapitalize",
+        "ft_strlcpy",
+        "ft_putstr_non_printable",
+        "ft_print_memory",
+    ],
+    "c03": [
+        "ft_strcmp",
+        "ft_strncmp",
+        "ft_strcat",
+        "ft_strncat",
+        "ft_strstr",
+        "ft_strlcat",
+    ],
+    "c04": [
+        "ft_strlen",
+        "ft_putstr",
+        "ft_putnbr",
+        "ft_atoi",
+        "ft_putnbr_base",
+        "ft_atoi_base",
+    ],
+    "c05": [
+        "ft_iterative_factorial",
+        "ft_recursive_factorial",
+        "ft_iterative_power",
+        "ft_recursive_power",
+        "ft_fibonacci",
+        "ft_sqrt",
+        "ft_is_prime",
+        "ft_find_next_prime",
+        "ft_ten_queens_puzzle",
+    ],
+    "c06": [
+        "ft_print_program_name",
+        "ft_print_params",
+        "ft_rev_params",
+        "ft_sort_params",
+    ],
+    "c07": [
+        "ft_strdup",
+        "ft_range",
+        "ft_ultimate_range",
+        "ft_strjoin",
+        "ft_convert_base",
+        "ft_split",
+        "ft_split_whitespaces",
+    ],
+    "c08": [
+        "ft.h",
+        "ft_boolean.h",
+        "ft_abs.h",
+        "ft_point.h",
+        "ft_strs_to_tab",
+        "ft_show_tab",
+    ],
     "c09": ["c09_libft", "c09_makefile", "c09_ft_split"],
     "c10": ["display_file", "cat", "tail", "hexdump"],
-    "c11": ["ft_foreach", "ft_map", "ft_any", "ft_count_if", "ft_is_sort", "do-op", "ft_sort_string_tab", "ft_advanced_sort_string_tab"],
-    "c12": ["ft_create_elem", "ft_list_push_front", "ft_list_size", "ft_list_last", "ft_list_push_back", "ft_list_push_strs", "ft_list_clear", "ft_list_at", "ft_list_reverse", "ft_list_foreach", "ft_list_foreach_if", "ft_list_find", "ft_list_remove_if", "ft_list_merge", "ft_list_sort", "ft_list_reverse_fun", "ft_sorted_list_insert", "ft_sorted_list_merge"],
-    "c13": ["btree_create_node", "btree_apply_prefix", "btree_apply_infix", "btree_apply_suffix", "btree_insert_data", "btree_search_item", "btree_level_count", "btree_apply_by_level"],
-    "rush_bsq": ["rush00", "rush01", "rush02", "bsq", "colle02", "sastantua", "match_n_match", "sudoku"],
+    "c11": [
+        "ft_foreach",
+        "ft_map",
+        "ft_any",
+        "ft_count_if",
+        "ft_is_sort",
+        "do-op",
+        "ft_sort_string_tab",
+        "ft_advanced_sort_string_tab",
+    ],
+    "c12": [
+        "ft_create_elem",
+        "ft_list_push_front",
+        "ft_list_size",
+        "ft_list_last",
+        "ft_list_push_back",
+        "ft_list_push_strs",
+        "ft_list_clear",
+        "ft_list_at",
+        "ft_list_reverse",
+        "ft_list_foreach",
+        "ft_list_foreach_if",
+        "ft_list_find",
+        "ft_list_remove_if",
+        "ft_list_merge",
+        "ft_list_sort",
+        "ft_list_reverse_fun",
+        "ft_sorted_list_insert",
+        "ft_sorted_list_merge",
+    ],
+    "c13": [
+        "btree_create_node",
+        "btree_apply_prefix",
+        "btree_apply_infix",
+        "btree_apply_suffix",
+        "btree_insert_data",
+        "btree_search_item",
+        "btree_level_count",
+        "btree_apply_by_level",
+    ],
+    "rush_bsq": [
+        "rush00",
+        "rush01",
+        "rush02",
+        "bsq",
+        "colle02",
+        "sastantua",
+        "match_n_match",
+        "sudoku",
+    ],
 }
 
 
@@ -783,11 +1555,20 @@ def write_canonical_pools(kit_root: Path = KIT_ROOT) -> None:
         if not mod_dir.is_dir():
             continue
         mod_code = mod_code_by_slug.get(mod_slug, mod_slug.upper())
-        existing = [p.name for p in mod_dir.iterdir() if p.is_dir() and (p / "meta.yml").exists()]
-        final_slugs = [s for s in ordered_slugs if s in existing] + [s for s in sorted(existing) if s not in ordered_slugs]
+        existing = [
+            p.name
+            for p in mod_dir.iterdir()
+            if p.is_dir() and (p / "meta.yml").exists()
+        ]
+        final_slugs = [s for s in ordered_slugs if s in existing] + [
+            s for s in sorted(existing) if s not in ordered_slugs
+        ]
         exercises_list = []
         for idx, s in enumerate(final_slugs):
-            m_yml = _fast_yaml_load((mod_dir / s / "meta.yml").read_text(encoding="utf-8")) or {}
+            m_yml = (
+                _fast_yaml_load((mod_dir / s / "meta.yml").read_text(encoding="utf-8"))
+                or {}
+            )
             xp_val = int(m_yml.get("xp") or 100)
             exercises_list.append(
                 {
@@ -801,47 +1582,320 @@ def write_canonical_pools(kit_root: Path = KIT_ROOT) -> None:
             "display_name": f"1337 / 42 Piscine — {mod_code}",
             "exercises": exercises_list,
         }
-        _write_if_changed(piscine_pools_dir / f"{mod_slug}.yml", _fast_yaml_dump(pool_payload))
+        _write_if_changed(
+            piscine_pools_dir / f"{mod_slug}.yml", _fast_yaml_dump(pool_payload)
+        )
 
     # Authentic 42 / 1337 Piscine & Common Core Exam Level Tiers
-    lvl_0_1_warmup = ["aff_a", "maff_alpha", "ft_countdown", "ft_print_numbers", "hello", "only_z", "aff_z", "only_a", "maff_revalpha", "aff_first_param", "aff_last_param"]
-    lvl_2_3_basic = ["rev_print", "rot_13", "rotone", "ulstr", "first_word", "ft_strlen", "ft_swap", "ft_strcpy", "ft_putstr", "repeat_alpha", "search_and_replace", "fizzbuzz"]
-    lvl_4_5_inter = ["inter", "union", "wdmatch", "last_word", "alpha_mirror", "do_op", "ft_atoi", "ft_strdup", "max", "is_power_of_2", "print_bits", "reverse_bits", "swap_bits", "camel_to_snake", "snake_to_camel", "ft_strcmp", "ft_strcspn", "ft_strpbrk", "ft_strrev"]
-    lvl_6_7_math_list = ["add_prime_sum", "epur_str", "expand_str", "ft_list_size", "ft_range", "ft_rrange", "hidenp", "lcm", "paramsum", "pgcd", "print_hex", "rstr_capitalizer", "str_capitalizer", "tab_mult", "ft_atoi_base"]
-    lvl_8_10_advanced = ["fprime", "ft_itoa", "ft_split", "rev_wstr", "rostring", "sort_int_tab", "sort_list", "ft_list_remove_if", "ft_list_foreach", "brainfuck", "print_memory"]
+    lvl_0_1_warmup = [
+        "aff_a",
+        "maff_alpha",
+        "ft_countdown",
+        "ft_print_numbers",
+        "hello",
+        "only_z",
+        "aff_z",
+        "only_a",
+        "maff_revalpha",
+        "aff_first_param",
+        "aff_last_param",
+    ]
+    lvl_2_3_basic = [
+        "rev_print",
+        "rot_13",
+        "rotone",
+        "ulstr",
+        "first_word",
+        "ft_strlen",
+        "ft_swap",
+        "ft_strcpy",
+        "ft_putstr",
+        "repeat_alpha",
+        "search_and_replace",
+        "fizzbuzz",
+    ]
+    lvl_4_5_inter = [
+        "inter",
+        "union",
+        "wdmatch",
+        "last_word",
+        "alpha_mirror",
+        "do_op",
+        "ft_atoi",
+        "ft_strdup",
+        "max",
+        "is_power_of_2",
+        "print_bits",
+        "reverse_bits",
+        "swap_bits",
+        "camel_to_snake",
+        "snake_to_camel",
+        "ft_strcmp",
+        "ft_strcspn",
+        "ft_strpbrk",
+        "ft_strrev",
+    ]
+    lvl_6_7_math_list = [
+        "add_prime_sum",
+        "epur_str",
+        "expand_str",
+        "ft_list_size",
+        "ft_range",
+        "ft_rrange",
+        "hidenp",
+        "lcm",
+        "paramsum",
+        "pgcd",
+        "print_hex",
+        "rstr_capitalizer",
+        "str_capitalizer",
+        "tab_mult",
+        "ft_atoi_base",
+    ]
+    lvl_8_10_advanced = [
+        "fprime",
+        "ft_itoa",
+        "ft_split",
+        "rev_wstr",
+        "rostring",
+        "sort_int_tab",
+        "sort_list",
+        "ft_list_remove_if",
+        "ft_list_foreach",
+        "brainfuck",
+        "print_memory",
+    ]
 
     exam00_levels = [
-        {"level": 0, "points": 25, "candidates": ["only_z", "only_a", "hello", "aff_a", "aff_z", "ft_countdown", "ft_print_numbers", "maff_alpha", "maff_revalpha"]},
-        {"level": 1, "points": 25, "candidates": ["aff_first_param", "aff_last_param", "ft_strlen", "ft_swap", "ft_strcpy", "ft_putstr", "rev_print"]},
-        {"level": 2, "points": 25, "candidates": ["rot_13", "rotone", "ulstr", "first_word", "repeat_alpha", "search_and_replace", "fizzbuzz"]},
-        {"level": 3, "points": 25, "candidates": ["inter", "union", "wdmatch", "last_word", "alpha_mirror", "ft_atoi", "ft_strdup", "ft_strrev"]},
+        {
+            "level": 0,
+            "points": 25,
+            "candidates": [
+                "only_z",
+                "only_a",
+                "hello",
+                "aff_a",
+                "aff_z",
+                "ft_countdown",
+                "ft_print_numbers",
+                "maff_alpha",
+                "maff_revalpha",
+            ],
+        },
+        {
+            "level": 1,
+            "points": 25,
+            "candidates": [
+                "aff_first_param",
+                "aff_last_param",
+                "ft_strlen",
+                "ft_swap",
+                "ft_strcpy",
+                "ft_putstr",
+                "rev_print",
+            ],
+        },
+        {
+            "level": 2,
+            "points": 25,
+            "candidates": [
+                "rot_13",
+                "rotone",
+                "ulstr",
+                "first_word",
+                "repeat_alpha",
+                "search_and_replace",
+                "fizzbuzz",
+            ],
+        },
+        {
+            "level": 3,
+            "points": 25,
+            "candidates": [
+                "inter",
+                "union",
+                "wdmatch",
+                "last_word",
+                "alpha_mirror",
+                "ft_atoi",
+                "ft_strdup",
+                "ft_strrev",
+            ],
+        },
     ]
     exam01_levels = [
         {"level": 0, "points": 20, "candidates": lvl_0_1_warmup},
         {"level": 1, "points": 20, "candidates": lvl_2_3_basic},
         {"level": 2, "points": 20, "candidates": lvl_4_5_inter},
         {"level": 3, "points": 20, "candidates": lvl_6_7_math_list},
-        {"level": 4, "points": 20, "candidates": ["fprime", "ft_itoa", "ft_split", "rev_wstr", "rostring", "sort_int_tab", "sort_list", "ft_list_remove_if", "ft_list_foreach"]},
+        {
+            "level": 4,
+            "points": 20,
+            "candidates": [
+                "fprime",
+                "ft_itoa",
+                "ft_split",
+                "rev_wstr",
+                "rostring",
+                "sort_int_tab",
+                "sort_list",
+                "ft_list_remove_if",
+                "ft_list_foreach",
+            ],
+        },
     ]
     exam02_levels = [
         {"level": 0, "points": 16, "candidates": lvl_0_1_warmup},
         {"level": 1, "points": 16, "candidates": lvl_2_3_basic},
         {"level": 2, "points": 16, "candidates": lvl_4_5_inter},
         {"level": 3, "points": 16, "candidates": lvl_6_7_math_list},
-        {"level": 4, "points": 18, "candidates": ["fprime", "ft_itoa", "ft_split", "rev_wstr", "rostring", "sort_int_tab", "sort_list", "ft_list_remove_if", "ft_list_foreach"]},
-        {"level": 5, "points": 18, "candidates": ["brainfuck", "print_memory", "ft_atoi_base"]},
+        {
+            "level": 4,
+            "points": 18,
+            "candidates": [
+                "fprime",
+                "ft_itoa",
+                "ft_split",
+                "rev_wstr",
+                "rostring",
+                "sort_int_tab",
+                "sort_list",
+                "ft_list_remove_if",
+                "ft_list_foreach",
+            ],
+        },
+        {
+            "level": 5,
+            "points": 18,
+            "candidates": ["brainfuck", "print_memory", "ft_atoi_base"],
+        },
     ]
     final_exam_levels = [
-        {"level": 0, "points": 10, "candidates": ["only_z", "only_a", "hello", "aff_a", "aff_z", "ft_countdown", "ft_print_numbers"]},
-        {"level": 1, "points": 10, "candidates": ["maff_alpha", "maff_revalpha", "aff_first_param", "aff_last_param", "ft_strlen", "ft_swap", "ft_strcpy", "ft_putstr"]},
-        {"level": 2, "points": 10, "candidates": ["rev_print", "rot_13", "rotone", "ulstr", "first_word", "repeat_alpha", "search_and_replace", "fizzbuzz"]},
-        {"level": 3, "points": 10, "candidates": ["inter", "union", "wdmatch", "last_word", "alpha_mirror", "camel_to_snake", "snake_to_camel"]},
-        {"level": 4, "points": 10, "candidates": ["do_op", "ft_atoi", "ft_strdup", "max", "is_power_of_2", "print_bits", "reverse_bits", "swap_bits", "ft_strcmp", "ft_strcspn", "ft_strpbrk", "ft_strrev"]},
-        {"level": 5, "points": 10, "candidates": ["add_prime_sum", "epur_str", "expand_str", "hidenp", "paramsum", "pgcd", "lcm", "print_hex", "tab_mult"]},
-        {"level": 6, "points": 10, "candidates": ["ft_list_size", "ft_range", "ft_rrange", "rstr_capitalizer", "str_capitalizer", "ft_atoi_base"]},
-        {"level": 7, "points": 10, "candidates": ["fprime", "ft_itoa", "ft_split", "rev_wstr", "rostring"]},
-        {"level": 8, "points": 10, "candidates": ["sort_int_tab", "sort_list", "ft_list_remove_if", "ft_list_foreach"]},
-        {"level": 9, "points": 10, "candidates": ["brainfuck", "print_memory", "ft_split", "sort_list", "ft_list_remove_if"]},
+        {
+            "level": 0,
+            "points": 10,
+            "candidates": [
+                "only_z",
+                "only_a",
+                "hello",
+                "aff_a",
+                "aff_z",
+                "ft_countdown",
+                "ft_print_numbers",
+            ],
+        },
+        {
+            "level": 1,
+            "points": 10,
+            "candidates": [
+                "maff_alpha",
+                "maff_revalpha",
+                "aff_first_param",
+                "aff_last_param",
+                "ft_strlen",
+                "ft_swap",
+                "ft_strcpy",
+                "ft_putstr",
+            ],
+        },
+        {
+            "level": 2,
+            "points": 10,
+            "candidates": [
+                "rev_print",
+                "rot_13",
+                "rotone",
+                "ulstr",
+                "first_word",
+                "repeat_alpha",
+                "search_and_replace",
+                "fizzbuzz",
+            ],
+        },
+        {
+            "level": 3,
+            "points": 10,
+            "candidates": [
+                "inter",
+                "union",
+                "wdmatch",
+                "last_word",
+                "alpha_mirror",
+                "camel_to_snake",
+                "snake_to_camel",
+            ],
+        },
+        {
+            "level": 4,
+            "points": 10,
+            "candidates": [
+                "do_op",
+                "ft_atoi",
+                "ft_strdup",
+                "max",
+                "is_power_of_2",
+                "print_bits",
+                "reverse_bits",
+                "swap_bits",
+                "ft_strcmp",
+                "ft_strcspn",
+                "ft_strpbrk",
+                "ft_strrev",
+            ],
+        },
+        {
+            "level": 5,
+            "points": 10,
+            "candidates": [
+                "add_prime_sum",
+                "epur_str",
+                "expand_str",
+                "hidenp",
+                "paramsum",
+                "pgcd",
+                "lcm",
+                "print_hex",
+                "tab_mult",
+            ],
+        },
+        {
+            "level": 6,
+            "points": 10,
+            "candidates": [
+                "ft_list_size",
+                "ft_range",
+                "ft_rrange",
+                "rstr_capitalizer",
+                "str_capitalizer",
+                "ft_atoi_base",
+            ],
+        },
+        {
+            "level": 7,
+            "points": 10,
+            "candidates": ["fprime", "ft_itoa", "ft_split", "rev_wstr", "rostring"],
+        },
+        {
+            "level": 8,
+            "points": 10,
+            "candidates": [
+                "sort_int_tab",
+                "sort_list",
+                "ft_list_remove_if",
+                "ft_list_foreach",
+            ],
+        },
+        {
+            "level": 9,
+            "points": 10,
+            "candidates": [
+                "brainfuck",
+                "print_memory",
+                "ft_split",
+                "sort_list",
+                "ft_list_remove_if",
+            ],
+        },
     ]
     rank02_levels = [
         {"level": 0, "points": 25, "candidates": lvl_2_3_basic},
@@ -850,25 +1904,86 @@ def write_canonical_pools(kit_root: Path = KIT_ROOT) -> None:
         {"level": 3, "points": 25, "candidates": lvl_8_10_advanced},
     ]
     rank03_06_levels = [
-        {"level": 0, "points": 25, "candidates": ["filter", "broken_gnl", "get_next_line", "ft_printf", "scanf"]},
-        {"level": 1, "points": 25, "candidates": ["n_queens", "permutations", "powerset", "rip", "tsp"]},
-        {"level": 2, "points": 25, "candidates": ["ft_popen", "picoshell", "sandbox", "vbc", "argo"]},
-        {"level": 3, "points": 25, "candidates": ["cpp_module00", "cpp_module01", "cpp_module02", "bigint", "polyset", "vect2", "bsq", "life", "mini_serv", "mini_db"]},
+        {
+            "level": 0,
+            "points": 25,
+            "candidates": [
+                "filter",
+                "broken_gnl",
+                "get_next_line",
+                "ft_printf",
+                "scanf",
+            ],
+        },
+        {
+            "level": 1,
+            "points": 25,
+            "candidates": ["n_queens", "permutations", "powerset", "rip", "tsp"],
+        },
+        {
+            "level": 2,
+            "points": 25,
+            "candidates": ["ft_popen", "picoshell", "sandbox", "vbc", "argo"],
+        },
+        {
+            "level": 3,
+            "points": 25,
+            "candidates": [
+                "cpp_module00",
+                "cpp_module01",
+                "cpp_module02",
+                "bigint",
+                "polyset",
+                "vect2",
+                "bsq",
+                "life",
+                "mini_serv",
+                "mini_db",
+            ],
+        },
     ]
 
     exam_pools_dir = kit_root / "pools" / "exams"
     exam_pools_dir.mkdir(parents=True, exist_ok=True)
     exam_specs = {
-        "c_piscine_exam_00": ("42 / 1337 C Piscine — Exam 00 (Starter)", 14400, exam00_levels),
-        "c_piscine_exam_01": ("42 / 1337 C Piscine — Exam 01 (Intermediate)", 14400, exam01_levels),
-        "c_piscine_exam_02": ("42 / 1337 C Piscine — Exam 02 (Advanced)", 14400, exam02_levels),
-        "c_piscine_final_exam": ("42 / 1337 C Piscine — Final Exam (8 Hours)", 28800, final_exam_levels),
+        "c_piscine_exam_00": (
+            "42 / 1337 C Piscine — Exam 00 (Starter)",
+            14400,
+            exam00_levels,
+        ),
+        "c_piscine_exam_01": (
+            "42 / 1337 C Piscine — Exam 01 (Intermediate)",
+            14400,
+            exam01_levels,
+        ),
+        "c_piscine_exam_02": (
+            "42 / 1337 C Piscine — Exam 02 (Advanced)",
+            14400,
+            exam02_levels,
+        ),
+        "c_piscine_final_exam": (
+            "42 / 1337 C Piscine — Final Exam (8 Hours)",
+            28800,
+            final_exam_levels,
+        ),
         "1337_classic_exam00": ("1337 Classic Piscine — Exam 00", 14400, exam00_levels),
         "1337_classic_exam01": ("1337 Classic Piscine — Exam 01", 14400, exam01_levels),
         "1337_classic_exam02": ("1337 Classic Piscine — Exam 02", 14400, exam02_levels),
-        "1337_classic_examfinal": ("1337 Classic Piscine — Final Exam", 28800, final_exam_levels),
-        "classic_42_full": ("42 / 1337 Common Core — Exam Rank 02", 14400, rank02_levels),
-        "cursus_rank03_06": ("42 / 1337 Common Core — Exam Ranks 03–06", 14400, rank03_06_levels),
+        "1337_classic_examfinal": (
+            "1337 Classic Piscine — Final Exam",
+            28800,
+            final_exam_levels,
+        ),
+        "classic_42_full": (
+            "42 / 1337 Common Core — Exam Rank 02",
+            14400,
+            rank02_levels,
+        ),
+        "cursus_rank03_06": (
+            "42 / 1337 Common Core — Exam Ranks 03–06",
+            14400,
+            rank03_06_levels,
+        ),
     }
     for pool_id, (title, dur, lvls) in exam_specs.items():
         _write_if_changed(
@@ -884,9 +1999,9 @@ def write_canonical_pools(kit_root: Path = KIT_ROOT) -> None:
         )
 
 
-
-
-def export_clean_student_package(dest_dir: Path, category_filter: str | None = None) -> Dict[str, int]:
+def export_clean_student_package(
+    dest_dir: Path, category_filter: str | None = None
+) -> dict[str, int]:
     """Export a clean student workspace package containing ONLY subject.en.txt, examples.txt,
     official module PDFs, public .h headers, student CLI tools (norminette, shnorm, ft_lock, bc, ifconfig),
     and an empty rendu/ workspace. Excludes all HTML files, tests.yml, meta.yml, scale.yml, and corrections.
@@ -915,7 +2030,11 @@ def export_clean_student_package(dest_dir: Path, category_filter: str | None = N
         if src_bin.is_file():
             shutil.copy2(src_bin, dest_dir / "bin" / bin_name)
 
-    base_subjects = (KIT_ROOT / "subjects" / category_filter) if category_filter else (KIT_ROOT / "subjects")
+    base_subjects = (
+        (KIT_ROOT / "subjects" / category_filter)
+        if category_filter
+        else (KIT_ROOT / "subjects")
+    )
     subj_count = 0
     for subj_txt in sorted(base_subjects.rglob("subject.en.txt")):
         rel_dir = subj_txt.parent.relative_to(KIT_ROOT / "subjects")
@@ -925,11 +2044,26 @@ def export_clean_student_package(dest_dir: Path, category_filter: str | None = N
         ex_txt = subj_txt.parent / "examples.txt"
         if ex_txt.is_file():
             shutil.copy2(ex_txt, out_sub / "examples.txt")
-        for hdr_f in subj_txt.parent.rglob("*.h"):
-            rel_h = hdr_f.relative_to(subj_txt.parent)
-            out_h = out_sub / rel_h
-            out_h.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(hdr_f, out_h)
+        internal_meta = {
+            "subject.en.txt",
+            "examples.txt",
+            "meta.yml",
+            "tests.yml",
+            "scale.yml",
+        }
+        for extra_f in sorted(subj_txt.parent.rglob("*")):
+            if (
+                not extra_f.is_file()
+                or extra_f.name.startswith(".")
+                or extra_f.name in internal_meta
+            ):
+                continue
+            if extra_f.suffix.lower() in (".pdf", ".pyc", ".pyo"):
+                continue
+            rel_extra = extra_f.relative_to(subj_txt.parent)
+            out_extra = out_sub / rel_extra
+            out_extra.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(extra_f, out_extra)
         subj_count += 1
 
     for pdf_f in sorted(base_subjects.rglob("*.pdf")):
@@ -944,7 +2078,7 @@ def export_clean_student_package(dest_dir: Path, category_filter: str | None = N
 def export_developer_review_package(
     dest_dir: Path,
     archive_base: Path | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Export the complete Developer Review Package containing all 402 exercises,
     subject.en.txt (with appended examples), examples.txt, meta.yml, tests.yml
     (with subject_example, folder_example, and near_example tiers), scale.yml,
@@ -963,7 +2097,11 @@ def export_developer_review_package(
     skipped_html = 0
     for src_path in sorted(KIT_ROOT.rglob("*")):
         rel = src_path.relative_to(KIT_ROOT)
-        if any(part in ("__pycache__", "archives", "toolchain", "suites", "build") or part.startswith(".pytest") for part in rel.parts):
+        if any(
+            part in ("__pycache__", "archives", "toolchain", "suites", "build")
+            or part.startswith(".pytest")
+            for part in rel.parts
+        ):
             continue
         if src_path.is_file():
             if src_path.suffix.lower() in (".html", ".htm"):
@@ -990,17 +2128,21 @@ def export_developer_review_package(
         tar_gz_path = Path(f"{archive_base}.tar.gz")
         zip_path = Path(f"{archive_base}.zip")
         with tarfile.open(tar_gz_path, "w:gz") as tf:
-            tf.add(dest_dir, arcname="1337-42-developer-review-pack")
+            tf.add(dest_dir, arcname="magrathea")
         with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             for f in sorted(dest_dir.rglob("*")):
                 if f.is_file():
-                    zf.write(f, arcname=str(Path("1337-42-developer-review-pack") / f.relative_to(dest_dir)))
+                    zf.write(
+                        f, arcname=str(Path("magrathea") / f.relative_to(dest_dir))
+                    )
 
     return {
         "files_exported": copied_files,
         "html_removed": skipped_html,
         "subjects_exported": len(list((dest_dir / "subjects").rglob("subject.en.txt"))),
-        "examples_txt_exported": len(list((dest_dir / "subjects").rglob("examples.txt"))),
+        "examples_txt_exported": len(
+            list((dest_dir / "subjects").rglob("examples.txt"))
+        ),
         "tests_yml_exported": len(list((dest_dir / "subjects").rglob("tests.yml"))),
         "tar_gz": str(tar_gz_path) if tar_gz_path else "",
         "zip": str(zip_path) if zip_path else "",
@@ -1008,22 +2150,72 @@ def export_developer_review_package(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="pforge — 1337 / 42 Exercise & Pool Blueprint Scaffolder")
-    parser.add_argument("--scaffold", metavar="SLUG", help="Create a new 4-component exercise skeleton")
-    parser.add_argument("--type", default="c_program", choices=["c_function", "c_program", "c_header", "makefile", "shell", "python", "cpp"], help="Exercise evaluation mode")
-    parser.add_argument("--category", default="exams", help="Target category path under subjects/ (e.g. exams or piscine/c00)")
-    parser.add_argument("--allowed", default="write", help="Comma-separated allowed functions or commands")
-    parser.add_argument("--files", default="", help="Space-separated expected files (defaults to <slug>.c or <slug>.sh)")
-    parser.add_argument("--materialize-all", action="store_true", help="Materialize all 402 exercises, corrections, and pools from catalog")
-    parser.add_argument("--export-student-pack", metavar="DIR", help="Export clean student package without tests, corrections, or HTML")
-    parser.add_argument("--export-dev-pack", metavar="DIR", help="Export full developer review package with all 402 exercises, examples, tests, and corrections (HTML removed)")
-    parser.add_argument("--archive-base", metavar="BASE_PATH", help="Optional base path for .tar.gz and .zip archives when exporting developer pack")
-    parser.add_argument("--status", action="store_true", help="Display current engine structure status")
+    """CLI entrypoint for pforge exercise scaffolding and catalog maintenance."""
+    parser = argparse.ArgumentParser(
+        description="pforge — 1337 / 42 Exercise & Pool Blueprint Scaffolder"
+    )
+    parser.add_argument(
+        "--scaffold", metavar="SLUG", help="Create a new 4-component exercise skeleton"
+    )
+    parser.add_argument(
+        "--type",
+        default="c_program",
+        choices=[
+            "c_function",
+            "c_program",
+            "c_header",
+            "makefile",
+            "shell",
+            "python",
+            "cpp",
+        ],
+        help="Exercise evaluation mode",
+    )
+    parser.add_argument(
+        "--category",
+        default="exams",
+        help="Target category path under subjects/ (e.g. exams or piscine/c00)",
+    )
+    parser.add_argument(
+        "--allowed",
+        default="write",
+        help="Comma-separated allowed functions or commands",
+    )
+    parser.add_argument(
+        "--files",
+        default="",
+        help="Space-separated expected files (defaults to <slug>.c or <slug>.sh)",
+    )
+    parser.add_argument(
+        "--materialize-all",
+        action="store_true",
+        help="Materialize all 402 exercises, corrections, and pools from catalog",
+    )
+    parser.add_argument(
+        "--export-student-pack",
+        metavar="DIR",
+        help="Export clean student package without tests, corrections, or HTML",
+    )
+    parser.add_argument(
+        "--export-dev-pack",
+        metavar="DIR",
+        help="Export full developer review package with all 402 exercises, examples, tests, and corrections (HTML removed)",
+    )
+    parser.add_argument(
+        "--archive-base",
+        metavar="BASE_PATH",
+        help="Optional base path for .tar.gz and .zip archives when exporting developer pack",
+    )
+    parser.add_argument(
+        "--status", action="store_true", help="Display current engine structure status"
+    )
     args = parser.parse_args(argv)
 
     if args.export_dev_pack:
         arch = Path(args.archive_base) if args.archive_base else None
-        res = export_developer_review_package(Path(args.export_dev_pack), archive_base=arch)
+        res = export_developer_review_package(
+            Path(args.export_dev_pack), archive_base=arch
+        )
         print(
             f"[pforge] Exported Developer Review Package ({res['subjects_exported']} subjects, "
             f"{res['examples_txt_exported']} examples.txt, {res['tests_yml_exported']} tests.yml, "
@@ -1036,7 +2228,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.export_student_pack:
         res = export_clean_student_package(Path(args.export_student_pack))
-        print(f"[pforge] Exported clean student package ({res['subjects_exported']} subjects) to: {args.export_student_pack}")
+        print(
+            f"[pforge] Exported clean student package ({res['subjects_exported']} subjects) to: {args.export_student_pack}"
+        )
         return 0
 
     if args.materialize_all:
@@ -1050,7 +2244,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.status or not args.scaffold:
         exams_count = len([p for p in (KIT_ROOT / "subjects/exams").glob("*/meta.yml")])
-        piscine_count = len([p for p in (KIT_ROOT / "subjects/piscine").rglob("meta.yml")])
+        piscine_count = len(
+            [p for p in (KIT_ROOT / "subjects/piscine").rglob("meta.yml")]
+        )
         print(f"[pforge] 1337/42 Core Engine Root : {KIT_ROOT}")
         print(f"[pforge] Active Exam Subjects     : {exams_count}")
         print(f"[pforge] Active Piscine Subjects  : {piscine_count}")
@@ -1059,7 +2255,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
     slug = args.scaffold.strip()
-    default_ext = ".sh" if args.type == "shell" else (".py" if args.type == "python" else (".cpp" if args.type == "cpp" else ".c"))
+    default_ext = (
+        ".sh"
+        if args.type == "shell"
+        else (
+            ".py" if args.type == "python" else (".cpp" if args.type == "cpp" else ".c")
+        )
+    )
     exp_files = args.files.split() if args.files.strip() else [f"{slug}{default_ext}"]
     out_dir = scaffold_exercise(slug, args.type, args.category, args.allowed, exp_files)
     print(f"[pforge] Scaffolded 4-component 1337/42 exercise blueprint at: {out_dir}")
@@ -1070,4 +2272,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
