@@ -53,7 +53,7 @@ from deepthought.grader import (  # noqa: E402
     get_executable_temp_root,
     grade_subject,
 )
-from deepthought.progression import StudentProfile  # noqa: E402
+from deepthought.progression import StudentProfile, compute_42_level  # noqa: E402
 
 
 @dataclass
@@ -1093,6 +1093,15 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
             extra_env={"DT_CHECK_LEAKS": "1"},
         )
         self.assertEqual(rt.returncode, 0, rt.stderr)
+
+    def test_31(self) -> None:
+        """LEVEL-CALIBRATION: compute_42_level maps Piscine to ~7.33 and full 439 corpus to 21.00."""
+        self.assertEqual(compute_42_level(0), 0.0)
+        self.assertEqual(compute_42_level(1987), 1.0)
+        self.assertEqual(compute_42_level(31575), 7.33)
+        self.assertLess(compute_42_level(136000), 21.0)
+        self.assertEqual(compute_42_level(136295), 21.0)
+        self.assertEqual(compute_42_level(500000), 21.0)
 
 
 if __name__ == "__main__":

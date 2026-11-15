@@ -70,11 +70,12 @@ def calculate_exercise_xp(
 
 
 def compute_42_level(total_xp: int) -> float:
-    """Compute 42 / 1337 Intra level from cumulative XP (420 XP = Level 1.00)."""
+    """Compute 42 / 1337 Intra level from cumulative XP (1987 XP = Level 1.00)."""
     if total_xp <= 0:
         return 0.0
-    # Smooth sub-linear curve matching Piscine / Common Core progression (0 -> 21)
-    lvl = math.pow(total_xp / 420.0, 0.72)
+    # Calibrated against the 439-exercise corpus: 31,575 XP (full Piscine) yields
+    # Level 7.33 and 136,295 XP (all 439 exercises) reaches the Level 21.00 cap.
+    lvl = math.pow(total_xp / 1987.0, 0.72)
     return round(min(21.0, lvl), 2)
 
 
