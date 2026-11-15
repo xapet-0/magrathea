@@ -11,4 +11,4 @@ compiler_flags:
 - -Wextra
 - -Werror
 norminette: true
-prototype: (*cmp)(list_ptr->data, list_other_ptr->data);
+prototype: void ft_sorted_list_merge(t_list **begin_list1, t_list *begin_list2, int (*cmp)());

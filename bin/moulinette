@@ -298,12 +298,19 @@ _FORBIDDEN_NAME_CHARS = frozenset("*?[]\\\x00\n\r")
 
 def _is_exercise_dir(path: Path) -> bool:
     """An exercise is a subject directory that carries a meta.yml; module folders, PDFs and stray files are not."""
-    return (path / "meta.yml").is_file()
+    try:
+        return (path / "meta.yml").is_file()
+    except OSError:
+        return False
 
 
 def normalise_exercise_name(subject: str) -> str:
     """Canonical form of what the student typed: no empty parts, no '.', no '..', no glob characters."""
     raw = str(subject).strip()
+    if len(raw) > 128:
+        raise ExerciseLookupError(
+            f"Exercise name too long ({len(raw)} chars; max 128)."
+        )
     parts = [part for part in raw.split("/") if part]
     if not parts:
         raise ExerciseLookupError("Empty exercise name.")

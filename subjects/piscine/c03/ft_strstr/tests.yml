@@ -64,9 +64,9 @@ fixed_tests:
 
     '
 - name: test_10_overlapping_prefix_backtrack
-  call: printf("%s\n", ft_strstr("mississippi", "issip"))
+  call: 'char s[] = "mississippi"; char *p = ft_strstr(s, "issip"); printf("%d:%s\n", p == s + 4, p ? p : "(null)")'
   tier: stress
-  stdout: 'issippi
+  stdout: '1:issippi
 
     '
 subject_examples:

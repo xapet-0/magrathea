@@ -12,4 +12,4 @@ compiler_flags:
 - -Wextra
 - -Werror
 norminette: false
-prototype: struct s_stack *init(void);
+prototype: struct s_stack *init(void); void *pop(struct s_stack *stack); void push(struct s_stack *stack, void *content); void *peek(struct s_stack *stack); int isEmpty(struct s_stack *stack);

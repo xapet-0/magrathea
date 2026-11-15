@@ -50,6 +50,7 @@ void dt_harness_get_counters(int *out_malloc_calls, int *out_free_calls,
 			     size_t *out_active_bytes);
 void dt_harness_set_in_hook(int in_hook);
 void dt_harness_audit_leaks_now(void);
+int dt_harness_is_fail_malloc_active(void);
 
 #ifdef __cplusplus
 }

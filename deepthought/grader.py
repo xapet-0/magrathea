@@ -47,8 +47,11 @@ import yaml
 from .compiler_and_symbols import (
     FLAGS_COMPILE_SAFE,
     FLAGS_DEFAULT,
+    MAX_SOURCE_FILE_BYTES,
     check_forbidden_c_includes,
+    extract_user_preprocessed_code,
     has_main_definition,
+    strip_c_comments_and_strings,
     verify_symbol_whitelist,
 )
 from .makefile_and_repo import audit_makefile
@@ -345,11 +348,23 @@ def _build_sandbox_preexec(cwd: Path) -> Callable[[], None]:
        cannot create more than 256 processes for this UID.
     """
     kit_root = Path(__file__).resolve().parent.parent
-    protected_dirs = [
-        str((kit_root / "corrections").resolve()),
-        str((kit_root / "subjects").resolve()),
-        str((kit_root / "pools").resolve()),
+    protected_candidates = [
+        kit_root / "corrections",
+        kit_root / "subjects",
+        kit_root / "pools",
+        Path.home() / "exam-basedir",
     ]
+    env_exam_basedir = os.environ.get("FT_EXAM_BASEDIR", "").strip()
+    if env_exam_basedir:
+        protected_candidates.append(Path(env_exam_basedir).expanduser())
+    protected_dirs: list[str] = []
+    for p_cand in protected_candidates:
+        try:
+            p_res = str(p_cand.resolve())
+        except OSError:
+            continue
+        if p_res not in protected_dirs:
+            protected_dirs.append(p_res)
     cwd_resolved = str(cwd.resolve())
     uid = os.getuid()
     gid = os.getgid()
@@ -384,7 +399,11 @@ def _build_sandbox_preexec(cwd: Path) -> Callable[[], None]:
                     )
                     libc.mount(None, b"/", None, ms_rec | ms_private, None)
                     for pdir in protected_dirs:
-                        if not cwd_resolved.startswith(pdir) and os.path.isdir(pdir):
+                        in_pdir = (
+                            cwd_resolved == pdir
+                            or cwd_resolved.startswith(pdir + os.sep)
+                        )
+                        if not in_pdir and os.path.isdir(pdir):
                             rc_m = libc.mount(
                                 b"tmpfs",
                                 pdir.encode("utf-8"),
@@ -1398,6 +1417,98 @@ def evaluate_c_header(
     return True, "OK :)"
 
 
+def _validate_turnin_tree(
+    kit_root: Path,
+    subject_id: str,
+    submit_dir: Path,
+    expected_files: Sequence[str],
+    trace: list[str],
+    oracle_info: dict,
+) -> GradeReport | None:
+    """Reject symlinks and oversized (>1 MB) source files before copying submissions."""
+    protected_roots = [
+        (kit_root / sub).resolve() for sub in ("corrections", "subjects", "pools")
+    ]
+    if submit_dir.is_symlink():
+        try:
+            resolved_submit = submit_dir.resolve()
+        except OSError:
+            resolved_submit = None
+        if resolved_submit is None or any(
+            resolved_submit == root or resolved_submit.is_relative_to(root)
+            for root in protected_roots
+        ):
+            trace.append(
+                "Cheating (-42): Symbolic link to protected kit directory in submission\nGrade: 0"
+            )
+            return GradeReport(
+                subject_id,
+                False,
+                "Cheating (-42)",
+                "Symbolic links are forbidden in submission directory",
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
+
+    candidates: list[Path] = [
+        submit_dir / str(exp) for exp in expected_files if "*" not in str(exp)
+    ]
+    try:
+        candidates.extend(submit_dir.rglob("*"))
+    except OSError:
+        pass
+
+    src_suffixes = {".c", ".h", ".cpp", ".hpp", ".cc", ".cxx", ".inc"}
+    seen: set[Path] = set()
+    for entry in candidates:
+        if entry in seen:
+            continue
+        seen.add(entry)
+        try:
+            rel_parts = entry.relative_to(submit_dir).parts
+        except ValueError:
+            rel_parts = ()
+        if ".git" in rel_parts:
+            continue
+        if entry.is_symlink():
+            trace.append(
+                f"Cheating (-42): Symbolic link detected in submission directory: {entry.name}\nGrade: 0"
+            )
+            return GradeReport(
+                subject_id,
+                False,
+                "Cheating (-42)",
+                f"Symbolic links are forbidden in turn-in directory: {entry.name}",
+                "\n".join(trace),
+                "",
+                oracle_info,
+            )
+        if (
+            not any(part.startswith(".") for part in rel_parts)
+            and entry.is_file()
+            and entry.suffix.lower() in src_suffixes
+        ):
+            try:
+                fsize = entry.stat().st_size
+            except OSError:
+                fsize = 0
+            if fsize > MAX_SOURCE_FILE_BYTES:
+                trace.append(
+                    f"Does not compile: '{entry.name}' exceeds maximum source size limit (1 MB)\nGrade: 0"
+                )
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Does not compile",
+                    f"File '{entry.name}' exceeds 1 MB limit",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
+    return None
+
+
 def evaluate_cpp_exercise(
     subj_dir: Path,
     subject_id: str,
@@ -1407,9 +1518,16 @@ def evaluate_cpp_exercise(
     oracle_info: dict,
 ) -> GradeReport:
     """Evaluate a C++ exercise submission against compiled test fixtures."""
+    kit_root = Path(__file__).resolve().parent.parent
     expected_files = meta.get("expected_files") or []
+    tree_err = _validate_turnin_tree(
+        kit_root, subject_id, submit_dir, [str(e) for e in expected_files], trace, oracle_info
+    )
+    if tree_err is not None:
+        return tree_err
+
     for exp in expected_files:
-        if not (submit_dir / exp).exists():
+        if not (submit_dir / exp).is_file():
             trace.append(
                 f"Missing expected turn-in file: '{exp}'\nNothing turned in\nGrade: 0"
             )
@@ -1444,9 +1562,36 @@ def evaluate_cpp_exercise(
             "",
             oracle_info,
         )
+
+    cxx = shutil.which("c++") or shutil.which("g++") or shutil.which("clang++")
     for exp in expected_files:
-        txt = (submit_dir / exp).read_text(encoding="utf-8", errors="replace")
-        if re.search(r"\bswitch\s*\(", txt):
+        raw_txt = (submit_dir / exp).read_text(encoding="utf-8", errors="replace")
+        clean_txt = strip_c_comments_and_strings(raw_txt)
+        switch_found = bool(re.search(r"\bswitch\s*\(", clean_txt))
+        if not switch_found and cxx and ("##" in clean_txt or "#define" in clean_txt):
+            try:
+                pp = _run_isolated(
+                    [
+                        cxx,
+                        "-E",
+                        "-std=c++98",
+                        "-x",
+                        "c++",
+                        "-I",
+                        str(submit_dir),
+                        str(submit_dir / exp),
+                    ],
+                    cwd=submit_dir,
+                    timeout=5.0,
+                )
+                if pp.returncode == 0:
+                    user_pp = strip_c_comments_and_strings(
+                        extract_user_preprocessed_code(pp.stdout)
+                    )
+                    switch_found = bool(re.search(r"\bswitch\s*\(", user_pp))
+            except (OSError, subprocess.SubprocessError):
+                pass
+        if switch_found:
             trace.append(
                 f"{exp}: Cheating (-42): switch statement is forbidden in {subject_id}!"
             )
@@ -1460,7 +1605,6 @@ def evaluate_cpp_exercise(
                 oracle_info,
             )
 
-    cxx = shutil.which("c++") or shutil.which("g++") or shutil.which("clang++")
     if not cxx:
         return GradeReport(
             subject_id,
@@ -1523,6 +1667,9 @@ def evaluate_cpp_exercise(
                 "",
                 oracle_info,
             )
+        (work / "__dt_main.cpp").unlink(missing_ok=True)
+        for obj_f in work.glob("*.o"):
+            obj_f.unlink(missing_ok=True)
         if not tests_cfg.get("main_cpp") and tests_cfg.get("fixed_tests"):
             for idx, ft in enumerate(tests_cfg["fixed_tests"], start=1):
                 exp_out = (
@@ -1647,6 +1794,21 @@ def evaluate_cpp_exercise(
             else tests_cfg.get("expected", "")
         )
         if rproc.returncode != 0 or rproc.stdout != exp_out:
+            if rproc.returncode != 0:
+                sig_name, sig_reason, is_fatal = classify_process_exit_status(
+                    rproc.returncode, rproc.stderr
+                )
+                if is_fatal:
+                    trace.append(f"Command got killed by a {sig_name}\nGrade: 0")
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        sig_name,
+                        sig_reason,
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
             trace.append(format_unified_diff(exp_out, rproc.stdout))
             return GradeReport(
                 subject_id,
@@ -1691,6 +1853,9 @@ def evaluate_cpp_exercise(
                     "",
                     oracle_info,
                 )
+            (work / ec_cpp).unlink(missing_ok=True)
+            for obj_f in work.glob("*.o"):
+                obj_f.unlink(missing_ok=True)
             try:
                 ec_rproc = _run_isolated([str(work / ec_exe)], cwd=work, timeout=2.0)
             except subprocess.TimeoutExpired:
@@ -1709,6 +1874,23 @@ def evaluate_cpp_exercise(
                 else ec.get("expected", "")
             )
             if ec_rproc.returncode != 0 or ec_rproc.stdout != ec_exp:
+                if ec_rproc.returncode != 0:
+                    sig_name, sig_reason, is_fatal = classify_process_exit_status(
+                        ec_rproc.returncode, ec_rproc.stderr
+                    )
+                    if is_fatal:
+                        trace.append(
+                            f"[{ec_name}] Command got killed by a {sig_name}\nGrade: 0"
+                        )
+                        return GradeReport(
+                            subject_id,
+                            False,
+                            sig_name,
+                            sig_reason,
+                            "\n".join(trace),
+                            "",
+                            oracle_info,
+                        )
                 trace.append(
                     f"[{ec_name}]\n" + format_unified_diff(ec_exp, ec_rproc.stdout)
                 )
@@ -1723,23 +1905,36 @@ def evaluate_cpp_exercise(
                 )
         for neg_src in tests_cfg.get("must_not_compile") or []:
             (work / "__dt_neg.cpp").write_text(str(neg_src), encoding="utf-8")
-            nproc = subprocess.run(
-                [
-                    cxx,
-                    "-Wall",
-                    "-Wextra",
-                    "-Werror",
-                    "-std=c++98",
-                    "-c",
-                    "__dt_neg.cpp",
-                    "-o",
-                    "__dt_neg.o",
-                ],
-                cwd=work,
-                capture_output=True,
-                text=True,
-                errors="replace",
-            )
+            try:
+                nproc = subprocess.run(
+                    [
+                        cxx,
+                        "-Wall",
+                        "-Wextra",
+                        "-Werror",
+                        "-std=c++98",
+                        "-c",
+                        "__dt_neg.cpp",
+                        "-o",
+                        "__dt_neg.o",
+                    ],
+                    cwd=work,
+                    capture_output=True,
+                    text=True,
+                    errors="replace",
+                    timeout=10.0,
+                )
+            except subprocess.TimeoutExpired:
+                trace.append("Compilation timed out during Coplien check\nGrade: 0")
+                return GradeReport(
+                    subject_id,
+                    False,
+                    "Timeout",
+                    "Timeout during Coplien check",
+                    "\n".join(trace),
+                    "",
+                    oracle_info,
+                )
             if nproc.returncode == 0:
                 trace.append(
                     "Coplien / non-copyable check KO: forbidden copy/default construction compiled!"
@@ -1996,8 +2191,8 @@ def resolve_subject_dir(
     kit_root: Path, subject_id: str, *, is_exam: bool = False
 ) -> tuple[Path, str]:
     """Resolve plain or pool-namespaced subject IDs safely inside kit_root/subjects with dynamic cache invalidation (FIX-SP-004, OPT-SP-004)."""
-    if "\x00" in subject_id:
-        raise FileNotFoundError(f"Invalid subject identifier: {subject_id!r}")
+    if "\x00" in subject_id or len(subject_id) > 128:
+        raise FileNotFoundError(f"Invalid subject identifier: {subject_id[:64]!r}")
     norm_id = subject_id.strip().strip("/")
     if ":" in norm_id:
         norm_id = norm_id.replace(":", "/")
@@ -2660,10 +2855,17 @@ def _grade_subject_inner(
         )
 
     # --- Route 4: C Function, C Program & Project Exercises ---
+    tree_err = _validate_turnin_tree(
+        kit_root, subject_id, submit_dir, [str(e) for e in expected_files], trace, oracle_info
+    )
+    if tree_err is not None:
+        return tree_err
+
     all_dir_files = [
         p
         for p in submit_dir.rglob("*")
         if p.is_file()
+        and not p.is_symlink()
         and not any(part.startswith(".") for part in p.relative_to(submit_dir).parts)
     ]
     is_rush_or_bsq = subject_id.startswith(("rush", "bsq")) or "rush" in str(subj_dir)
@@ -2695,7 +2897,7 @@ def _grade_subject_inner(
         norm_files = user_files
 
     for exp in expected_files:
-        if "*" not in exp and not (submit_dir / exp).exists():
+        if "*" not in exp and not (submit_dir / exp).is_file():
             trace.append(f"$> ls -la {subject_id}/{exp}")
             trace.append(f"ls: {subject_id}/{exp}: No such file or directory")
             trace.append(
@@ -3177,13 +3379,16 @@ def _grade_subject_inner(
             student_c_blob = "\n".join(
                 p.read_text(encoding="utf-8", errors="ignore") for p in c_sources
             )
+            clean_student_c = strip_c_comments_and_strings(student_c_blob)
             all_known_defs = defined_blob + "\n" + student_c_blob
+            clean_known_defs = strip_c_comments_and_strings(all_known_defs)
+            clean_defined_blob = strip_c_comments_and_strings(defined_blob)
             if "->" in proto or (
                 subject_id and not re.search(rf"\b{re.escape(subject_id)}\b", proto)
             ):
                 m_sig = re.search(
                     rf"^([A-Za-z_][\w\s\*]*?\b{re.escape(subject_id)}\s*\([^;{{}}]*\))\s*\{{",
-                    student_c_blob,
+                    clean_student_c,
                     re.MULTILINE,
                 )
                 if m_sig:
@@ -3192,8 +3397,8 @@ def _grade_subject_inner(
                     proto = ""
             if proto:
                 headers.append(proto + ";")
-            uses_btree = "t_btree" in all_known_defs or "t_btree" in combined_tests_text
-            uses_list = "t_list" in all_known_defs or "t_list" in combined_tests_text
+            uses_btree = "t_btree" in clean_known_defs or "t_btree" in combined_tests_text
+            uses_list = "t_list" in clean_known_defs or "t_list" in combined_tests_text
             if uses_btree:
                 dt_cmp_code = "static __attribute__((unused)) int dt_cmp(void *a, void *b) { return (*(int *)a - *(int *)b); }"
                 dt_print_code = 'static __attribute__((unused)) void dt_print(void *d) { printf("%s", (char *)d); }'
@@ -3242,26 +3447,26 @@ def _grade_subject_inner(
             ]
             for h_name, h_code in helper_snippets:
                 if re.search(rf"\b{h_name}\b", combined_tests_text) and not re.search(
-                    rf"\b{h_name}\s*\(", defined_blob
+                    rf"\b{h_name}\s*\(", clean_defined_blob
                 ):
                     headers.append(h_code)
             if subject_id != "ft_create_elem" and re.search(
-                r"\bft_create_elem\s*\(", combined_tests_text + "\n" + student_c_blob
+                r"\bft_create_elem\s*\(", combined_tests_text + "\n" + clean_student_c
             ):
                 if not re.search(
-                    r"\bft_create_elem\s*\([^;{}]*\)\s*\{", all_known_defs
+                    r"\bft_create_elem\s*\([^;{}]*\)\s*\{", clean_known_defs
                 ):
                     headers.append(
-                        "t_list *ft_create_elem(void *data) { t_list *n = (t_list *)malloc(sizeof(t_list)); if (!n) return NULL; n->data = data; n->next = NULL; return n; }"
+                        "__attribute__((weak)) t_list *ft_create_elem(void *data) { t_list *n = (t_list *)malloc(sizeof(t_list)); if (!n) return NULL; n->data = data; n->next = NULL; return n; }"
                     )
             if subject_id != "btree_create_node" and re.search(
-                r"\bbtree_create_node\s*\(", combined_tests_text + "\n" + student_c_blob
+                r"\bbtree_create_node\s*\(", combined_tests_text + "\n" + clean_student_c
             ):
                 if not re.search(
-                    r"\bbtree_create_node\s*\([^;{}]*\)\s*\{", all_known_defs
+                    r"\bbtree_create_node\s*\([^;{}]*\)\s*\{", clean_known_defs
                 ):
                     headers.append(
-                        "t_btree *btree_create_node(void *item) { t_btree *n = (t_btree *)malloc(sizeof(t_btree)); if (!n) return NULL; n->item = item; n->left = NULL; n->right = NULL; return n; }"
+                        "__attribute__((weak)) t_btree *btree_create_node(void *item) { t_btree *n = (t_btree *)malloc(sizeof(t_btree)); if (!n) return NULL; n->item = item; n->left = NULL; n->right = NULL; return n; }"
                     )
 
             if re.search(r"\bstrdup\s*\(", combined_tests_text):
@@ -3279,7 +3484,7 @@ def _grade_subject_inner(
             def _guard_null_injection(stmt: str) -> str:
                 return re.sub(
                     r'((?:struct\s+\w+|\w+)\s*\*+\s*([A-Za-z_]\w*)\s*=\s*[A-Za-z_]\w*\s*\((?:[^;"]|"[^"]*")*\)\s*;)',
-                    r'\1 if (!\2 && getenv("DT_FAIL_MALLOC_AT")) return 0;',
+                    r"\1 if (!\2 && DT_IS_FAIL_MALLOC()) return 0;",
                     stmt,
                 )
 
@@ -3291,9 +3496,12 @@ def _grade_subject_inner(
                     "extern dt_arena_mark_t dt_harness_mark(void);",
                     "extern int dt_harness_rewind(dt_arena_mark_t m);",
                     "extern char *dt_harness_strdup(const char *s);",
+                    "extern int dt_harness_is_fail_malloc_active(void);",
+                    "#define DT_IS_FAIL_MALLOC() dt_harness_is_fail_malloc_active()",
                     "#define DT_TC_BEGIN(label) dt_arena_mark_t __dt_m = dt_harness_mark(); (void)dt_harness_strdup(label);",
                     "#define DT_TC_END() dt_harness_rewind(__dt_m);",
                     "#else",
+                    '#define DT_IS_FAIL_MALLOC() (getenv("DT_FAIL_MALLOC_AT") != NULL)',
                     "#define DT_TC_BEGIN(label) (void)0;",
                     "#define DT_TC_END() (void)0;",
                     "#endif",
@@ -3412,9 +3620,26 @@ def _grade_subject_inner(
                         ]
                     )
                 )
-                lproc = subprocess.run(
-                    cmd, cwd=work, capture_output=True, text=True, errors="replace"
-                )
+                try:
+                    lproc = subprocess.run(
+                        cmd,
+                        cwd=work,
+                        capture_output=True,
+                        text=True,
+                        errors="replace",
+                        timeout=10.0,
+                    )
+                except subprocess.TimeoutExpired:
+                    trace.append("Compilation timed out (> 10.0s)\nGrade: 0")
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Timeout",
+                        "Compilation timeout",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
                 if lproc.returncode != 0:
                     trace.append(lproc.stderr.strip())
                     return GradeReport(
@@ -3426,6 +3651,9 @@ def _grade_subject_inner(
                         "",
                         oracle_info,
                     )
+                (work / "__dt_main.c").unlink(missing_ok=True)
+                for obj_f in work.glob("*.o"):
+                    obj_f.unlink(missing_ok=True)
 
                 fixed_env = {**os.environ}
                 if meta.get("check_leaks") is not False and (
@@ -3600,9 +3828,26 @@ def _grade_subject_inner(
                     b_name,
                     "-lm",
                 ]
-                lproc = subprocess.run(
-                    cmd, cwd=work, capture_output=True, text=True, errors="replace"
-                )
+                try:
+                    lproc = subprocess.run(
+                        cmd,
+                        cwd=work,
+                        capture_output=True,
+                        text=True,
+                        errors="replace",
+                        timeout=10.0,
+                    )
+                except subprocess.TimeoutExpired:
+                    trace.append("Compilation timed out (> 10.0s)\nGrade: 0")
+                    return GradeReport(
+                        subject_id,
+                        False,
+                        "Timeout",
+                        "Compilation timeout in test harness",
+                        "\n".join(trace),
+                        "",
+                        oracle_info,
+                    )
                 if lproc.returncode != 0:
                     trace.append(lproc.stderr.strip())
                     return GradeReport(
@@ -3614,6 +3859,9 @@ def _grade_subject_inner(
                         "",
                         oracle_info,
                     )
+                (work / c_name).unlink(missing_ok=True)
+                for obj_f in work.glob("*.o"):
+                    obj_f.unlink(missing_ok=True)
                 _append_c_func_case_header(
                     trace,
                     idx,
@@ -3623,7 +3871,9 @@ def _grade_subject_inner(
                 )
                 oracle_env = {**os.environ}
                 if meta.get("check_leaks") is not False and (
-                    whitelist is None or "free" in (whitelist or [])
+                    whitelist is None
+                    or "free" in (whitelist or [])
+                    or "free(" in src_code
                 ):
                     oracle_env["DT_CHECK_LEAKS"] = "1"
                 try:

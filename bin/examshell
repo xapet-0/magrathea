@@ -10,6 +10,7 @@ import contextlib
 import datetime as dt
 import io
 import json
+import math
 import os
 from pathlib import Path
 import random
@@ -34,7 +35,10 @@ if str(KIT_ROOT) not in sys.path:
 
 import yaml  # noqa: E402
 
-from deepthought.catalog import validate_duration_seconds  # noqa: E402
+from deepthought.catalog import (  # noqa: E402
+    CatalogValidationError,
+    validate_duration_seconds,
+)
 from deepthought.grader import (  # noqa: E402
     TRACE_MODES,
     GradeReport,
@@ -988,80 +992,120 @@ class ExamShell(cmd.Cmd):
                 )
                 loaded_state = None
 
+        initial_practice = self.practice
         if loaded_state is not None:
-            state = loaded_state
-            self.resumed = True
-            self._basedir_prepared = True
-            saved_practice = bool(state.get("practice", False))
-            if self.explicit_mode is None:
-                self.practice = saved_practice
-            elif (self.explicit_mode == "practice") != saved_practice:
-                saved_lbl = "practice" if saved_practice else "real"
-                raise SystemExit(
-                    f"Error: Cannot resume a '{saved_lbl}' mode session in '{self.explicit_mode}' mode. "
-                    f"Use --mode {saved_lbl} or --fresh."
-                )
-            self.current_idx = max(
-                0, min(len(self.levels) - 1, int(state.get("current_idx", 0)))
-            )
-            self.grade = int(state.get("grade", 0))
-            self.attempts = int(state.get("attempts", 0))
-            if "start_at" in state:
-                try:
-                    dt_start = dt.datetime.fromisoformat(str(state["start_at"]))
-                    if dt_start.tzinfo is None:
-                        dt_start = dt_start.replace(tzinfo=self._now_dt().tzinfo)
-                    self.start_ts = dt_start.timestamp()
-                except Exception:
-                    self.start_ts = float(state.get("start_ts", self._now_ts()))
-            else:
-                self.start_ts = float(state.get("start_ts", self._now_ts()))
-            self.duration_sec = validate_duration_seconds(
-                state.get("duration_sec", self.duration_sec), context="resumed session"
-            )
-            saved_assignment = str(state.get("current_assignment", "") or "")
-            if saved_assignment and self._is_valid_assignment_slug(saved_assignment):
-                self.current_assignment = saved_assignment
-            else:
-                if saved_assignment:
-                    print(
-                        f"Warning: Ignoring invalid saved assignment {saved_assignment!r} in session file; picking a new one.",
-                        file=sys.stderr,
+            try:
+                state = loaded_state
+                saved_practice = bool(state.get("practice", False))
+                if self.explicit_mode is None:
+                    self.practice = saved_practice
+                elif (self.explicit_mode == "practice") != saved_practice:
+                    saved_lbl = "practice" if saved_practice else "real"
+                    raise SystemExit(
+                        f"Error: Cannot resume a '{saved_lbl}' mode session in '{self.explicit_mode}' mode. "
+                        f"Use --mode {saved_lbl} or --fresh."
                     )
-                self.current_assignment = self._pick_assignment()
-            self.history: list[str] = list(state.get("history", []))
-            self.cmd_history = list(state.get("cmd_history", []))
-            self.level_records: list[dict] = list(state.get("level_records", []))
-            self.norm_enabled = bool(state.get("norm_enabled", False))
-            saved_tm = str(state.get("trace_mode", "real")).strip().lower()
-            req_tm = (
-                explicit_trace_mode if explicit_trace_mode in TRACE_MODES else saved_tm
-            )
-            self.trace_mode = req_tm if req_tm in TRACE_MODES else "real"
-            saved_cm = str(state.get("cooldown_mode", "real")).strip().lower()
-            req_cm = (
-                explicit_cooldown_mode
-                if explicit_cooldown_mode in {"real", "linear"}
-                else saved_cm
-            )
-            self.cooldown_mode = req_cm if req_cm in {"real", "linear"} else "real"
-            self.cooldown_base = max(1, int(state.get("cooldown_base", 60)))
-            self.cooldown_step = max(1, int(state.get("cooldown_step", 30)))
-            self.cooldown_enabled = bool(state.get("cooldown_enabled", True))
-            self.next_grademe_ts = float(state.get("next_grademe_ts", 0.0))
-            self.last_penalty_sec = int(state.get("last_penalty_sec", 0))
-            saved_lifecycle = str(state.get("lifecycle_state", "running"))
-            if (
-                saved_lifecycle == "abandoned"
-                and not self._is_expired()
-                and self.grade < 100
-            ):
-                saved_lifecycle = "running"
-            self.lifecycle_state = (
-                saved_lifecycle if saved_lifecycle in SESSION_STATES else "running"
-            )
-            self._refresh_lifecycle_state()
-        else:
+                self.current_idx = max(
+                    0, min(len(self.levels) - 1, int(state.get("current_idx", 0)))
+                )
+                self.grade = int(state.get("grade", 0))
+                self.attempts = int(state.get("attempts", 0))
+                if "start_at" in state:
+                    try:
+                        dt_start = dt.datetime.fromisoformat(str(state["start_at"]))
+                        if dt_start.tzinfo is None:
+                            dt_start = dt_start.replace(tzinfo=self._now_dt().tzinfo)
+                        self.start_ts = dt_start.timestamp()
+                    except Exception:
+                        self.start_ts = float(state.get("start_ts", self._now_ts()))
+                else:
+                    self.start_ts = float(state.get("start_ts", self._now_ts()))
+                if not math.isfinite(self.start_ts):
+                    raise ValueError("Non-finite start_ts in session state")
+                self.duration_sec = validate_duration_seconds(
+                    state.get("duration_sec", self.duration_sec),
+                    context="resumed session",
+                )
+                saved_assignment = str(state.get("current_assignment", "") or "")
+                if saved_assignment and self._is_valid_assignment_slug(
+                    saved_assignment
+                ):
+                    self.current_assignment = saved_assignment
+                else:
+                    if saved_assignment:
+                        print(
+                            f"Warning: Ignoring invalid saved assignment {saved_assignment!r} in session file; picking a new one.",
+                            file=sys.stderr,
+                        )
+                    self.current_assignment = self._pick_assignment()
+                raw_hist = state.get("history", [])
+                raw_cmd_hist = state.get("cmd_history", [])
+                raw_lvl_recs = state.get("level_records", [])
+                if (
+                    not isinstance(raw_hist, list)
+                    or not isinstance(raw_cmd_hist, list)
+                    or not isinstance(raw_lvl_recs, list)
+                    or not all(isinstance(rec, dict) for rec in raw_lvl_recs)
+                ):
+                    raise TypeError(
+                        "Invalid history or level_records list in session state"
+                    )
+                self.history = [str(item) for item in raw_hist]
+                self.cmd_history = [str(item) for item in raw_cmd_hist]
+                self.level_records = list(raw_lvl_recs)
+                self.norm_enabled = bool(state.get("norm_enabled", False))
+                saved_tm = str(state.get("trace_mode", "real")).strip().lower()
+                req_tm = (
+                    explicit_trace_mode
+                    if explicit_trace_mode in TRACE_MODES
+                    else saved_tm
+                )
+                self.trace_mode = req_tm if req_tm in TRACE_MODES else "real"
+                saved_cm = str(state.get("cooldown_mode", "real")).strip().lower()
+                req_cm = (
+                    explicit_cooldown_mode
+                    if explicit_cooldown_mode in {"real", "linear"}
+                    else saved_cm
+                )
+                self.cooldown_mode = req_cm if req_cm in {"real", "linear"} else "real"
+                self.cooldown_base = max(1, int(state.get("cooldown_base", 60)))
+                self.cooldown_step = max(1, int(state.get("cooldown_step", 30)))
+                self.cooldown_enabled = bool(state.get("cooldown_enabled", True))
+                self.next_grademe_ts = float(state.get("next_grademe_ts", 0.0))
+                if not math.isfinite(self.next_grademe_ts):
+                    raise ValueError("Non-finite next_grademe_ts in session state")
+                self.last_penalty_sec = int(state.get("last_penalty_sec", 0))
+                saved_lifecycle = str(state.get("lifecycle_state", "running"))
+                if (
+                    saved_lifecycle == "abandoned"
+                    and not self._is_expired()
+                    and self.grade < 100
+                ):
+                    saved_lifecycle = "running"
+                self.lifecycle_state = (
+                    saved_lifecycle if saved_lifecycle in SESSION_STATES else "running"
+                )
+                self.resumed = True
+                self._basedir_prepared = True
+                self._refresh_lifecycle_state()
+            except SystemExit:
+                raise
+            except (
+                CatalogValidationError,
+                ValueError,
+                TypeError,
+                KeyError,
+                OSError,
+            ) as exc:
+                print(
+                    f"Warning: Corrupted session state in {self.session_file} ({exc}). Starting fresh session.",
+                    file=sys.stderr,
+                )
+                self.practice = initial_practice
+                self.resumed = False
+                self._basedir_prepared = False
+                loaded_state = None
+        if loaded_state is None:
             if level is not None:
                 self.current_idx = max(0, min(len(self.levels) - 1, level))
             else:

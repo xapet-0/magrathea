@@ -118,6 +118,8 @@ GLIBC_ALIAS_MAP = {
     "xpg_basename": "basename",
 }
 
+MAX_SOURCE_FILE_BYTES = 1_048_576
+
 FLAGS_DEFAULT = ["-Wall", "-Wextra", "-Werror"]
 FLAGS_COMPILE_SAFE = [
     "-Wall",
@@ -125,6 +127,7 @@ FLAGS_COMPILE_SAFE = [
     "-Werror",
     "-Wno-builtin-declaration-mismatch",
     "-fno-builtin",
+    "-D__NO_CTYPE",
 ]
 
 
@@ -323,6 +326,34 @@ def extract_defined_and_undefined_symbols(
     return defined, undefined, raw_nm
 
 
+_ASM_KEYWORD_RE = re.compile(r"\b(__asm__|__asm|asm)\b")
+_PREPROC_MARKER_RE = re.compile(r'^#\s+\d+\s+"([^"]+)"(.*)$')
+_RAW_SYSCALL_INSN_RE = re.compile(
+    r"^\s*[0-9a-f]+:\t[^\t]+\t(?:(?:syscall|sysenter|svc)\b|int\s+\$?0x80\b)",
+    re.MULTILINE,
+)
+
+
+def extract_user_preprocessed_code(pp_stdout: str) -> str:
+    """Filter `cc -E` line-marker output to exclude system and built-in headers."""
+    kept: list[str] = []
+    keep = True
+    for line in pp_stdout.splitlines():
+        m = _PREPROC_MARKER_RE.match(line)
+        if m:
+            fname = m.group(1)
+            flags = m.group(2).split()
+            keep = (
+                fname not in {"<built-in>", "<command-line>"}
+                and "3" not in flags
+                and not fname.startswith("/usr/")
+            )
+            continue
+        if keep:
+            kept.append(line)
+    return "\n".join(kept)
+
+
 def verify_symbol_whitelist(
     user_c_files: list[Path],
     allowed_functions: list[str] | None,
@@ -332,11 +363,34 @@ def verify_symbol_whitelist(
     strict_dual_compiler: bool = False,
 ) -> tuple[CompileResult, SymbolCheckResult]:
     """Compile C sources and verify undefined symbols against allowed list."""
+    inc_flags: list[str] = []
+    for d in include_dirs or [work_dir]:
+        inc_flags.extend(["-I", str(d)])
+
+    from .grader import _run_isolated
+
     for cfile in user_c_files:
+        if cfile.is_symlink():
+            return (
+                CompileResult(True, "", 0, "", ""),
+                SymbolCheckResult(
+                    False,
+                    reason="Cheating (-42): Symbolic links are forbidden",
+                ),
+            )
         if cfile.suffix in {".c", ".h"} and cfile.exists():
+            try:
+                fsize = cfile.stat().st_size
+            except OSError:
+                fsize = 0
+            if fsize > MAX_SOURCE_FILE_BYTES:
+                return (
+                    CompileResult(False, "", 1, "", "Source file exceeds 1 MB limit"),
+                    SymbolCheckResult(False, reason="Does not compile"),
+                )
             raw_code = cfile.read_text(encoding="utf-8", errors="replace")
             clean_code = strip_c_comments_and_strings(raw_code)
-            if re.search(r"\b(__asm__|__asm|asm)\b", clean_code):
+            if _ASM_KEYWORD_RE.search(clean_code):
                 return (
                     CompileResult(True, "", 0, "", ""),
                     SymbolCheckResult(
@@ -344,10 +398,27 @@ def verify_symbol_whitelist(
                         reason="Cheating (-42): Inline assembly is strictly forbidden",
                     ),
                 )
-
-    inc_flags: list[str] = []
-    for d in include_dirs or [work_dir]:
-        inc_flags.extend(["-I", str(d)])
+            if "##" in clean_code or "#define" in clean_code:
+                try:
+                    pp = _run_isolated(
+                        ["cc", "-E", "-D__NO_CTYPE", "-x", "c", *inc_flags, str(cfile)],
+                        cwd=work_dir,
+                        timeout=5.0,
+                    )
+                    if pp.returncode == 0 and _ASM_KEYWORD_RE.search(
+                        strip_c_comments_and_strings(
+                            extract_user_preprocessed_code(pp.stdout)
+                        )
+                    ):
+                        return (
+                            CompileResult(True, "", 0, "", ""),
+                            SymbolCheckResult(
+                                False,
+                                reason="Cheating (-42): Inline assembly is strictly forbidden",
+                            ),
+                        )
+                except (OSError, subprocess.SubprocessError):
+                    pass
 
     obj_files: list[Path] = []
     cmds_run: list[str] = []
@@ -368,7 +439,6 @@ def verify_symbol_whitelist(
             "-o",
             str(obj),
         ]
-        from .grader import _run_isolated
 
         cmds_run.append(
             " ".join(["cc", *FLAGS_DEFAULT, "-c", cfile.name, "-o", obj.name])
@@ -425,6 +495,26 @@ def verify_symbol_whitelist(
                         )
 
     compile_res = CompileResult(True, "\n".join(cmds_run), 0, "", "", dual_warnings)
+
+    if obj_files and shutil.which("objdump") is not None:
+        try:
+            od_proc = subprocess.run(
+                ["objdump", "-d", *[str(o) for o in obj_files]],
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=5.0,
+            )
+            if od_proc.returncode == 0 and _RAW_SYSCALL_INSN_RE.search(od_proc.stdout):
+                return (
+                    compile_res,
+                    SymbolCheckResult(
+                        ok=False,
+                        reason="Cheating (-42): Inline assembly / direct syscall instruction is strictly forbidden",
+                    ),
+                )
+        except (OSError, subprocess.SubprocessError):
+            pass
 
     # Fail closed if nm is unavailable (GRD-006)
     if shutil.which("nm") is None:

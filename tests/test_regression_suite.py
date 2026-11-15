@@ -50,8 +50,10 @@ from deepthought.compiler_and_symbols import check_forbidden_c_includes  # noqa:
 from deepthought.grader import (  # noqa: E402
     _get_strict_sandbox_flags,
     classify_process_exit_status,
+    evaluate_cpp_exercise,
     get_executable_temp_root,
     grade_subject,
+    resolve_subject_dir,
 )
 from deepthought.progression import StudentProfile, compute_42_level  # noqa: E402
 
@@ -1102,6 +1104,252 @@ class TestMagratheaRegressionSuite(unittest.TestCase):
         self.assertLess(compute_42_level(136000), 21.0)
         self.assertEqual(compute_42_level(136295), 21.0)
         self.assertEqual(compute_42_level(500000), 21.0)
+
+    def test_32(self) -> None:
+        """SEC-01: Ban symlinks inside turn-in, treat dir-as-file cleanly, enforce 1MB cap."""
+        target = self.work / "secret.c"
+        target.write_text("#include <unistd.h>\nvoid ft_putchar(char c){write(1,&c,1);}\n", encoding="utf-8")
+
+        sub_sym = self.work / "sub_sym"
+        sub_sym.mkdir()
+        (sub_sym / "ft_putchar.c").symlink_to(target)
+        rep_sym = grade_subject(KIT_ROOT, "piscine/c00/ft_putchar", sub_sym)
+        self.assertFalse(rep_sym.passed)
+        self.assertEqual(rep_sym.grade, -42)
+        self.assertIn("Cheating", rep_sym.status)
+
+        ws_link = self.work / "ws_link"
+        real_ex = ws_link / "ft_putchar"
+        real_ex.mkdir(parents=True)
+        (real_ex / "ft_putchar.c").write_text(
+            _norm_header("ft_putchar.c")
+            + "#include <unistd.h>\n\nvoid\tft_putchar(char c)\n{\n\twrite(1, &c, 1);\n}\n",
+            encoding="utf-8",
+        )
+        ex00_link = ws_link / "ex00"
+        ex00_link.symlink_to(real_ex)
+        rep_ok = grade_subject(KIT_ROOT, "piscine/c00/ft_putchar", ex00_link)
+        self.assertTrue(rep_ok.passed, rep_ok.reason)
+
+        sub_dir = self.work / "sub_dir"
+        (sub_dir / "ft_putchar.c").mkdir(parents=True)
+        rep_dir = grade_subject(KIT_ROOT, "piscine/c00/ft_putchar", sub_dir)
+        self.assertFalse(rep_dir.passed)
+        self.assertIn("Nothing", rep_dir.status)
+
+        big_c = self.work / "big_source.c"
+        big_c.write_text("/* " + ("a" * 1_048_600) + " */\nint x(void){return 0;}\n", encoding="utf-8")
+        comp_big, sym_big = cas.verify_symbol_whitelist([big_c], ["write"], work_dir=self.work)
+        self.assertFalse(comp_big.ok)
+        self.assertIn("limit", comp_big.stderr.lower())
+        self.assertFalse(sym_big.ok)
+
+    def test_33(self) -> None:
+        """SEC-02: Macro-expanded JOIN(__a,sm__) rejected and -D__NO_CTYPE attributes ctype calls."""
+        join_c = self.work / "join_asm.c"
+        join_c.write_text(
+            '#define JOIN(a, b) a##b\nvoid foo(void)\n{\n\tJOIN(__a, sm__)("nop");\n}\n',
+            encoding="utf-8",
+        )
+        _, sym_asm = cas.verify_symbol_whitelist([join_c], ["write"], work_dir=self.work)
+        self.assertFalse(sym_asm.ok)
+        self.assertIn("inline assembly", sym_asm.reason.lower())
+
+        ctype_c = self.work / "ctype_check.c"
+        ctype_c.write_text(
+            "#include <ctype.h>\nint\tcheck(int c)\n{\n\treturn (isdigit(c) && !isspace(c));\n}\n",
+            encoding="utf-8",
+        )
+        comp_ct, sym_ct = cas.verify_symbol_whitelist(
+            [ctype_c], allowed_functions=["isdigit"], work_dir=self.work
+        )
+        self.assertTrue(comp_ct.ok, comp_ct.stderr)
+        self.assertFalse(sym_ct.ok)
+        self.assertIn("isspace", sym_ct.forbidden_called)
+        self.assertNotIn("__ctype_b_loc", sym_ct.forbidden_called)
+
+    def test_34(self) -> None:
+        """SEC-03: constructor(101) + /proc/self/environ catches leaks after env wipe; __dt_main.c unlinked."""
+        _, exec_dir = prepare_isolated_build_dir(KIT_ROOT, "REG-34")
+        flags = _get_strict_sandbox_flags(KIT_ROOT, exec_dir)
+        wipe_c = exec_dir / "env_wipe_leak.c"
+        wipe_c.write_text(
+            "#include <stdlib.h>\n"
+            "extern char **environ;\n"
+            "__attribute__((constructor)) static void wipe_env(void) {\n"
+            '    unsetenv("DT_CHECK_LEAKS");\n'
+            "    if (environ) environ[0] = NULL;\n"
+            "}\n"
+            "int main(void) {\n"
+            "    char *p = malloc(32);\n"
+            "    if (!p) return 1;\n"
+            "    p[0] = 'x';\n"
+            "    return 0;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        wipe_bin = exec_dir / "env_wipe_leak"
+        c_res = run_captured_process(
+            ["cc", str(wipe_c), *flags, "-o", str(wipe_bin)],
+            cwd=exec_dir,
+            isolated_home=self.home,
+        )
+        self.assertEqual(c_res.returncode, 0, c_res.stderr)
+        r_res = run_captured_process(
+            [str(wipe_bin)],
+            cwd=exec_dir,
+            isolated_home=self.home,
+            extra_env={"DT_CHECK_LEAKS": "1"},
+        )
+        self.assertEqual(r_res.returncode, 42, r_res.stdout + r_res.stderr)
+
+        subj_probe = self.work / "subj_probe"
+        subj_probe.mkdir()
+        (subj_probe / "meta.yml").write_text(
+            "id: dt_unlink_probe\ntype: c_function\nexpected_files:\n- probe.c\n"
+            "allowed_functions:\n- open\n- close\nprototype: int probe(void);\n"
+            "norminette: false\n",
+            encoding="utf-8",
+        )
+        (subj_probe / "tests.yml").write_text(
+            "mode: c_function\nfixed_tests:\n- name: main_c_unlinked\n"
+            '  call: printf("%d\\n", probe())\n  stdout: |\n    1\n',
+            encoding="utf-8",
+        )
+        sub_probe = self.work / "sub_probe"
+        sub_probe.mkdir()
+        (sub_probe / "probe.c").write_text(
+            "#include <fcntl.h>\n#include <unistd.h>\n"
+            'int probe(void) { int fd = open("__dt_main.c", O_RDONLY); '
+            "if (fd >= 0) { close(fd); return 0; } return 1; }\n",
+            encoding="utf-8",
+        )
+        rep_probe = grade_subject(
+            KIT_ROOT, "dt_unlink_probe", sub_probe, subj_dir_override=subj_probe
+        )
+        self.assertTrue(rep_probe.passed, rep_probe.reason)
+
+    def test_35(self) -> None:
+        """SEC-04: C++ comment-only vs macro switch, corrupted .session.json recovery, >128-char guard."""
+        cpp_subj = self.work / "cpp_subj"
+        cpp_subj.mkdir()
+        (cpp_subj / "tests.yml").write_text(
+            'mode: cpp\nmain_cpp: "#include \\"Warlock.hpp\\"\\nint main(){return warlock_ok();}\\n"\n'
+            'expected_stdout: ""\n',
+            encoding="utf-8",
+        )
+        meta = {
+            "type": "cpp",
+            "expected_files": ["Warlock.cpp", "Warlock.hpp"],
+            "compiler_flags": ["-Wall", "-Wextra", "-Werror"],
+        }
+        cpp_ok = self.work / "cpp_ok"
+        cpp_ok.mkdir()
+        (cpp_ok / "Warlock.hpp").write_text("int warlock_ok(void);\n", encoding="utf-8")
+        (cpp_ok / "Warlock.cpp").write_text(
+            "// switch (x) { case 1: break; } comment only\nint warlock_ok(void) { return 0; }\n",
+            encoding="utf-8",
+        )
+        rep_cpp_ok = evaluate_cpp_exercise(
+            cpp_subj, "cpp_module_01", cpp_ok, meta, [], {}
+        )
+        self.assertTrue(rep_cpp_ok.passed, rep_cpp_ok.reason)
+
+        cpp_mac = self.work / "cpp_mac"
+        cpp_mac.mkdir()
+        (cpp_mac / "Warlock.hpp").write_text("int warlock_ok(void);\n", encoding="utf-8")
+        (cpp_mac / "Warlock.cpp").write_text(
+            "#define SW switch\nint warlock_ok(void) { int x = 0; SW (x) { default: return 0; } }\n",
+            encoding="utf-8",
+        )
+        rep_cpp_bad = evaluate_cpp_exercise(
+            cpp_subj, "cpp_module_01", cpp_mac, meta, [], {}
+        )
+        self.assertFalse(rep_cpp_bad.passed)
+        self.assertIn("switch", (rep_cpp_bad.status + " " + rep_cpp_bad.reason).lower())
+
+        eb = self.work / "corrupt_exam"
+        eb.mkdir()
+        (eb / ".session.json").write_text(
+            json.dumps(
+                {
+                    "start_ts": 1000.0,
+                    "grade": "corrupt",
+                    "duration_sec": -5,
+                    "history": 123,
+                    "practice": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+        ex_res = run_captured_process(
+            [
+                sys.executable,
+                str(KIT_ROOT / "bin/examshell"),
+                "--basedir",
+                str(eb),
+                "--mode",
+                "practice",
+                "--seed",
+                "1",
+                "-c",
+                "status",
+            ],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+            extra_env={"EXAMSHELL_ALLOW_WIPE": "1"},
+        )
+        self.assertEqual(ex_res.returncode, 0, ex_res.stdout + ex_res.stderr)
+        self.assertIn("corrupted session state", ex_res.stderr.lower())
+        self.assertIn("Your current grade is 0", ex_res.stdout)
+
+        long_name = "piscine/c00/" + ("a" * 140)
+        with self.assertRaises(FileNotFoundError):
+            resolve_subject_dir(KIT_ROOT, long_name)
+        ml_long = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/moulinette"), "--no-color", "subject", long_name],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+        )
+        self.assertNotEqual(ml_long.returncode, 0)
+        self.assertIn("too long", (ml_long.stdout + ml_long.stderr).lower())
+
+    def test_36(self) -> None:
+        """BIN-BC: obase>16 POSIX spacing, neg exponent parity, empty arg error, MAX_SCALE guard."""
+        ok_res = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/bc"), "-q"],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+            stdin_data=(
+                "scale=0\n-5^2\n2^3^2\n"
+                "scale=2\n2^-2\n"
+                "scale=0\nobase=20\n400\n0\n-400\n1.5\n0.5\n"
+                "scale=4\n2/3\n"
+            ),
+        )
+        self.assertEqual(ok_res.returncode, 0, ok_res.stderr)
+        self.assertEqual(
+            ok_res.stdout.splitlines(),
+            ["25", "512", ".25", " 01 00 00", "0", "- 01 00 00", " 01.10", ".10", ".13 06 12 16"],
+        )
+
+        empty_fn = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/bc"), "-q"],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+            stdin_data="sqrt()\n",
+        )
+        self.assertNotEqual(empty_fn.returncode, 0)
+        self.assertIn("requires an argument", empty_fn.stderr.lower())
+
+        huge_scale = run_captured_process(
+            [sys.executable, str(KIT_ROOT / "bin/bc"), "-q"],
+            cwd=KIT_ROOT,
+            isolated_home=self.home,
+            stdin_data="scale=99999\n",
+        )
+        self.assertNotEqual(huge_scale.returncode, 0)
+        self.assertIn("out of range", huge_scale.stderr.lower())
 
 
 if __name__ == "__main__":

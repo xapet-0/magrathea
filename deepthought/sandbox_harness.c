@@ -108,6 +108,9 @@ static DT_THREAD_LOCAL int g_in_hook = 0;
 static volatile int g_dt_lock = 0;
 static int g_audit_done = 0;
 static int g_exit_status = 0;
+static int g_env_initialized = 0;
+static size_t g_reclaim_cursor = 0;
+static char g_arena_stats_file[4096];
 
 static inline void dt_lock(void)
 {
@@ -281,6 +284,9 @@ void dt_harness_reset_state(void)
 	g_in_hook = 0;
 	g_audit_done = 0;
 	g_exit_status = 0;
+	g_env_initialized = 0;
+	g_reclaim_cursor = 0;
+	g_arena_stats_file[0] = '\0';
 	dt_unlock();
 }
 
@@ -323,11 +329,100 @@ static size_t dt_hash_ptr(const void *p)
 	return (size_t)(v & (DT_HASH_BUCKETS - 1));
 }
 
+static const char *dt_proc_environ_get(const char *key, char *buf,
+					 size_t cap)
+{
+	if (!key || !*key || !buf || cap == 0)
+		return (NULL);
+	int fd = open("/proc/self/environ", O_RDONLY);
+	if (fd < 0)
+		return (NULL);
+	size_t key_len = strlen(key);
+	char chunk[512];
+	size_t k_idx = 0;
+	int match = 1;
+	int in_value = 0;
+	size_t v_idx = 0;
+	ssize_t n;
+	while ((n = __real_read(fd, chunk, sizeof(chunk))) > 0) {
+		for (ssize_t i = 0; i < n; i++) {
+			char ch = chunk[i];
+			if (ch == '\0') {
+				if (in_value && match) {
+					buf[v_idx] = '\0';
+					close(fd);
+					return (buf);
+				}
+				k_idx = 0;
+				match = 1;
+				in_value = 0;
+				v_idx = 0;
+				continue;
+			}
+			if (!in_value) {
+				if (ch == '=') {
+					if (k_idx != key_len)
+						match = 0;
+					in_value = 1;
+				} else if (match) {
+					if (k_idx < key_len &&
+					    ch == key[k_idx]) {
+						k_idx++;
+					} else {
+						match = 0;
+					}
+				}
+			} else if (match) {
+				if (v_idx + 1 < cap)
+					buf[v_idx++] = ch;
+			}
+		}
+	}
+	close(fd);
+	if (in_value && match) {
+		buf[v_idx] = '\0';
+		return (buf);
+	}
+	return (NULL);
+}
+
+static const char *dt_read_env_or_proc(const char *key, char *buf, size_t cap)
+{
+	const char *val = getenv(key);
+	if (val)
+		return (val);
+	return (dt_proc_environ_get(key, buf, cap));
+}
+
 static void dt_init_env_locked(void)
 {
+	char env_buf[4096];
 	dt_ensure_harness_arena_locked();
+	if (g_env_initialized) {
+#ifdef DT_UNIT_TEST_MODE
+		if (g_fail_at <= 0) {
+			const char *env_fail = getenv("DT_FAIL_MALLOC_AT");
+			if (env_fail && *env_fail) {
+				char *endp = NULL;
+				int saved_errno = errno;
+				errno = 0;
+				long parsed = strtol(env_fail, &endp, 10);
+				if (errno == 0 && endp != env_fail &&
+				    *endp == '\0' && parsed > 0 &&
+				    parsed <= INT_MAX) {
+					g_malloc_calls = 0;
+					g_fail_at = (int)parsed;
+				}
+				errno = saved_errno;
+			}
+		}
+#endif
+		return;
+	}
 	if (g_fail_at <= 0) {
-		const char *env_fail = getenv("DT_FAIL_MALLOC_AT");
+		const char *env_fail =
+		    dt_read_env_or_proc("DT_FAIL_MALLOC_AT", env_buf,
+					sizeof(env_buf));
 		int new_fail = 0;
 		if (env_fail && *env_fail) {
 			char *endp = NULL;
@@ -346,15 +441,21 @@ static void dt_init_env_locked(void)
 			g_fail_at = 0;
 	}
 	if (g_chunk_read == -1) {
-		const char *env_chunk = getenv("DT_CHUNK_READ");
+		const char *env_chunk =
+		    dt_read_env_or_proc("DT_CHUNK_READ", env_buf,
+					sizeof(env_buf));
 		g_chunk_read =
 		    (env_chunk && strcmp(env_chunk, "1") == 0) ? 1 : 0;
 	}
 	if (g_check_leaks == -1) {
-		const char *env_leaks = getenv("DT_CHECK_LEAKS");
+		const char *env_leaks =
+		    dt_read_env_or_proc("DT_CHECK_LEAKS", env_buf,
+					sizeof(env_buf));
 		g_check_leaks =
 		    (env_leaks && strcmp(env_leaks, "1") == 0) ? 1 : 0;
-		const char *env_max = getenv("DT_MAX_ALLOCS");
+		const char *env_max =
+		    dt_read_env_or_proc("DT_MAX_ALLOCS", env_buf,
+					sizeof(env_buf));
 		if (env_max && *env_max) {
 			char *endp = NULL;
 			int saved_errno = errno;
@@ -365,7 +466,23 @@ static void dt_init_env_locked(void)
 				g_max_allocs = (size_t)mv;
 			errno = saved_errno;
 		}
+		const char *stats_env =
+		    dt_read_env_or_proc("DT_ARENA_STATS_FILE", env_buf,
+					sizeof(env_buf));
+		if (stats_env && *stats_env &&
+		    strlen(stats_env) < sizeof(g_arena_stats_file)) {
+			strcpy(g_arena_stats_file, stats_env);
+		}
 	}
+	g_env_initialized = 1;
+#ifndef DT_UNIT_TEST_MODE
+	unsetenv("DT_CHECK_LEAKS");
+	unsetenv("DT_FAIL_MALLOC_AT");
+	unsetenv("DT_CHUNK_READ");
+	unsetenv("DT_MAX_ALLOCS");
+	unsetenv("DT_ARENA_STATS_FILE");
+	unsetenv("DT_ARENA_TELEMETRY_FD");
+#endif
 }
 
 static void dt_audit_memory_leaks(void);
@@ -384,11 +501,14 @@ static void dt_atexit_hook(void)
 }
 #endif
 
-__attribute__((constructor)) static void dt_constructor_init(void)
+__attribute__((constructor(101))) static void dt_constructor_init(void)
 {
 	int saved_errno = errno;
 	dt_lock();
+	g_in_hook = 1;
 	dt_ensure_harness_arena_locked();
+	dt_init_env_locked();
+	g_in_hook = 0;
 	dt_unlock();
 #if defined(__GLIBC__)
 	on_exit(dt_on_exit_hook, NULL);
@@ -401,7 +521,9 @@ __attribute__((constructor)) static void dt_constructor_init(void)
 static void dt_emit_arena_telemetry_locked(int leaked_blocks,
 					   size_t leaked_bytes)
 {
-	const char *stats_file = getenv("DT_ARENA_STATS_FILE");
+	const char *stats_file =
+	    g_arena_stats_file[0] ? g_arena_stats_file
+				  : getenv("DT_ARENA_STATS_FILE");
 	if (!stats_file || !*stats_file || !g_harness_arena_ready)
 		return;
 	dt_arena_stats_t st;
@@ -447,6 +569,7 @@ static void dt_verify_redzone_locked(const t_alloc_node *node)
 				"offset -%zu before malloc(%zu))!\n",
 				DT_LEFT_REDZONE_SIZE - k, sz);
 			dt_emit_arena_telemetry_locked(0, 0);
+			g_in_hook = 0;
 			dt_unlock();
 			dt_terminate_with_code(43);
 		}
@@ -462,6 +585,7 @@ static void dt_verify_redzone_locked(const t_alloc_node *node)
 			    "write at offset +%zu past malloc(%zu))!\n",
 			    k, sz);
 			dt_emit_arena_telemetry_locked(0, 0);
+			g_in_hook = 0;
 			dt_unlock();
 			dt_terminate_with_code(43);
 		}
@@ -483,8 +607,9 @@ static t_alloc_node *dt_find_node_locked(const void *user_ptr)
 static size_t dt_reclaim_inactive_nodes_locked(size_t max_reclaim)
 {
 	size_t reclaimed = 0;
-	for (size_t b = 0; b < DT_HASH_BUCKETS && reclaimed < max_reclaim;
-	     b++) {
+	for (size_t idx = 0; idx < DT_HASH_BUCKETS && reclaimed < max_reclaim;
+	     idx++) {
+		size_t b = (g_reclaim_cursor + idx) % DT_HASH_BUCKETS;
 		t_alloc_node **link = &g_buckets[b];
 		while (*link && reclaimed < max_reclaim) {
 			t_alloc_node *cur = *link;
@@ -502,7 +627,13 @@ static size_t dt_reclaim_inactive_nodes_locked(size_t max_reclaim)
 				link = &cur->next;
 			}
 		}
+		if (reclaimed >= max_reclaim) {
+			g_reclaim_cursor = (b + 1) % DT_HASH_BUCKETS;
+			break;
+		}
 	}
+	if (reclaimed < max_reclaim)
+		g_reclaim_cursor = (g_reclaim_cursor + 1) % DT_HASH_BUCKETS;
 	return (reclaimed);
 }
 
@@ -833,6 +964,14 @@ size_t dt_get_alloc_size(void *ptr)
 	return (sz);
 }
 
+int dt_harness_is_fail_malloc_active(void)
+{
+	dt_lock();
+	int active = (g_fail_at > 0);
+	dt_unlock();
+	return (active);
+}
+
 /**
  * dt_audit_memory_leaks() - Perform final redzone & leak audit at process exit.
  *
@@ -850,11 +989,9 @@ static void dt_audit_memory_leaks(void)
 		dt_unlock();
 		return;
 	}
+	g_in_hook = 1;
 	g_audit_done = 1;
 	dt_init_env_locked();
-	const char *env_leaks_now = getenv("DT_CHECK_LEAKS");
-	if (env_leaks_now && strcmp(env_leaks_now, "1") == 0)
-		g_check_leaks = 1;
 	int leaked_blocks = 0;
 	size_t leaked_bytes = 0;
 	for (size_t b = 0; b < DT_HASH_BUCKETS; b++) {
@@ -874,6 +1011,7 @@ static void dt_audit_memory_leaks(void)
 		g_harness_arena_ready = 0;
 	}
 	int fail_leak = (g_exit_status == 0 && g_check_leaks && leaked_blocks > 0);
+	g_in_hook = 0;
 	dt_unlock();
 	if (fail_leak) {
 		fprintf(stderr,

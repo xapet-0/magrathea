@@ -30,6 +30,8 @@ import sys
 
 DIGITS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 MAX_EXPONENT_DIGITS = 100_000  # DoS guard against 9^9^9 memory exhaustion
+MAX_SCALE = 4096
+MAX_OBASE = 10_000
 decimal.getcontext().prec = 256
 
 
@@ -132,7 +134,7 @@ def parse_bc_number(token: str, ibase: int) -> tuple[Decimal, int]:
 
 
 def format_bc_number(val: Decimal, obase: int, scale: int, line_len: int = 70) -> str:
-    """Format a Decimal in 'obase' (2..36) with 'scale' fractional digits and POSIX line wrapping."""
+    """Format a Decimal in 'obase' (2..MAX_OBASE) with 'scale' fractional digits and POSIX wrapping."""
     neg = val < 0
     v = abs(val)
     int_part = int(v)
@@ -142,16 +144,20 @@ def format_bc_number(val: Decimal, obase: int, scale: int, line_len: int = 70) -
     _, digits_tup, exp_val = v.as_tuple()
     val_scale = max(0, -int(exp_val)) if isinstance(exp_val, int) else 0
     eff_scale = max(scale, val_scale)
+    dwidth = len(str(obase - 1)) if obase > 16 else 1
 
     if int_part == 0:
         int_str = "0" if eff_scale == 0 else ""
     else:
-        out_digits: list[str] = []
+        int_digits: list[int] = []
         n = int_part
         while n > 0:
-            out_digits.append(DIGITS[n % obase])
+            int_digits.append(n % obase)
             n //= obase
-        int_str = "".join(reversed(out_digits))
+        if obase > 16:
+            int_str = "".join(f" {d:0{dwidth}d}" for d in reversed(int_digits))
+        else:
+            int_str = "".join(DIGITS[d] for d in reversed(int_digits))
 
     frac_str = ""
     if eff_scale > 0:
@@ -161,7 +167,7 @@ def format_bc_number(val: Decimal, obase: int, scale: int, line_len: int = 70) -
             if obase == 10
             else max(1, math.ceil(eff_scale * math.log(10, obase)))
         )
-        f_chars: list[str] = []
+        frac_digits: list[int] = []
         rem = frac_part
         b_dec = Decimal(obase)
         for _ in range(ob_digits):
@@ -169,9 +175,13 @@ def format_bc_number(val: Decimal, obase: int, scale: int, line_len: int = 70) -
             d = int(rem)
             if d >= obase:
                 d = obase - 1
-            f_chars.append(DIGITS[d])
+            frac_digits.append(d)
             rem -= Decimal(d)
-        frac_str = "." + "".join(f_chars)
+        if obase > 16:
+            f_groups = [f"{d:0{dwidth}d}" for d in frac_digits]
+            frac_str = "." + f_groups[0] + "".join(f" {g}" for g in f_groups[1:])
+        else:
+            frac_str = "." + "".join(DIGITS[d] for d in frac_digits)
 
     body = (int_str or "0") + frac_str if not frac_str else (int_str + frac_str)
     res = (
@@ -266,14 +276,14 @@ class BcParser:
             return Decimal(iv)
         if name == "obase":
             ov = int(val)
-            if ov < 2 or ov > len(DIGITS):
-                raise ValueError(f"obase {ov} out of range (2..{len(DIGITS)})")
+            if ov < 2 or ov > MAX_OBASE:
+                raise ValueError(f"obase {ov} out of range (2..{MAX_OBASE})")
             self.state.obase = ov
             return Decimal(ov)
         if name == "scale":
             sv = int(val)
-            if sv < 0:
-                raise ValueError(f"scale {sv} must be non-negative")
+            if sv < 0 or sv > MAX_SCALE:
+                raise ValueError(f"scale {sv} out of range (0..{MAX_SCALE})")
             self.state.scale = sv
             return Decimal(sv)
         self.state.variables[name] = val
@@ -364,30 +374,32 @@ class BcParser:
             is_assign = False
         return val, is_assign
 
+    def _eval_pow(self, val: Decimal, rhs: Decimal) -> Decimal:
+        """Compute val^int(rhs) honoring MAX_EXPONENT_DIGITS and active scale."""
+        exp_int = int(rhs)
+        if exp_int == 0:
+            return Decimal(1)
+        if exp_int == 1:
+            return val
+        est_digits = abs(exp_int) * max(1, val.adjusted() + 1)
+        if val != 0 and abs(val) > 1 and est_digits > MAX_EXPONENT_DIGITS:
+            raise OverflowError("Exponent exceeds maximum safe precision limit")
+        if decimal.getcontext().prec < est_digits + self.state.scale + 64:
+            decimal.getcontext().prec = est_digits + self.state.scale + 64
+        if exp_int < 0:
+            if val == 0:
+                raise ZeroDivisionError("Divide by zero in negative power")
+            return self.state.quantize(
+                Decimal(1) / (val ** abs(exp_int)), custom_scale=self.state.scale
+            )
+        return val**exp_int
+
     def _parse_pow(self) -> tuple[Decimal, bool]:
         val, is_assign = self._parse_unary()
         if self.peek().value == "^":
             self.consume("^")
             rhs, _ = self._parse_pow()  # Right-associative per POSIX bc
-            exp_int = int(rhs)
-            if exp_int == 0:
-                return Decimal(1), False
-            if exp_int == 1:
-                return val, False
-            est_digits = abs(exp_int) * max(1, val.adjusted() + 1)
-            if val != 0 and abs(val) > 1 and est_digits > MAX_EXPONENT_DIGITS:
-                raise OverflowError("Exponent exceeds maximum safe precision limit")
-            if decimal.getcontext().prec < est_digits + self.state.scale + 64:
-                decimal.getcontext().prec = est_digits + self.state.scale + 64
-            if exp_int < 0:
-                if val == 0:
-                    raise ZeroDivisionError("Divide by zero in negative power")
-                val = self.state.quantize(
-                    Decimal(1) / (val ** abs(exp_int)), custom_scale=self.state.scale
-                )
-            else:
-                val = val**exp_int
-            is_assign = False
+            return self._eval_pow(val, rhs), False
         return val, is_assign
 
     def _parse_unary(self) -> tuple[Decimal, bool]:
@@ -433,11 +445,9 @@ class BcParser:
             # Function call: sqrt(x), length(x), scale(x), s(x), c(x), a(x), l(x), e(x)
             if self.peek().value == "(":
                 self.consume("(")
-                arg_val, _ = (
-                    self.parse_expr()
-                    if self.peek().value != ")"
-                    else (Decimal(0), False)
-                )
+                if self.peek().value == ")":
+                    raise SyntaxError(f"Function '{name}()' requires an argument")
+                arg_val, _ = self.parse_expr()
                 self.consume(")")
                 return self._eval_builtin_func(name, arg_val), False
 
@@ -471,7 +481,7 @@ class BcParser:
                     q = self.state.quantize(cur / rhs)
                     new_v = cur - q * rhs
                 else:
-                    new_v = cur ** int(rhs)
+                    new_v = self._eval_pow(cur, rhs)
                 self._set_var(name, new_v)
                 return new_v, True
 

@@ -11,4 +11,4 @@ compiler_flags:
 - -Wextra
 - -Werror
 norminette: true
-prototype: (*cmp)(list_ptr->data, data_ref);
+prototype: t_list *ft_list_find(t_list *begin_list, void *data_ref, int (*cmp)());
